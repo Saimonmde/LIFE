@@ -1,0 +1,12 @@
+# LIFE INC · El Jardín — un servicio web gratuito. Sin dependencias.
+services:
+  - type: web
+    name: lifein
+    runtime: python
+    plan: free
+    branch: main
+    autoDeploy: true
+    autoDeployTrigger: commit
+    buildCommand: echo ok
+    startCommand: python3 server.py --host 0.0.0.0
+    healthCheckPath: /healthz

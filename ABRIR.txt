@@ -1,0 +1,21 @@
+LIFE INC · El Jardín
+====================
+
+Cómo jugarlo en tu computadora:
+
+1. Descomprime esta carpeta si aún está en un .zip.
+2. Abre Terminal dentro de la carpeta El-Jardin.
+3. Ejecuta:
+
+   ./jugar.sh
+
+   (Si no quieres aldeanos de demostración: ./jugar.sh --sin-bots)
+
+4. En tu navegador abre:
+
+   http://localhost:8765/play/
+
+Necesitas Python 3 (en una Mac suele venir instalado; compruébalo con: python3 --version).
+
+El ciclo circadiano cambia de día a noche y de noche a día cada 10 minutos.
+La tecla N previsualiza el otro momento hasta el próximo cambio.

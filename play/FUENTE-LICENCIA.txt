@@ -1,0 +1,2 @@
+Pixelify Sans — Copyright 2021 The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
+Licencia: SIL Open Font License 1.1 (https://openfontlicense.org). Se usa sin modificar para la interfaz y el letrero.

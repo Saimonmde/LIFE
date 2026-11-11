@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SaimonCity · Valle de Aburrá 3D</title>
+<link rel="stylesheet" href="style.css?v=bolsa-chat-r1">
+<link rel="stylesheet" href="movil.css?v=movil-r1">
+<script src="movil.js?v=movil-r1"></script>
+</head>
+<body>
+<canvas id="juego"></canvas>
+<button id="b-descansar" hidden>Descansar</button><div id="rest-status" role="alert"></div>
+
+<!-- ===== Marca + perfil (arriba izquierda) ===== -->
+<div id="hud-perfil" class="hud">
+  <div class="marca"><svg class="emblema" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12" r="9" fill="#5fae4a" stroke="#2c1a0c" stroke-width="2"/><circle cx="11" cy="10" r="3" fill="#8fd16a"/><rect x="14.5" y="18" width="3" height="10" fill="#e2b23c" stroke="#2c1a0c" stroke-width="1"/><path d="M8 29h16" stroke="#e2b23c" stroke-width="2"/></svg><span>LIFE INC</span></div>
+  <div class="tarjeta">
+    <canvas id="retrato" width="56" height="56"></canvas>
+    <div class="datos">
+      <div id="mi-nombre">Jugador</div>
+      <div class="barra vida"><i id="bar-vida"></i><span id="txt-vida">100 / 100</span></div>
+      <div class="barra energia"><i id="bar-energia"></i><span id="txt-energia">100 / 100</span></div>
+      <div id="mi-nivel">Nv. 1</div>
+    </div>
+  </div>
+  <div id="zona-nombre">El Jardín</div>
+</div>
+
+<!-- ===== Botones + minimapa (arriba derecha) ===== -->
+<div id="hud-top" class="hud">
+  <button class="ico" id="b-inv" title="Inventario (I)"><img src="../graphics/ui/bolsa.png" alt=""></button>
+  <button class="ico" id="b-hab" title="Habilidades (K)"><img src="../graphics/ui/habilidades.png" alt=""></button>
+  <button class="ico" id="b-mis" title="Misiones (Q)"><img src="../graphics/ui/misiones.png" alt=""></button>
+  <button class="ico" id="b-soc" title="Jugadores cercanos"><img src="../graphics/ui/social.png" alt=""></button>
+  <button class="ico" id="b-noche" title="Ciclo día/noche cada 10 min (N previsualiza)"><img id="ico-noche" src="../graphics/ui/luna.png" alt=""></button>
+  <button class="ico" id="b-ayuda" title="Ayuda (H)"><img src="../graphics/ui/ayuda.png" alt=""></button>
+  <div id="ping"><i></i><span>sin conexión</span></div>
+</div>
+<div id="hud-mapa" class="hud" role="button" tabindex="0" aria-label="Abrir mapa de SaimonCity" aria-haspopup="dialog" aria-expanded="false"><canvas id="minimapa" width="168" height="168"></canvas><span class="norte">N</span><span class="map-sur">S</span><span class="map-or">OR</span><span class="map-oc">OC</span><button id="mm-zoom" title="Zoom del minimapa">+</button></div>
+
+<!-- ===== Paneles derecha ===== -->
+<div id="hud-derecha" class="hud">
+  <section id="p-misiones" class="panel" hidden><header>Primeros Pasos <button class="x" data-cierra="p-misiones">✕</button></header><ul id="misiones"></ul></section>
+  <section id="p-cercanos" class="panel" hidden><header><span>Otros jugadores (<span id="n-cercanos">0</span>)</span> <button class="x" data-cierra="p-cercanos">✕</button></header><ul id="cercanos"></ul></section>
+</div>
+
+<button id="chat-toggle" class="hud" aria-controls="hud-chat" aria-expanded="false" aria-label="Abrir chat">☵ <span>Chat</span><b id="chat-count" hidden>0</b></button>
+<button id="hud-toggle" class="hud" aria-pressed="false">Solo mundo</button>
+<!-- ===== Chat (abajo izquierda) ===== -->
+<div id="hud-chat" class="hud" hidden role="region" aria-label="Chat del juego">
+  <div class="pestanas">
+    <button data-canal="global">Global</button>
+    <button data-canal="proximidad" class="activa">Proximidad</button>
+    <button data-canal="clan">Clan</button>
+    <button data-canal="grupo">Grupo</button>
+    <button class="x" id="chat-min" title="Cerrar chat" aria-label="Cerrar chat">✕</button>
+  </div>
+  <div id="chat-log" role="log" aria-label="Mensajes"></div>
+  <div id="chat-nota"></div>
+  <form id="chat-form" autocomplete="off"><input id="chat-input" aria-label="Mensaje" maxlength="160" placeholder="Escribe un mensaje…"><button type="submit" title="Enviar">➤</button></form>
+</div>
+
+<!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
+<div id="hotbar" class="hud"></div>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span><img src="../graphics/ui/moneda.png" alt=""><b id="monedas">0</b></span></div>
+
+<!-- ===== Ventanas ===== -->
+<section id="w-inv" class="ventana" hidden><header>Inventario <button class="x" data-cierra="w-inv">✕</button></header><div id="inventario"></div><div id="seleccion">Seleccionado: —</div></section>
+<section id="w-hab" class="ventana" hidden><header>Habilidades <button class="x" data-cierra="w-hab">✕</button></header><ul id="habilidades"></ul></section>
+<div id="aviso" hidden><div class="titulo" id="aviso-titulo">Continuemos</div><div id="aviso-txt"></div></div>
+<div id="objetivo" class="hud" hidden><div id="objetivo-txt"></div></div>
+<div id="dialogo" hidden><canvas id="dialogo-cara" width="64" height="64"></canvas><div class="cuerpo"><div class="quien">Capataz</div><div id="dialogo-txt"></div><div class="seguir">Toca aquí para continuar ▸</div></div></div>
+<div id="tooltip" hidden></div>
+<div id="cargando">Cargando Medellín…</div>
+
+<div id="login" hidden>
+  <form id="login-form" autocomplete="off">
+    <div class="marca grande"><svg class="emblema" viewBox="0 0 32 32"><circle cx="16" cy="12" r="9" fill="#5fae4a" stroke="#2c1a0c" stroke-width="2"/><circle cx="11" cy="10" r="3" fill="#8fd16a"/><rect x="14.5" y="18" width="3" height="10" fill="#e2b23c" stroke="#2c1a0c" stroke-width="1"/><path d="M8 29h16" stroke="#e2b23c" stroke-width="2"/></svg><span>LIFE INC</span></div>
+    <p class="sub">Zona de inicio · <b>Medellín 3D</b></p>
+    <label>Nombre<input id="l-nombre" maxlength="16" required placeholder="Tu nombre"></label>
+    <label>Clan<input id="l-clan" maxlength="24" value="LIFE INC"></label>
+    <label>Grupo (opcional)<input id="l-grupo" maxlength="24" placeholder="p. ej. Mineros"></label>
+    <div class="colores" id="l-colores"></div>
+    <button type="submit">Entrar</button>
+    <p id="login-status" role="status"></p>
+  </form>
+</div>
+
+<div id="ayuda" hidden>
+  <h2>Cómo jugar en El Jardín</h2>
+  <ul>
+    <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr. Clic en algo para ir e interactuar.</li>
+    <li><b>Capataz</b> (plaza, con <b>!</b>): háblale para empezar los <b>Primeros Pasos</b>.</li>
+    <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
+    <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
+    <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code>.</li>
+    <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
+  </ul>
+  <button id="btn-cerrar-ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
+</div>
+<section id="city-map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
+  <div class="city-map-panel"><header><span id="city-map-title">Mapa de SaimonCity</span><button id="city-map-close" aria-label="Cerrar mapa">✕</button></header>
+  <canvas id="city-map-canvas" width="800" height="800" role="img" aria-label="Mapa completo de SaimonCity. Tu posición está marcada con una estrella amarilla."></canvas>
+  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente</p></div>
+</section>
+<div id="autotest" hidden></div>
+<script src="../data/el-jardin.js?v=saimoncity-expansion-r3"></script>
+<script src="mining-rules.js?v=mine-r2"></script>
+<script src="game.js?v=bolsa-chat-r1"></script>
+<script type="module" src="unified3d.js?v=bolsa-chat-r1"></script>
+<script src="interface.js?v=medellin-3d-r6"></script>
+</body>
+</html>

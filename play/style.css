@@ -1,0 +1,187 @@
+@font-face { font-family: "Pixelify"; src: url("PixelifySans.ttf") format("truetype"); font-weight: 400 700; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0f170b; font-family: "Pixelify", "Trebuchet MS", system-ui, sans-serif; color: #f3e6c4; }
+#juego { position: fixed; inset: 0; width: 100vw; height: 100vh; image-rendering: pixelated; cursor: pointer; touch-action: none; }
+.hud { position: fixed; z-index: 3; }
+button { font-family: inherit; }
+/* marco "madera oscura + borde dorado" de LIFE INC */
+.panel, .ventana, #hud-chat, .tarjeta, #dialogo, #ayuda, #login form, #hotbar, #hud-recursos > span, .ico, #ping {
+  background: linear-gradient(180deg, rgba(42,30,20,.92), rgba(24,17,11,.92)); border: 2px solid #b48a46; border-radius: 6px;
+  box-shadow: 0 0 0 1px #2a1a0c, inset 0 0 0 1px rgba(255,220,150,.08), 0 3px 8px rgba(0,0,0,.45);
+}
+header { font-weight: 700; color: #f5d27a; font-size: 15px; display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-bottom: 1px solid rgba(180,138,70,.45); }
+header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; cursor: pointer; font-size: 13px; padding: 0 4px; }
+/* perfil */
+#hud-perfil { top: 8px; left: 10px; width: 270px; pointer-events: none; }
+.marca { display: flex; align-items: center; gap: 6px; font-family: Georgia, "DejaVu Serif", serif; font-weight: 700; font-size: 25px; color: #f2d488; letter-spacing: 2px; text-shadow: 2px 2px 0 #2a1608, 0 0 8px rgba(0,0,0,.6); }
+.marca .emblema { width: 34px; height: 34px; }
+.marca.grande { font-size: 40px; justify-content: center; } .marca.grande .emblema { width: 54px; height: 54px; }
+.tarjeta { display: flex; gap: 8px; padding: 6px; margin-top: 4px; }
+#retrato { width: 56px; height: 56px; image-rendering: pixelated; border: 2px solid #b48a46; border-radius: 4px; background: #3b5a2c; }
+.datos { flex: 1; font-size: 13px; }
+#mi-nombre { font-weight: 700; color: #fff1c9; margin-bottom: 2px; }
+.barra { position: relative; height: 13px; background: #1a120b; border: 1px solid #000; border-radius: 3px; margin: 2px 0; overflow: hidden; }
+.barra i { position: absolute; inset: 0; width: 100%; } .vida i { background: linear-gradient(#e2504a, #a52520); } .energia i { background: linear-gradient(#4f8be6, #2350a8); }
+.barra span { position: relative; display: block; text-align: center; font-size: 10px; line-height: 12px; color: #fff; text-shadow: 1px 1px 0 #000; }
+#mi-nivel { font-size: 12px; color: #f5d27a; }
+#zona-nombre { margin-top: 6px; display: inline-block; padding: 3px 10px; font-size: 18px; color: #fff1c9; background: rgba(24,17,11,.75); border: 1px solid #b48a46; border-radius: 4px; text-shadow: 1px 1px 0 #000; }
+/* arriba derecha */
+#hud-top { top: 8px; right: 196px; display: flex; gap: 5px; align-items: center; }
+.ico { width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ico img { width: 28px; height: 28px; image-rendering: pixelated; }
+.ico:hover { border-color: #f5d27a; }
+#ping { height: 24px; padding: 0 8px; font-size: 12px; display: flex; align-items: center; gap: 5px; }
+#ping i { width: 9px; height: 9px; border-radius: 50%; background: #c0392b; } #ping.ok i { background: #5fd35f; }
+#hud-mapa { top: 6px; right: 10px; width: 176px; height: 176px; }
+#minimapa { width: 168px; height: 168px; border-radius: 50%; border: 4px solid #b48a46; box-shadow: 0 0 0 2px #2a1a0c, 0 3px 8px rgba(0,0,0,.5); image-rendering: pixelated; background: #2a3a1e; }
+.norte { position: absolute; top: -2px; left: 50%; transform: translateX(-50%); font-weight: 700; color: #f5d27a; text-shadow: 1px 1px 0 #000; font-size: 15px; }
+#mm-zoom { position: absolute; right: 2px; bottom: 6px; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #b48a46; background: #2a1d12; color: #f5d27a; font-weight: 700; cursor: pointer; }
+/* paneles derecha */
+#hud-derecha { top: 196px; right: 10px; width: 236px; display: flex; flex-direction: column; gap: 8px; }
+.panel ul { list-style: none; margin: 0; padding: 6px 8px; font-size: 13px; }
+#misiones li { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+#misiones .caja { width: 13px; height: 13px; border: 1px solid #d9c08c; border-radius: 2px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #5fd35f; background: #120c07; }
+#misiones li.hecha { color: #9fbf86; } #misiones .prog { margin-left: auto; color: #d9c08c; }
+#cercanos li { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
+#cercanos .pt { width: 8px; height: 8px; border-radius: 50%; background: #5fd35f; flex: none; } #cercanos li.lejos .pt { background: #7a7a7a; } #cercanos li.lejos { color: #a59a82; }
+#cercanos .m { margin-left: auto; color: #d9c08c; } #cercanos .bot { font-size: 10px; color: #a59a82; }
+#cercanos li.vacio { color: #a59a82; font-style: italic; }
+/* chat */
+#hud-chat { left: 10px; bottom: 10px; width: 420px; display: flex; flex-direction: column; }
+#hud-chat.min #chat-log, #hud-chat.min #chat-nota, #hud-chat.min #chat-form { display: none; }
+.pestanas { display: flex; gap: 2px; padding: 4px 4px 0; border-bottom: 1px solid #b48a46; }
+.pestanas button[data-canal] { background: #2a1d12; color: #d9c08c; border: 1px solid #6b5230; border-bottom: 0; border-radius: 5px 5px 0 0; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.pestanas button.activa { background: #5a4024; color: #fff1c9; border-color: #b48a46; }
+.pestanas button .nuevo { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #f5d27a; margin-left: 4px; vertical-align: middle; }
+#chat-log { height: 150px; overflow-y: auto; padding: 4px 8px; font-size: 13.5px; line-height: 1.3; }
+#chat-log .l { margin: 1px 0; word-wrap: break-word; } #chat-log .t { color: #9a8c70; } #chat-log .sys { color: #9fd0ff; } #chat-log .juego { color: #c8f59a; } #chat-log .aviso { color: #ffd27a; } #chat-log .oro { color: #ffe14d; }
+#chat-log .n { font-weight: 700; } #chat-log .canal { color: #a59a82; }
+#chat-nota { font-size: 11.5px; color: #8fe08f; padding: 2px 8px 4px; }
+#chat-form { display: flex; gap: 4px; padding: 4px; border-top: 1px solid rgba(180,138,70,.45); }
+#chat-input { flex: 1; background: #120c07; color: #fff1c9; border: 1px solid #6b5230; border-radius: 4px; padding: 6px 8px; font: inherit; font-size: 14px; }
+#chat-form button { width: 38px; background: #6b4a26; color: #fff1c9; border: 1px solid #b48a46; border-radius: 4px; cursor: pointer; font-size: 16px; }
+/* hotbar */
+#hotbar { left: 50%; transform: translateX(-50%); bottom: 10px; display: flex; gap: 3px; padding: 4px; }
+.hs { position: relative; width: 46px; height: 46px; background: #120c07; border: 1px solid #6b5230; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.hs img { width: 34px; height: 34px; image-rendering: pixelated; pointer-events: none; }
+.hs .k { position: absolute; left: 3px; top: 1px; font-size: 10px; color: #d9c08c; } .hs .n { position: absolute; right: 3px; bottom: 0; font-size: 11px; color: #fff7b0; text-shadow: 1px 1px 0 #000; }
+.hs.sel { border-color: #f5d27a; box-shadow: 0 0 0 2px #f5d27a inset; background: #3b2a16; }
+#hud-recursos { right: 10px; bottom: 10px; display: flex; gap: 6px; }
+#hud-recursos > span { display: flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: 15px; }
+#hud-recursos img { width: 22px; height: 22px; image-rendering: pixelated; }
+/* ventanas */
+.ventana { position: fixed; z-index: 6; right: 256px; top: 196px; width: 250px; }
+#inventario { display: grid; grid-template-columns: repeat(5, 42px); gap: 4px; padding: 8px; }
+.slot { width: 42px; height: 42px; background: #120c07; border: 1px solid #6b5230; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.slot img { width: 32px; height: 32px; image-rendering: pixelated; pointer-events: none; }
+.slot .n { position: absolute; right: 2px; bottom: 0; font-size: 11px; color: #fff7b0; text-shadow: 1px 1px 0 #000; }
+.slot.sel { border-color: #f5d27a; box-shadow: 0 0 0 2px #f5d27a inset; } .slot.vacio { cursor: default; opacity: .6; }
+#seleccion { padding: 0 8px 8px; font-size: 13px; }
+#habilidades { list-style: none; margin: 0; padding: 8px; font-size: 14px; }
+#habilidades li { display: flex; justify-content: space-between; } #habilidades .b { height: 5px; background: #120c07; margin: 2px 0 6px; border-radius: 2px; } #habilidades .b i { display: block; height: 100%; background: #8ccf4a; border-radius: 2px; }
+#dialogo { position: fixed; z-index: 7; left: 50%; top: 10px; transform: translateX(-50%); width: min(600px, 94vw); padding: 10px 14px; font-size: 16px; display: flex; gap: 12px; cursor: pointer;
+  background: linear-gradient(180deg, #e9dcb8, #d4c294); color: #2a1a0c; border: 3px solid #6b4a26; border-radius: 6px; box-shadow: 0 0 0 2px #2a1a0c, 0 4px 10px rgba(0,0,0,.5); }
+#dialogo[hidden], #aviso[hidden], #objetivo[hidden] { display: none; }
+#dialogo-cara { width: 64px; height: 64px; image-rendering: pixelated; flex: none; background: #b9a676; border: 2px solid #6b4a26; border-radius: 4px; }
+#dialogo .cuerpo { flex: 1; } #dialogo .quien { color: #8a1e1e; font-weight: 700; margin-bottom: 2px; text-align: center; } #dialogo-txt { text-align: center; line-height: 1.3; }
+#dialogo .seguir { color: #1f3f9a; text-align: center; margin-top: 6px; font-size: 14px; }
+#aviso { position: fixed; z-index: 6; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(600px, 94vw); padding: 10px 16px; text-align: center; font-size: 15px; line-height: 1.35;
+  background: linear-gradient(180deg, #e9dcb8, #d4c294); color: #2a1a0c; border: 3px solid #6b4a26; border-radius: 6px; box-shadow: 0 0 0 2px #2a1a0c, 0 4px 10px rgba(0,0,0,.5); pointer-events: none; }
+#aviso .titulo { color: #1f3f9a; font-weight: 700; font-size: 17px; margin-bottom: 2px; }
+#objetivo { left: 290px; top: 92px; max-width: 330px; padding: 10px 14px; background: rgba(40,28,16,.82); border: 2px solid #b48a46; border-radius: 6px; color: #ffb648; text-align: center; font-size: 15px; line-height: 1.35; white-space: pre-line; pointer-events: none; text-shadow: 1px 1px 0 #000; }
+#objetivo.parpadeo { animation: brillo 1s ease-in-out 3; } @keyframes brillo { 50% { box-shadow: 0 0 14px 4px #ffd24a; } }
+#tooltip { position: fixed; z-index: 9; pointer-events: none; background: rgba(20,14,8,.92); border: 1px solid #b48a46; padding: 3px 8px; border-radius: 4px; font-size: 13px; white-space: nowrap; }
+#tooltip b { color: #f5d27a; }
+#ayuda { position: fixed; z-index: 10; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(600px, 92vw); padding: 14px 20px; }
+#ayuda h2 { margin-top: 0; color: #f5d27a; } #ayuda li { margin: 5px 0; font-size: 14px; }
+#ayuda button, #login button[type=submit] { background: #6b4a26; color: #fff1c9; border: 1px solid #b48a46; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 15px; }
+#cargando { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 22px; background: #0f170b; }
+#login { position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(30,40,20,.55), rgba(5,8,4,.88)); }
+#login form { width: min(380px, 92vw); padding: 18px 22px; display: flex; flex-direction: column; gap: 9px; }
+#login .sub { text-align: center; margin: 0 0 4px; color: #d9c08c; }
+#login label { display: flex; flex-direction: column; font-size: 13px; color: #d9c08c; gap: 3px; }
+#login input { background: #120c07; color: #fff1c9; border: 1px solid #6b5230; border-radius: 4px; padding: 7px 9px; font: inherit; font-size: 15px; }
+.colores { display: flex; gap: 8px; justify-content: center; }
+.colores button { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #2a1a0c; cursor: pointer; } .colores button.sel { border-color: #f5d27a; }
+#autotest { position: fixed; z-index: 30; left: 300px; top: 90px; white-space: pre; background: #000c; padding: 8px; font: 12px monospace; }
+@media (max-width: 820px) {
+  #objetivo { left: 10px; top: 120px; max-width: 60vw; font-size: 13px; }
+  #hud-derecha, #hud-top .ico:nth-child(-n+4) { display: none; }
+  #hud-chat { width: calc(100vw - 20px); bottom: 66px; } #chat-log { height: 90px; }
+  #hotbar { bottom: 6px; } .hs { width: 34px; height: 34px; } .hs img { width: 26px; height: 26px; }
+  #hud-recursos { display: none; } #hud-mapa { transform: scale(.7); transform-origin: top right; } #hud-top { right: 140px; }
+  #hud-perfil { transform: scale(.8); transform-origin: top left; }
+}
+[hidden] { display: none !important; }
+
+.panel header > span { white-space: nowrap; }
+
+/* Floating, non-modal chat: the rest of the world stays interactive. */
+#chat-toggle,#hud-toggle{z-index:18;background:#251e15;color:#ffe2a1;border:2px solid #b48a46;border-radius:24px;min-height:44px;padding:9px 14px;cursor:pointer;box-shadow:0 3px 12px #0008}
+#chat-toggle{left:max(12px,env(safe-area-inset-left));bottom:calc(76px + env(safe-area-inset-bottom));display:flex;gap:7px;align-items:center}
+#hud-toggle{right:max(12px,env(safe-area-inset-right));bottom:calc(48px + env(safe-area-inset-bottom))}
+#chat-count{background:#f5d27a;color:#21170d;border-radius:12px;padding:2px 6px;font:13px sans-serif}
+#hud-chat{z-index:19;left:max(12px,env(safe-area-inset-left));bottom:calc(132px + env(safe-area-inset-bottom) + var(--keyboard,0px));width:min(380px,calc(100vw - 24px));max-height: min(360px,48dvh)}
+#chat-log{height:160px;min-height:35px;flex:1;overscroll-behavior:contain}
+#chat-form input{min-width:0;font-size:16px}#chat-form button,#chat-min{min-width:44px;min-height:44px}
+.pestanas{align-items:center}.pestanas button[data-canal]{padding:8px 6px;flex:1}.pestanas .x{padding:8px}
+button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offset:2px}
+#ayuda{max-height:85dvh;overflow:auto}
+.solo-mundo .hud:not(#chat-toggle):not(#hud-toggle):not(#hud-chat),.solo-mundo #world-tools,.solo-mundo #world-note,.solo-mundo #aviso,.solo-mundo #objetivo,.solo-mundo #dialogo,.solo-mundo .ventana,.solo-mundo #memories{display:none!important}
+@media(max-width:820px){
+ #hud-top .ico:nth-child(-n+4){display:flex}#hud-top{top:132px;left:10px;right:auto;gap:4px;flex-wrap:wrap;max-width:calc(100vw - 20px)}#hud-top .ico{width:36px;height:36px}#ping{font-size:10px}
+ #hud-derecha{display:flex;top:230px;right:10px;width:190px;max-height:30dvh;overflow:auto}#hud-derecha .panel{display:none}#hud-derecha .panel[hidden]{display:none}#hud-derecha .panel:not([hidden]){display:block}
+ #hud-chat{width:min(360px,calc(100vw - 24px));max-height:42dvh}#chat-log{height:110px}
+ #hotbar{max-width:calc(100vw - 16px);overflow-x:auto;justify-content:flex-start}.hs{flex:none;width:32px;height:34px}
+ .ventana{right:12px;top:185px;max-height:calc(100dvh - 245px);overflow:auto}
+ #objetivo{top:192px;font-size:12px;max-width:44vw}
+ #world-tools{top:184px!important}#world-note{display:none}
+}
+@media(max-height:500px){#hud-chat{bottom:calc(65px + var(--keyboard,0px));max-height:65dvh}#hud-perfil{transform:scale(.6)}#hud-top{top:8px;left:180px;max-width:55vw}#hud-mapa{transform:scale(.5)}#world-tools{top:110px!important}#hud-derecha{top:160px}#chat-toggle{bottom:60px}}
+
+.info-fold{pointer-events:auto;float:right;min-width:32px;min-height:32px;background:#302519;color:#ffe2a1;border:1px solid #b48a46;border-radius:5px;cursor:pointer;margin:0 0 4px 6px}#objetivo.info-min,#aviso.info-min,#dialogo.info-min{width:auto;max-width:180px;padding:3px;font-size:12px;pointer-events:auto} .info-min>:not(.info-fold){display:none!important}.info-min .info-fold{margin:0}
+
+.info-close{pointer-events:auto;float:right;min-width:36px;min-height:36px;background:#302519;color:#ffe2a1;border:1px solid #b48a46;border-radius:5px;cursor:pointer;margin:0 0 4px 6px;font-size:22px} .info-dismissed{display:none!important} .info-min>.info-close{display:block!important}#info-restore{z-index:18;right:12px;bottom:calc(180px + env(safe-area-inset-bottom));min-height:36px;border:1px solid #b48a46;border-radius:8px;color:#ffe2a1;background:#251e15;padding:6px}.solo-mundo #info-restore{display:none!important}
+
+.character-speech{position:absolute;transform:translate(-50%,-100%);max-width:min(240px,65vw);width:max-content;background:rgba(255,250,238,.76);color:#211b15;text-shadow:0 1px 1px #ffffff80;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);border:1px solid #7c633aaa;border-radius:10px;padding:7px 10px;font:15px/1.3 system-ui,sans-serif;box-shadow:0 2px 5px #0006;text-align:center;overflow-wrap:anywhere}.character-speech:after{content:'';position:absolute;left:calc(50% - 5px);bottom:-6px;width:10px;height:10px;background:rgba(255,250,238,.76);border-right:1px solid #7c633a;border-bottom:1px solid #7c633a;transform:rotate(45deg)}
+
+/* Keep the tutorial close control clear of mobile camera tools. */
+#objetivo{z-index:13;padding-top:44px}#objetivo>.info-close{position:absolute;right:5px;top:4px;margin:0;z-index:1;min-width:40px;min-height:36px}#objetivo>.info-fold{position:absolute;right:50px;top:4px;margin:0}#objetivo.info-min{padding:44px 5px 5px;min-width:145px}
+@media(max-width:820px){#objetivo{top:245px;left:12px;max-width:min(250px,calc(100vw - 24px));font-size:13px}}
+@media(max-height:500px){#objetivo{top:160px;max-width:230px}}
+
+#juego{display:none!important}#world-routes{position:fixed;z-index:22;left:12px;top:245px;width:min(300px,calc(100vw - 24px));padding:12px;background:#282b25f5;border:1px solid #bd9c65;border-radius:10px;font:14px/1.5 system-ui,sans-serif}#world-routes p{margin:8px 0;color:#d9d5bf}#world-routes button{background:#454b3b;border:1px solid #a28b5f;border-radius:5px;color:#f7e6c2;padding:10px;margin:3px;cursor:pointer}#world-routes header{padding:0}.solo-mundo #world-routes{display:none!important}
+
+.world-reward{position:absolute;transform:translate(-50%,-100%);font:700 15px system-ui,sans-serif;text-shadow:0 1px 3px #182a18,0 1px 5px #182a18;white-space:nowrap}#objetivo{left:12px;top:265px;max-width:280px} @media(max-width:820px){#objetivo{top:265px;max-width:250px}}
+
+.player-name{position:absolute;transform:translate(-50%,-100%);padding:3px 7px;border-radius:5px;background:#17251ee6;border:1px solid #d5c49599;color:#fff;font:bold 12px/1.2 system-ui,sans-serif;white-space:nowrap;text-shadow:0 1px 2px #000;pointer-events:none}.player-name.bot-name{color:#d5d0b9;background:#28332dbb}
+
+/* Session controls stay visible even in Solo mundo. */
+#b-descansar{position:fixed;z-index:24;left:max(12px,env(safe-area-inset-left));right:auto;bottom:calc(12px + env(safe-area-inset-bottom));min-width:125px;min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 17px system-ui;cursor:pointer}
+#rest-status{position:fixed;z-index:25;left:max(12px,env(safe-area-inset-left));right:auto;bottom:70px;background:#281e15;color:#fff1c9;max-width:290px}#rest-status:empty{display:none}
+body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #world-note,body:not(.in-game) #touch-walk,body:not(.in-game) .ventana{display:none!important}
+#login-status{font-size:14px;color:#f2db9f}
+
+/* Fixed north-up compass and a square, live city overview. */
+#hud-mapa{cursor:pointer}#hud-mapa:focus-visible{outline:3px solid #ffdf29;border-radius:50%}
+.map-sur,.map-or,.map-oc{position:absolute;color:#ffe59b;font:bold 13px system-ui;text-shadow:0 1px 3px #000;pointer-events:none}.map-sur{left:80px;bottom:0}.map-or{right:0;top:76px}.map-oc{left:0;top:76px}
+#city-map{position:fixed;inset:0;z-index:45;background:#0c1713d9;display:grid;place-items:center;padding:12px;overscroll-behavior:contain}
+#city-map[hidden]{display:none!important}.city-map-panel{width:min(780px,calc(100vw - 24px),calc(100dvh - 160px));background:#1e3028;border:2px solid #b6a477;border-radius:12px;overflow:hidden;box-shadow:0 16px 70px #0009}
+.city-map-panel header{padding:12px 16px;font:600 18px system-ui;color:#f9e9b6;justify-content:space-between}
+#city-map-close{color:#f9e9b6;background:#33483c;border:1px solid #8c9474;border-radius:5px;min-width:36px;min-height:36px;cursor:pointer}
+#city-map-canvas{display:block;width:100%;aspect-ratio:1;touch-action:none}.city-map-panel p{font:13px system-ui;text-align:center;margin:7px 4px;color:#ffe59b}.city-map-panel .map-note{color:#b9c9b9;font-size:11px;margin-bottom:12px}
+
+/* Expanded mining bag and furnace */
+#w-inv{width:min(620px,94vw);right:12px;top:150px;max-height:72vh;overflow:auto;z-index:25;background:#241b13f5;border:1px solid #96774a;border-radius:10px;box-shadow:0 12px 40px #0008}
+#w-inv header{position:sticky;top:0;z-index:2;background:#3a2b1b;display:flex;gap:10px;align-items:center;padding:10px}#bag-fold{margin-left:auto;font:12px system-ui;padding:5px;color:#f3dcad;background:#554029;border:1px solid #96774a;border-radius:5px}.bag-note{padding:0 12px;color:#cbb791;font:12px/1.5 system-ui}
+#inventario{grid-template-columns:repeat(6,minmax(0,1fr));gap:7px;padding:10px;max-height:49vh;overflow:auto}.slot{width:auto;height:76px;flex-direction:column;background:#392b1c;border-color:#665039}.slot img{width:36px;height:36px}.slot .item-name{font:10px/1.2 system-ui;text-align:center;color:#ddcfb6;padding:3px 3px 0}.slot .n{top:2px;right:4px;bottom:auto;font:bold 12px system-ui;background:#1b140dd9;border-radius:4px;padding:1px 3px}.slot.vacio{height:76px;opacity:.35}.compact-bag #inventario{max-height:175px}.compact-bag .bag-note{display:none}#seleccion{font:12px system-ui;padding:10px}
+#furnace-panel{z-index:35;left:50%;top:50%;transform:translate(-50%,-50%);right:auto;width:min(430px,94vw);max-height:85vh;overflow:auto;background:#211a15f8;border:1px solid #b48346;border-radius:12px;color:#eee0c7;font:14px/1.5 system-ui;box-shadow:0 16px 60px #000a}#furnace-panel header{padding:12px;background:#52351f;font-weight:bold;display:flex;justify-content:space-between}.forge-content{padding:15px}.forge-content label{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:12px 0}.forge-content select,.forge-content input{max-width:65%;background:#33271d;color:#ffe4ae;border:1px solid #826139;border-radius:5px;padding:8px}.forge-content input{width:90px}.forge-content button{background:#6b4825;color:#ffe7bb;border:1px solid #aa814b;border-radius:6px;padding:10px;cursor:pointer}.forge-content button:disabled{opacity:.4;cursor:default}.forge-presets,.forge-actions{display:flex;gap:8px}.forge-actions button{flex:1}#forge-result{color:#ffe09a;min-height:22px}#forge-stock{color:#c8ad85;font-size:12px}#mine-route{position:fixed;right:14px;bottom:140px;z-index:12;padding:9px;background:#3d2b1be8;color:#f6d598;border:1px solid #a4824c;border-radius:6px;font:12px system-ui}body:not(.in-game) #mine-route,body:not(.in-game) #furnace-panel{display:none!important}@media(max-width:600px){#inventario{grid-template-columns:repeat(5,minmax(0,1fr))}#w-inv{top:130px}#mine-route{bottom:145px}.slot{height:72px}}
+
+#mine-exit-route{display:none;position:fixed;right:14px;bottom:184px;z-index:12;padding:9px;background:#3d2b1be8;color:#f6d598;border:1px solid #a4824c;border-radius:6px;font:12px system-ui}body.in-game.in-mine #mine-exit-route{display:block}
+
+/* Two inventory views: 4 columns × 6 rows, or the complete bag. */
+#bag-modes{display:flex;gap:4px;margin-left:auto}#bag-modes button,#bag-pages button{padding:6px 8px;border:1px solid #927348;border-radius:5px;background:#40301f;color:#ead5b0;font:12px system-ui;cursor:pointer}#bag-modes button[aria-pressed=true]{background:#d2ad68;color:#22180f;border-color:#f4d99d}#bag-pages{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;font:12px system-ui;color:#d8c49f}#bag-pages[hidden]{display:none}#bag-pages button{min-width:38px;font-size:20px;padding:2px 8px}#bag-pages button:disabled{opacity:.3;cursor:default}
+#w-inv.bag-summary{width:min(340px,calc(100vw - 24px));max-height:calc(100dvh - 210px)}#w-inv.bag-summary header{font-size:13px;gap:4px;padding:8px}#w-inv.bag-summary #inventario{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));height:min(402px,calc(100dvh - 352px));max-height:none;min-height:252px;overflow:hidden;gap:5px;padding:8px}#w-inv.bag-summary .slot{height:auto;min-height:0}#w-inv.bag-summary .slot img{width:29px;height:29px}#w-inv.bag-summary .item-name{font-size:9px;max-height:23px;overflow:hidden}#w-inv.bag-summary .bag-note{font-size:10px;padding:0 8px;margin:6px 0}#w-inv.bag-summary #seleccion{font-size:11px;padding:6px 10px}
+.draggable-ore{touch-action:none;cursor:grab}.draggable-ore:active{cursor:grabbing}body.dragging-ore #w-inv{opacity:.24;pointer-events:none}#ore-drag-ghost{position:fixed;z-index:100;pointer-events:none;max-width:200px;background:#302215f5;color:#ffe1a5;border:1px solid #deb877;border-radius:7px;padding:7px;font:12px/1.3 system-ui;box-shadow:0 4px 16px #0008}#ore-drag-ghost.valid-drop{background:#23432c;border-color:#9dffb3;color:#d7ffe1}
+#forge-chat-card{padding:10px;margin:5px 8px;background:#362719;border:1px solid #b48a46;border-radius:7px;color:#f4ddb5;font:12px/1.4 system-ui;overflow:auto;max-height:310px;flex-shrink:0}#forge-chat-card[hidden]{display:none}#forge-chat-card header{display:flex;align-items:center;justify-content:space-between}#forge-chat-card p{margin:6px 0}#forge-chat-card label{display:inline-flex;align-items:center;gap:6px;margin:8px 6px 4px 0}#forge-chat-card input{width:58px;background:#21180f;color:#ffe5b0;border:1px solid #8d6d40;border-radius:4px;padding:5px;font:14px system-ui}#forge-chat-card button{background:#644622;color:#ffe7b8;border:1px solid #aa814b;border-radius:5px;padding:7px;font:12px system-ui;cursor:pointer}#forge-chat-card button:disabled{opacity:.4;cursor:default}.forge-chat-actions{display:flex;gap:6px}.forge-chat-actions button{flex:1}#forge-chat-result{color:#d6ffd1}#hud-chat.forge-chat-open{max-height:min(620px,calc(100dvh - 170px))}#hud-chat.forge-chat-open #chat-log{height:65px;min-height:35px;flex:0 1 65px}
+@media(max-height:650px){#w-inv.bag-summary{top:110px;max-height:calc(100dvh - 170px)}#w-inv.bag-summary #inventario{min-height:204px;height:calc(100dvh - 305px)}#w-inv.bag-summary .slot img{width:22px;height:22px}#w-inv.bag-summary .item-name{font-size:8px}#forge-chat-card{max-height:240px}}
