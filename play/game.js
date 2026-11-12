@@ -77,8 +77,8 @@ async function init() {
     S.player.x = S.player.fx = W.spawn.x; S.player.y = S.player.fy = W.spawn.y;
     startGame(); autotest(); return;
   }
-  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) S.me.name = Q.get('nombre'); if ((W.mapId || 'city') === 'city' && !S.net.hasJoined) switchMap('casa'); W.clientReady = true; startGame(); return; }
-  if ((W.mapId || 'city') === 'city' && !S.net.hasJoined) switchMap('casa');
+  beginAtHome();
+  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) S.me.name = Q.get('nombre'); beginAtHome(); W.clientReady = true; startGame(); return; }
   W.clientReady = true;
   if (prof && prof.name) { $('#l-nombre').value = prof.name; if (prof.color) S.me.color = prof.color; buildColorPicker(); }
   $('#login').hidden = false; $('#l-nombre').focus();
@@ -105,7 +105,9 @@ function startGame() {
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = S.me.name; drawPortrait();
+  beginAtHome();
   Casa.load(S.me.name);
+  if ((W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Bienvenido a Medellín, ${esc(S.me.name)}.`);
   connect(); updateTutorial(true);
 }
@@ -323,14 +325,20 @@ function restore() {
   if (d && Array.isArray(d.inv) && d.inv.every(s => !s || W.items[s.item])) { S.inv = d.inv; S.xp = d.xp || {}; S.coins = d.coins || 0; Object.assign(S.quest, d.quest || {});
     if (Number.isFinite(d.energy)) S.energy = Math.max(0, Math.min(100, d.energy));
     if(d.cityReturn)cityReturn=d.cityReturn;
-    if(d.mapId==='mine')switchMap('mine',true);
-    else if(d.mapId==='casa')switchMap('casa',true);
-    if(d.resourceState){if(!caveNodes)caveNodes=new Map(caveMap.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));for(const [id,until] of Object.entries(d.resourceState)){const n=caveNodes.get(id);if(n&&until>Date.now()){n.state='depleted';n.until=now()+until-Date.now();}}if(W.mapId==='mine')S.nodes=caveNodes;}
-    if (d.position && !d.mapRevision && d.mapId!=='casa' && W.expansion) { d.position.x+=W.expansion.offsetX; d.position.y+=W.expansion.offsetY; }
-    if (d.position && Number.isInteger(d.position.x) && Number.isInteger(d.position.y) && walkable(d.position.x,d.position.y)) {
-      const p=S.player; p.x=p.fx=d.position.x; p.y=p.fy=d.position.y; p.dir=d.position.dir || 'down'; S.net.hasJoined=true;
-    } }
+    // Inventory, skills and quests carry over. The saved map and coordinates never decide where a session starts.
+    if(d.resourceState){if(!caveNodes)caveNodes=new Map(caveMap.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));for(const [id,until] of Object.entries(d.resourceState)){const n=caveNodes.get(id);if(n&&until>Date.now()){n.state='depleted';n.until=now()+until-Date.now();}}}
+  }
   else fresh();
+}
+function placeAtHouseSpawn() {
+  const p = S.player;
+  p.x = p.fx = Casa.SPAWN.x; p.y = p.fy = Casa.SPAWN.y; p.dir = Casa.SPAWN.dir || 'down';
+  p.path = []; p.pending = null; p.busyUntil = 0; S.dest = null;
+}
+function beginAtHome() {
+  if (AUTOTEST) return;
+  if ((W.mapId || 'city') !== 'casa') switchMap('casa');
+  placeAtHouseSpawn();
 }
 function fresh() {
   S.inv = []; S.xp = {}; S.coins = W.startingCoins || 0; S.quest.stage = 0; S.quest.steps = {}; S.quest.done = false; S.quest.turnedIn = false;
@@ -517,16 +525,14 @@ function connect() {
   let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { return; }
   S.net.ws = ws;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: W.mapId==='casa' ? 'casa' : 'city', resume: W.mapId==='casa' ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined) beginAtHome(); const atHome = W.mapId==='casa'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: atHome ? 'casa' : 'city', resume: atHome ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     const m = JSON.parse(ev.data);
     if (m.t === 'welcome') {
       S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; $('#mi-nombre').textContent = S.me.name;
       S.net.serverId = m.serverId || null;
-      if (!S.net.hasJoined && m.you && W.mapId!=='mine' && W.mapId!=='casa') {
-        const p=S.player; p.x=p.fx=m.you.x; p.y=p.fy=m.you.y; p.path=[]; p.pending=null; S.dest=null;
-      }
+      if (!S.net.hasJoined && W.mapId==='casa') placeAtHouseSpawn();
       S.net.hasJoined=true; S.others.clear();
       for (const p of m.players) addOther(p);
       renderNearby();

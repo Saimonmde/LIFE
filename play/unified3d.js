@@ -1,7 +1,7 @@
 import * as T from './three.module.js';
-import {buildMine} from './mine3d.js?v=mine-r3';
-import {enrichWorld} from './park3d.js?v=saimoncity-lights-r4';
-import {buildHouse, buildHomeMarker} from './casa3d.js?v=simoncity-casa-r1';
+import {buildMine} from './mine3d.js?v=saimon-home-r2';
+import {enrichWorld} from './park3d.js?v=saimon-home-r2';
+import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-home-r2';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
