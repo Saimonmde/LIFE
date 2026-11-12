@@ -23,7 +23,7 @@ const CANALES = { global: 'Global', proximidad: 'Proximidad', clan: 'Clan', grup
 
 // ---------------- estado ----------------
 const S = window.__ELJARDIN = {
-  me: { name: 'Viajero', color: 'azul', clan: 'LIFE INC', group: '' },
+  me: { name: 'Viajero', color: 'azul', clan: '', group: '' }, houseEdit: false,
   player: { x: 0, y: 0, fx: 0, fy: 0, path: [], dir: 'down', animT: 0, busyUntil: 0, pending: null, repaths: 0 },
   nodes: new Map(), animals: [], inv: [], sel: -1, xp: {}, coins: 0, energy: 100,
   quest: { stage: 0, steps: {}, done: false, turnedIn: false },
@@ -53,6 +53,18 @@ async function init() {
   }
   S.quest.def = W.quests && W.quests[0];
   S.player.x = S.player.fx = W.spawn.x; S.player.y = S.player.fy = W.spawn.y; S.player.dir = W.spawn.facing || 'down';
+  let prof = null; try { prof = JSON.parse(localStorage.getItem('lifeinc.perfil') || 'null'); } catch (e) {}
+  if (prof) {
+    if (prof.name) S.me.name = String(prof.name).slice(0, 16);
+    S.me.clan = prof.clan || ''; S.me.group = prof.group || '';
+    if (prof.color) S.me.color = prof.color;
+  }
+  Casa.playerName = () => S.me.name;
+  Casa.enter = () => enterHouse();
+  Casa.onEdit = (on) => { S.houseEdit = on; if (on) { S.player.path = []; S.player.pending = null; S.keys.clear(); } };
+  Casa.onLayout = () => { if ((W.mapId || 'city') === 'casa') applyCasaLayout(); if (window.LIVE3D && window.LIVE3D.rebuildHouse) window.LIVE3D.rebuildHouse(Casa.layout); };
+  Casa.mount();
+  Casa.load(S.me.name);
   restore();
   if(!invCount('pico'))invAdd('pico',1);
   setupMiningUI();
@@ -60,10 +72,15 @@ async function init() {
   $('#cargando').remove();
   applyCircadian(false);
   resize(); requestAnimationFrame(loop);
-  if (AUTOTEST) { startGame(); autotest(); return; }
-  const prof = JSON.parse(localStorage.getItem('lifeinc.perfil') || 'null');
-  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (prof) Object.assign(S.me, prof); if (Q.get('nombre')) S.me.name = Q.get('nombre'); startGame(); return; }
-  if (prof) { $('#l-nombre').value = prof.name; $('#l-clan').value = prof.clan; $('#l-grupo').value = prof.group || ''; S.me.color = prof.color; buildColorPicker(); }
+  if (AUTOTEST) {
+    if ((W.mapId || 'city') !== 'city') switchMap('city', true);
+    S.player.x = S.player.fx = W.spawn.x; S.player.y = S.player.fy = W.spawn.y;
+    startGame(); autotest(); return;
+  }
+  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) S.me.name = Q.get('nombre'); if ((W.mapId || 'city') === 'city' && !S.net.hasJoined) switchMap('casa'); W.clientReady = true; startGame(); return; }
+  if ((W.mapId || 'city') === 'city' && !S.net.hasJoined) switchMap('casa');
+  W.clientReady = true;
+  if (prof && prof.name) { $('#l-nombre').value = prof.name; if (prof.color) S.me.color = prof.color; buildColorPicker(); }
   $('#login').hidden = false; $('#l-nombre').focus();
 }
 function buildColorPicker() {
@@ -78,7 +95,7 @@ function buildColorPicker() {
 $('#login-form').onsubmit = (e) => {
   e.preventDefault();
   S.me.name = $('#l-nombre').value.trim().slice(0, 16) || 'Viajero';
-  S.me.clan = $('#l-clan').value.trim().slice(0, 24) || 'LIFE INC'; S.me.group = $('#l-grupo').value.trim().slice(0, 24);
+  S.me.clan = S.me.clan || ''; S.me.group = S.me.group || '';
   localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me));
   $('#login').hidden = true; startGame();
 };
@@ -88,7 +105,8 @@ function startGame() {
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = S.me.name; drawPortrait();
-  sys(`Bienvenido a <b>LIFE INC</b> · El Jardín, ${esc(S.me.name)}.`);
+  Casa.load(S.me.name);
+  sys(`Bienvenido a Medellín, ${esc(S.me.name)}.`);
   connect(); updateTutorial(true);
 }
 
@@ -105,6 +123,7 @@ function rest() {
   $('#ping').classList.remove('ok'); $('#ping span').textContent='sin conexión';
   for (const id of ['ayuda','w-inv','w-hab','p-misiones','p-cercanos','dialogo','aviso','objetivo','tooltip','world-routes','memories','city-map','furnace-panel']) { const el=document.getElementById(id); if(el) el.hidden=true; }
   window.ChatUI?.setOpen(false); document.activeElement?.blur();
+  Casa.setEditing(false);
   document.body.classList.remove('in-game'); $('#b-descansar').hidden=true;
   $('#rest-status').textContent=''; $('#login-status').textContent='Progreso guardado. Puedes volver a entrar.';
   $('#login').hidden=false; $('#login-form button[type=submit]').focus();
@@ -113,7 +132,7 @@ $('#b-descansar').onclick=rest;
 addEventListener('pagehide',()=>{ if(started) save(); });
 
 const MAP_FIELDS=['width','height','ground','collision','elevation','nodes','npcs','doors','animals','regions','waypoints','roads3d','memories','riverLayouts','bridges','parkDetails','surfaceZones','signs3d','scenery3d','waterBodies','decorations','landmarks','areas','spawn'];
-let cityMap=null,caveMap=null,cityNodes=null,caveNodes=null,cityAnimals=null,cityReturn=null;
+let cityMap=null,caveMap=null,casaMap=null,cityNodes=null,caveNodes=null,casaNodes=null,cityAnimals=null,cityReturn=null;
 function prepareCave(){
  const palmas=W.waypoints.find(p=>p.id==='las_palmas');let entry=null;
  for(let r=2;r<10&&!entry;r++)for(let dx=-r;dx<=r&&!entry;dx++)for(let dy=-r;dy<=r&&!entry;dy++){const x=palmas.x+dx,y=palmas.y+dy;if(x>1&&y>1&&x<W.width-1&&y<W.height-1&&W.collision[y][x]===0&&W.collision[y+1][x]===0&&!W.nodes.some(n=>n.x===x&&n.y===y))entry={x,y};}
@@ -130,18 +149,72 @@ function prepareCave(){
  for(const n of nodes)collision[n.y][n.x]=1;
  caveMap={width,height,ground,collision,elevation,nodes,npcs:[],doors:[],animals:[],regions:[{id:'mina_palmas',name:'Mina de Las Palmas · interior',x:0,y:0,w:width,h:height}],waypoints:[{id:'horno',name:'Horno central',x:18,y:17},{id:'salida',name:'Salida a Las Palmas',x:18,y:28}],roads3d:[],memories:[],riverLayouts:[],bridges:[],parkDetails:[],surfaceZones:[],signs3d:[],scenery3d:[],waterBodies:{},decorations:[],landmarks:[],areas:[],spawn:{x:18,y:27},rocks};
  W.caveDefinition=caveMap;W.cityDefinition=cityMap;W.mineEntrance=entry;
+ const home=window.Casa.PARK_DOOR;
+ W.collision[home.y][home.x]=1;
+ W.nodes.push({id:'puerta_casa',type:'home_door',x:home.x,y:home.y,initialState:'active',states:['active'],sprites:{active:'home_door'},solid:true});
+ W.sprites.home_door={...W.sprites.rock_piedra};
+ W.signs3d=W.signs3d||[];
+ W.signs3d.push({text:'TU CASA · PARQUE DE ENVIGADO',x:home.x+2,y:home.y-1});
+ W.homeDoor={x:home.x,y:home.y,standX:window.Casa.PARK_STAND.x,standY:window.Casa.PARK_STAND.y};
+}
+function applyCasaLayout(){
+ if((W.mapId||'city')!=='casa')return;
+ const map=Casa.buildMap(Casa.layout);
+ W.collision=map.collision; W.ground=map.ground; casaMap=map;
+ const p=S.player;
+ if(!walkable(p.x,p.y)){p.x=p.fx=Casa.SPAWN.x;p.y=p.fy=Casa.SPAWN.y;p.path=[];}
+ drawMinimapBase();
+}
+function enterHouse(){
+ if((W.mapId||'city')==='mine'){game('Sal de la mina antes de volver a casa.','aviso');return;}
+ if((W.mapId||'city')==='casa'){game('Ya estás en tu casa.');return;}
+ Casa.load(S.me.name);
+ S.portalUntil=now()+800;
+ switchMap('casa');
+}
+function exitHouse(){
+ if((W.mapId||'city')!=='casa'||Casa.editing)return;
+ S.portalUntil=now()+900;
+ if(window.LIVE3D)window.LIVE3D.lookAt={x:239,y:69};
+ switchMap('city');
 }
 function switchMap(id,restored=false){
- if(id==='mine'&&W.mapId!=='mine'){cityNodes=S.nodes;cityAnimals=S.animals;if(!restored)cityReturn={x:S.player.x,y:S.player.y};Object.assign(W,caveMap);W.mapId='mine';
-  if(!caveNodes)caveNodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.nodes=caveNodes;S.animals=[];
- }else if(id==='city'&&W.mapId==='mine'){caveNodes=S.nodes;Object.assign(W,cityMap);W.mapId='city';S.nodes=cityNodes;S.animals=cityAnimals;}
- else return;
- const p=S.player,xy=id==='mine'?caveMap.spawn:(cityReturn||{x:W.mineEntrance.x,y:W.mineEntrance.y+1});p.x=p.fx=xy.x;p.y=p.fy=xy.y;p.path=[];p.pending=null;p.busyUntil=0;S.dest=null;S.keys.clear();S.sel=-1;
+ if(!cityMap)return;
+ const prev=W.mapId||'city';
+ if(id===prev)return;
+ if(prev==='mine')caveNodes=S.nodes;
+ if(prev==='casa')casaNodes=S.nodes;
+ if(prev==='city'){cityNodes=S.nodes;cityAnimals=S.animals;if(!restored)cityReturn={x:S.player.x,y:S.player.y};}
+ if(id==='mine'){Object.assign(W,caveMap);W.mapId='mine';if(!caveNodes)caveNodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.nodes=caveNodes;S.animals=[];}
+ else if(id==='casa'){casaMap=Casa.buildMap(Casa.layout);Object.assign(W,casaMap);W.mapId='casa';casaNodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.nodes=casaNodes;S.animals=[];}
+ else {Object.assign(W,cityMap);W.mapId='city';S.nodes=cityNodes;S.animals=cityAnimals;id='city';}
+ const p=S.player;
+ let xy;
+ if(id==='mine')xy=caveMap.spawn;
+ else if(id==='casa')xy={x:Casa.SPAWN.x,y:Casa.SPAWN.y};
+ else if(prev==='mine')xy=cityReturn||{x:W.mineEntrance.x,y:W.mineEntrance.y+1};
+ else if(prev==='casa')xy={x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};
+ else xy={x:p.x,y:p.y};
+ p.x=p.fx=xy.x;p.y=p.fy=xy.y;if(id==='casa')p.dir=Casa.SPAWN.dir;
+ p.path=[];p.pending=null;p.busyUntil=0;S.dest=null;S.keys.clear();S.sel=-1;
  for(const key of ['furnace-panel','world-routes','memories','city-map','aviso','objetivo']){const el=document.getElementById(key);if(el)el.hidden=true;}
  closeForgeChat();pendingFurnaceDrop=null;if(oreDrag||touchOre)endOreDrag();
- S.hover=null;S.floaters=[];S.bubbles.clear();drawMinimapBase();
+ S.hover=null;S.floaters=[];S.bubbles.clear();
  document.body.classList.toggle('in-mine',id==='mine');
- if(!restored){save();game(id==='mine'?'Entras a la mina de Las Palmas. Toca una veta para usar tu pica; el horno está en el centro.':'Sales de la mina y vuelves a Las Palmas.');}
+ document.body.classList.toggle('in-casa',id==='casa');
+ document.body.dataset.zone=id;
+ if(id!=='casa'&&window.Casa)Casa.setEditing(false);
+ const zoneLabel=id==='casa'?'Tu casa · Medellín':id==='mine'?'Mina de Las Palmas · interior':null;
+ if(zoneLabel){$('#zona-nombre').textContent=zoneLabel;}
+ drawMinimapBase();
+ if(!restored){
+  save();
+  if(id==='mine')game('Entras a la mina de Las Palmas. Toca una veta para usar tu pica; el horno está en el centro.');
+  else if(id==='city'&&prev==='mine')game('Sales de la mina y vuelves a Las Palmas.');
+  else if(id==='casa')game('Entras a tu casa en Medellín. La puerta sale al Parque de Envigado.');
+  else if(id==='city'&&prev==='casa')game('Sales al <b>Parque de Envigado</b>. El botón Casa te devuelve a tu casa.');
+ }
+ if(S.net.ok)sendMove(true);
 }
 
 // ---------------- cantera y fundición ----------------
@@ -175,7 +248,7 @@ function setupMiningUI(){
  const modes=document.createElement('div');modes.id='bag-modes';modes.innerHTML='<button id="bag-summary" type="button">Resumen 4×6</button><button id="bag-full" type="button">Completo</button>';$('#w-inv header').append(modes);$('#bag-summary').onclick=()=>setBagMode('summary');$('#bag-full').onclick=()=>setBagMode('full');
  const pages=document.createElement('nav');pages.id='bag-pages';pages.setAttribute('aria-label','Páginas del inventario resumido');pages.innerHTML='<button type="button" id="bag-prev" aria-label="Página anterior del inventario">‹</button><span id="bag-page-label"></span><button type="button" id="bag-next" aria-label="Página siguiente del inventario">›</button>';$('#inventario').after(pages);$('#bag-prev').onclick=()=>{bagPage=Math.max(0,bagPage-1);renderInv();};$('#bag-next').onclick=()=>{bagPage=Math.min(Math.ceil(SLOTS/24)-1,bagPage+1);renderInv();};
  setupBagForge();updateBagMode();renderInv();
- const guide=document.createElement('button');guide.id='mine-route';guide.textContent='⛏ Cantera y horno';guide.className='hud';guide.onclick=()=>{if(started&&W.mapId!=='mine'){const e=S.nodes.get('entrada_mina_palmas');if(e)return approach({kind:'node',n:e});}const d=W.waypoints.find(w=>w.id===(W.mapId==='mine'?'horno':'cantera'));if(started&&d)goTo(d.x,d.y);};document.body.append(guide);
+ const guide=document.createElement('button');guide.id='mine-route';guide.textContent='⛏ Cantera y horno';guide.className='hud';guide.onclick=()=>{if(W.mapId==='casa'){game('Sal de tu casa para ir a la mina.','aviso');return;}if(started&&W.mapId!=='mine'){const e=S.nodes.get('entrada_mina_palmas');if(e)return approach({kind:'node',n:e});}const d=W.waypoints.find(w=>w.id===(W.mapId==='mine'?'horno':'cantera'));if(started&&d)goTo(d.x,d.y);};document.body.append(guide);
  const enter=document.createElement('button');enter.id='mine-enter';enter.className='hud';enter.type='button';enter.hidden=true;enter.textContent='⛏ Entrar a la mina';enter.onclick=()=>{const e=S.nodes.get('entrada_mina_palmas');if(started&&W.mapId!=='mine'&&e)approach({kind:'node',n:e});};document.body.append(enter);
  const exit=document.createElement('button');exit.id='mine-exit-route';exit.className='hud';exit.textContent='↗ Salir a Las Palmas';exit.onclick=()=>{if(started&&W.mapId==='mine')approach({kind:'node',n:S.nodes.get('salida_mina')});};document.body.append(exit);
 }
@@ -251,8 +324,9 @@ function restore() {
     if (Number.isFinite(d.energy)) S.energy = Math.max(0, Math.min(100, d.energy));
     if(d.cityReturn)cityReturn=d.cityReturn;
     if(d.mapId==='mine')switchMap('mine',true);
+    else if(d.mapId==='casa')switchMap('casa',true);
     if(d.resourceState){if(!caveNodes)caveNodes=new Map(caveMap.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));for(const [id,until] of Object.entries(d.resourceState)){const n=caveNodes.get(id);if(n&&until>Date.now()){n.state='depleted';n.until=now()+until-Date.now();}}if(W.mapId==='mine')S.nodes=caveNodes;}
-    if (d.position && !d.mapRevision && W.expansion) { d.position.x+=W.expansion.offsetX; d.position.y+=W.expansion.offsetY; }
+    if (d.position && !d.mapRevision && d.mapId!=='casa' && W.expansion) { d.position.x+=W.expansion.offsetX; d.position.y+=W.expansion.offsetY; }
     if (d.position && Number.isInteger(d.position.x) && Number.isInteger(d.position.y) && walkable(d.position.x,d.position.y)) {
       const p=S.player; p.x=p.fx=d.position.x; p.y=p.fy=d.position.y; p.dir=d.position.dir || 'down'; S.net.hasJoined=true;
     } }
@@ -344,7 +418,7 @@ function stageComplete(st) {
   return false;
 }
 function updateTutorial(force) {
-  if(W.mapId==='mine')return;
+  if(W.mapId==='mine'||W.mapId==='casa')return;
   const t = S.quest.def && S.quest.def.tutorial; if (!t || !started) return;
   let changed = force;
   // si el paso "hablar" ya está hecho, salta las etapas previas (p. ej. hablaron directo con el capataz)
@@ -360,7 +434,7 @@ function updateTutorial(force) {
   if (st.id === 'libre') setTimeout(() => { if (currentStage() && currentStage().id === 'libre') $('#objetivo').hidden = true; }, 15000);
 }
 function arrowTarget() {
-  if(W.mapId==='mine')return null;
+  if(W.mapId==='mine'||W.mapId==='casa')return null;
   const st = currentStage(); if (!st || !st.arrow) return null; const a = st.arrow;
   if (a.kind === 'tile') return { x: a.x, y: a.y, h: 0 };
   if (a.kind === 'door') { const d = W.doors.find(d => d.id === a.id); return d && { x: d.x, y: d.y, h: 40 }; }
@@ -414,7 +488,7 @@ function renderChat() {
   const notas = {
     global: '(Global) Visible para todos los jugadores conectados',
     proximidad: `(Proximidad) Solo visible para jugadores cercanos (≤ 30 m) · ${inRange} en rango`,
-    clan: `(Clan) Visible para tu clan: ${esc(S.me.clan)}`,
+    clan: S.me.clan ? `(Clan) Visible para tu clan: ${esc(S.me.clan)}` : '(Clan) Sin clan · escribe /clan nombre',
     grupo: S.me.group ? `(Grupo) Visible para tu grupo: ${esc(S.me.group)}` : '(Grupo) No estás en un grupo · escribe /grupo nombre',
   };
   $('#chat-nota').innerHTML = (S.net.ok ? '' : '⚠ Sin servidor de chat (ejecuta python3 server.py) · ') + notas[S.chat.tab];
@@ -443,14 +517,14 @@ function connect() {
   let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { return; }
   S.net.ws = ws;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan, group: S.me.group, level: totalLevel(), resume: S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: W.mapId==='casa' ? 'casa' : 'city', resume: W.mapId==='casa' ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     const m = JSON.parse(ev.data);
     if (m.t === 'welcome') {
       S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; $('#mi-nombre').textContent = S.me.name;
       S.net.serverId = m.serverId || null;
-      if (!S.net.hasJoined && m.you && W.mapId!=='mine') {
+      if (!S.net.hasJoined && m.you && W.mapId!=='mine' && W.mapId!=='casa') {
         const p=S.player; p.x=p.fx=m.you.x; p.y=p.fy=m.you.y; p.path=[]; p.pending=null; S.dest=null;
       }
       S.net.hasJoined=true; S.others.clear();
@@ -476,13 +550,20 @@ function connect() {
     if(started) reconnectTimer=setTimeout(connect, 4000);
   };
 }
-function addOther(p) { if(p.id===S.net.id)return; S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
+function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
 function sendMove(force) {
   if(W.mapId==='mine')return;
-  if (!S.net.ok) return; const p = S.player, key = `${p.fx.toFixed(2)},${p.fy.toFixed(2)},${p.dir},${!!p.path.length}`;
+  if (!S.net.ok) return;
+  if(W.mapId==='casa'){
+    if(!force && S.net.sentZone==='casa')return;
+    S.net.sentZone='casa'; S.net.sentKey=''; S.net.lastSent=performance.now();
+    S.net.ws.send(JSON.stringify({ t:'move', zone:'casa', level: totalLevel() }));
+    return;
+  }
+  const p = S.player, key = `${p.fx.toFixed(2)},${p.fy.toFixed(2)},${p.dir},${!!p.path.length}`;
   if (!force && (key === S.net.sentKey || performance.now() - S.net.lastSent < 120)) return;
-  S.net.sentKey = key; S.net.lastSent = performance.now();
-  S.net.ws.send(JSON.stringify({ t: 'move', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel() }));
+  S.net.sentKey = key; S.net.sentZone='city'; S.net.lastSent = performance.now();
+  S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel() }));
 }
 setInterval(() => { if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'ping', c: performance.now() })); }, 3000);
 const dist = (o) => Math.hypot(o.fx - S.player.fx, o.fy - S.player.fy);
@@ -523,7 +604,7 @@ function describe(t) {
   if (t.kind === 'npc') return `Hablar con: <b>${esc(t.d.name)}</b>`;
   if (t.kind === 'door') return 'Tocar la <b>puerta</b> de la Casa del Capataz';
   const n = t.n, d = n.def;
-  if(d.type==='furnace')return 'Usar horno de fundición';if(d.type==='mine_entrance')return 'Entrar a la mina de Las Palmas';if(d.type==='mine_exit')return 'Salir hacia Las Palmas';
+  if(d.type==='furnace')return 'Usar horno de fundición';if(d.type==='mine_entrance')return 'Entrar a la mina de Las Palmas';if(d.type==='mine_exit')return 'Salir hacia Las Palmas';if(d.type==='home_door')return 'Entrar a <b>tu casa</b>';if(d.type==='casa_exit')return 'Salir al <b>Parque de Envigado</b>';
   switch (d.type) {
     case 'fruit_tree': return n.state === 'full' ? `Recoger: <b>${NOMBRES[d.species]}</b> (con frutas)` : `<b>${NOMBRES[d.species]}</b> (sin frutas)`;
     case 'wood_tree': return n.state === 'standing' ? 'Talar: <b>Pino</b> (madera)' : 'Tocón de pino (vuelve a crecer)';
@@ -598,6 +679,8 @@ function act(t) {
   const n = t.n, d = n.def; const secs = () => Math.max(1, Math.ceil((n.until - now()) / 1000));
   if(d.type==='mine_entrance')return switchMap('mine');
   if(d.type==='mine_exit')return switchMap('city');
+  if(d.type==='home_door')return enterHouse();
+  if(d.type==='casa_exit')return exitHouse();
   if(d.type==='furnace')return openFurnace(n);
   if (d.type === 'fruit_tree') {
     if (n.state !== 'full') return game(`El ${NOMBRES[d.species].toLowerCase()} no tiene frutas. Vuelven en ${secs()} s.`, 'aviso');
@@ -750,21 +833,26 @@ addEventListener('resize', resize);
 // ---------------- simulación ----------------
 const SPEED = 4.2;
 let last = performance.now();
-function mineDoorAt(x, y) { const n = S.nodes.get(W.mapId === 'mine' ? 'salida_mina' : 'entrada_mina_palmas'); return n && n.def.x === x && n.def.y === y ? n : null; }
+function portalAt(x, y) {
+  const ids = W.mapId==='mine' ? ['salida_mina'] : W.mapId==='casa' ? ['puerta_salida'] : ['entrada_mina_palmas', 'puerta_casa'];
+  for (const id of ids) { const n = S.nodes.get(id); if (n && n.def.x===x && n.def.y===y) return n; }
+  return null;
+}
 function updateMinePrompt() { const b = document.getElementById('mine-enter'), e = W.mineEntrance; if (!b || !e) return; const near = started && W.mapId !== 'mine' && cheb(S.player.x, S.player.y, e.x, e.y) <= 5; if (b.hidden === near) b.hidden = !near; }
 function update(dt) {
   updateMinePrompt();
   if (!started) return;
   const p = S.player, t = now();
   const running = S.keys.has('x') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k => S.keys.has(k));
-  if (!p.path.length && S.keys.size && !S.dialog) {
+  if (S.houseEdit) { p.path = []; S.dest = null; }
+  else if (!p.path.length && S.keys.size && !S.dialog) {
     let dx = 0, dy = 0; const K = S.keys;
     if (K.has('w') || K.has('arrowup')) dy = -1; if (K.has('s') || K.has('arrowdown')) dy = 1;
     if (K.has('a') || K.has('arrowleft')) dx = -1; if (K.has('d') || K.has('arrowright')) dx = 1;
     if (window.LiveInk?.keyboardDirection) [dx, dy] = window.LiveInk.keyboardDirection(dx, dy);
     let nx = p.x + dx, ny = p.y + dy;
     if (dx && dy && (!walkable(p.x + dx, p.y) || !walkable(p.x, p.y + dy))) { if (walkable(p.x + dx, p.y)) ny = p.y; else if (walkable(p.x, p.y + dy)) nx = p.x; }
-    const portal = (dx || dy) && (mineDoorAt(p.x + dx, p.y + dy) || mineDoorAt(p.x + dx, p.y) || mineDoorAt(p.x, p.y + dy));
+    const portal = (dx || dy) && (portalAt(p.x + dx, p.y + dy) || portalAt(p.x + dx, p.y) || portalAt(p.x, p.y + dy));
     if (portal && now() > (S.portalUntil || 0)) { S.portalUntil = now() + 1500; S.keys.clear(); act({ kind: 'node', n: portal }); return; }
     if ((dx || dy) && walkable(nx, ny)) { p.path = [[nx, ny]]; p.pending = null; S.dest = null; }
     else if (dx || dy) p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
@@ -787,6 +875,7 @@ function update(dt) {
     } else { p.fx += ddx / d * step; p.fy += ddy / d * step; }
     p.animT += dt * (running ? 2 : 1);
   } else p.animT = 0;
+  if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId!=='mine')sendMove(false);
   for (const n of S.nodes.values()) {
     if (!n.until || t < n.until) continue;
@@ -884,14 +973,14 @@ function draw() {
   for (const o of S.others.values()) list.push({ y: (o.fy + 1) * TS + 2, x: o.fx, draw: () => {
     drawChar(sheets[o.color] || sheets.default, o.fx, o.fy, o.dir || 'down', o.walking, t / 1000);
     const cx = o.fx * TS + 32, top = (o.fy + 1) * TS - 96;
-    nameplate(cx, top - 20, [[o.name, '#ffffff', 12], [`<${o.clan}>`, '#ffd27a', 11], [`Nv. ${o.level || 1}`, '#b8e0ff', 11]]);
+    nameplate(cx, top - 20, [[o.name, '#ffffff', 12], ...(o.clan ? [[`<${o.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${o.level || 1}`, '#b8e0ff', 11]]);
   } });
   list.push({ y: (p.fy + 1) * TS + 3, x: p.fx, draw: () => {
     ctx.strokeStyle = 'rgba(120,255,120,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.fx * TS + 32, (p.fy + 1) * TS - 12, 20, 8, 0, 0, Math.PI * 2); ctx.stroke();
     drawChar(sheets[S.me.color] || sheets.default, p.fx, p.fy, p.dir, !!p.path.length, p.animT);
     const sel = selected(); if (sel && W.items[sel].category === 'tool' && imgs['icon:' + sel]) ctx.drawImage(imgs['icon:' + sel], Math.round(p.fx * TS + 40), Math.round((p.fy + 1) * TS - 56), 24, 24);
     const cx = p.fx * TS + 32, top = (p.fy + 1) * TS - 96;
-    nameplate(cx, top - 20, [[S.me.name, '#9df59a', 12], [`<${S.me.clan}>`, '#ffd27a', 11], [`Nv. ${totalLevel()}`, '#b8e0ff', 11]]);
+    nameplate(cx, top - 20, [[S.me.name, '#9df59a', 12], ...(S.me.clan ? [[`<${S.me.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${totalLevel()}`, '#b8e0ff', 11]]);
   } });
   if (S.dest) { // marca de clic amarilla
     const k = Math.min(1, (t - (S.dest.t || 0)) / 300), dx = S.dest.x * TS + 32, dy = S.dest.y * TS + 32, s = 10 - k * 3;
@@ -952,7 +1041,11 @@ let mmBase;
 function drawMinimapBase() {
   const k = 4; mmBase = document.createElement('canvas'); mmBase.width = W.width * k; mmBase.height = W.height * k; const c = mmBase.getContext('2d');
   const col = { mountain:'#5a7554',rocky:'#83836d',asphalt:'#444b50',pavement:'#b8b4a3', grass: '#5f9a3a', grass_flowers: '#6aa443', grass_worn: '#7f9a48', path: '#c09058', water: '#2ab0c0', bridge: '#8a5a2b', cobble: '#a8a090' };
-  for (let y = 0; y < W.height; y++) for (let x = 0; x < W.width; x++) { const kind=W.tiles[W.ground[y][x]].kind; c.fillStyle = W.mapId==='mine'?(W.collision[y][x]?'#35291e':'#80603d'):(col[kind] || '#5f9a3a'); if(kind==='mountain'&&W.mapId!=='mine'){const v=Math.round(70+W.elevation[y][x]*1.6);c.fillStyle=`rgb(${v},${Math.min(154,v+26)},${Math.max(58,v-12)})`;}  c.fillRect(x * k, y * k, k, k); }
+  for (let y = 0; y < W.height; y++) for (let x = 0; x < W.width; x++) {
+    if (W.mapId==='casa') { const kind=window.Casa.floor.get(x+','+y); c.fillStyle=!kind?'#f4f0e6':kind==='patio'?'#6f8f55':kind==='door'?'#6b4228':'#c4623c'; c.fillRect(x*k,y*k,k,k); continue; }
+    const kind=W.tiles[W.ground[y][x]].kind; c.fillStyle = W.mapId==='mine'?(W.collision[y][x]?'#35291e':'#80603d'):(col[kind] || '#5f9a3a'); if(kind==='mountain'&&W.mapId!=='mine'){const v=Math.round(70+W.elevation[y][x]*1.6);c.fillStyle=`rgb(${v},${Math.min(154,v+26)},${Math.max(58,v-12)})`;}  c.fillRect(x * k, y * k, k, k);
+  }
+  if (W.mapId==='casa' && window.Casa) { for (const it of Casa.layout.items) { const s=Casa.cellsOf(it); c.fillStyle=Casa.CATALOG[it.type].solid?'#6b4228':'#e6c27a'; for (const [x,y] of s) c.fillRect(x*k+1,y*k+1,k-2,k-2); } }
   for (const z of W.surfaceZones || []) { c.fillStyle = '#aab0b1'; c.fillRect(z.x*k,z.y*k,z.w*k,z.h*k); }
   for (const d of W.decorations) {
     const colr = { building: '#8a3b2a', waterfall: '#6e6258', fountain: '#9fe0ea', fence: '#7a5a34', tree_roble: '#2f6a2a', bush: '#3d7a34', stall: '#c83c30', mine_entrance: '#4a4038', boulder: '#8a8478' }[d.type];
@@ -980,7 +1073,8 @@ function drawMinimap(at) {
   const point=(x,y)=>[(x+.5-v.x0)*K,(y+.5-v.y0)*K];
   for(const o of S.others.values()){const [x,y]=point(o.fx,o.fy);mctx.fillStyle='#eef4ea';mctx.beginPath();mctx.arc(x,y,2,0,7);mctx.fill();}
   if(at){const [x,y]=point(at.x,at.y);mctx.strokeStyle='#f8bd54';mctx.lineWidth=2;mctx.strokeRect(x-4,y-4,8,8);}
-  if(W.mapId!=='mine'&&W.mineEntrance){let [x,y]=point(W.mineEntrance.x,W.mineEntrance.y);const cx=size/2,cy=size/2,dd=Math.hypot(x-cx,y-cy),lim=size/2-9;if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}const pulse=5+Math.sin(performance.now()/260)*1.5;mctx.fillStyle='rgba(255,196,60,.35)';mctx.beginPath();mctx.arc(x,y,pulse+4,0,7);mctx.fill();mctx.fillStyle='#ffc93c';mctx.strokeStyle='#2c1a0c';mctx.lineWidth=2;mctx.beginPath();mctx.arc(x,y,5,0,7);mctx.fill();mctx.stroke();mctx.fillStyle='#2c1a0c';mctx.fillRect(x-1,y-3,2,6);}
+  if((W.mapId||'city')==='city'&&W.mineEntrance){let [x,y]=point(W.mineEntrance.x,W.mineEntrance.y);const cx=size/2,cy=size/2,dd=Math.hypot(x-cx,y-cy),lim=size/2-9;if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}const pulse=5+Math.sin(performance.now()/260)*1.5;mctx.fillStyle='rgba(255,196,60,.35)';mctx.beginPath();mctx.arc(x,y,pulse+4,0,7);mctx.fill();mctx.fillStyle='#ffc93c';mctx.strokeStyle='#2c1a0c';mctx.lineWidth=2;mctx.beginPath();mctx.arc(x,y,5,0,7);mctx.fill();mctx.stroke();mctx.fillStyle='#2c1a0c';mctx.fillRect(x-1,y-3,2,6);}
+  if((W.mapId||'city')==='city'&&W.homeDoor){let [x,y]=point(W.homeDoor.x,W.homeDoor.y);const cx=size/2,cy=size/2,dd=Math.hypot(x-cx,y-cy),lim=size/2-9;if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}mctx.fillStyle='#7dcea0';mctx.strokeStyle='#1c3324';mctx.lineWidth=2;mctx.fillRect(x-4,y-5,8,7);mctx.strokeRect(x-4,y-5,8,7);mctx.beginPath();mctx.moveTo(x-5,y-4);mctx.lineTo(x,y-8);mctx.lineTo(x+5,y-4);mctx.closePath();mctx.fill();mctx.stroke();}
   playerStar(mctx,...point(S.player.fx,S.player.fy),7);mctx.restore();
   if(!$('#city-map').hidden) drawCityMap();
 }
@@ -994,7 +1088,8 @@ function drawCityMap() {
   c.fillText('N',size/2,top-21);c.fillText('S',size/2,top+height+23);c.fillText('OC',left-22,size/2);c.fillText('OR',left+width+23,size/2);
   for(const label of W.mapLabels||[]){const x=left+(label.x+.5)*scale,y=top+(label.y+.5)*scale;c.font='bold 12px sans-serif';const name=label.name.replace('Parque de ','').replace(' · mirador','');const textWidth=c.measureText(name).width;c.fillStyle='#14251ee8';c.fillRect(x-textWidth/2-5,y+8,textWidth+10,20);c.fillStyle='#fff1c9';c.fillText(name,x,y+18);}
   for(const o of S.others.values()){c.fillStyle='#eef4ea';c.beginPath();c.arc(left+(o.fx+.5)*scale,top+(o.fy+.5)*scale,2,0,7);c.fill();}
-  if(W.mapId!=='mine'&&W.mineEntrance){const x=left+(W.mineEntrance.x+.5)*scale,y=top+(W.mineEntrance.y+.5)*scale;c.fillStyle='#ffc93c';c.strokeStyle='#2c1a0c';c.lineWidth=2;c.beginPath();c.arc(x,y,7,0,7);c.fill();c.stroke();c.font='bold 12px sans-serif';const t='⛏ Mina';const tw=c.measureText(t).width;c.fillStyle='#2c1a0ce8';c.fillRect(x-tw/2-5,y+10,tw+10,20);c.fillStyle='#ffd66b';c.fillText(t,x,y+20);}
+  if((W.mapId||'city')==='city'&&W.mineEntrance){const x=left+(W.mineEntrance.x+.5)*scale,y=top+(W.mineEntrance.y+.5)*scale;c.fillStyle='#ffc93c';c.strokeStyle='#2c1a0c';c.lineWidth=2;c.beginPath();c.arc(x,y,7,0,7);c.fill();c.stroke();c.font='bold 12px sans-serif';const t='⛏ Mina';const tw=c.measureText(t).width;c.fillStyle='#2c1a0ce8';c.fillRect(x-tw/2-5,y+10,tw+10,20);c.fillStyle='#ffd66b';c.fillText(t,x,y+20);}
+  if((W.mapId||'city')==='city'&&W.homeDoor){const x=left+(W.homeDoor.x+.5)*scale,y=top+(W.homeDoor.y+.5)*scale;c.fillStyle='#7dcea0';c.strokeStyle='#1c3324';c.lineWidth=2;c.fillRect(x-6,y-6,12,10);c.strokeRect(x-6,y-6,12,10);c.beginPath();c.moveTo(x-8,y-5);c.lineTo(x,y-14);c.lineTo(x+8,y-5);c.closePath();c.fill();c.stroke();c.font='bold 12px sans-serif';const t='Casa';const tw=c.measureText(t).width;c.fillStyle='#1c3324e8';c.fillRect(x-tw/2-5,y+8,tw+10,18);c.fillStyle='#d8ffe8';c.fillText(t,x,y+17);}
   playerStar(c,left+(S.player.fx+.5)*scale,top+(S.player.fy+.5)*scale,8);
   $('#city-map-location').textContent=`Tu posición: ${S.player.fx.toFixed(1)}, ${S.player.fy.toFixed(1)} · ★ Tú`;
 }
@@ -1007,7 +1102,7 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog,
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  interact(id){const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };

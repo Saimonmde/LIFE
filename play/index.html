@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SaimonCity · Valle de Aburrá 3D</title>
-<link rel="stylesheet" href="style.css?v=bolsa-chat-r1">
-<link rel="stylesheet" href="movil.css?v=movil-r1">
+<title>SIMONCITY · Medellín</title>
+<link rel="stylesheet" href="style.css?v=simoncity-casa-r1">
+<link rel="stylesheet" href="movil.css?v=simoncity-casa-r1">
 <script src="movil.js?v=movil-r1"></script>
 </head>
 <body>
@@ -14,7 +14,7 @@
 
 <!-- ===== Marca + perfil (arriba izquierda) ===== -->
 <div id="hud-perfil" class="hud">
-  <div class="marca"><svg class="emblema" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12" r="9" fill="#5fae4a" stroke="#2c1a0c" stroke-width="2"/><circle cx="11" cy="10" r="3" fill="#8fd16a"/><rect x="14.5" y="18" width="3" height="10" fill="#e2b23c" stroke="#2c1a0c" stroke-width="1"/><path d="M8 29h16" stroke="#e2b23c" stroke-width="2"/></svg><span>LIFE INC</span></div>
+  <div class="marca"><svg class="emblema" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="12" r="9" fill="#5fae4a" stroke="#2c1a0c" stroke-width="2"/><circle cx="11" cy="10" r="3" fill="#8fd16a"/><rect x="14.5" y="18" width="3" height="10" fill="#e2b23c" stroke="#2c1a0c" stroke-width="1"/><path d="M8 29h16" stroke="#e2b23c" stroke-width="2"/></svg><div class="marca-text"><span>LIFE INC</span><div class="simoncity-hud">SIMONCITY</div><div class="simoncity-hud-sub">Medellín</div></div></div>
   <div class="tarjeta">
     <canvas id="retrato" width="56" height="56"></canvas>
     <div class="datos">
@@ -76,11 +76,12 @@
 
 <div id="login" hidden>
   <form id="login-form" autocomplete="off">
-    <div class="marca grande"><svg class="emblema" viewBox="0 0 32 32"><circle cx="16" cy="12" r="9" fill="#5fae4a" stroke="#2c1a0c" stroke-width="2"/><circle cx="11" cy="10" r="3" fill="#8fd16a"/><rect x="14.5" y="18" width="3" height="10" fill="#e2b23c" stroke="#2c1a0c" stroke-width="1"/><path d="M8 29h16" stroke="#e2b23c" stroke-width="2"/></svg><span>LIFE INC</span></div>
-    <p class="sub">Zona de inicio · <b>Medellín 3D</b></p>
+    <div class="simoncity-lockup">
+      <div class="simoncity-title">SIMONCITY</div>
+      <div class="simoncity-place">Medellín</div>
+      <p class="simoncity-welcome">Bienvenido a Medellín</p>
+    </div>
     <label>Nombre<input id="l-nombre" maxlength="16" required placeholder="Tu nombre"></label>
-    <label>Clan<input id="l-clan" maxlength="24" value="LIFE INC"></label>
-    <label>Grupo (opcional)<input id="l-grupo" maxlength="24" placeholder="p. ej. Mineros"></label>
     <div class="colores" id="l-colores"></div>
     <button type="submit">Entrar</button>
     <p id="login-status" role="status"></p>
@@ -90,6 +91,7 @@
 <div id="ayuda" hidden>
   <h2>Cómo jugar en El Jardín</h2>
   <ul>
+    <li><b>Casa:</b> entras en tu casa colonial. La puerta (clic, toque o caminar hasta ella) sale al Parque de Envigado. El botón <b>Casa</b> vuelve. <b>Editar casa</b> mueve, rota, quita y coloca muebles; el plano queda guardado en este navegador.</li>
     <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr. Clic en algo para ir e interactuar.</li>
     <li><b>Capataz</b> (plaza, con <b>!</b>): háblale para empezar los <b>Primeros Pasos</b>.</li>
     <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
@@ -107,8 +109,9 @@
 <div id="autotest" hidden></div>
 <script src="../data/el-jardin.js?v=saimoncity-expansion-r3"></script>
 <script src="mining-rules.js?v=mine-r2"></script>
-<script src="game.js?v=bolsa-chat-r1"></script>
-<script type="module" src="unified3d.js?v=bolsa-chat-r1"></script>
+<script src="casa.js?v=simoncity-casa-r1"></script>
+<script src="game.js?v=simoncity-casa-r1"></script>
+<script type="module" src="unified3d.js?v=simoncity-casa-r1"></script>
 <script src="interface.js?v=medellin-3d-r6"></script>
 </body>
 </html>

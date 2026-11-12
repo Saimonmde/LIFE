@@ -35,10 +35,10 @@ class Client:
         self.w = writer; self.bot = bot
         self.name = f'Jugador{self.id}'; self.color = 'azul'; self.clan = 'LIFE INC'; self.group = ''
         self.x, self.y, self.dir, self.moving = float(SPAWN[0]), float(SPAWN[1]), 'down', False
-        self.level = 1; self.hello = False; self.stamps = []
+        self.level = 1; self.hello = False; self.stamps = []; self.zone = 'city'
     def public(self):
         return {'id': self.id, 'name': self.name, 'color': self.color, 'clan': self.clan, 'group': self.group,
-                'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot}
+                'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone}
 
 def clean(s, n):
     s = re.sub(r'[\x00-\x1f\x7f<>]', '', str(s or '')).strip()
@@ -73,7 +73,10 @@ def broadcast(obj, who=None, exclude=None):
         if c is exclude or not c.hello: continue
         if who is None or who(c): send(c, obj)
 
-def dist(a, b): return max(abs(a.x - b.x), abs(a.y - b.y))
+def dist(a, b):
+    if a is b: return 0
+    if getattr(a, 'zone', 'city') == 'casa' or getattr(b, 'zone', 'city') == 'casa': return 1e9
+    return max(abs(a.x - b.x), abs(a.y - b.y))
 
 def unique_name(name, me):
     base = name or f'Jugador{me.id}'; n = base; k = 2
@@ -95,8 +98,8 @@ def chat(sender, channel, text):
             send(sender, {'t': 'system', 'text': f'Ahora estás en el grupo «{arg}».' if arg else 'Saliste del grupo.'})
             return broadcast({'t': 'player', 'player': sender.public()})
         if cmd == 'clan':
-            sender.clan = arg or 'LIFE INC'
-            send(sender, {'t': 'system', 'text': f'Tu clan ahora es «{sender.clan}».'})
+            sender.clan = arg
+            send(sender, {'t': 'system', 'text': f'Tu clan ahora es «{sender.clan}».' if arg else 'Saliste del clan.'})
             return broadcast({'t': 'player', 'player': sender.public()})
         return send(sender, {'t': 'system', 'text': 'Comandos: /grupo <nombre> · /clan <nombre>'})
     if channel not in CHANNELS: channel = 'proximidad'
@@ -142,22 +145,33 @@ async def handle_ws(reader, writer):
             t = m.get('t')
             if t == 'hello':
                 if c.hello: continue
-                c.x, c.y = arrival_position(m.get('resume'))
+                c.zone = 'casa' if m.get('zone') == 'casa' else 'city'
+                if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
+                else: c.x, c.y = arrival_position(m.get('resume'))
                 c.name = unique_name(clean(m.get('name'), 16), c)
                 c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
-                c.clan = clean(m.get('clan'), 24) or 'LIFE INC'; c.group = clean(m.get('group'), 24)
+                c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
                 c.level = int(m.get('level') or 1); c.hello = True
-                send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c],
+                send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
                          'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
-                broadcast({'t': 'join', 'player': c.public()}, exclude=c)
-                broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
+                if c.zone != 'casa':
+                    broadcast({'t': 'join', 'player': c.public()}, exclude=c)
+                    broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
             elif t == 'move' and c.hello:
+                if m.get('zone') == 'casa':
+                    if c.zone != 'casa':
+                        c.zone = 'casa'
+                        broadcast({'t': 'leave', 'id': c.id}, exclude=c)
+                    continue
+                was_casa = c.zone == 'casa'
+                c.zone = 'city'
                 try:
                     c.x = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); c.y = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
                 except Exception: continue
                 c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
                 c.moving = bool(m.get('moving')); c.level = int(m.get('level') or c.level)
-                broadcast({'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2), 'dir': c.dir, 'moving': c.moving, 'level': c.level}, exclude=c)
+                if was_casa: broadcast({'t': 'join', 'player': c.public()}, exclude=c)
+                else: broadcast({'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2), 'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'}, exclude=c)
             elif t == 'ping':
                 send(c, {'t': 'pong', 'c': m.get('c')})
             elif t == 'chat' and c.hello:
