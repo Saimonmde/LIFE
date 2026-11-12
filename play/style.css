@@ -202,10 +202,13 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 @media(max-height:650px){#w-inv.bag-summary{top:110px;max-height:calc(100dvh - 170px)}#w-inv.bag-summary #inventario{min-height:204px;height:calc(100dvh - 305px)}#w-inv.bag-summary .slot img{width:22px;height:22px}#w-inv.bag-summary .item-name{font-size:8px}#forge-chat-card{max-height:240px}}
 
 /* Casa colonial: botón de regreso, editor y catálogo. */
-#b-casa,#b-editar-casa{position:fixed;z-index:26;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 15px system-ui,sans-serif;min-height:44px;padding:8px 16px;cursor:pointer;box-shadow:0 3px 10px #0007}
+#b-casa,#b-editar-casa,#b-salir-parque{position:fixed;z-index:26;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 15px system-ui,sans-serif;min-height:44px;padding:8px 16px;cursor:pointer;box-shadow:0 3px 10px #0007}
 #b-casa{top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%)}
 #b-editar-casa{top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%)}
-body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-game) #b-casa,body:not(.in-game) #b-editar-casa,body:not(.in-game) #casa-editor,body.in-casa #mine-route{display:none!important}
+#b-salir-parque{left:50%;bottom:78px;transform:translateX(-50%);background:#6b3a22;color:#fff1c9;border-color:#e2b23c}
+body.in-casa #world-tools{top:auto!important;bottom:200px}
+body.in-casa #world-note{top:auto!important;bottom:150px}
+body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-salir-parque,body:not(.in-game) #b-casa,body:not(.in-game) #b-editar-casa,body:not(.in-game) #b-salir-parque,body:not(.in-game) #casa-editor,body.in-casa #mine-route{display:none!important}
 #casa-editor{position:fixed;z-index:28;top:64px;left:max(10px,env(safe-area-inset-left));width:min(300px,calc(100vw - 20px));max-height:calc(100dvh - 80px);overflow:auto;background:#241c14f5;border:2px solid #b48a46;border-radius:10px;color:#f6e7c4;padding:10px 12px;font:14px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px #000a}
 #casa-editor header{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:#f5d27a;padding:0 0 6px;border:0}
 #casa-editor button{background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:6px;padding:8px 10px;cursor:pointer;font:13px system-ui,sans-serif}
@@ -217,4 +220,4 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-game) #b-cas
 .swatch{width:28px;height:28px;min-height:28px;padding:0;border-radius:50%;border:2px solid #2a1a0c!important}
 .casa-hint{margin:4px 0 8px;color:#e6d3b0;font-size:12px}
 #casa-status{min-height:1.2em;color:#ffe09a;font-size:12px}
-@media(max-width:700px){#casa-editor{top:auto;bottom:max(8px,env(safe-area-inset-bottom));max-height:46dvh}#b-editar-casa{top:auto;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));left:auto;right:max(8px,env(safe-area-inset-right));transform:none}body.casa-editando #b-editar-casa{bottom:auto;top:max(8px,env(safe-area-inset-top))}}
+@media(max-width:700px){#casa-editor{top:auto;bottom:max(8px,env(safe-area-inset-bottom));max-height:46dvh}#b-editar-casa{top:auto;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));left:auto;right:max(8px,env(safe-area-inset-right));transform:none}#b-salir-parque{left:auto;right:max(8px,env(safe-area-inset-right));bottom:max(116px,calc(env(safe-area-inset-bottom) + 116px));transform:none}body.casa-editando #b-editar-casa{bottom:auto;top:max(8px,env(safe-area-inset-top))}}

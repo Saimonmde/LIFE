@@ -57,6 +57,7 @@ export function buildHouse(T) {
     g.fillStyle = '#2f6a34'; g.beginPath(); g.arc(48, 100, 16, 0, 7); g.arc(200, 104, 18, 0, 7); g.fill();
   });
   const shell = new T.Group(); const furn = new T.Group();
+  const doorHovers = [];
   scene.add(shell, furn);
   const owned = new Set();
   function clearGroup(group) {
@@ -89,7 +90,7 @@ export function buildHouse(T) {
   }
 
   function rebuild(layout) {
-    clearGroup(shell); clearGroup(furn); pick.length = 0;
+    clearGroup(shell); clearGroup(furn); pick.length = 0; doorHovers.length = 0;
     const L = layout || window.Casa.layout;
     const wall = L.wall || '#f4f0e6';
     const floorTint = L.floor || '#c45c38';
@@ -113,8 +114,8 @@ export function buildHouse(T) {
     const H = 4.3;
     wallBox(10, H / 2, 1.75, 16.6, H, 0.5);
     wallBox(1.75, H / 2, 10, 0.5, H, 16.6);
-    wallBox(10, H / 2, 18.25, 6.2, H, 0.5);
-    wallBox(14.6, H / 2, 18.25, 6.6, H, 0.5);
+    wallBox(4.7, H / 2, 18.35, 5.4, H, 0.55);
+    wallBox(14.3, H / 2, 18.35, 7.4, H, 0.55);
     wallBox(18.25, H / 2, 4.2, 0.5, H, 4.2);
     wallBox(18.25, H / 2, 15.2, 0.5, H, 5.6);
     wallBox(23, H / 2, 3.75, 6.4, H, 0.45);
@@ -123,7 +124,7 @@ export function buildHouse(T) {
     // Zócalo, vigas y alero de teja sin tapar la vista.
     for (const z of [2.1, 17.9]) part(shell, boxG(), wood, 10, 0.18, z, 16.2, 0.28, 0.28);
     for (const x of [2.1, 17.9]) part(shell, boxG(), wood, x, 0.18, 10, 0.28, 0.28, 15.6);
-    for (const z of [4, 10, 16]) part(shell, boxG(), dark, 10, 4.15, z, 15.4, 0.22, 0.28);
+    for (const z of [5, 9]) part(shell, boxG(), dark, 10, 4.15, z, 15.4, 0.22, 0.28);
     part(shell, boxG(), dark, 6, 4.15, 10, 0.22, 0.22, 15);
     part(shell, boxG(), '#a86448', 10, 4.45, 1.45, 16.8, 0.18, 0.7);
     // Ventana con postigos de madera.
@@ -138,21 +139,38 @@ export function buildHouse(T) {
     part(shell, boxG(), '#e7e1d4', 9, 2.7, 2.05, 1.5, 2.1, 0.28);
     part(shell, boxG(), dark, 9, 2.55, 1.82, 0.12, 1.35, 0.1);
     part(shell, boxG(), dark, 9, 2.85, 1.82, 0.7, 0.1, 0.1);
-    // Puerta de salida, al sur, de cara al patio del mundo.
+    // Puerta colonial grande, de cara al interior, con marco claro y farol.
     const door = new T.Group();
-    door.position.set(9, 0, 18.15);
-    const frame = (x, y, z, w, h, d, c) => part(door, boxG(), c, x, y, z, w, h, d);
-    frame(0, 1.7, 0, 1.7, 3.3, 0.28, wood);
-    frame(-0.7, 1.55, 0.12, 0.16, 3.1, 0.16, dark);
-    frame(0.7, 1.55, 0.12, 0.16, 3.1, 0.16, dark);
-    frame(0, 3.15, 0.12, 1.7, 0.18, 0.16, dark);
-    const leaf = frame(-0.28, 1.45, 0.22, 0.62, 2.7, 0.1, '#8a5a34');
-    leaf.rotation.y = -0.45;
-    frame(0.32, 1.45, 0.2, 0.62, 2.7, 0.1, '#8a5a34');
-    part(door, cyl(), '#c2b48a', 0.05, 1.4, 0.38, 0.08, 0.08, 0.08);
-    const board = new T.Mesh(new T.PlaneGeometry(3.4, 0.7), new T.MeshBasicMaterial({ map: sign('SALIR · PARQUE DE ENVIGADO', 768, 160, '#3a2412') }));
-    board.position.set(0, 3.7, 0.2); door.add(board);
-    door.traverse(m => { if (m.isMesh) { m.userData.id = 'puerta_salida'; pick.push(m); } });
+    door.position.set(9, 0, 17.85);
+    const jamb = '#f7f1e4', leaf = '#5a3018', brass = '#e2b23c';
+    const piece = (x, y, z, w, h, d, c) => part(door, boxG(), c, x, y, z, w, h, d);
+    piece(0, 2.15, 0.05, 3.5, 4.5, 0.42, jamb);
+    piece(-1.55, 2.05, -0.22, 0.28, 4.15, 0.34, dark);
+    piece(1.55, 2.05, -0.22, 0.28, 4.15, 0.34, dark);
+    piece(0, 4.15, -0.22, 3.4, 0.32, 0.34, dark);
+    piece(0, 0.18, -0.16, 2.7, 0.16, 0.4, '#6b5340');
+    piece(0, 2.05, -0.28, 2.55, 3.7, 0.16, leaf);
+    for (const py of [1.15, 2.15, 3.15]) piece(0, py, -0.38, 2.15, 0.08, 0.06, brass);
+    for (const px of [-0.55, 0.55]) piece(px, 2.1, -0.38, 0.08, 3.15, 0.06, brass);
+    part(door, cyl(), brass, 0.72, 1.85, -0.46, 0.11, 0.11, 0.08);
+    for (const x of [-1.15, 1.15]) {
+      piece(x, 3.15, -0.55, 0.12, 0.7, 0.12, dark);
+      part(door, boxG(), '#ffe7a8', x, 2.72, -0.55, 0.28, 0.36, 0.28);
+      const lamp = new T.PointLight(0xffc56a, 14, 8, 2);
+      lamp.position.set(x, 2.7, -0.7); door.add(lamp);
+    }
+    const glowMat = new T.MeshBasicMaterial({ color: '#ffd56a', transparent: true, opacity: 0.45, depthWrite: false });
+    const glow = new T.Mesh(new T.RingGeometry(1.15, 1.7, 28), glowMat);
+    glow.rotation.x = -Math.PI / 2; glow.position.set(0, 0.08, -0.9); door.add(glow);
+    const outlineMat = new T.MeshBasicMaterial({ color: '#ffe08a', transparent: true, opacity: 0.95, depthWrite: false });
+    const outline = new T.Mesh(boxG(), outlineMat);
+    outline.position.set(0, 2.15, -0.5); outline.scale.set(3.85, 4.7, 0.08); outline.visible = false;
+    door.add(outline); doorHovers.push(outline);
+    const label = new T.Sprite(new T.SpriteMaterial({ map: sign('Salir · Parque de Envigado', 1024, 180, '#3a2412'), depthTest: false, transparent: true }));
+    label.position.set(0, 2.35, -0.55); label.scale.set(3.35, 0.58, 1); label.renderOrder = 8; door.add(label);
+    const hit = new T.Mesh(boxG(), new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+    hit.position.set(0, 2.4, -0.2); hit.scale.set(4.2, 5.4, 1.2); door.add(hit);
+    door.traverse(m => { if (m.isMesh) { m.userData.exitDoor = true; m.userData.id = 'puerta_salida'; pick.push(m); } });
     shell.add(door);
     // Jardín fijo del patio: macetas en las esquinas, además de las plantas editables.
     for (const [x, z] of [[20.6, 4.7], [25.2, 15.2]]) {
@@ -238,7 +256,7 @@ export function buildHouse(T) {
     }
   }
   rebuild(window.Casa.layout);
-  return { scene, pick, rebuild };
+  return { scene, pick, rebuild, setDoorHover(on) { for (const m of doorHovers) m.visible = !!on; } };
 }
 
 export function buildHomeMarker(T, scene, pick, height, material) {

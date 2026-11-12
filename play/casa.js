@@ -39,6 +39,9 @@
   for (const [x, y] of [[9, 3], [9, 4], [9, 5]]) mark(x, y, 'hall');
   for (let y = 2; y <= 7; y++) for (let x = 10; x <= 12; x++) mark(x, y, 'patio');
   mark(DOOR.x, DOOR.y, 'door');
+  mark(DOOR.x, DOOR.y - 1, 'threshold');
+  mark(DOOR.x - 1, DOOR.y - 1, 'threshold');
+  mark(DOOR.x + 1, DOOR.y - 1, 'threshold');
 
   function defaultLayout() {
     return {
@@ -93,7 +96,7 @@
     const occ = occupied(items, ignoreId);
     for (const [x, y] of cellsOf(item)) {
       const kind = floor.get(x + ',' + y);
-      if (!kind || kind === 'door') return false;
+      if (!kind || kind === 'door' || kind === 'threshold') return false;
       if (spec.solid && x === SPAWN.x && y === SPAWN.y) return false;
       const prev = occ.get(x + ',' + y);
       if (spec.solid && prev) return false;
@@ -177,10 +180,13 @@
     const home = document.createElement('button');
     home.id = 'b-casa'; home.type = 'button'; home.textContent = 'Casa';
     home.onclick = () => { if (window.Casa.enter) window.Casa.enter(); };
+    const leave = document.createElement('button');
+    leave.id = 'b-salir-parque'; leave.type = 'button'; leave.textContent = 'Salir al Parque';
+    leave.onclick = () => { if (window.Casa.exit) window.Casa.exit(); };
     const panel = document.createElement('section');
     panel.id = 'casa-editor'; panel.hidden = true; panel.setAttribute('aria-label', 'Editar la casa');
     panel.innerHTML = '<header>Editar casa <button type="button" id="casa-done">Listo</button></header><p class="casa-hint">Elige un mueble y toca el suelo para colocarlo. Toca uno puesto para moverlo, rotarlo o quitarlo.</p><div id="casa-catalog"></div><div id="casa-actions"><button type="button" id="casa-rot" disabled>Rotar</button><button type="button" id="casa-del" disabled>Quitar</button></div><div id="casa-walls"><span>Pared</span></div><div id="casa-floors"><span>Piso</span></div><p id="casa-status" role="status"></p>';
-    document.body.append(edit, home, panel);
+    document.body.append(edit, home, leave, panel);
     root = panel;
     catalogEl = panel.querySelector('#casa-catalog');
     statusEl = panel.querySelector('#casa-status');

@@ -61,6 +61,7 @@ async function init() {
   }
   Casa.playerName = () => S.me.name;
   Casa.enter = () => enterHouse();
+  Casa.exit = () => exitHouse();
   Casa.onEdit = (on) => { S.houseEdit = on; if (on) { S.player.path = []; S.player.pending = null; S.keys.clear(); } };
   Casa.onLayout = () => { if ((W.mapId || 'city') === 'casa') applyCasaLayout(); if (window.LIVE3D && window.LIVE3D.rebuildHouse) window.LIVE3D.rebuildHouse(Casa.layout); };
   Casa.mount();
@@ -175,7 +176,7 @@ function enterHouse(){
  switchMap('casa');
 }
 function exitHouse(){
- if((W.mapId||'city')!=='casa'||Casa.editing)return;
+ if((W.mapId||'city')!=='casa')return;
  S.portalUntil=now()+900;
  if(window.LIVE3D)window.LIVE3D.lookAt={x:239,y:69};
  switchMap('city');
@@ -1110,7 +1111,7 @@ function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTM
 
 window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
- interact(id){const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
+ interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
 function autotest() {
