@@ -14,6 +14,19 @@ Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-S
 
 Cada persona conserva sus derechos sobre sus aportaciones. No se transfiere automáticamente copyright, marca ni un bien físico mediante un NFT. La licencia no registra la marca ni convierte el servidor actual en una red descentralizada.
 
+La simulación de **Saimon Coins (SAI, alias Saimony)** y del **Libro Mayor** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SAI; 1 SAI = 100.000.000 saimonitos. Sólo el oro del río emite SAI nuevas. El servidor guarda el libro en `state/economy.json` (no se versiona; en el plan gratuito de Render el disco se borra al reciclar la instancia).
+
+## Mapa del repositorio
+
+Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del mapa.
+
+- `server.py` — HTTP, WebSocket, `/healthz` y la autoridad de las SAI.
+- `play/` — vista de escritorio: mundo, casa colonial, Parque de Envigado, chat y `simulacion.js` (caballos, SAI, Libro Mayor, lecciones).
+- `movil/` — entrada del teléfono; usa la misma vista con botones táctiles.
+- `data/el-jardin.json` — el mapa. `data/el-jardin.js` es la misma carga para abrir sin `fetch`. `data/simulacion.json` — establo, profesora, economía y lecciones, fuera de la casa.
+- `graphics/` — arte original: teselas, objetos, personajes e interfaz.
+- `tools/` — generadores, `economy.py` y `test_economy.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+
 ## Jugar en local
 
 Ejecutar `python3 server.py` y abrir `http://localhost:8765/play/`. Python 3 basta para servir el juego; las herramientas gráficas necesitan Pillow. No ejecutar `tools/build.py` sobre una copia con cambios sin respaldo: ese generador conserva una versión histórica del mapa.

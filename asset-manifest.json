@@ -134,6 +134,16 @@
       "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
     },
     {
+      "path": "graphics/characters/profesora_cadena.png",
+      "sha256": "442540951f7c5d71891e840fdc8c355fa17e2506fbaaba5dec11c5343fca6c68",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "tools/arte_simulacion.py, exact procedural pixels",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
       "path": "graphics/icons/16/banano.png",
       "sha256": "6dc1b38f6434b25ca92962e6b65e24fe6e493f72142ca47a53c609257cdc913e",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
@@ -1184,6 +1194,26 @@
       "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
     },
     {
+      "path": "graphics/objects/caballo_0.png",
+      "sha256": "66a0739c55fe06f5714ae531940103fd45d52efd85b4d1f0f4e0a3b5b39fde86",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "tools/arte_simulacion.py, exact procedural pixels",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/caballo_1.png",
+      "sha256": "c6413813d625c28cfeb0c2ddd7e6fb38a22ca6cc67eccfafff484530d9724f44",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "tools/arte_simulacion.py, exact procedural pixels",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
       "path": "graphics/objects/casa_capataz.png",
       "sha256": "0b0e290ddeae11905436587b95afb2f22b335e88fd007a58ad74ef1acb406941",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
@@ -1238,6 +1268,16 @@
       "sha256": "9a146b696e761f56d784cab3bab9179c94c9f6bad3ea746c0dd95a80cca023f8",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
       "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/establo.png",
+      "sha256": "c32dee1ff7849cd956877133c5de48732dfff9e3b61680e88dc3a99438bcde7a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "tools/arte_simulacion.py, exact procedural pixels",
       "release_approved": true,
       "status": "authorized",
       "license": "CC-BY-SA-4.0",
@@ -3319,5 +3359,6 @@
     "data/el-jardin.json",
     "data/el-jardin.js"
   ],
-  "repository": "https://github.com/Saimonmde/LIFE"
+  "repository": "https://github.com/Saimonmde/LIFE",
+  "last_inventory_update": "2026-11-13"
 }

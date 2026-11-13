@@ -9,3 +9,4 @@ __pycache__/
 releases/*.zip
 previews/
 lifein.json
+state/

@@ -7,12 +7,14 @@
         python3 server.py --port 8765 --host 0.0.0.0 --sin-bots
 - Canales de chat: Global, Proximidad (≤ 30 m = 15 casillas), Clan, Grupo.
 """
-import uuid
+import sys, uuid
 import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, socket, struct, time, urllib.parse
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
+import economy as ECO
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-BLOCKED = ('/references', '/tools', '/server.py')
+BLOCKED = ('/references', '/tools', '/server.py', '/state')
 PROX_TILES = 15           # 30 m con 2 m por casilla
 MAX_TEXT = 160
 CHANNELS = ('global', 'proximidad', 'clan', 'grupo')
@@ -25,6 +27,71 @@ SPAWN = (WORLD['spawn']['x'], WORLD['spawn']['y'])
 _pl = next((a for a in WORLD.get('areas', []) if a['id'] == 'plaza'), None)
 PLAZA_C = (_pl['x'] + _pl['w'] // 2, _pl['y'] + _pl['h'] // 2) if _pl else SPAWN
 COLORS = list(WORLD.get('playerVariants', {}).keys()) or ['azul']
+ECON_PATH = os.path.join(ROOT, 'state', 'economy.json')
+ECON = ECO.load_state(ECON_PATH)
+
+def save_econ():
+    ECO.save_state(ECON_PATH, ECON)
+
+def econ_msg(who=None):
+    m = {'t': 'economy', 'state': {
+        'mined': ECON.get('mined', 0), 'blocks': ECON.get('blocks', []), 'mempool': ECON.get('mempool', []),
+        'wallets': ECON.get('wallets', {}), 'disclaimer': ECON.get('disclaimer'),
+        'symbol': 'SAI', 'alias': ['Saimony'], 'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
+    }}
+    if who:
+        m['balanceSubs'] = int((ECON.get('wallets') or {}).get(who) or 0)
+    return m
+
+def ensure_wallet(name):
+    w = ECON.setdefault('wallets', {})
+    if name not in w:
+        w[name] = 0
+        save_econ()
+
+def pagar(sender, dest, monto, note='Transferencia /pagar'):
+    ensure_wallet(sender.name)
+    dests = {c.name: c.name for c in clients.values() if c.hello}
+    dests['puesto_frutas'] = 'puesto_frutas'
+    hit = next((dests[n] for n in dests if n.lower() == str(dest or '').strip().lower()), None)
+    if not hit:
+        send(sender, {'t': 'pay_result', 'ok': False, 'to': dest})
+        return send(sender, {'t': 'system', 'text': f'No encuentro a «{dest}». Usa un jugador conectado o puesto_frutas.'})
+    try:
+        subs = ECO.subunits(monto)
+    except (TypeError, ValueError):
+        return send(sender, {'t': 'system', 'text': 'El monto no es válido.'})
+    if subs <= 0:
+        send(sender, {'t': 'pay_result', 'ok': False, 'to': hit})
+        return send(sender, {'t': 'system', 'text': 'El monto debe ser mayor que cero.'})
+    if not ECO.debit(ECON, sender.name, subs):
+        send(sender, {'t': 'pay_result', 'ok': False, 'to': hit})
+        return send(sender, {'t': 'system', 'text': 'No tienes saldo suficiente en SAI.'})
+    ECO.credit(ECON, hit, subs)
+    ECO.append_tx(ECON, {'type': 'pay', 'from': sender.name, 'to': hit, 'amountSubs': subs, 'note': note})
+    save_econ()
+    broadcast(econ_msg())
+    send(sender, {'t': 'pay_result', 'ok': True, 'to': hit, 'note': note, 'amountSai': ECO.sai_of(subs)})
+    broadcast({'t': 'system', 'text': f'{sender.name} pagó {ECO.format_sai(subs)} a {hit}. Sólo es una simulación, sin valor real.'})
+
+def mint_for(sender):
+    if getattr(sender, 'zone', 'city') != 'city':
+        return send(sender, {'t': 'system', 'text': 'Las SAI sólo se emiten al lavar oro en el río, fuera de la casa.'})
+    ensure_wallet(sender.name)
+    now = time.time()
+    if now - getattr(sender, 'last_mint', 0) < 1.5:
+        return send(sender, {'t': 'system', 'text': 'Espera un momento para volver a batear.'})
+    sender.last_mint = now
+    reward = ECO.reward_sai(ECON.get('mined') or 0)
+    if reward <= 0:
+        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SAI.'})
+    subs = ECO.subunits(reward)
+    ECON['mined'] = float(ECON.get('mined') or 0) + float(reward)
+    ECO.credit(ECON, sender.name, subs)
+    ECO.append_tx(ECON, {'type': 'mint', 'to': sender.name, 'amountSubs': subs, 'note': 'Emisión por bateada de oro fluvial'})
+    save_econ()
+    broadcast(econ_msg())
+    send(sender, {'t': 'system', 'text': f'Se emitieron {ECO.format_sai(subs)} (Saimon Coins, sólo en el juego; no es dinero real).'})
 
 clients = {}      # id -> Client
 next_id = 1
@@ -93,7 +160,20 @@ def chat(sender, channel, text):
     text = clean(text, MAX_TEXT)
     if not text: return
     if text.startswith('/'):
-        cmd, _, arg = text[1:].partition(' '); arg = clean(arg, 24); cmd = cmd.lower()
+        raw = text[1:].strip()
+        cmd, _, rest = raw.partition(' ')
+        cmd = cmd.lower()
+        if cmd == 'pagar':
+            bits = rest.rsplit(None, 1)
+            if len(bits) != 2:
+                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto>  (Saimon Coins, sólo en el juego)'})
+            dest, monto_s = bits[0], bits[1].replace(',', '.')
+            try:
+                monto = float(monto_s)
+            except ValueError:
+                return send(sender, {'t': 'system', 'text': 'El monto no es válido.'})
+            return pagar(sender, dest, monto)
+        arg = clean(rest, 24)
         if cmd == 'grupo':
             sender.group = arg
             send(sender, {'t': 'system', 'text': f'Ahora estás en el grupo «{arg}».' if arg else 'Saliste del grupo.'})
@@ -102,7 +182,7 @@ def chat(sender, channel, text):
             sender.clan = arg
             send(sender, {'t': 'system', 'text': f'Tu clan ahora es «{sender.clan}».' if arg else 'Saliste del clan.'})
             return broadcast({'t': 'player', 'player': sender.public()})
-        return send(sender, {'t': 'system', 'text': 'Comandos: /grupo <nombre> · /clan <nombre>'})
+        return send(sender, {'t': 'system', 'text': 'Comandos: /grupo <nombre> · /clan <nombre> · /pagar <jugador> <monto>'})
     if channel not in CHANNELS: channel = 'proximidad'
     msg = {'t': 'chat', 'channel': channel, 'from': sender.name, 'fromId': sender.id, 'clan': sender.clan, 'text': text,
            'ts': time.strftime('%H:%M'), 'bot': sender.bot}
@@ -158,6 +238,8 @@ async def handle_ws(reader, writer):
                 if c.zone != 'casa':
                     broadcast({'t': 'join', 'player': c.public()}, exclude=c)
                     broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
+                ensure_wallet(c.name)
+                send(c, econ_msg(c.name))
             elif t == 'move' and c.hello:
                 if m.get('zone') == 'casa':
                     if c.zone != 'casa':
@@ -177,6 +259,14 @@ async def handle_ws(reader, writer):
                 send(c, {'t': 'pong', 'c': m.get('c')})
             elif t == 'chat' and c.hello:
                 chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
+            elif t == 'mint' and c.hello:
+                mint_for(c)
+            elif t == 'pay' and c.hello:
+                try:
+                    monto = float(m.get('amountSai'))
+                except (TypeError, ValueError):
+                    continue
+                pagar(c, m.get('to'), monto, clean(m.get('note') or 'Pago', 80) or 'Pago')
             await writer.drain()
     except (asyncio.IncompleteReadError, ConnectionError, OSError, asyncio.TimeoutError):
         pass
@@ -293,6 +383,13 @@ async def main():
     print(f'chat WebSocket: ws://<host>:{a.port}/ws')
     print('Ctrl+C para detener.')
     if not a.sin_bots and a.bots > 0: asyncio.create_task(bots_loop(min(4, a.bots)))
+    async def ledger_loop():
+        while True:
+            await asyncio.sleep(5)
+            if ECO.seal_if_due(ECON):
+                save_econ()
+                broadcast(econ_msg())
+    asyncio.create_task(ledger_loop())
     async def _serve(srv):
         async with srv:
             await srv.serve_forever()

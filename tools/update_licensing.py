@@ -28,7 +28,7 @@ def source_files():
             continue
         allowed_dirs = {'play', 'movil', 'graphics', 'tools', 'LICENSES'}
         allowed_root = set(NOTICES) | {'README.md', 'SCHEMA.md', 'server.py', 'jugar.sh', 'render.yaml', '.python-version', '.gitignore'}
-        if rel.parts[0] not in allowed_dirs and rel.as_posix() not in allowed_root and rel.as_posix() not in {'data/el-jardin.json', 'data/el-jardin.js', 'data/el-jardin.json.license', 'data/el-jardin.js.license', 'README.md.license', 'SCHEMA.md.license'}:
+        if rel.parts[0] not in allowed_dirs and rel.as_posix() not in allowed_root and rel.as_posix() not in {'data/el-jardin.json', 'data/el-jardin.js', 'data/el-jardin.json.license', 'data/el-jardin.js.license', 'data/simulacion.json', 'data/simulacion.json.license', 'README.md.license', 'SCHEMA.md.license'}:
             continue
         yield p, rel
 
