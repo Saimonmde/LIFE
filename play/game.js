@@ -328,9 +328,13 @@ function prepareMining(){
   if(!W.items[raw])W.items[raw]={...W.items.mineral_cobre,id:raw,name:'Mineral de oro sin refinar'};
   W.items[raw].name='Mineral de '+metal+' sin refinar';
   W.items[raw].icon={'16':'graphics/mining/'+raw+'.svg','32':'graphics/mining/'+raw+'.svg','64':'graphics/mining/'+raw+'.svg'};
-  W.items[ingot]={id:ingot,name:'Lingote de '+metal,category:'ingot',stackable:true,maxStack:999,icon:{'16':'graphics/mining/'+ingot+'.svg','32':'graphics/mining/'+ingot+'.svg','64':'graphics/mining/'+ingot+'.svg'}};
+  const bar={ '16':'graphics/mining/'+ingot+'.svg','32':'graphics/mining/'+ingot+'.svg','64':'graphics/mining/'+ingot+'.svg' };
+  const pile={ '16':'graphics/mining/'+ingot+'_pila.svg','32':'graphics/mining/'+ingot+'_pila.svg','64':'graphics/mining/'+ingot+'_pila.svg' };
+  W.items[ingot]={id:ingot,name:'Lingote de '+metal,category:'ingot',stackable:true,maxStack:999,icon:bar,iconStack:pile};
   const coin='moneda_'+metal;
-  W.items[coin]={id:coin,name:'Moneda de '+metal,category:'coin',stackable:true,maxStack:999,icon:{'16':'graphics/mining/'+coin+'.svg','32':'graphics/mining/'+coin+'.svg','64':'graphics/mining/'+coin+'.svg'}};
+  const face={ '16':'graphics/mining/'+coin+'.svg','32':'graphics/mining/'+coin+'.svg','64':'graphics/mining/'+coin+'.svg' };
+  const coins={ '16':'graphics/mining/'+coin+'_pila.svg','32':'graphics/mining/'+coin+'_pila.svg','64':'graphics/mining/'+coin+'_pila.svg' };
+  W.items[coin]={id:coin,name:'Moneda de '+metal,category:'coin',stackable:true,maxStack:999,icon:face,iconStack:coins};
  }
  W.skills.mining.learn='Usa la pica sobre vetas de cobre, plata y oro. Cada extracción da experiencia y los minerales se apilan en la mochila.';
  W.skills.mining.methods.terrestre.minerals=['piedra','cobre','plata','oro'];
@@ -343,13 +347,13 @@ function prepareMining(){
 }
 let furnaceNode=null;
 function setupMiningUI(){
- const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña lingotes y monedas de cobre, plata y oro. Esas monedas son objetos de la mochila: no crean <span class="smc">SMC</span>. Acreditar <span class="smc">SMC</span> usa el libro mayor (código único; 1 <span class="smc">SMC</span> = 100.000.000 <span class="smc">SMH</span>).</p><ul id="forge-recipes"></ul><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-ingot" type="button">Crear lingotes</button><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" type="button">Acreditar <span class="smc">SMC</span></button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña lingotes y monedas de cobre, plata y oro. Esas monedas son objetos de la mochila: no crean <span class="smc">SMC</span>. Acreditar <span class="smc">SMC</span> usa el libro mayor (código único; 1 <span class="smc">SMC</span> = 100.000.000 <span class="smc">SMH</span>).</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-ingot" type="button">Crear lingotes</button><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" type="button">Acreditar <span class="smc">SMC</span></button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
  for(const [id,r] of Object.entries(MiningRules.recipes)){const o=document.createElement('option');o.value=id;o.textContent=W.items[id].name;$('#forge-ore').append(o);}
  $('#furnace-close').onclick=()=>panel.hidden=true;
  $('#forge-ore').onchange=$('#forge-batches').oninput=renderForge;
  $('#forge-one').onclick=()=>{$('#forge-batches').value=1;renderForge();};$('#forge-all').onclick=()=>{const id=$('#forge-ore').value;$('#forge-batches').value=Math.max(1,Math.floor(invCount(id)/MiningRules.recipes[id].ore));renderForge();};
  $('#forge-ingot').onclick=()=>smelt('ingot');$('#forge-coin').onclick=()=>smelt('coin');$('#forge-coins').onclick=()=>smelt('coins');
- for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.textContent=`${r.name}: ${r.ore} minerales → ${r.ingots} lingote, o ${r.coinQty} monedas (objeto). SMC del libro: ${r.coins}.`;$('#forge-recipes').append(li);}
+ for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.className='forge-recipe';li.innerHTML=`${itemImg(W.items[id],1,'ore-art')}${itemImg(W.items['lingote_'+r.metal],1,'ore-art')}${itemImg(W.items[r.coinItem],r.coinQty,'ore-art')}<span>${esc(r.name)}: ${r.ore} minerales → ${r.ingots} lingote, o ${r.coinQty} monedas (objeto). SMC del libro: ${r.coins}.</span>`;$('#forge-recipes').append(li);}
  const intro=document.createElement('p');intro.className='bag-note';intro.textContent='60 casillas · pilas de 999 · arrastra mineral al horno';$('#inventario').before(intro);
  const modes=document.createElement('div');modes.id='bag-modes';modes.innerHTML='<button id="bag-summary" type="button">Resumen 4×6</button><button id="bag-full" type="button">Completo</button>';$('#w-inv header').append(modes);$('#bag-summary').onclick=()=>setBagMode('summary');$('#bag-full').onclick=()=>setBagMode('full');
  const pages=document.createElement('nav');pages.id='bag-pages';pages.setAttribute('aria-label','Páginas del inventario resumido');pages.innerHTML='<button type="button" id="bag-prev" aria-label="Página anterior del inventario">‹</button><span id="bag-page-label"></span><button type="button" id="bag-next" aria-label="Página siguiente del inventario">›</button>';$('#inventario').after(pages);$('#bag-prev').onclick=()=>{bagPage=Math.max(0,bagPage-1);renderInv();};$('#bag-next').onclick=()=>{bagPage=Math.min(Math.ceil(SLOTS/24)-1,bagPage+1);renderInv();};
@@ -367,7 +371,8 @@ function forgeBagLine(){const parts=[];for(const id of ['lingote_cobre','lingote
 function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value,r=MiningRules.recipes[id],q=Number($('#forge-batches').value),max=Math.floor(invCount(id)/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  const ingotQty=q*(r.ingots||1),coinQty=q*(r.coinQty||0),coinName=W.items[r.coinItem]?W.items[r.coinItem].name:'monedas';
  $('#forge-stock').textContent=`En mochila: ${invCount(id)} · ${r.ore} minerales por lote · disponibles: ${max} lotes`;
- $('#forge-batches').max=Math.max(1,max);$('#forge-preview').innerHTML=valid?`${q*r.ore} minerales → ${ingotQty} lingote${ingotQty===1?'':'s'} de ${esc(r.metal)}, o ${coinQty} ${esc(coinName)} (objeto de la mochila, no es <span class="smc">SMC</span>). Acreditar <span class="smc">SMC</span>: <span class="smc">${q*r.coins} SMC</span> del libro mayor.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
+ $('#forge-batches').max=Math.max(1,max);$('#forge-preview').innerHTML=valid?`${itemImg(W.items[id],q,'ore-art')} ${q*r.ore} minerales → ${itemImg(W.items['lingote_'+r.metal],ingotQty,'ore-art')} ${ingotQty} lingote${ingotQty===1?'':'s'} de ${esc(r.metal)}, o ${itemImg(W.items[r.coinItem],coinQty,'ore-art')} ${coinQty} ${esc(coinName)} (objeto de la mochila, no es <span class="smc">SMC</span>). Acreditar <span class="smc">SMC</span>: <span class="smc">${q*r.coins} SMC</span> del libro mayor.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
+ const pair=$('#forge-pair'); if(pair) pair.innerHTML=`<figure>${itemImg(W.items['lingote_'+r.metal],Math.max(1,ingotQty))}<figcaption>${Math.max(0,ingotQty)} lingote${ingotQty===1?'':'s'}</figcaption></figure><figure>${itemImg(W.items[r.coinItem],Math.max(1,coinQty))}<figcaption>${Math.max(0,coinQty)} ${esc(coinName)}</figcaption></figure>`;
  const busy=!!forgeTimer;$('#forge-ingot').disabled=$('#forge-coin').disabled=$('#forge-coins').disabled=!valid||busy;
  if($('#forge-made'))$('#forge-made').textContent=forgeBagLine();
 }
@@ -407,7 +412,7 @@ function updateBagMode(){const bag=$('#w-inv');bag.classList.toggle('bag-summary
  for(const [id,mode] of [['bag-summary','summary'],['bag-full','full']]){const b=document.getElementById(id);if(b)b.setAttribute('aria-pressed',String(bagMode===mode));}
  const pager=document.getElementById('bag-pages');if(pager){pager.hidden=bagMode!=='summary';$('#bag-page-label').textContent=`${bagPage*24+1}–${Math.min(SLOTS,(bagPage+1)*24)} de ${SLOTS}`;$('#bag-prev').disabled=bagPage===0;$('#bag-next').disabled=(bagPage+1)*24>=SLOTS;}
 }
-function beginOreDrag(item,x,y){if(!started||!MiningRules.recipes[item]||!invCount(item))return false;oreDrag={item};window.LiveInk.draggedMineral=item;document.body.classList.add('dragging-ore');const ghost=$('#ore-drag-ghost');ghost.textContent=W.items[item].name+' · suelta sobre el horno';ghost.hidden=false;moveOreDrag(x,y);return true;}
+function beginOreDrag(item,x,y){if(!started||!MiningRules.recipes[item]||!invCount(item))return false;oreDrag={item};window.LiveInk.draggedMineral=item;document.body.classList.add('dragging-ore');const ghost=$('#ore-drag-ghost');ghost.innerHTML=itemImg(W.items[item],invCount(item),'ore-art')+`<span>${esc(W.items[item].name)} · suelta sobre el horno</span>`;ghost.hidden=false;moveOreDrag(x,y);return true;}
 function moveOreDrag(x,y){if(!oreDrag)return;const ghost=$('#ore-drag-ghost');ghost.style.left=Math.max(8,Math.min(innerWidth-220,x+14))+'px';ghost.style.top=Math.max(8,y-42)+'px';const id=window.LiveInk.furnaceAtScreen?.(x,y);window.LiveInk.oreDropHovered=!!id;ghost.classList.toggle('valid-drop',!!id);}
 function endOreDrag(){oreDrag=null;touchOre=null;window.LiveInk.draggedMineral=null;window.LiveInk.oreDropHovered=false;document.body.classList.remove('dragging-ore');const ghost=document.getElementById('ore-drag-ghost');if(ghost)ghost.hidden=true;suppressOreClickUntil=now()+350;}
 function dropOre(x,y){if(!oreDrag)return false;const item=oreDrag.item,id=window.LiveInk.furnaceAtScreen?.(x,y);endOreDrag();if(!id)return false;return requestFurnaceDrop(item,id);}
@@ -431,7 +436,7 @@ function closeForgeChat(){chatForgeItem=null;const card=document.getElementById(
 function openForgeChat(item){chatForgeItem=item;$('#furnace-panel').hidden=true;$('#forge-chat-card').hidden=false;$('#hud-chat').classList.add('forge-chat-open');$('#forge-chat-batches').value=1;$('#forge-chat-result').textContent='';renderForgeChat();game(`Horno: trajiste <b>${esc(W.items[item].name)}</b>. Puedes hacer lingotes, acuñar monedas o acreditar SMC del libro mayor.`);window.ChatUI?.setOpen(true);}
 function renderForgeChat(){if(!chatForgeItem)return;const r=MiningRules.recipes[chatForgeItem],have=invCount(chatForgeItem),q=Number($('#forge-chat-batches').value),max=Math.floor(have/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  $('#forge-chat-title').textContent='Horno · '+r.name;$('#forge-chat-stock').textContent=`Tienes ${have} minerales · ${r.ore} por lote`;
- $('#forge-chat-batches').max=Math.max(1,max);$('#forge-chat-preview').innerHTML=valid?`${q*r.ore} minerales → ${q*(r.ingots||1)} lingote${q===1?'':'s'}, o ${q*r.coinQty} monedas de ${esc(r.metal)} (objeto). <span class="smc">SMC</span> del libro: <span class="smc">${q*r.coins} SMC</span>. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;
+ $('#forge-chat-batches').max=Math.max(1,max);$('#forge-chat-preview').innerHTML=valid?`${itemImg(W.items[chatForgeItem],q,'ore-art')}${itemImg(W.items['lingote_'+r.metal],q*(r.ingots||1),'ore-art')}${itemImg(W.items[r.coinItem],q*r.coinQty,'ore-art')} ${q*r.ore} minerales → ${q*(r.ingots||1)} lingote${q===1?'':'s'}, o ${q*r.coinQty} monedas de ${esc(r.metal)} (objeto). <span class="smc">SMC</span> del libro: <span class="smc">${q*r.coins} SMC</span>. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;
  $('#forge-chat-ingot').disabled=$('#forge-chat-coin').disabled=$('#forge-chat-coins').disabled=!valid||!!forgeTimer;
 }
 
@@ -480,6 +485,27 @@ function fresh() {
   if (window.Simulacion) { Simulacion.resetProgress(); Simulacion.noteLegacy(S.legacyCoins); Simulacion.flushMigration(); }
 }
 function renderAll() { renderInv(); renderSkills(); renderProfile(); renderQuest(); }
+const ART = 'iconos-r2';
+function itemArt(it, qty) {
+  if (!it || !it.icon) return '';
+  const set = qty > 1 && it.iconStack ? it.iconStack : it.icon;
+  return BASE + (set['64'] || set['32']) + '?v=' + ART;
+}
+function itemImg(it, qty, cls) {
+  if (!it) return '';
+  return `<img class="${cls || 'item-art'}" src="${itemArt(it, qty)}" alt="">`;
+}
+function showItemTip(it, qty, ev) {
+  const tip = $('#tooltip'); if (!tip || !it) return;
+  tip.hidden = false; tip.classList.add('tip-item');
+  tip.innerHTML = `${itemImg(it, qty, 'tip-art')}<b>${esc(it.name)}</b><span class="tip-qty">× ${qty}</span>`;
+  tip.style.left = Math.min(innerWidth - 148, (ev.clientX || 0) + 14) + 'px';
+  tip.style.top = Math.max(8, (ev.clientY || 0) - 96) + 'px';
+}
+function hideItemTip() {
+  const tip = $('#tooltip'); if (!tip || !tip.classList.contains('tip-item')) return;
+  tip.classList.remove('tip-item'); tip.hidden = true; tip.innerHTML = '';
+}
 function renderInv() {
   const el = $('#inventario'); el.innerHTML = '';
   const first=bagMode==='summary'?bagPage*BAG_PAGE_SIZE:0,limit=bagMode==='summary'?first+BAG_PAGE_SIZE:SLOTS;
@@ -487,16 +513,17 @@ function renderInv() {
     const s = i<SLOTS?S.inv[i]:null; const d = document.createElement('div');
     if(s)d.setAttribute('role','button'); d.tabIndex=s?0:-1;
     d.className = 'slot' + (s ? '' : ' vacio') + (i === S.sel ? ' sel' : '');
-    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = `<img src="${BASE + it.icon['32']}" alt="">` + (it.stackable ? `<span class="n">${s.qty}</span>` : ''); d.innerHTML += `<small class="item-name">${esc(it.name)}</small>`;wireMineralDrag(d,s.item);d.onclick = () => { if(now()<suppressOreClickUntil)return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; }
+    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = itemImg(it, s.qty) + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil)return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; }
     el.appendChild(d);
   }
   updateBagMode();
-  const sel = selected(); $('#seleccion').innerHTML = 'Seleccionado: ' + (sel ? `<b>${W.items[sel].name}</b>` : '—');
+  const sel = selected(); const held = sel ? S.inv[S.sel] : null;
+  $('#seleccion').innerHTML = 'Seleccionado: ' + (sel ? itemImg(W.items[sel], held.qty, 'sel-art') + `<b>${esc(W.items[sel].name)}</b>` : '—');
   const hb = $('#hotbar'); hb.querySelectorAll('.hs').forEach(n => n.remove());
   for (let i = 0; i < 10; i++) {
     const s = S.inv[i]; const d = document.createElement('div'); d.className = 'hs' + (i === S.sel ? ' sel' : '');
-    d.innerHTML = `<span class="k">${(i + 1) % 10}</span>` + (s ? `<img src="${BASE + W.items[s.item].icon['32']}" alt=""><span class="n">${W.items[s.item].stackable ? s.qty : ''}</span>` : '');
-    if (s) d.title = W.items[s.item].name;
+    d.innerHTML = `<span class="k">${(i + 1) % 10}</span>` + (s ? itemImg(W.items[s.item], s.qty) + `<span class="n">${W.items[s.item].stackable ? s.qty : ''}</span>` : '');
+    if (s) { d.title = W.items[s.item].name; d.onpointerenter=e=>showItemTip(W.items[s.item], s.qty, e); d.onpointerleave=hideItemTip; }
     d.onclick = () => { if (S.inv[i]) { S.sel = S.sel === i ? -1 : i; renderInv(); } };
     hb.appendChild(d);
   }
@@ -1218,7 +1245,7 @@ const clearBtn = $('#city-map-clear'); if (clearBtn) clearBtn.onclick = (e) => {
 $('#mm-zoom').onclick = (e) => { e.stopPropagation(); S.mmZoom = S.mmZoom === 1 ? 2 : 1; $('#mm-zoom').textContent = S.mmZoom === 1 ? '+' : '−'; };
 cv.addEventListener('pointermove', (e) => {
   if (!W) return; const w = screenToWorld(e.clientX, e.clientY); const t = hitTest(w.x, w.y); S.hover = t; const tip = $('#tooltip');
-  if (t) { tip.hidden = false; tip.innerHTML = describe(t); tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; } else tip.hidden = true;
+  if (t) { tip.classList.remove('tip-item'); tip.hidden = false; tip.innerHTML = describe(t); tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 12) + 'px'; } else if (!tip.classList.contains('tip-item')) tip.hidden = true;
 });
 cv.addEventListener('pointerleave', () => { $('#tooltip').hidden = true; S.hover = null; });
 const typing = () => document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);

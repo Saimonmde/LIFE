@@ -70,6 +70,25 @@ assert.ok(rules.smelt(inv, items, 'mineral_plata', 1, 'coin', 60).error);
 assert.strictEqual(rules.recipes.mineral_plata.coinQty, 3);
 assert.strictEqual(rules.recipes.mineral_cobre.ore, 3);
 assert.strictEqual(rules.recipes.pepita_oro.coinItem, 'moneda_oro');
+const game = fs.readFileSync(path.join(__dirname, '..', 'play', 'game.js'), 'utf8');
+const css = fs.readFileSync(path.join(__dirname, '..', 'play', 'style.css'), 'utf8');
+const page = fs.readFileSync(path.join(__dirname, '..', 'play', 'index.html'), 'utf8');
+assert.ok(game.includes('iconStack'), 'la pila es sólo el dibujo cuando hay más de uno');
+assert.ok(game.includes('itemArt'), 'el inventario elige el dibujo');
+assert.ok(css.includes('#inventario .slot .n') && css.includes('var(--sans)'), 'la cifra de la casilla usa la sans');
+assert.ok(page.includes('moneda_plata.svg'), 'el panel de Plata muestra la moneda de plata');
+const hudCss = fs.readFileSync(path.join(__dirname, '..', 'play', 'hud-layout.css'), 'utf8');
+assert.ok(hudCss.includes('body.pantalla-limpia #hud-recursos'), 'la pantalla limpia conserva la barra');
+assert.ok(hudCss.includes('span:not(#sai-chip)'), 'en limpio sólo queda el saldo SMC');
+assert.ok(css.includes('#sai-chip'), 'el rediseño no quita la pastilla SMC');
+assert.ok(!/pantalla-limpia #sai-chip\s*\{[^}]*display:\s*none/.test(css), 'el saldo SMC sigue visible en limpio');
+for (const name of ['moneda_cobre', 'moneda_plata', 'moneda_oro', 'lingote_cobre', 'lingote_plata', 'lingote_oro']) {
+  const svg = fs.readFileSync(path.join(__dirname, '..', 'graphics', 'mining', name + '.svg'), 'utf8');
+  const pile = fs.readFileSync(path.join(__dirname, '..', 'graphics', 'mining', name + '_pila.svg'), 'utf8');
+  assert.ok(svg.includes('linearGradient') || svg.includes('radialGradient'), name + ' con metal');
+  assert.ok(svg.includes('M9.2-8.4'), name + ' lleva la S');
+  assert.ok(pile.length > svg.length * 0.8, name + ' tiene variante en pila');
+}
 assert.strictEqual(layout.formatClock(new Date('2026-11-13T18:04:00Z'), 'America/Bogota'), 'vie 13 nov 2026 · 1:04 p. m.');
 assert.strictEqual(layout.formatClock(new Date('2026-11-13T05:04:00Z'), 'America/Bogota'), 'vie 13 nov 2026 · 12:04 a. m.');
 const tile = layout.minimapTile(100, 50, { x0: 10, y0: 20, span: 100 }, 200);
