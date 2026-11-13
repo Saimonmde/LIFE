@@ -421,7 +421,7 @@ world = {
         'tutorial': {
             'note': 'Flujo guiado del cliente. Cada etapa muestra una caja de objetivo, opcionalmente un aviso grande y una flecha amarilla intermitente sobre el objetivo; el minimapa marca el destino.',
             'stages': [
-                {'id': 'seguir_camino', 'box': 'Sigue el camino de tierra para encontrar al capataz.\nToca el suelo o el minimapa para moverte.',
+                {'id': 'seguir_camino', 'box': 'Sigue el camino al occidente: el capataz de Primeros Pasos está en el Parque de El Poblado.\nToca el suelo o el minimapa para moverte.',
                  'arrow': {'kind': 'tile', 'x': 15, 'y': 20}, 'completeWhen': {'type': 'reach', 'x': 15, 'y': 20, 'radius': 1}},
                 {'id': 'entrar_puerta', 'prompt': {'title': 'Continuemos', 'text': 'Es hora de conocer al capataz. Para continuar, toca la puerta de su casa: la señala una flecha amarilla intermitente.'},
                  'box': 'Entra por la puerta cercana para continuar.\nEsta caja te recordará lo que debes hacer en los próximos pasos.',

@@ -242,8 +242,10 @@ button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offse
 
 /* Session controls stay visible even in Solo mundo. */
 #b-descansar{position:fixed;z-index:24;left:max(12px,env(safe-area-inset-left));right:auto;bottom:calc(12px + env(safe-area-inset-bottom));min-width:125px;min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 17px system-ui;cursor:pointer}
-#b-bajar{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
+#b-bajar, #b-skate{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
+#b-skate{bottom:calc(228px + env(safe-area-inset-bottom))}
 html.movil #b-bajar{left:auto;right:max(10px,env(safe-area-inset-right));bottom:calc(340px + env(safe-area-inset-bottom));min-height:56px;min-width:200px;font-size:17px}
+html.movil #b-skate{display:none}
 #banquito{position:fixed;z-index:18;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:14px 16px}
 #banquito header{display:flex;justify-content:space-between;align-items:center;color:#f5d27a;font-weight:700}
 #banquito-items button{margin:4px 4px 0 0;min-height:44px}
