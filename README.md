@@ -2,6 +2,8 @@
 
 Creación y dirección original: **Simón**. Mundo 3D en desarrollo, con mapa del Valle de Aburrá, minería y fundición, inventario, chat y cámara orbital.
 
+Life Inc es la red madre del proyecto. Saimon City es el mapa del Valle de Aburrá en construcción, con los parques de sus diez municipios conectados. El mapa jugable es interpretativo; no es una reconstrucción urbana terminada.
+
 ## Licencias y contribución
 
 Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-SA-4.0**. Marca y logo: política separada. Three.js conserva MIT y Pixelify Sans conserva SIL OFL 1.1.

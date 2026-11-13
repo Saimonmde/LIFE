@@ -3374,6 +3374,36 @@
       "status": "authorized",
       "license": "CC-BY-SA-4.0",
       "attribution": "Derivado en oro antiguo con bisel, a partir del wordmark de Simón"
+    },
+    {
+      "path": "graphics/mining/moneda_cobre.svg",
+      "sha256": "0b4f98c8c2ba2ab1f69ef1a573c236082cbc47e83b50650ad2ec5eff18859975",
+      "author": "Simón, sobre sus aportes propios; conservar otros avisos",
+      "source": "Existing CC-BY-SA-4.0 sidecar and SVG in main commit 0cc272e; preserves the existing grant",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — conservar avisos de otros titulares"
+    },
+    {
+      "path": "graphics/mining/moneda_plata.svg",
+      "sha256": "6434e049c1bfc5380ed55509ada0eaa7f7f86e983c175542faa9a6612408426d",
+      "author": "Simón, sobre sus aportes propios; conservar otros avisos",
+      "source": "Existing CC-BY-SA-4.0 sidecar and SVG in main commit 0cc272e; preserves the existing grant",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — conservar avisos de otros titulares"
+    },
+    {
+      "path": "graphics/mining/moneda_oro.svg",
+      "sha256": "bba6b74776a2d84124f785ae7f7737f2de0a4d2ee163e0292a2fe6f34c81dfa7",
+      "author": "Simón, sobre sus aportes propios; conservar otros avisos",
+      "source": "Existing CC-BY-SA-4.0 sidecar and SVG in main commit 0cc272e; preserves the existing grant",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — conservar avisos de otros titulares"
     }
   ],
   "public_creator_name": "Simón",
