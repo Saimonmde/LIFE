@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Shared, deterministic inventory and furnace rules. */
 (function(root){
  const recipes={mineral_cobre:{metal:'cobre',name:'Cobre',ore:3,coins:4,xp:9},mineral_plata:{metal:'plata',name:'Plata',ore:4,coins:12,xp:15},mineral_oro:{metal:'oro',name:'Oro',ore:5,coins:30,xp:24},pepita_oro:{metal:'oro',name:'Oro fluvial',ore:5,coins:30,xp:24}};

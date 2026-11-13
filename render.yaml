@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # LIFE INC · El Jardín — un servicio web gratuito. Sin dependencias.
 services:
   - type: web
@@ -7,6 +8,6 @@ services:
     branch: main
     autoDeploy: true
     autoDeployTrigger: commit
-    buildCommand: echo ok
+    buildCommand: python3 tools/update_licensing.py --build-source-only
     startCommand: python3 server.py --host 0.0.0.0
     healthCheckPath: /healthz

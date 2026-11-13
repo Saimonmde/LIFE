@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Sprites originales del pueblo de El Jardín (LIFE INC): casas, puesto, fuente, antorchas, vallas, cascada, mina, capataz."""
 import math, random
 from PIL import Image, ImageDraw

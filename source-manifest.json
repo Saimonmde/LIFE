@@ -1,0 +1,38 @@
+{
+  "license": "AGPL-3.0-or-later",
+  "public_rightsholder": "Simón",
+  "adopted": "2026-11-12",
+  "source_files": [
+    "jugar.sh",
+    "movil/index.html",
+    "play/casa.js",
+    "play/casa3d.js",
+    "play/game.js",
+    "play/index.html",
+    "play/interface.js",
+    "play/mine3d.js",
+    "play/mining-rules.js",
+    "play/movil.css",
+    "play/movil.js",
+    "play/park3d.js",
+    "play/style.css",
+    "play/unified3d.js",
+    "render.yaml",
+    "server.py",
+    "tools/build.py",
+    "tools/materials.py",
+    "tools/objects.py",
+    "tools/pixel.py",
+    "tools/tiles.py",
+    "tools/village.py",
+    "tools/update_licensing.py",
+    "play/licencias.html"
+  ],
+  "exceptions": {
+    "play/three.module.js": "MIT",
+    "play/PixelifySans.ttf": "OFL-1.1",
+    "play/fonts/UnifrakturMaguntia-Book.ttf": "OFL-1.1"
+  },
+  "corresponding_source_download": "releases/saimoncity-fuente.zip",
+  "repository": "https://github.com/Saimonmde/LIFE"
+}

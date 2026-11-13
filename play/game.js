@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* LIFE INC · El Jardín — vista previa jugable (JS plano, sin build).
    Carga ../data/el-jardin.json (o window.EL_JARDIN) + ../graphics. Chat/presencia por WebSocket (server.py, /ws). */
 (() => {

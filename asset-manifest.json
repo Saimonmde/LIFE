@@ -1,0 +1,3323 @@
+{
+  "status": "adopted",
+  "rights_holder": "Simón (sobre sus aportes propios)",
+  "policy": "Only entries marked release_approved are licensed as stated, to the extent the licensor holds the necessary rights. Other rights and third-party notices remain intact. Brand assets are excluded. Exact generator pixel matches document provenance, not legal exclusivity.",
+  "assets": [
+    {
+      "path": "graphics/characters/animal_ave_0.png",
+      "sha256": "832f41c0d6b62d513cec0f2f668f2f19ff89e382951b78292391e96a546d947e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/animal_ave_1.png",
+      "sha256": "fbf3e6023ba30ed125c35f9b387490256c7cded5a48811d12acd94995afb280f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/animal_conejo_0.png",
+      "sha256": "2062355dbcf23552fe501e8b667dc3bbb040ce899606247b1b58c2ff21570bd1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/animal_conejo_1.png",
+      "sha256": "de60d876ca638cbdbc96064c4d4a90332da0f565d61b8d034374ed677258dbcb",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/animal_venado_0.png",
+      "sha256": "da5a82304ea07d5ce14c7c616a6cb7424d8793d79dc0e5c91740fb821b11d93e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/animal_venado_1.png",
+      "sha256": "25446bbfdae94693752e12979069cec520fcd6067b70a9d95c92b2230cd778dd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/capataz.png",
+      "sha256": "ebe28789d03cfdbbd25174b124b3f1bfe383a6421e528c7c0759cb331503f436",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/player.png",
+      "sha256": "d7f81562fa809e41109b85e3c0a5c9fe9c6ad61caa70be62184c76c5e28d75a2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/player_amarillo.png",
+      "sha256": "6f414a6a339d14ed224037ca410729e525c56474db602f0e08c8b2d66ca0eda4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/player_azul.png",
+      "sha256": "d7f81562fa809e41109b85e3c0a5c9fe9c6ad61caa70be62184c76c5e28d75a2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/player_morado.png",
+      "sha256": "b2b1b1a8cea78b5f03e73bc490295b20749e63bc7fdb764a558ff1d9de27dfdc",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/player_rojo.png",
+      "sha256": "771f842bc4a7d8cebdabbe5e622b6af16da736cb8a61363ddf3433267b6a5cd0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/characters/player_verde.png",
+      "sha256": "7c342e5a4fe1ba6fa5c6ac97b395cb43ba06553f0ffc364124bdb6636bac5815",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/banano.png",
+      "sha256": "6dc1b38f6434b25ca92962e6b65e24fe6e493f72142ca47a53c609257cdc913e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/banano_seed.png",
+      "sha256": "1850ee33e725a7904bdddacf87f16acab70ba5629632a2606e3f3839b0a88d9e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/batea.png",
+      "sha256": "6c5c481e5dcfda1c5726efd183f965733c5a1674033faa19e1bcfe2db427aac8",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/bocachico.png",
+      "sha256": "eec187b191ab40ef191a32a24c477bd06fdd6ea4d1ed4655c64fa5732a157be6",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/carne.png",
+      "sha256": "2ff79760c029eaf603c24798bf4377c07f529825a3e14dc06c8c8d7434d52e42",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/coco.png",
+      "sha256": "f2a04e74975df04fd957ccf3f9668ffcd8c741bf1c69931d5f79def2a1a3abd7",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/coco_seed.png",
+      "sha256": "f97101101e75f14a8f62aa8374d03569a6493f5e074425701a88fc121b1799f1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/hacha.png",
+      "sha256": "4ab2bf175fadb278c69625ba51bd3366848c3032b77a39b86fbaca25c7b54f89",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/lanza.png",
+      "sha256": "fe5e1bbd7c1ec28d5e8c51f536e9365c8a762d7e49f266a113147a95aae35292",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/madera.png",
+      "sha256": "2c13bb3df6b32dcd373a2a9564b8f60999895fbf098c43b1db0bb032b9d85730",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/mango.png",
+      "sha256": "5f19225e25322ab76e6e87493b1b27bfc1816ecf512ea533675ddd5957419a8b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/mango_seed.png",
+      "sha256": "253f9f8e591876628cc4e6c9b123880f21e3ed290740da1b4ef2edef7bf80a69",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/manzana.png",
+      "sha256": "3d3fa8173341a9b7b5ea76e675e0f58ed1cb7d52771899e181217b6f44acffc2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/manzana_seed.png",
+      "sha256": "76dc039fdb942ed9df9647f274b1ec4c800b58e3f0a88e5f5f045b2ffb7ac909",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/mineral_cobre.png",
+      "sha256": "d61a4e6c713809c1e3a75fb52adf841cd438a6b3816e9dea9fa900a16961f782",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/mineral_plata.png",
+      "sha256": "5c667108e141436c99f082d3cd5a6743bcfe9f2275edf7b97e2f8df09e912970",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/mojarra.png",
+      "sha256": "51e071cf7c39c500af7c5c83d502f973ac170f439c19473dabf7b7c9e64ac03a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/naranja.png",
+      "sha256": "483736ef47c7ddf4dea3b0004ab059f3a6be687ef9078c68cd5947d56e5fb300",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/naranja_seed.png",
+      "sha256": "3c7000baba2c2cb8dcb80e5cd635c72a378ae7cd0f2bbc99f018b6dc137a57b9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/pepita_oro.png",
+      "sha256": "3775a6cc42e9c062775fa5592704869bac8b207685b6e75e0e33919e3921edf5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/pera.png",
+      "sha256": "b21af74e551e68ab9da39693a13803b774be5c7dd168bbbc1c592f43e570e774",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/pera_seed.png",
+      "sha256": "97d4c87b372ce12306ed3ee1af8f32d9a857e1e352a91c626794557303bf3de3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/pico.png",
+      "sha256": "3da688cef85a190520da39f37640dfb0dd5e3d48045cc414fbf1dfec094e383e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/piedra.png",
+      "sha256": "4a4f9680c1173c35c6d4de628f66ec1cb980a559ad67b9c1fa1d5a0b4d0f23f8",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/piel.png",
+      "sha256": "501a05f69498e54509dd6d8f782c303ec8bd60c04141fae74a75f70a26055b33",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/pluma.png",
+      "sha256": "0379c2478cccc12945d314324ceffd14b0991fc525bdb93e0cb2463a9e417743",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/red_pesca.png",
+      "sha256": "2a42dbbec48bed5e1da5457522cadc1eea802e852fb2b728ce13fd09d4671e85",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/16/trucha.png",
+      "sha256": "f8c65499423187180884876c54fd329a62cba09340265329e6e1450be855e04c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/banano.png",
+      "sha256": "ade82521ab38ffcaa7e2d842b6a9e24e535d7715b5308624aa72f196edbadeb2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/banano_seed.png",
+      "sha256": "64efddd69f87dd71f98ef265c2a20447f91938bcb88b313b1582cffed1d16c8e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/batea.png",
+      "sha256": "250c941184227598e15f3a332b42b9fe68993b4be06834b9d14b93c082863901",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/bocachico.png",
+      "sha256": "7278995add032aff2ad03a4ec0b41280e8a2de7dc3283973eb130f19a7c3d2e7",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/carne.png",
+      "sha256": "87a43755ffd1c4bcd3ffe9802acffbd6a32c1362a12cbb2e845dd3fd63088be8",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/coco.png",
+      "sha256": "174889ea0d3ceb56dfa37df97610c8ddf7b015ab812bd571cdd3856ee6e786fb",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/coco_seed.png",
+      "sha256": "0cf1d5833513af6184ab496de44e3f409cceeeb536842a31b4fb29925794ab1c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/hacha.png",
+      "sha256": "8992b72397247b6a83a99d12290ab0c73d4e1b92ff224f349944cc9f01537ed0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/lanza.png",
+      "sha256": "58f02c17cf8bd6d1d8934f008ff4be55b498fa948307b20cbc9561349612e460",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/madera.png",
+      "sha256": "40381b6b030d51d6c07e643eca1407b60a56d7e78ab5ddfbb1180a455bf883f5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/mango.png",
+      "sha256": "04eed8b78e956e2b83b74a96c390206632117a828b892f10eff25b964ce9570c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/mango_seed.png",
+      "sha256": "79c11b7585b9ba47989e407f74442980c5a6efe074e8dff6bceb337babfeb726",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/manzana.png",
+      "sha256": "d411cfe1643c098836a05dfee5fed00f488f153a7bc246665acb76285a12cf5f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/manzana_seed.png",
+      "sha256": "7cf99692274d7ecd5adc113c6eeba92f3fff2d59043065beb9eda5474b1f95e6",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/mineral_cobre.png",
+      "sha256": "34a9f1235ae69cb4dcfd8ad6d0e3de5bef99043476bedc8f8d7a39b2e58f11ed",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/mineral_plata.png",
+      "sha256": "4977ea840e8f168f9262e11384d33fee0c6bf881755c0809bff57115911a104f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/mojarra.png",
+      "sha256": "8a58e7b4c68034fedf9da2ba63e1187e6b39751ee4c15dedd58f9a68691c3ab4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/naranja.png",
+      "sha256": "320f5e6b7efb7c7221e27a50ef613e569524d37141ba2fb4506f0387fa190134",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/naranja_seed.png",
+      "sha256": "38e798f50bfa40e08b3f983a40ca185a51b4310ed76e5ac956a8bc4a22a7cdc5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/pepita_oro.png",
+      "sha256": "68d932c306be2713d67aa03300cf8550005823fa70ed6304d3ff83c754d34b6d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/pera.png",
+      "sha256": "cde2ef6ec0e31cfa533edfe6265406473eef06a984e334700424859617f2c8b0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/pera_seed.png",
+      "sha256": "1078f3e6c8a74145edda4994693f87fbd06d202b0161471b8ca4d0394e0ebb49",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/pico.png",
+      "sha256": "95fb3daaba59afa47ab23e44c29081097596149e7b9aea62cdfe1c4652f841b2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/piedra.png",
+      "sha256": "1e40d9871f065385b4a1a820634f1e39f983236a775cc2384922af74b1be8d5d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/piel.png",
+      "sha256": "b429ea2608d47d9a0164c1cd4bc96e9fafdaeba4905460ff2ad8c379ee61e57e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/pluma.png",
+      "sha256": "f974c3f473f77bbcbe54868a4e941ca10c1de7186afc8a9b30fdcc3150cec988",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/red_pesca.png",
+      "sha256": "bb0f90bcc473fbd32a2802259ba064d0d1e208231699686650dd6a3fc14fb74a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/32/trucha.png",
+      "sha256": "2f80c9ddb8f6e84d73533bd4213489236563e8886ae3534c212f702677a09551",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/banano.png",
+      "sha256": "d0249f7eb0c395f8be3d8cac86b82a949774404870537487ce7f539d9921f3ae",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/banano_seed.png",
+      "sha256": "0be56b3cb7e39d3df64dbac8fcd838887ae576dd43c02e3837e980784a449a35",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/batea.png",
+      "sha256": "71aa484917b424a595a7b4869df9b18b8cce791c28a102f5c7499d3d69bb4ebf",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/bocachico.png",
+      "sha256": "8a6be330095bb2cd250327efdd9f9d4c8e8da89aa96f4317f790d9b9e7201098",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/carne.png",
+      "sha256": "3754965a8bd92acbc225186c02a24ca0cee65eb2fcbcab553f1dd8ba9b83e0bf",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/coco.png",
+      "sha256": "84c800308a36d79a627e635ac0d9a95de74863d0a6bdd125d80e7707b8914537",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/coco_seed.png",
+      "sha256": "0c1e1f96abcf2e7ade8a77eb2263cdb7a5940b8fc3837faf4dd1f8fb8ea3dd5e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/hacha.png",
+      "sha256": "ae32eaa6e796e8a943c697b1fef029799481a8e873962b9c52299f866817e605",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/lanza.png",
+      "sha256": "62b18ece02ac20c8784a5c1a151b9f183dfcb18916d5354fbcfc7ed867c6fd10",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/madera.png",
+      "sha256": "028d2fc33ddc051d2f095f82ef5e1717d28726ace6438054f07dba1291350c38",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/mango.png",
+      "sha256": "0f5828390a0413e26c6fa490b3caaae69f0f9fdf9968a6f27ef675767e4c6272",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/mango_seed.png",
+      "sha256": "ebb325e517a8b25be1f93cb289bede89e7488c9da5ed7a91f925c3e5e3490ad6",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/manzana.png",
+      "sha256": "29486f84d3217487df09bb31be2bbb02f866b57ddf577966051b365651db22f9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/manzana_seed.png",
+      "sha256": "cfa073fc419a2977d1370872b238fe6f95bd66a19eede75af470eba1c1d0b2ca",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/mineral_cobre.png",
+      "sha256": "d0dd933baee11f8e2ddf6c1e05a3e6e1e1c6feb7fd057cf034334c9f688d30da",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/mineral_plata.png",
+      "sha256": "06aea636ee7e18f352f5ba0f082aaf2d4f6e52b853acaed54b3f1fbcdd418159",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/mojarra.png",
+      "sha256": "981b95dcc75152d6ceffbcdad28ecb04eedec93d726de37f563dab859ede7401",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/naranja.png",
+      "sha256": "80ba40a77cefca5d43de4331caffed2194c7e8a0301ec2906ab840beabf47059",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/naranja_seed.png",
+      "sha256": "7a18a2bf45aa77cf9c3d12b946be9f7e8ded44d85cae6f1ef789e23bf90baae4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/pepita_oro.png",
+      "sha256": "85330b40f2ffdfb6d3de63566d5b3bddcdda303a2463badb375b9673f2163c34",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/pera.png",
+      "sha256": "d3c4512c69b5723db2e8e5049eac8edba7e34ddc350be517b4e37e6340c784a1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/pera_seed.png",
+      "sha256": "4bb5965cd43e14b1a6e05d8bb6a45c24ef67888ebd1b833fe45faec87d632eae",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/pico.png",
+      "sha256": "792612e10e14f39da4d13ae1d33cb7521b5e8075513f91ee812ebcfc0f54f7e4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/piedra.png",
+      "sha256": "27585e00492f26e9af9f0c40c71edf7eae2b9795017a3698aa038f48c0735964",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/piel.png",
+      "sha256": "2b7d9d988a686bc4957f15c714122529f89ed4359ef1bad2a67908ac2d4a18ec",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/pluma.png",
+      "sha256": "236b2d7e8efb7b27e3f6cc1ebe6aaf3229ac66abb3abeffa70a0168b32faedd0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/red_pesca.png",
+      "sha256": "02a78d48b0d173920e3958b0e7a87374a827a5ebe7fed260c1339a3a4f15c5a9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/icons/64/trucha.png",
+      "sha256": "704648fe14886c462b368b0f12d52a71f20e75a5dc4d6f3b33ceb33a7d1436d3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/arena_orilla.png",
+      "sha256": "23e12b4859fbbd97a9b5e87528f06beb78ebd6baeea330d26f37d4c8e7a23c6f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/madera_tablas.png",
+      "sha256": "f165b58be4ffde41f1bac9e7225d27a374e1efb566c20be3b0e89694951990f9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/muro_piedra_clara.png",
+      "sha256": "bdc31bac7c6479be7c071140d45e894703f28c0575af1a48f479ce6fece21e11",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/muro_yeso_vigas.png",
+      "sha256": "73ea53c22b382ebb0f8f425904aec780a434273f572866ce9f8a805b7e92a17a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/piedra_fuente.png",
+      "sha256": "2c886ae2ae632af85e1054c138c002e2b4a3ccfd8c6c39c8e432635f4090dc25",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/roca_acantilado.png",
+      "sha256": "76cafc9d0fef056af0a99ec0b3ac155eef9f5a1dc36dec7617e79fb5a7ea6399",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/techo_pizarra_azul.png",
+      "sha256": "4131d050415e96c2359fca20383702784b90e286d56142c2b21cb8a228396e82",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/techo_tejas_rojas.png",
+      "sha256": "21d36692d934a300a1b5a115e395e6887222ecd92b8d84cf3cfb6b14cb234310",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/toldo_rayas.png",
+      "sha256": "449680b7e66c8511350a25142360b1775157060030335f5422a8ceb6ccd334c6",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/materials/zocalo_piedra.png",
+      "sha256": "ed8cfc01aa57bf93c177ccc350f9fd2b4e33f324bb4f4172d47665fc78f14a6c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/mining/lingote_cobre.svg",
+      "sha256": "2af53855f7469bae4b9f516bd767bbed794a4471361f684ee2541abc0ecd4752",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Editable SVG authored for this project",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/mining/lingote_oro.svg",
+      "sha256": "98cf187714035aa0e9c9fb6a2ce5d6f76210b418fd26309c588f4227991840cc",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Editable SVG authored for this project",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/mining/lingote_plata.svg",
+      "sha256": "b29774fd99bb643dade0d403ee42581eee9c667797d612f80c0795eb628b581e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Editable SVG authored for this project",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/mining/mineral_cobre.svg",
+      "sha256": "5d941b869dc65456f617af8204988e6f2c03ae2b06a74978f0cef70a7548a39f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Editable SVG authored for this project",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/mining/mineral_oro.svg",
+      "sha256": "1231fffb90928ce577c29496d621a90d9454e5a7fcebd17c666e300e923d7955",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Editable SVG authored for this project",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/mining/mineral_plata.svg",
+      "sha256": "93ac7550ee3b5e4c1916441f1655da93ab76faf6f54fc696b72491f1f08ac222",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Editable SVG authored for this project",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/antorcha_0.png",
+      "sha256": "0920b3c0afaf9f7480b9a534359355a051c0563ffb7310752c57de05410b5934",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/antorcha_1.png",
+      "sha256": "acc073dc0319b19b410a96be69a4318c8069705917d9566247f3b9070c5bbe0a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/baranda.png",
+      "sha256": "6e1c2961112f4c53db1e730dddf0f450908bc82cb17228892503b31ef47692d4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/bush_0.png",
+      "sha256": "92ca6a4617b31dd5c0cc4e11390320ac7b13cfda141e76f32def630e654a6d1c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/bush_1.png",
+      "sha256": "210f339e93c83aacee7db45b26061e50e132a3b5c35d1df0f2d8d375085ca2da",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/casa_capataz.png",
+      "sha256": "0b0e290ddeae11905436587b95afb2f22b335e88fd007a58ad74ef1acb406941",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/casa_piedra.png",
+      "sha256": "d670b34db79c2f8a09965e4da922ae2daa5664748f568bca11bfba712b79f6b3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/cascada_0.png",
+      "sha256": "27ba2d05fa7ed098d69b422e3eba68f0c4e7b1b29a0a40e3129c4a6f6b75aece",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/cascada_1.png",
+      "sha256": "92cbcd602f3c44f912bcade52a9930ee4b34f59f43ab0b37f23c2a4183c2ffb2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/cascada_2.png",
+      "sha256": "24fd8147310569d11bdf3a1f494fb382512841ca5bed11de981d7482eefd0128",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/entrada_mina.png",
+      "sha256": "9a146b696e761f56d784cab3bab9179c94c9f6bad3ea746c0dd95a80cca023f8",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/fogata_0.png",
+      "sha256": "1a5c0ed43112db64975334645bd7d95616206fa917d75dcb981c8b735947ce34",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/fogata_1.png",
+      "sha256": "756412cc222c0b2f53c8eadf68a154150af59b9f06eab97f6064416da767ba15",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/fogata_2.png",
+      "sha256": "3685b198d80dcec9382ab4aa30bb2cbd5fd1b1b814a19aa1e891d979ca1ea058",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/fuente_0.png",
+      "sha256": "7f068ca331230ed10c16415c8618d118e804c225d626486c56a3b3dbfe43033a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/fuente_1.png",
+      "sha256": "64c3c1448e2a20188db306033456e971ba06b9c5f02a989bcc59e4fcc1fdf3cb",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_empty.png",
+      "sha256": "75994da6e678c1559546ea8f60930c71720d4961cfb84cf3cbdecf50762f62ce",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_grown_banano.png",
+      "sha256": "124063ebc24676c945bdb54c0b338d61edefa547c621c7ea9211f18853f80d97",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_grown_coco.png",
+      "sha256": "540b2f2ed173bad5df99e934de4164d51abb418253509806de96e924e69e00f1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_grown_mango.png",
+      "sha256": "bb015cc48297285d4a2f1a640e0bee656f95914b9410f71f8bb1a20f90a271b0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_grown_manzana.png",
+      "sha256": "717dd5cd0ea759b8ec334d9a2efb8368232325d850282a46eb36f49393c996fe",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_grown_naranja.png",
+      "sha256": "c579621f18217bb2559eec462ebee2c51212c6a3c8341473481e14beda3cfd5c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_grown_pera.png",
+      "sha256": "20fd4e1a36c853419d70b52caf89c22b47ea0c60b6efbfd4cb5ef669c24d6fdf",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/plot_planted.png",
+      "sha256": "aebc4b5e23cf608719293ee1fd8f4c955a50bfeee8d3654a63f0e9ab67baaeb2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/puesto.png",
+      "sha256": "6c3880fff9e25b0985b93656b95e80c305833232c18887f47c3fd678e80419bd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/roca_deco.png",
+      "sha256": "1557e606a44b4f988080e8ea4951be42b8f52d6cd394f3a95c73b003974e6627",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/roca_orilla_0.png",
+      "sha256": "ca628f277ca117200517defd711a903b7a8b7e2ade765497f97ed947f143f4ad",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/roca_orilla_1.png",
+      "sha256": "34229c32d1d5d9f18e0df8d5e5db743b1f453d711a2890ed565bdd0ec0f7c16e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/rock_cobre.png",
+      "sha256": "60e4a6722ce3f1afc386d21253510be3e946fbfe37311f811deabf8d90add504",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/rock_depleted.png",
+      "sha256": "1557e606a44b4f988080e8ea4951be42b8f52d6cd394f3a95c73b003974e6627",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/rock_piedra.png",
+      "sha256": "efab98e1fbd3ed625f1cfdd3fc5ba294c8b9b5f40639e3d2597f7d4c2e4a61bb",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/rock_piedra_depleted.png",
+      "sha256": "170dad09ce8480130194169f0822085e7345756770fc4be1a9219dfc74b608a8",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/rock_plata.png",
+      "sha256": "eac0d0f3f4c4bae63575bb38ec954733a3e59e0aafbde6a61ba2d872051eaacd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/sign_el_jardin.png",
+      "sha256": "2b71a17fb9d80d034b1fdd76ca5abf4f58d2d8d6b82d40fc09a09e111f563ac3",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/spot_oro.png",
+      "sha256": "cc9ed3702d5c4cd78cacb87b881a434e4ca83dd0ebc204bc5412c5db9669157b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/spot_oro_lavado.png",
+      "sha256": "8dfbd098fdab4bbc980a0c37fd935f0bbdb7ef75cf332843560f4d8e79b1cf68",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/spot_pesca.png",
+      "sha256": "57e1357b03e9b764872d64b593b8c499d84ea8071358742389bf6efb7b2bd6df",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/spot_pesca_calma.png",
+      "sha256": "1eb83be5cbcdc3e908f200dee73d0c130f240ae5fbde41ff72f0007092a2d31c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_banano_full.png",
+      "sha256": "be60f599f99b0b7179fb2f4809a3b4b13120a8b870da081940a77877fb7e9b6c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_banano_picked.png",
+      "sha256": "3b77cf93e858d2ac3afffe9c62ec40940daf4150a99d984b4c91f844fb320b42",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_coco_full.png",
+      "sha256": "d9e0d7a77d86082c789c583bc9f336f87d2f266636e9948c733a46e910e5f020",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_coco_picked.png",
+      "sha256": "1114ea03b68b2e23b006af26c7ee329a1d868eed1a909e1aea4e5e9f905d987d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_mango_full.png",
+      "sha256": "50e662ca7f4a4d3759646028cb1b4bebb263afe94b40e852ea0788872cc4fe60",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_mango_picked.png",
+      "sha256": "5c89bfda560c53ef303b71574621eef676d3d4f4d7c0a0c540cdeb24f9fc8497",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_manzana_full.png",
+      "sha256": "a3ffc4e117fb0a80d5a27bccf0c16890400831d9edd1524b59789defaf0a6fda",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/tree_manzana_picked.png",
+      "sha256": "dfb0ba02b62c510bdf8c6cfbdd2d29344707b111358f69a4c74cbf584700297c",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/tree_naranja_full.png",
+      "sha256": "b2888ef1646ecbd48804dadbe18b062c83af7877d1ae9b577aee810c103266ac",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/tree_naranja_picked.png",
+      "sha256": "a92aaa2882df3978164f73828fb70f8b85a50662bd7719a0502dde78fc47c620",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/tree_pera_full.png",
+      "sha256": "4320cf286193444c7c3b91d467004755787961ad8ec8591d65028506ccb79d69",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/tree_pera_picked.png",
+      "sha256": "8c894efc0024ee334cf3004be7d3ad29e29bf2c17d703ccc8a7b5ce778540cdc",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/tree_pino.png",
+      "sha256": "e283152cb729d36a9745399707cff07c86766f04dfe371b6b7a6fc0c41a14907",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_pino_stump.png",
+      "sha256": "c420fa688a2027e7cb0bd29351e3a755336fe8ab97124a49c1da6917db7f808f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/tree_roble.png",
+      "sha256": "f294ca921821b1151cc4a5b39b572d0ae82939ad3e2a4ee7b900a7653e20177d",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "status": "pending-provenance",
+      "license": null
+    },
+    {
+      "path": "graphics/objects/valla_h.png",
+      "sha256": "8554aec1780589dcc0ed08e1dbc38fe0c21f8406cad9b49d84443186fe7e0c88",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/objects/valla_v.png",
+      "sha256": "e81b6f24a6d5ced513fa8dbb37a9571a24ad81a5fa7028ca6098b2a7b84e30b9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/000_grass_0.png",
+      "sha256": "7ec1fe634cc802d6aae0263c2943b959dda6ea0b1aaaec5f979fd3fb13210ebd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/001_grass_1.png",
+      "sha256": "c102522b0a1e4088319fe7fd0826d9a6707ac1370186a66c069beeece26366be",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/002_grass_2.png",
+      "sha256": "4fe604607ffd61ee93c6f909e194b1be5993f71b36635776bee8b6dc41ee9d53",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/003_grass_3.png",
+      "sha256": "bbb8f69cc1cb4350a0d17cd6fd29661ced00ae45ea67ada995f5eec64240d69e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/004_grass_flores_0.png",
+      "sha256": "7db9ec2df7b1cf2f21fdeb7a5f4959fcff90dd05fbe60110bcb427e23a1c5a27",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/005_grass_flores_1.png",
+      "sha256": "7f4362b1deb417276c6cb5bedc9e31e72c145268ce90c0f979539957aab721f1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/006_grass_gastado_0.png",
+      "sha256": "e0c6592703bea9a5fd98a2d78db52c7b8a427c500e9b332f4f713dc631a74665",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/007_grass_gastado_1.png",
+      "sha256": "c70a7ba01f7969e48d3ef34c9a15428d951f381cf43d0d09d937f2bfdfa3fbcc",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/008_grass_gastado_2.png",
+      "sha256": "aa4b892747025a63c51b79d28abf89563dd6bf6312adb6d6275702a2014eaad4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/009_grass_gastado_3.png",
+      "sha256": "ecd43c4272f199bf95078530daa0e3859e4513fd7d93951e37e219ee46654d75",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/010_path_00000000.png",
+      "sha256": "5f01449ed86e208423d802326006e01b61635b09c5c3c2ca2fc546a0aee06f74",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/011_path_00010000.png",
+      "sha256": "e21ef4bb9a43ceea688ebaea9d37b060f1e6f137ed030f1d7a82f257bba50fc5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/012_path_00100000.png",
+      "sha256": "6f2c8edc8dcd5153bfdaa1f1715f0d3904d0654724654c9d51f01bc3bfb8474b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/013_path_00110000.png",
+      "sha256": "3e491d003cccb0eb43c701d2b55429f9afce55c175c9632eca13ff3b184a4ac5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/014_path_00110010.png",
+      "sha256": "1ea7e1d400fee74578f84701ad936e3ad72a2508bd72c68ce8d9e1691be7b75d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/015_path_01000000.png",
+      "sha256": "298ac4600be9852e0e5b9add3ac629fa284ac921274455e26c7345596d6572ec",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/016_path_01010000.png",
+      "sha256": "13d7cc69518de75bb5ab661df9814d0f1eb486d2b63eebf731ebf80b572b350c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/017_path_01100000.png",
+      "sha256": "9e2e37ae9eaeaebd0c9b180f624afc25ff562bc2e56059d0e3ebe5ec7d659427",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/018_path_01100100.png",
+      "sha256": "92a9cb3122641f9073b59bf59263e38c56621d0dae11270d9c53e8067f883989",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/019_path_01110000.png",
+      "sha256": "36ce6eb854a0da3422a73879a966eab1e73e7910d511f9c685371acd7decaf66",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/020_path_01110010.png",
+      "sha256": "57c22bc5456fbc3b9a59c0370cfd7f99e8dc6e848a14defc8e407c6b58f6f6c1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/021_path_01110100.png",
+      "sha256": "95498241726fca754ac8272c5739c8c4b45a1f7a0ce44bdde710e8845b15676d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/022_path_01110110.png",
+      "sha256": "864ad0a294d30d30b48e99473b2e50007999e78a741c5e949cd922eb43f8886b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/023_path_10000000.png",
+      "sha256": "72c0b2e9f7cea3a2905a7a33f7b91441a46dc4812496a7cc07cc0c4706770760",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/024_path_10010000.png",
+      "sha256": "c830ca7873a0f2dbb2c01dbd0c2a5ad650b9be4645573418f1629052988c01f6",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/025_path_10010001.png",
+      "sha256": "2703a4cb4b8436a38c088cbd32c27eb351c74911721dbd520e49de0d2ae0e283",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/026_path_10100000.png",
+      "sha256": "05fd653d19b4b7dda6962b8936ff13616ad008e36a66d7cc3c2bdbece44a139c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/027_path_10110000.png",
+      "sha256": "0d81411c32bc1bf3d6ed55545d10ca2e26dc88a5efb7d31a13234f2d7151656f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/028_path_10110001.png",
+      "sha256": "993e4178a4066445253e54bcac4e63443c63e76bd0a6061eed6c728413dee683",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/029_path_10110010.png",
+      "sha256": "1f00e68d403a7bf4c310d9e10c9c321c736aa38b96f929cfa5d0aa3fd95f7ed5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/030_path_10110011.png",
+      "sha256": "82efaf5709f0034d8b3210d7c975fd49dfc1b03e510fd232e281b237b1c2b38b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/031_path_11000000.png",
+      "sha256": "ce701c807343223cdf529988e3b565ccabdb028312a93e78ef968edd91697ff9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/032_path_11001000.png",
+      "sha256": "e5028252c8b6adf6e1f6f8116a897b9168de7049f10b212c40d8cc13fe52c036",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/033_path_11010000.png",
+      "sha256": "ab5e8ceeaca8a765f1b2b573825eaf9d00761e6a4e96cb006bda69e5daafe026",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/034_path_11010001.png",
+      "sha256": "64e6439e7ce3556fee161ffcff78e97fbb50b68381eb4f8539a06f4eac3dcd9d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/035_path_11011000.png",
+      "sha256": "b13194c6d247e9bfafd55e028d7351501ea0c476af0a2fa92b63ee4d2c7c7816",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/036_path_11011001.png",
+      "sha256": "56cfae47c65fcbf969e49839a206e360efc10e6ac598a18cb76c86477adc2766",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/037_path_11100000.png",
+      "sha256": "23065cd81b8e98b27cb12ebb9430b1499949c99b05d6d549b6a0ad5a78ff7c94",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/038_path_11100100.png",
+      "sha256": "fc6651fe3ea86e39213c88b492e6f563451cdc3fc38e1ab76389fd75c360d186",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/039_path_11101000.png",
+      "sha256": "ef89617ca4188cd441c4a49acdd36109fa6e119c9b7a09d7c6708e5ab03972d7",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/040_path_11101100.png",
+      "sha256": "e03263851114ee32656be6436c811ed9ed722a12a67b9308b13831396019b138",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/041_path_11110000.png",
+      "sha256": "f02e7e1d5b6754cf08bc20dd379523d33ca49535fbc04bd92092d4dc0f085f57",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/042_path_11110001.png",
+      "sha256": "8f061c7d6970a8233b1bf5981a604d8661c34fb3c98e2a0293a754475f9d9865",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/043_path_11110010.png",
+      "sha256": "6fda3a526f59219a8550bea11d83eece0f0b6c38248625eac19c8ba66f3f36d3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/044_path_11110011.png",
+      "sha256": "bb4949a1a386ac964f381c29246234e408b53058eef7e5677050eff841dd6446",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/045_path_11110100.png",
+      "sha256": "ebc44931231aa6cec5dcb231e53ccaf41eac843b744db3e5fc3fef21f5205722",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/046_path_11110101.png",
+      "sha256": "5ee3e97a8fe7b22422c4681a3792281ced7ec11803bde199d0ad00e9b1f73ab9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/047_path_11110110.png",
+      "sha256": "9e3440af4c9807658ba9bc29f2d7bdb89938a99d35b2dc6707f512d6dc7f0a49",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/048_path_11110111.png",
+      "sha256": "2aa86e5383e3753aba97f38c0dad91f68bdf06f2d64a653e7342661a112fee5d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/049_path_11111000.png",
+      "sha256": "b7839ec410934b18973038d8a1ec3ac49230ccfbc08b4b6ea1221ed05334ed99",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/050_path_11111001.png",
+      "sha256": "95e3fb34dbf04b7cb4e3166052583888d83077979a8529ae34fa6e23359f9559",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/051_path_11111010.png",
+      "sha256": "f0e148a5cf22f958c057ddfa769d18a15efca274adc98815acba45fbc0b86d78",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/052_path_11111011.png",
+      "sha256": "ecd91bccaf58efa09fdb894ff60f7db5526b630bb4e6d3982e073da43d1158b5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/053_path_11111100.png",
+      "sha256": "4952dd002ec3bd1cfcba0707850129583c675b47d7a279f718aafc90cba4b271",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/054_path_11111101.png",
+      "sha256": "dc9441e817e78258897b8cc4308edf0b8bdde740224aaad18ee41b57314ff294",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/055_path_11111110.png",
+      "sha256": "9b492fd8d771fe2c042a814cc724226753a8c1f0a81555b6aa7985676a6ee50c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/056_path_11111111.png",
+      "sha256": "28c4682bf85ef460b3d9aca24f4a1b4981adf6283b9eb83644864afa5881c739",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/057_water_00000000.png",
+      "sha256": "62a45c42a42f563b7cc785fd3d921df7632376a2875af593d4d313f956df5575",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/058_water_00010000.png",
+      "sha256": "8a679940366318bd64301c9f66dc7f91b38c0220212adbd659528a07c43b4b08",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/059_water_00100000.png",
+      "sha256": "49563275405dbd0ed65c0ada1f59b3f2faef39963a25a9dafa2ba2e4d9636373",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/060_water_00110000.png",
+      "sha256": "c4b39e24d4c3c6a8b8fc66231cb4077fa9f033f76352facb42f496828e15ca17",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/061_water_00110010.png",
+      "sha256": "378b34a3692b6f3174d008a363542e2eaba3424ff32aeb831f143e643d23334e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/062_water_01000000.png",
+      "sha256": "982870c33eb686b1be739af631ab8523d249be1561b8cd00a365ed920c48ccad",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/063_water_01010000.png",
+      "sha256": "00cc7b50ef4a811ce0db36a01d703ef40f93da1571cf73632483eb87c4ee4bee",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/064_water_01100000.png",
+      "sha256": "00a38766e1dd6793d05bb24df3f08c4ca055e9afff815f2cfb1aba8de93b966a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/065_water_01100100.png",
+      "sha256": "0921a3a83a72eef3f0ee15f23ed21d473f13b24f35513dade4dd8c8afaf81bce",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/066_water_01110000.png",
+      "sha256": "3fa7c41b5f31ee079f7120cae66fad05f8444778f75bba1cd70d687e187374d1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/067_water_01110010.png",
+      "sha256": "b0c0b39188b304002345bf7fdaf55087c10f3c8834ddded129cac2fab297cbd4",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/068_water_01110100.png",
+      "sha256": "145ae838a6e4e8c290694741d546bbe1452059c3b918693d537605c782242529",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/069_water_01110110.png",
+      "sha256": "b8dca90762801b43973fef64438bf66336a9f7a48aa1750f0fd74e83c01c9937",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/070_water_10000000.png",
+      "sha256": "87387d293344cc61c1206e3305e0c11bdf3b728c21c048346c8fe27100ce5550",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/071_water_10010000.png",
+      "sha256": "63769eb18710c99f7344fea009b74f7e450dca1f4e32c3815073fdf444029f53",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/072_water_10010001.png",
+      "sha256": "68e6d5a268c9fd381c07f50670fb37cf6409195a0d5a2e845c7157be815c929f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/073_water_10100000.png",
+      "sha256": "001a84e6e7a8f4f46219890f1258e39a986022ce7427427b8941f2f9e01ef0c1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/074_water_10110000.png",
+      "sha256": "230f2b7ade67c6a6349e1feda86d6ec79f86a4aa407056cdcd6bdeb8e048f612",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/075_water_10110001.png",
+      "sha256": "2abb31237ab4112f59db2ac76d01478ad72c2c730c11a46efa079f7218a95596",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/076_water_10110010.png",
+      "sha256": "85e6917bccf8c14ddbade61bddef8b561bc76aea6e52972ccd90a65c0738218a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/077_water_10110011.png",
+      "sha256": "caa4ad661eb7b5ac2e87ffb36f222ce15d6bb520167de0055051ce065a58dddd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/078_water_11000000.png",
+      "sha256": "03c884c5c05e034e9b121737acf4d550520d3324e36b58ebe05c8381a3dc30c5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/079_water_11001000.png",
+      "sha256": "ac693839faefdf73722922e08c5dbc3a31a4eedb1503d71fb880e5bc82f2da0b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/080_water_11010000.png",
+      "sha256": "5a027768059b9444a4b7eed2bb7767fc50d1c37a6f9c122ef3236ee363e94efc",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/081_water_11010001.png",
+      "sha256": "dd59e39c893dc992980ebbc89c8e9418f9fa374fd849b9e1b684b078de54e1b0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/082_water_11011000.png",
+      "sha256": "20fc52c8bef4fda845e0ad162986d6a2bf17e666d1f90822f161d3302408c9d8",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/083_water_11011001.png",
+      "sha256": "bf4006410e035e14cba65da34a38578aeec8a59359c11f10bb08a450f5475cd2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/084_water_11100000.png",
+      "sha256": "d9fc9f90897b158ae68984a514f7fe0edf2a2bd5b7be0159b9b37f259cd72136",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/085_water_11100100.png",
+      "sha256": "cca4769b31bbdc9e03d736b99673e0a8176778a42c154a26f4e57bfef652ca55",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/086_water_11101000.png",
+      "sha256": "e714a2cf9674bdbfb9b0ef9f84a466ecc5035a4717922045c2cd4984f6388270",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/087_water_11101100.png",
+      "sha256": "351431627175c98ab3453d9dcc196e8650498db6899aa818ad4cae462f2d26d2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/088_water_11110000.png",
+      "sha256": "f2cae22d8f2c4948cb6eabadb274e4468747263239cebd21a2feb96b533cf0dd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/089_water_11110001.png",
+      "sha256": "1c59ced2071eb84de7f58f6fe4faaea9539fe0399a2ce1f9818fd5dc1f9ea926",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/090_water_11110010.png",
+      "sha256": "f71e7134ee1d88583c9ce8696c315af371a059028b10753e1692b23490e61b5c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/091_water_11110011.png",
+      "sha256": "22f58dcce549db3e4f68214b4ab6ce190169c2f1b942104185ed8860cd55d147",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/092_water_11110100.png",
+      "sha256": "17c06c57454914259d98ee1392431cde7eadea241bddead6ebde39456016e2da",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/093_water_11110101.png",
+      "sha256": "7723deaafa33ad4947ef35abd5001ae9347f35b968f27c7c92d49f51f41424f1",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/094_water_11110110.png",
+      "sha256": "183e94ee156e19fbe7d7a74b5f6150834443a51d7bf0bd1ab9b4e5a222aff636",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/095_water_11110111.png",
+      "sha256": "2bba776c6ee45c5952eae301711ec4e71c40a91cf1a824226d4dd022dc7682af",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/096_water_11111000.png",
+      "sha256": "611dc8da7af89c7da05f58f7aaefb3de2fb8279727e1f1b889d52313fe4776b5",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/097_water_11111001.png",
+      "sha256": "006efd145144e52b9e6c42394b9680c49932781e3369f6348ea6da1727b3f24f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/098_water_11111010.png",
+      "sha256": "1bb9daf81ee2fdf75463f977be66de3fb3a49cce80300a4d9f8db10986b678f9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/099_water_11111011.png",
+      "sha256": "fcf25cabeaf2452ce6ff5bd0358fd61cfb8fc26e6ef2e2170f3fa958f122dcc3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/100_water_11111100.png",
+      "sha256": "7f9bb9b3db570f26f4114b83df5f6577c03bc32557cbe2f7e7038f79d1998662",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/101_water_11111101.png",
+      "sha256": "49ea729494660236c7c95f55255b7919245694e84117ca1ff78a2a21d2a7eb44",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/102_water_11111110.png",
+      "sha256": "ce3499c8eb4697be8c277d59eb960c65e3e0d807dd6b434b71212083521eb877",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/103_water_11111111.png",
+      "sha256": "a8a623c2adae5256448f841f974a6cdb00137d3d1fa4d4219f5e01e9db827464",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/104_cobble_00000000.png",
+      "sha256": "77612c4f0217e5b866d963701a69853a80b9d71b6ffb80c10b15ff9a2170131c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/105_cobble_00010000.png",
+      "sha256": "d0e413373c604db39181fe8f765d751522e42f97d97829e510e89a7b43048ef3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/106_cobble_00100000.png",
+      "sha256": "87ab33fb824c6586154a15f46531a80fa90c4d867b7dd56966e9bae2cb58840c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/107_cobble_00110000.png",
+      "sha256": "30496db861ff9440dbb6675697ba7a9de2cd622242e27c0f8c1a2395fa64f201",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/108_cobble_00110010.png",
+      "sha256": "62e441550f38f0ba9ef7fce38c332acb0f10a1a68c69aff00ba961e4c88b67f0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/109_cobble_01000000.png",
+      "sha256": "2b3420095e92f4966ea49b3c3d6fb5f9f2c9e6605d1e23fde70082202910a694",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/110_cobble_01010000.png",
+      "sha256": "38d2cb0c440b4920d6a7a0fed79f33f8e1d7362a1c2f6d36b5d170fb2617cb66",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/111_cobble_01100000.png",
+      "sha256": "86e78a1e47a56c512a173659298c466da04d936ad0d65c4a110358a37324fe4a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/112_cobble_01100100.png",
+      "sha256": "ab6897af2d2ede0f2f56a209c5ccaf84aaac0bf6f4087a2705715c496f5a1d5a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/113_cobble_01110000.png",
+      "sha256": "8781088105697189bfa1e9a40307c9b7595df87ca53e1393c0894ce06570051c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/114_cobble_01110010.png",
+      "sha256": "5b185516812f110da033c5f641de179e27c8bced6ed4d3ee9f0ffd7e5e810929",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/115_cobble_01110100.png",
+      "sha256": "bdae803f0745fae827571a11c1b3f543cfe64f161c1b3aca58b99e0418412495",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/116_cobble_01110110.png",
+      "sha256": "845749ff4c39f61d4af53e08de7842f143fb8ed112ab5eaf93097f33daa5987d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/117_cobble_10000000.png",
+      "sha256": "3de66446925462f9f019bd68703d4e35e843525257836a0d287c0f1504642767",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/118_cobble_10010000.png",
+      "sha256": "d0f12572b9ca72fded206cda26e4dd36ca8cf3164e8ddacf4c5331dc49765f47",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/119_cobble_10010001.png",
+      "sha256": "ad54313ad444f1b635f9d5e743ab13bca96d8a16ec9d3e6164713c92a683f532",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/120_cobble_10100000.png",
+      "sha256": "596a20524a27b657ec7a57482f5ac4e0fe9900a28a1f220dfa1a1527765ea56e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/121_cobble_10110000.png",
+      "sha256": "eec231902620519e7ee9523689166957245865bf800acbd1cf0342f2a65a4387",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/122_cobble_10110001.png",
+      "sha256": "5f164c3abc5e1b7a6f6c2f2eb9938f55363619b093cc3cf5bc440ca0c3b25edb",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/123_cobble_10110010.png",
+      "sha256": "7b237a14830ad718f8cd8780a13855b343ee686cffe0d15469445aed3c20217f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/124_cobble_10110011.png",
+      "sha256": "06c02b9ac60fcfa718b515c16d1c57a69315bd18403f7461722ec97397cac902",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/125_cobble_11000000.png",
+      "sha256": "46896942b4251344b6ea90656116a93ff5e7066fee2be6832131f4f2a4fe908c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/126_cobble_11001000.png",
+      "sha256": "e35df3ebdd886345da4043078ddf4106dadf6aa53cea537920faac2b066f3769",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/127_cobble_11010000.png",
+      "sha256": "130b16e1dd9d3591c155e235a6c6973d4d362631d22ae2feab46aa8009e12d62",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/128_cobble_11010001.png",
+      "sha256": "ffca975eed0345d73cdc3be8bd4c10b64908862dd5cd6b9ddd76537d8b2af781",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/129_cobble_11011000.png",
+      "sha256": "87086bd834b2b824f1ad2c52265728670057ba3bfcac8c52dd11fe9722020cb7",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/130_cobble_11011001.png",
+      "sha256": "d8570c5c75d3e2276ef014aad1844ad5534bf01a18cd45acda990c52a97b20f3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/131_cobble_11100000.png",
+      "sha256": "38fa4d505c638342b691d208484b3a2d98ddb98dbfbd7f20c8afe0e352e1d21a",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/132_cobble_11100100.png",
+      "sha256": "47117594a78cacdcd87e70262fcdd07a8d28aeef80d007c77719d657603be3b0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/133_cobble_11101000.png",
+      "sha256": "1ca8d86d5eb73a85c66c66613eb62e38a4431f34c4e97f724c013bd61fb6dd1d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/134_cobble_11101100.png",
+      "sha256": "47330acb2db5ff305f2f8b2ed05a3434f31161149a778d91bc69d46295b7d5e0",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/135_cobble_11110000.png",
+      "sha256": "f5d9661ea41d26f6f52825dc5d3a18f0e46f4315e3594f42b2771851d7c1054d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/136_cobble_11110001.png",
+      "sha256": "48df527919c72eb56735560e384060fa766a5f33b67997e8739f634334fecc20",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/137_cobble_11110010.png",
+      "sha256": "53e11300c7db3a91d1452db9ef068d268faeae68ecc6dbac0410131d4edced44",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/138_cobble_11110011.png",
+      "sha256": "ee3d08922eda4c91cf7551f27363ba8ab08c25ca465b9e141e9d6b70d4978bbd",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/139_cobble_11110100.png",
+      "sha256": "ed438c41f23fa201a2cfd0316595a47af8f12b70eefc1ba30213222c2c86a76c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/140_cobble_11110101.png",
+      "sha256": "14352d159631a02dc31dcfb2623d3d1d6294c7901d1fd32b5718e8d38629600b",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/141_cobble_11110110.png",
+      "sha256": "0637cd74a151e5bf0b897bb9b386821b8477d9558fa0ae7338b9c420937174fb",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/142_cobble_11110111.png",
+      "sha256": "1515657cfa978670c1ea60274d0f8b2212f598d4423ad478d4635c3c32aabc54",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/143_cobble_11111000.png",
+      "sha256": "2a051a2feac85875f4fc9d05057aa25afdf83878f9f9bf1190550f28d45cd0b9",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/144_cobble_11111001.png",
+      "sha256": "80f5eb96f84008584879575731ce0f00eff521f40cb422e91e5143071fe1e92e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/145_cobble_11111010.png",
+      "sha256": "7313b68e30ca83f68acb7ec12e649491f8134de0f6d475d3e34f05cc5da6b288",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/146_cobble_11111011.png",
+      "sha256": "eeedbbf7a1ec5acf82168bcc8fb994405866d446d515910ac1b72981c81d4612",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/147_cobble_11111100.png",
+      "sha256": "3d6ae7c4435b7fdb14c9f64459d251172ea2e281f23fb5424679d4bfc746413d",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/148_cobble_11111101.png",
+      "sha256": "780405a9fb6e54cd69a5884c022a52128bf7a3e2dc0515ff512c7f2e0056888c",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/149_cobble_11111110.png",
+      "sha256": "5593ebe8e4d4ba0789dac88df28eec7c7d6560cb66e2716021ff11dda03bb635",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/150_cobble_11111111.png",
+      "sha256": "f670399ef16216e4c7ded4d72e7d411c3b5a6a3a3700d2e7e44a413e6135aaf6",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/151_bridge_11101100.png",
+      "sha256": "ccd24fd8f291937d2c6acb0a895542b3e0e1691b26f5deb8bffa8f6715a3db94",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/152_bridge_11111011.png",
+      "sha256": "2edb1acb785f30188644571f8bdd3345118153b52c99a8aa824b0184e2f06cce",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tiles/153_bridge_10010001.png",
+      "sha256": "502f538825cbf1e9d2ec899b2d884b9c74fc49ff361f913dc0e591394b5c7164",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/tileset.png",
+      "sha256": "c273349c8fb153b464f469814dbb22fb071cacf04fcdc4b4bc5cea3c3552efb7",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/ayuda.png",
+      "sha256": "a99cda4f3352677a7e7d0cb9683d8c28cd174d292fb8e850a723ce8f05478dc2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/bolsa.png",
+      "sha256": "c4ec50438891068a36d29730bffbf077196d4a2b8d7a99e717838468661c714f",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/habilidades.png",
+      "sha256": "95fb3daaba59afa47ab23e44c29081097596149e7b9aea62cdfe1c4652f841b2",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/luna.png",
+      "sha256": "d506ca9c102f84cd3b38baa987af5cb413e685171d93b22b9eacd946d01a2483",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/misiones.png",
+      "sha256": "41f430f3459782fb823e04998e682ee86c77c170b48dd7d9d1667366c9854201",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/moneda.png",
+      "sha256": "124a0ccd454b310b71b917d34897389461dea87693583e51c7941089bec45939",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/social.png",
+      "sha256": "250c7bd233d0f33d9572aa413e56bf183350868739d5e97c514cf97cef21b7a3",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/sol.png",
+      "sha256": "bacf415c91f85bd47043f99c5be6a821f192bf2761157d5fd2c357168c409f2e",
+      "author": "Simón — Saimon City (aportes propios y créditos conservados)",
+      "source": "Project procedural generators, exact decoded-pixel match",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    }
+  ],
+  "public_creator_name": "Simón",
+  "adopted": "2026-11-12",
+  "authorized_content_paths": [
+    "README.md",
+    "SCHEMA.md",
+    "NOTICE.md",
+    "MARCA.md",
+    "CONTRIBUTING.md",
+    "BLOCKCHAIN-Y-PROPIEDAD.md",
+    "CREDITOS-RECURSOS.md",
+    "data/el-jardin.json",
+    "data/el-jardin.js"
+  ],
+  "repository": "https://github.com/Saimonmde/LIFE"
+}

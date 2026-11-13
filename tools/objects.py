@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Sprites originales de El Jardín (árboles, parcelas, rocas, agua, animales, jugador, letrero, iconos)."""
 import math, random
 from PIL import Image, ImageDraw, ImageFont

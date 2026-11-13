@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 @font-face { font-family: "Pixelify"; src: url("PixelifySans.ttf") format("truetype"); font-weight: 400 700; }
 @font-face { font-family: "UnifrakturMaguntia"; src: url("fonts/UnifrakturMaguntia-Book.ttf") format("truetype"); font-display: swap; }
 * { box-sizing: border-box; }
@@ -221,3 +222,5 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-sal
 .casa-hint{margin:4px 0 8px;color:#e6d3b0;font-size:12px}
 #casa-status{min-height:1.2em;color:#ffe09a;font-size:12px}
 @media(max-width:700px){#casa-editor{top:auto;bottom:max(8px,env(safe-area-inset-bottom));max-height:46dvh}#b-editar-casa{top:auto;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));left:auto;right:max(8px,env(safe-area-inset-right));transform:none}#b-salir-parque{left:auto;right:max(8px,env(safe-area-inset-right));bottom:max(116px,calc(env(safe-area-inset-bottom) + 116px));transform:none}body.casa-editando #b-editar-casa{bottom:auto;top:max(8px,env(safe-area-inset-top))}}
+
+#login .login-legal{display:block;text-align:center;color:#d6c191;font:11px/1.5 system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px}

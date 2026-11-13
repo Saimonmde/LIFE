@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 (() => {
  const panel=document.querySelector('#hud-chat'), toggle=document.querySelector('#chat-toggle'), count=document.querySelector('#chat-count');
  let unread=0;

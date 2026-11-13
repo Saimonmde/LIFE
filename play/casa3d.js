@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Interior colonial y la puerta de la casa junto al Parque de Envigado.
    Geometría original: muros de cal, vigas, teja, fogón de barro y patio. */
 export function buildHouse(T) {
