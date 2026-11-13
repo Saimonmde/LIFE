@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=libro-madre-legal-r1">
+<link rel="stylesheet" href="style.css?v=viaje-r1">
 <link rel="stylesheet" href="movil.css?v=saimon-door-r3">
 <script src="movil.js?v=saimon-door-r3"></script>
 </head>
@@ -149,10 +149,18 @@
   </ul>
   <button type="button" id="btn-jugar" data-cierra="ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
 </div>
+<div id="viaje-dialogo" class="viaje" hidden role="dialog" aria-modal="true" aria-labelledby="viaje-pregunta">
+  <p id="viaje-pregunta"></p>
+  <div class="viaje-botones">
+    <button type="button" id="viaje-si">Sí, vamos</button>
+    <button type="button" id="viaje-no">Cancelar</button>
+  </div>
+</div>
+<div id="viaje-vuelo" aria-hidden="true"></div>
 <section id="city-map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
   <div class="city-map-panel"><header><span id="city-map-title">Mapa de SaimonCity</span><button id="city-map-close" aria-label="Cerrar mapa">✕</button></header>
   <canvas id="city-map-canvas" width="800" height="800" role="img" aria-label="Mapa completo de SaimonCity. Tu posición está marcada con una estrella amarilla."></canvas>
-  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente</p></div>
+  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Toca un municipio para ir.</p></div>
 </section>
 <section id="banquito" class="ventana" hidden>
   <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
@@ -173,7 +181,7 @@
 <script src="tutorial.js?v=brujula-r1"></script>
 <script src="libro-madre.js?v=libro-madre-r1"></script>
 <script src="paneles.js?v=brujula-r1"></script>
-<script src="game.js?v=mapa-aburra-r2"></script>
+<script src="game.js?v=viaje-r1"></script>
 <script type="module" src="unified3d.js?v=smc-r3"></script>
 <script src="interface.js?v=saimon-door-r3"></script>
 </body>

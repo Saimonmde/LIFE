@@ -17,6 +17,7 @@ import nft as NFT
 import payout as PAYOUT
 import playtime as PLAY
 import vault as VAULT
+import viajes as VIAJES
 import accounts as ACC
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -577,6 +578,27 @@ def arrival_position(resume=None):
                 seen.add(tile); queue.append(tile)
     return float(SPAWN[0]), float(SPAWN[1])
 
+TRAVEL_GATE = VIAJES.Gate()
+
+def travel_for(sender, dest_id):
+    """Lleva al jugador a un municipio o punto conocido. El servidor elige la casilla."""
+    now = time.time()
+    try:
+        dest = VIAJES.resolve(WORLD, clean(dest_id, 32).lower())
+    except VIAJES.ViajeError as exc:
+        return send(sender, {'t': 'travel_result', 'ok': False, 'reason': str(exc)})
+    if not TRAVEL_GATE.allow(sender.id, now):
+        return send(sender, {'t': 'travel_result', 'ok': False, 'reason': 'Espera un momento para volver a viajar.'})
+    was_hidden = sender.zone != 'city'
+    sender.zone = 'city'
+    sender.x, sender.y = float(dest['x']), float(dest['y'])
+    sender.moving = False
+    if was_hidden:
+        broadcast({'t': 'join', 'player': sender.public()}, exclude=sender)
+    else:
+        broadcast({'t': 'move', 'id': sender.id, 'x': sender.x, 'y': sender.y, 'dir': sender.dir, 'moving': False, 'level': sender.level, 'zone': 'city'}, exclude=sender)
+    send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
+
 async def handle_ws(reader, writer, cookie=''):
     c = Client(writer); clients[c.id] = c
     c.user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
@@ -614,6 +636,8 @@ async def handle_ws(reader, writer, cookie=''):
                     send(c, {'t': 'playtime', **play_for(c.name, active=True)})
                 if not c.wallet_ok:
                     send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
+            elif t == 'travel' and c.hello:
+                travel_for(c, m.get('id'))
             elif t == 'move' and c.hello:
                 zone = m.get('zone')
                 if zone in ('casa', 'mine', 'banco'):
