@@ -120,11 +120,13 @@ async function init() {
   $('#login').hidden = false; $('#l-nombre').focus();
   fetch('/auth/providers').then(r => r.json()).then(p => {
     const box = $('#login-cuentas'); if (!box) return;
-    const show = !!(p.google || p.facebook || p.registro);
+    const show = !!(p.google || p.facebook || p.registro || p.email_login);
     box.hidden = !show;
     const g = $('#b-google'); if (g) g.hidden = !p.google;
     const f = $('#b-facebook'); if (f) f.hidden = !p.facebook;
     const reg = $('#b-registro'); if (reg) reg.hidden = !p.registro;
+    $('#b-correo').hidden = !p.email_login;
+    $('#r-phone-row').hidden = $('#r-sms-row').hidden = !p.sms;
   }).catch(() => {});
 }
 function buildColorPicker() {
@@ -147,11 +149,20 @@ function linkCookie() {
   document.cookie = 'life_link=' + encodeURIComponent(name + '|' + token) + '; Path=/; SameSite=Lax; Max-Age=600';
   document.cookie = 'life_return=' + encodeURIComponent(vueltaJuego()) + '; Path=/; SameSite=Lax; Max-Age=600';
 }
+$('#b-correo').onclick=()=>{ $('#correo-login').hidden=!$('#correo-login').hidden;$('#registro').hidden=true; };
+$('#b-correo-entrar').onclick=async()=>{
+ const button=$('#b-correo-entrar');if(button.disabled)return;button.disabled=true;
+ try{const response=await fetch('/auth/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#e-email').value.trim(),password:$('#e-password').value})});const result=await response.json();$('#e-password').value='';
+  if(!response.ok||!result.user)throw Error(result.error||'No se pudo entrar.');
+  location.replace(vueltaJuego());
+ }catch(error){$('#login-status').textContent=error.message;}finally{button.disabled=false;}
+};
+$('#correo-login').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#b-correo-entrar').click();}};
 const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego()); };
 const bFacebook = $('#b-facebook'); if (bFacebook) bFacebook.onclick = () => { linkCookie(); location.href = '/auth/facebook?vuelta=' + encodeURIComponent(vueltaJuego()); };
-const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { const box = $('#registro'); if (box) box.hidden = !box.hidden; };
+const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { $('#correo-login').hidden=true; const box = $('#registro'); if (box) box.hidden = !box.hidden; };
 const bPedir = $('#b-pedir-codigo'); if (bPedir) bPedir.onclick = () => {
-  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), phone:$('#r-phone').value.trim(), password:$('#r-pass').value})}).then(r => r.json()).then(m => { $('#login-status').textContent = m.error || 'Te enviamos un código al correo y un SMS.'; });
+  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), phone:$('#r-phone').value.trim(), password:$('#r-pass').value})}).then(r => r.json()).then(m => { $('#login-status').textContent = m.error || 'Te enviamos un código al correo. Si indicaste teléfono, verifica también el SMS.'; });
 };
 const bVer = $('#b-verificar'); if (bVer) bVer.onclick = () => {
   let token = '';
