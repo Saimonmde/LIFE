@@ -13,22 +13,19 @@ def empty():
 
 
 def load(path):
-    if not os.path.isfile(path):
+    import persist
+    state = persist.load_named('vault', path)
+    if state is None:
         state = empty()
         save(path, state)
         return state
-    with open(path, encoding='utf-8') as handle:
-        state = json.load(handle)
     state.setdefault('accounts', {})
     return state
 
 
 def save(path, state):
-    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-    tmp = path + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as handle:
-        json.dump(state, handle, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
+    import persist
+    persist.save_named('vault', path, state)
 
 
 def account(state, name):

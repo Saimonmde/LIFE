@@ -111,7 +111,10 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 #tooltip b { color: #f5d27a; }
 #ayuda { position: fixed; z-index: 10; left: 50%; top: 50%; transform: translate(-50%,-50%); width: min(600px, 92vw); padding: 14px 20px; }
 #ayuda h2 { margin-top: 0; color: #f5d27a; } #ayuda li { margin: 5px 0; font-size: 14px; }
-#ayuda button, #login button[type=submit] { background: #6b4a26; color: #fff1c9; border: 1px solid #b48a46; border-radius: 4px; padding: 6px 14px; cursor: pointer; font-size: 15px; }
+#ayuda button, #login button { background: #6b4a26; color: #fff1c9; border: 1px solid #b48a46; border-radius: 4px; padding: 8px 14px; cursor: pointer; font: 16px/1.3 "Atkinson", "Segoe UI", sans-serif; }
+#login-cuentas[hidden], #registro[hidden], #login button[hidden] { display: none; }
+#login-cuentas:not([hidden]), #registro:not([hidden]) { display: flex; flex-direction: column; gap: 8px; }
+.login-o { text-align: center; color: #d9c08c; margin: 4px 0; font-family: "Cinzel", Palatino, serif; }
 #cargando { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 22px; background: #0f170b; }
 #login { position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(42,32,18,.42), rgba(6,5,3,.9)); }
 #login form { width: min(460px, 94vw); padding: 22px 26px 18px; display: flex; flex-direction: column; gap: 9px; }
