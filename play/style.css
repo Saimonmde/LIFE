@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 @font-face { font-family: "Pixelify"; src: url("PixelifySans.ttf") format("truetype"); font-weight: 400 700; }
 @font-face { font-family: "UnifrakturMaguntia"; src: url("fonts/UnifrakturMaguntia-Book.ttf") format("truetype"); font-display: swap; }
 * { box-sizing: border-box; }
@@ -221,3 +222,23 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-sal
 .casa-hint{margin:4px 0 8px;color:#e6d3b0;font-size:12px}
 #casa-status{min-height:1.2em;color:#ffe09a;font-size:12px}
 @media(max-width:700px){#casa-editor{top:auto;bottom:max(8px,env(safe-area-inset-bottom));max-height:46dvh}#b-editar-casa{top:auto;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));left:auto;right:max(8px,env(safe-area-inset-right));transform:none}#b-salir-parque{left:auto;right:max(8px,env(safe-area-inset-right));bottom:max(116px,calc(env(safe-area-inset-bottom) + 116px));transform:none}body.casa-editando #b-editar-casa{bottom:auto;top:max(8px,env(safe-area-inset-top))}}
+
+#login .login-legal{display:block;text-align:center;color:#d6c191;font:11px/1.5 system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px}
+
+/* Simulación educativa: SAI, Libro Mayor y caballos. No altera el título gótico ni la casa. */
+#b-libro{font:700 16px system-ui,sans-serif;color:#f6e7c2}
+#sai-chip{color:#ffe14d}
+#sai-legal{left:50%;bottom:64px;transform:translateX(-50%);max-width:min(420px,70vw);margin:0;padding:4px 10px;background:#24180ee6;border:1px solid #b48a46;border-radius:6px;color:#ffe7b0;font:12px/1.35 system-ui,sans-serif;text-align:center;z-index:4;cursor:pointer}
+#sai-legal .sai-full{display:none}#sai-legal.open .sai-short{display:none}#sai-legal.open .sai-full{display:inline}
+body.in-game:not(.in-casa) #dialogo{top:68px}
+#w-libro{width:min(460px,94vw);max-height:72vh;overflow:auto;z-index:30}
+#libro-cuerpo{padding:8px 10px;font:13px/1.4 system-ui,sans-serif}
+#libro-cuerpo .aviso-legal{color:#ffd27a}
+#libro-cuerpo .hash{font:10px/1.35 ui-monospace,monospace;word-break:break-all;color:#c8e6ff}
+#libro-cuerpo .bloque{border-top:1px solid #6b5230;padding:8px 0}
+#libro-cuerpo .ver-hash,#habilidades .estudiar{margin-top:4px;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer}
+#habilidades .lecciones{list-style:none;margin:0;padding:0 8px 8px}
+#habilidades .leccion{margin:8px 0;color:#f3e6c4}
+#habilidades .leccion p{margin:4px 0;color:#d9c8a4}
+#misiones .seccion{color:#f5d27a;font-weight:700}
+#touch-extra{display:none}

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Texturas tileables para el cliente 3D (LIFE INC). Se pintan con la misma paleta/técnica que el resto del arte (originales)."""
 import random
 from pixel import new, up, px

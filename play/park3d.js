@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Mesh scenery follows world data so parks and waterways move with the map.
 export function enrichWorld(T,scene,W,pick,height,material){
  const mesh=(geo,c,x,y,z)=>{const m=new T.Mesh(geo,typeof c==='string'?material(c):c);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;};

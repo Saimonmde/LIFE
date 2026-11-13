@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* LIFE INC · modo móvil. Sólo se activa con /movil/ o /play/?movil=1; en escritorio no hace nada. */
 (() => {
   const q = new URLSearchParams(location.search);

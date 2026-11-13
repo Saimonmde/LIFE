@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Teselas de suelo 64x64 originales: césped, camino (autotile 8 vecinos), agua (autotile), puente."""
 import math, random
 from functools import lru_cache

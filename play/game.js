@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* LIFE INC · El Jardín — vista previa jugable (JS plano, sin build).
    Carga ../data/el-jardin.json (o window.EL_JARDIN) + ../graphics. Chat/presencia por WebSocket (server.py, /ws). */
 (() => {
@@ -41,10 +42,21 @@ const loadImg = (src) => new Promise((ok, ko) => { const i = new Image(); i.onlo
 async function init() {
   W = await load();
   prepareMining();
+  await Simulacion.installWorld(W, S);
+  Simulacion.bind({
+    S, game, sys, esc, invAdd, save, addXp, renderAll, renderQuest, renderSkills, showDialog, act, update,
+    W: () => W, imgs, capataz: () => capatazImg,
+  });
+  const bLibro = $('#b-libro'), bLibroMovil = $('#b-libro-movil'), bMontar = $('#b-montar');
+  if (bLibro) bLibro.onclick = () => Simulacion.toggleLibro();
+  if (bLibroMovil) bLibroMovil.onclick = () => Simulacion.toggleLibro();
+  if (bMontar) bMontar.onclick = () => { if (S.mounted) Simulacion.dismount(); else Simulacion.mountHorse(Simulacion.nearestMount()); };
   tileset = await loadImg(W.tileset.image);
   sheets.default = await loadImg(W.player.image);
   for (const [c, p] of Object.entries(W.playerVariants || {})) sheets[c] = await loadImg(p);
   capatazImg = W.npcs && W.npcs[0] ? await loadImg(W.npcs[0].sheet) : null;
+  const profNpc = (W.npcs || []).find(n => n.id === 'profesora_cadena');
+  if (profNpc) imgs._profesora = await loadImg(profNpc.sheet);
   await Promise.all(Object.entries(W.sprites).map(async ([k, s]) => { imgs[k] = await loadImg(s.image); }));
   await Promise.all(Object.values(W.items).map(async it => { imgs['icon:' + it.id] = await loadImg(it.icon['32']); }));
   for (const n of W.nodes) {
@@ -60,7 +72,7 @@ async function init() {
     if (prof.color) S.me.color = prof.color;
   }
   Casa.playerName = () => S.me.name;
-  Casa.enter = () => enterHouse();
+  Casa.enter = () => { if (S.mounted) { game('Baja del caballo para entrar a un edificio.', 'aviso'); return; } enterHouse(); };
   Casa.exit = () => exitHouse();
   Casa.onEdit = (on) => { S.houseEdit = on; if (on) { S.player.path = []; S.player.pending = null; S.keys.clear(); } };
   Casa.onLayout = () => { if ((W.mapId || 'city') === 'casa') applyCasaLayout(); if (window.LIVE3D && window.LIVE3D.rebuildHouse) window.LIVE3D.rebuildHouse(Casa.layout); };
@@ -320,7 +332,7 @@ function addXp(skill, n) {
   if (level(S.xp[skill]) > before) game(`¡Subiste a nivel ${level(S.xp[skill])} de ${W.skills[skill].name}!`, 'oro');
 }
 function totalLevel() { return skillIds().filter(k => !W.skills[k].stub).reduce((a, k) => a + level(S.xp[k] || 0), 0) - (skillIds().filter(k => !W.skills[k].stub).length - 1); }
-function save() { try { localStorage.setItem('lifeinc.eljardin.v3', JSON.stringify({ inv: S.inv, xp: S.xp, coins: S.coins, energy: S.energy, mapId:W.mapId||'city', cityReturn, resourceState:Object.fromEntries([...(caveNodes||[])].filter(([,n])=>n.state==='depleted').map(([id,n])=>[id,Date.now()+Math.max(0,n.until-now())])), mapRevision: W.expansion?.revision || 0, position: {x:S.player.x,y:S.player.y,dir:S.player.dir}, quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn } })); return true; } catch (e) { return false; } }
+function save() { try { localStorage.setItem('lifeinc.eljardin.v3', JSON.stringify({ inv: S.inv, xp: S.xp, coins: S.coins, energy: S.energy, mapId:W.mapId||'city', cityReturn, resourceState:Object.fromEntries([...(caveNodes||[])].filter(([,n])=>n.state==='depleted').map(([id,n])=>[id,Date.now()+Math.max(0,n.until-now())])), mapRevision: W.expansion?.revision || 0, position: {x:S.player.x,y:S.player.y,dir:S.player.dir}, quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn }, libro: S.libro, studied: S.studied, econ: S.econ })); return true; } catch (e) { return false; } }
 function restore() {
   let d = null; try { d = JSON.parse(localStorage.getItem('lifeinc.eljardin.v3')); } catch (e) {}
   if (d && Array.isArray(d.inv) && d.inv.every(s => !s || W.items[s.item])) { S.inv = d.inv; S.xp = d.xp || {}; S.coins = d.coins || 0; Object.assign(S.quest, d.quest || {});
@@ -328,6 +340,7 @@ function restore() {
     if(d.cityReturn)cityReturn=d.cityReturn;
     // Inventory, skills and quests carry over. The saved map and coordinates never decide where a session starts.
     if(d.resourceState){if(!caveNodes)caveNodes=new Map(caveMap.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));for(const [id,until] of Object.entries(d.resourceState)){const n=caveNodes.get(id);if(n&&until>Date.now()){n.state='depleted';n.until=now()+until-Date.now();}}}
+    if (window.Simulacion) Simulacion.restore(d);
   }
   else fresh();
 }
@@ -344,6 +357,7 @@ function beginAtHome() {
 function fresh() {
   S.inv = []; S.xp = {}; S.coins = W.startingCoins || 0; S.quest.stage = 0; S.quest.steps = {}; S.quest.done = false; S.quest.turnedIn = false;
   for (const s of W.starterInventory) invAdd(s.item, s.qty);
+  if (window.Simulacion) Simulacion.resetProgress();
 }
 function renderAll() { renderInv(); renderSkills(); renderProfile(); renderQuest(); }
 function renderInv() {
@@ -367,6 +381,7 @@ function renderInv() {
     hb.appendChild(d);
   }
   $('#bolsa').textContent = `${S.inv.filter(Boolean).length}/${SLOTS}`; $('#monedas').textContent = S.coins.toLocaleString('es-CO');
+  if (window.Simulacion) Simulacion.paintHud();
 }
 function renderSkills() {
   const el = $('#habilidades'); el.innerHTML = '';
@@ -375,6 +390,7 @@ function renderSkills() {
     const xp = S.xp[k] || 0, lv = level(xp), lo = 25 * (lv - 1) ** 2, hi = 25 * lv ** 2;
     el.insertAdjacentHTML('beforeend', `<li title="${esc(sk.learn || '')}"><span>${sk.name}${sk.stub ? ' <small style="color:#a59a82">(próximamente)</small>' : ''}</span><span>Nv ${lv} · ${xp} xp</span></li><div class="b"><i style="width:${Math.round(100 * (xp - lo) / (hi - lo))}%"></i></div>`);
   }
+  if (window.Simulacion) { el.insertAdjacentHTML('beforeend', Simulacion.skillExtraHtml()); Simulacion.wireLessonButtons(); }
 }
 function renderProfile() {
   $('#mi-nivel').textContent = `Nv. ${totalLevel()}`;
@@ -413,6 +429,7 @@ function renderQuest() {
   }
   if (S.quest.done && !S.quest.turnedIn) el.insertAdjacentHTML('beforeend', '<li style="color:#ffd27a">▸ Vuelve con el capataz</li>');
   if (S.quest.turnedIn) el.insertAdjacentHTML('beforeend', '<li style="color:#8fe08f">★ ¡Completado!</li>');
+  if (window.Simulacion) el.insertAdjacentHTML('beforeend', Simulacion.questExtraHtml());
 }
 function currentStage() {
   const t = S.quest.def && S.quest.def.tutorial; if (!t) return null;
@@ -472,7 +489,7 @@ function talkCapataz() {
   } else if (S.quest.turnedIn) lines = d.after; else lines = d.inProgress;
   S.dialog = { lines, i: 0, after }; $('#aviso').hidden = true; showDialog();
 }
-function showDialog() { const D = S.dialog; $('#dialogo').hidden = false; $('#dialogo-txt').textContent = D.lines[D.i]; $('.quien').textContent = W.npcs[0].name; }
+function showDialog() { const D = S.dialog; $('#dialogo').hidden = false; $('#dialogo-txt').textContent = D.lines[D.i]; $('.quien').textContent = (D.who && D.who.name) || W.npcs[0].name; if (window.Simulacion) Simulacion.drawDialogFace(D.who); }
 function advanceDialog() {
   const D = S.dialog; if (!D) return; D.i++;
   if (D.i >= D.lines.length) { S.dialog = null; $('#dialogo').hidden = true; if (D.after) D.after(); updateTutorial(true); return; }
@@ -507,6 +524,7 @@ document.querySelectorAll('.pestanas button[data-canal]').forEach(b => b.onclick
 $('#chat-min').onclick = () => window.ChatUI.setOpen(false);
 $('#chat-form').onsubmit = (e) => {
   e.preventDefault(); const inp = $('#chat-input'); const text = inp.value.trim(); inp.value = ''; inp.blur(); if (!text) return;
+  if (window.Simulacion && Simulacion.offlineCommand(text)) return;
   if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'chat', channel: S.chat.tab, text }));
   else { addLine(S.chat.tab, chatLine({ channel: S.chat.tab, from: S.me.name, text, ts: hhmm() }, true)); bubble(0, text); }
 };
@@ -526,7 +544,7 @@ function connect() {
   let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { return; }
   S.net.ws = ws;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined) beginAtHome(); const atHome = W.mapId==='casa'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: atHome ? 'casa' : 'city', resume: atHome ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined) beginAtHome(); const atHome = W.mapId==='casa'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: atHome ? 'casa' : 'city', walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: atHome ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     const m = JSON.parse(ev.data);
@@ -548,6 +566,7 @@ function connect() {
       if (mine || m.channel === 'proximidad' || m.channel === 'global') bubble(mine ? 0 : m.fromId, m.text);
     }
     else if (m.t === 'system') sys(esc(m.text));
+    else if (window.Simulacion && Simulacion.onNet(m)) { /* SAI o resultado de pago */ }
     else if (m.t === 'pong') { S.net.ping = Math.round(performance.now() - m.c); $('#ping span').textContent = S.net.ping + ' ms'; }
   };
   ws.onclose = () => {
@@ -583,7 +602,11 @@ function renderNearby() {
 
 // ---------------- mapa / colisión ----------------
 const inside = (x, y) => x >= 0 && y >= 0 && x < W.width && y < W.height;
-const walkable = (x, y) => inside(x, y) && W.collision[y][x] === 0;
+function walkable(x, y) {
+  if (!inside(x, y) || W.collision[y][x] !== 0) return false;
+  if (window.Simulacion && Simulacion.blocksTile(W, x, y)) return false;
+  return true;
+}
 function bfs(sx, sy, isGoal) {
   const key = (x, y) => y * W.width + x; const prev = new Map([[key(sx, sy), null]]); const q = [[sx, sy]];
   const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
@@ -603,11 +626,13 @@ const cheb = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 // ---------------- objetivos clicables ----------------
 function targetTile(t) {
   if (t.kind === 'animal') return { x: t.a.x, y: t.a.y };
+  if (t.kind === 'mount') return { x: t.m.x, y: t.m.y };
   if (t.kind === 'npc' || t.kind === 'door') return { x: t.d.x, y: t.d.y };
   return { x: t.n.def.x, y: t.n.def.y };
 }
 function describe(t) {
   if (t.kind === 'animal') return `Cazar: <b>${NOMBRES[t.a.def.species]}</b>`;
+  if (t.kind === 'mount') return Simulacion.describeMount(t.m);
   if (t.kind === 'npc') return `Hablar con: <b>${esc(t.d.name)}</b>`;
   if (t.kind === 'door') return 'Tocar la <b>puerta</b> de la Casa del Capataz';
   const n = t.n, d = n.def;
@@ -618,6 +643,7 @@ function describe(t) {
     case 'farm_plot': return n.state === 'empty' ? 'Sembrar en <b>parcela vacía</b>' : n.state === 'planted' ? `Parcela sembrada: <b>${W.items[n.crop].name}</b>` : `Cosechar: <b>${W.items[n.crop].name}</b>`;
     case 'fishing_spot': return n.state === 'active' ? `Pescar con red: <b>${d.waterBody === 'rio_claro' ? 'Río Claro' : 'Estanque'}</b>` : 'Agua tranquila';
     case 'nodo_oro_fluvial': return n.state === 'active' ? 'Lavar arena: <b>oro fluvial en el río</b> (batea)' : 'Arena lavada';
+    case 'fruit_stand': return 'Comprar un <b>mango</b> por 5 SAI (simulación)';
     case 'mineral_rock': return n.state === 'active' ? `Picar: <b>${NOMBRES[d.mineral]}</b>` : 'Roca agotada';
   }
   return '';
@@ -631,6 +657,7 @@ function hitTest(wx, wy) {
     if (wx >= ox - 8 && wx <= ox + s.w + 8 && wy >= oy - 8 && wy <= oy + s.h + 8) cand.push({ kind: 'animal', a, sort: (a.fy + 1) * TS + 1000 });
   }
   for (const npc of W.npcs || []) { const ox = npc.x * TS + 8, oy = (npc.y + 1) * TS - 92; if (wx >= ox && wx <= ox + 48 && wy >= oy && wy <= oy + 88) cand.push({ kind: 'npc', d: npc, sort: (npc.y + 1) * TS + 900 }); }
+  if (window.Simulacion) { const m = Simulacion.hitMount(wx, wy, TS); if (m) cand.push({ kind: 'mount', m, sort: (m.fy + 1) * TS + 860 }); }
   for (const dr of W.doors || []) if (wx >= dr.x * TS + 8 && wx < dr.x * TS + 56 && wy >= dr.y * TS - 20 && wy < (dr.y + 1) * TS) cand.push({ kind: 'door', d: dr, sort: (dr.y + 1) * TS + 800 });
   for (const n of S.nodes.values()) {
     const d = n.def; const s = W.sprites[spriteKeyFor(n)];
@@ -678,16 +705,19 @@ function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
 function act(t) {
   const p = S.player; const tt = targetTile(t); face(tt.x, tt.y);
-  if (t.kind === 'npc') return talkCapataz();
+  if (t.kind === 'mount') return Simulacion.mountHorse(t.m);
+  if (t.kind === 'npc') return t.d.id === 'profesora_cadena' ? Simulacion.talkProfesora() : talkCapataz();
   if (t.kind === 'door') { S.quest.doorOpened = true; game('Tocas la puerta… ¡el capataz sale a recibirte!', 'juego'); updateTutorial(); return talkCapataz(); }
   if (now() < p.busyUntil) return;
   p.busyUntil = now() + 450;
   if (t.kind === 'animal') return hunt(t.a);
   const n = t.n, d = n.def; const secs = () => Math.max(1, Math.ceil((n.until - now()) / 1000));
+  if (S.mounted && (d.type === 'mine_entrance' || d.type === 'mine_exit' || d.type === 'home_door')) return game('Baja del caballo para entrar a un edificio.', 'aviso');
   if(d.type==='mine_entrance')return switchMap('mine');
   if(d.type==='mine_exit')return switchMap('city');
   if(d.type==='home_door')return enterHouse();
   if(d.type==='casa_exit')return exitHouse();
+  if(d.type==='fruit_stand')return Simulacion.buyStand();
   if(d.type==='furnace')return openFurnace(n);
   if (d.type === 'fruit_tree') {
     if (n.state !== 'full') return game(`El ${NOMBRES[d.species].toLowerCase()} no tiene frutas. Vuelven en ${secs()} s.`, 'aviso');
@@ -724,6 +754,7 @@ function act(t) {
     if (n.state !== 'active') return game(`Ya lavaste esta arena. El río trae más oro en ${secs()} s.`, 'aviso');
     if (Math.random() > d.successChance) { floatText(d.x, d.y, 'Sólo arena…', '#e8d9b0'); return game('Mueves la batea en la corriente… sólo arena. Intenta otra vez.', 'aviso'); }
     give(d.yield.item, 1, d.x, d.y); game('¡Brilla en la batea! Una <b>pepita de oro</b> del río.', 'oro');
+    if (window.Simulacion) Simulacion.onRiverGold(d.id);
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;
@@ -779,7 +810,9 @@ addEventListener('keydown', (e) => {
   if (k === '-') zoom = Math.max(0.5, zoom - 0.15);
   if (k === 'h') $('#ayuda').hidden = !$('#ayuda').hidden;
   if (k === 'i') toggle('#w-inv'); if (k === 'k') toggle('#w-hab'); if (k === 'q') toggle('#p-misiones'); if (k === 'n') toggleNight();
-  if (k === 'escape') { $('#ayuda').hidden = true; $('#w-inv').hidden = true; $('#w-hab').hidden = true; }
+  if (k === 'l' && window.Simulacion) Simulacion.toggleLibro();
+  if ((k === 'm' || k === 'e') && window.Simulacion) { if (S.mounted) Simulacion.dismount(); else Simulacion.mountHorse(Simulacion.nearestMount()); }
+  if (k === 'escape') { $('#ayuda').hidden = true; $('#w-inv').hidden = true; $('#w-hab').hidden = true; const libro = $('#w-libro'); if (libro) libro.hidden = true; }
 });
 addEventListener('keyup', (e) => S.keys.delete(e.key.toLowerCase()));
 addEventListener('wheel', (e) => { if (e.target === cv) zoom = Math.max(0.5, Math.min(2.5, zoom - Math.sign(e.deltaY) * 0.1)); }, { passive: true });
@@ -860,15 +893,21 @@ function update(dt) {
     let nx = p.x + dx, ny = p.y + dy;
     if (dx && dy && (!walkable(p.x + dx, p.y) || !walkable(p.x, p.y + dy))) { if (walkable(p.x + dx, p.y)) ny = p.y; else if (walkable(p.x, p.y + dy)) nx = p.x; }
     const portal = (dx || dy) && (portalAt(p.x + dx, p.y + dy) || portalAt(p.x + dx, p.y) || portalAt(p.x, p.y + dy));
-    if (portal && now() > (S.portalUntil || 0)) { S.portalUntil = now() + 1500; S.keys.clear(); act({ kind: 'node', n: portal }); return; }
+    if (portal && now() > (S.portalUntil || 0)) {
+      if (S.mounted && ['home_door', 'mine_entrance', 'mine_exit'].includes(portal.def.type)) { game('Baja del caballo para entrar a un edificio.', 'aviso'); S.portalUntil = now() + 900; return; }
+      S.portalUntil = now() + 1500; S.keys.clear(); act({ kind: 'node', n: portal }); return;
+    }
     if ((dx || dy) && walkable(nx, ny)) { p.path = [[nx, ny]]; p.pending = null; S.dest = null; }
     else if (dx || dy) p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
   }
   if (p.path.length) {
-    const [nx, ny] = p.path[0]; const ddx = nx - p.fx, ddy = ny - p.fy, d = Math.hypot(ddx, ddy);
-    if (Math.abs(ddx) > 0.01 || Math.abs(ddy) > 0.01) p.dir = Math.abs(ddx) > Math.abs(ddy) ? (ddx > 0 ? 'right' : 'left') : (ddy > 0 ? 'down' : 'up');
-    const step = SPEED * (running ? 2 : 1) * dt;
-    if (d <= step) {
+    let budget = SPEED * (S.mounted ? Simulacion.speedMul() : (running ? 2 : 1)) * dt;
+    let guard = 0;
+    while (p.path.length && budget > 1e-4 && guard++ < 12) {
+      const [nx, ny] = p.path[0]; const ddx = nx - p.fx, ddy = ny - p.fy, d = Math.hypot(ddx, ddy);
+      if (Math.abs(ddx) > 0.01 || Math.abs(ddy) > 0.01) p.dir = Math.abs(ddx) > Math.abs(ddy) ? (ddx > 0 ? 'right' : 'left') : (ddy > 0 ? 'down' : 'up');
+      if (d > budget) { p.fx += ddx / d * budget; p.fy += ddy / d * budget; budget = 0; break; }
+      budget -= d;
       p.fx = nx; p.fy = ny; p.x = nx; p.y = ny; p.path.shift(); updateTutorial();
       if (!p.path.length) {
         S.dest = null;
@@ -877,11 +916,22 @@ function update(dt) {
           if (tg.kind === 'door' ? (p.x === tg.d.approach.x && p.y === tg.d.approach.y) : cheb(p.x, p.y, tt.x, tt.y) <= 1) act(tg);
           else if (tg.kind === 'animal' && tg.a.state === 'alive' && p.repaths++ < 4) approach(tg);
           else if (tg.kind === 'animal') game('El animal se alejó.', 'aviso');
+          budget = 0;
+        } else if (S.mounted && budget > 1e-4 && !S.dialog && !S.houseEdit) {
+          let mx = 0, my = 0; const K = S.keys;
+          if (K.has('w') || K.has('arrowup')) my = -1; if (K.has('s') || K.has('arrowdown')) my = 1;
+          if (K.has('a') || K.has('arrowleft')) mx = -1; if (K.has('d') || K.has('arrowright')) mx = 1;
+          if (window.LiveInk?.keyboardDirection) [mx, my] = window.LiveInk.keyboardDirection(mx, my);
+          let tx = p.x + mx, ty = p.y + my;
+          if (mx && my && (!walkable(p.x + mx, p.y) || !walkable(p.x, p.y + my))) { if (walkable(p.x + mx, p.y)) ty = p.y; else if (walkable(p.x, p.y + my)) tx = p.x; }
+          if ((mx || my) && walkable(tx, ty)) p.path = [[tx, ty]];
+          else budget = 0;
         }
       }
-    } else { p.fx += ddx / d * step; p.fy += ddy / d * step; }
-    p.animT += dt * (running ? 2 : 1);
+    }
+    p.animT += dt * (S.mounted || running ? 2 : 1);
   } else p.animT = 0;
+  if (window.Simulacion) Simulacion.syncHorse();
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId!=='mine')sendMove(false);
   for (const n of S.nodes.values()) {
@@ -919,6 +969,14 @@ function drawSpriteAt(key, wx, wy) { const s = W.sprites[key], im = imgs[key]; i
 const drawSprite = (key, tx, ty) => drawSpriteAt(key, tx * TS + 32, (ty + 1) * TS);
 function frameKey(d, t) { return d.frames ? d.frames[Math.floor(t / (d.frameMs || 200)) % d.frames.length] : d.sprite; }
 function bar(x, y, frac, col) { ctx.fillStyle = 'rgba(20,12,4,.75)'; ctx.fillRect(x - 20, y, 40, 6); ctx.fillStyle = col; ctx.fillRect(x - 19, y + 1, Math.max(0, 38 * frac), 4); }
+function drawHorseAt(fx, fy, dir, walking) {
+  const key = walking && Math.floor(now() / 160) % 2 ? 'caballo_1' : 'caballo_0';
+  const im = imgs[key], sp = W.sprites[key];
+  if (!im || !sp) return;
+  const dx = Math.round((fx + 0.5) * TS - sp.anchorX), dy = Math.round((fy + 1) * TS - sp.anchorY);
+  if (dir === 'left') { ctx.save(); ctx.translate(dx + sp.w, dy); ctx.scale(-1, 1); ctx.drawImage(im, 0, 0); ctx.restore(); }
+  else ctx.drawImage(im, dx, dy);
+}
 function drawChar(sheet, fx, fy, dir, walking, animT, frameRow) {
   const P = W.player, row = P.rows[dir] ?? 0; const fr = walking ? P.walkFrames[Math.floor(animT * 8) % P.walkFrames.length] : P.idleFrame;
   ctx.drawImage(sheet, fr * P.frameW, row * P.frameH, P.frameW, P.frameH, Math.round(fx * TS + 32 - P.anchorX), Math.round((fy + 1) * TS - P.anchorY), P.frameW, P.frameH);
@@ -972,11 +1030,13 @@ function draw() {
   }
   for (const a of S.animals) if (a.state === 'alive') list.push({ y: (a.fy + 1) * TS + 1, x: a.fx, draw: () => drawSprite(a.def.sprites.alive[a.frame], a.fx, a.fy) });
   for (const npc of W.npcs || []) list.push({ y: (npc.y + 1) * TS + 2, x: npc.x, draw: () => {
-    if (capatazImg) drawChar(capatazImg, npc.x, npc.y, npc.facing, false, 0);
+    const sheet = npc.id === 'profesora_cadena' && imgs._profesora ? imgs._profesora : capatazImg;
+    if (sheet) drawChar(sheet, npc.x, npc.y, npc.facing || 'down', false, 0);
     const cx = npc.x * TS + 32, top = (npc.y + 1) * TS - 96;
-    nameplate(cx, top - 4, [[npc.name, '#ffe14d', 13]]);
-    if (!S.quest.turnedIn && (!stepDone(S.quest.def.steps[0]) || S.quest.done)) { ctx.font = 'bold 26px Pixelify, sans-serif'; ctx.fillStyle = '#000'; ctx.fillText(S.quest.done ? '?' : '!', cx + 2, top - 18 + Math.sin(t / 200) * 2); ctx.fillStyle = '#ffd400'; ctx.fillText(S.quest.done ? '?' : '!', cx, top - 20 + Math.sin(t / 200) * 2); }
+    nameplate(cx, top - 4, [[npc.name, npc.id === 'profesora_cadena' ? '#9fd8e6' : '#ffe14d', 13]]);
+    if (npc.id === 'capataz' && !S.quest.turnedIn && (!stepDone(S.quest.def.steps[0]) || S.quest.done)) { ctx.font = 'bold 26px Pixelify, sans-serif'; ctx.fillStyle = '#000'; ctx.fillText(S.quest.done ? '?' : '!', cx + 2, top - 18 + Math.sin(t / 200) * 2); ctx.fillStyle = '#ffd400'; ctx.fillText(S.quest.done ? '?' : '!', cx, top - 20 + Math.sin(t / 200) * 2); }
   } });
+  for (const m of S.mounts || []) if (!m.ridden) list.push({ y: (m.fy + 1) * TS + 2, x: m.fx, draw: () => drawHorseAt(m.fx, m.fy, 'right', false) });
   for (const o of S.others.values()) list.push({ y: (o.fy + 1) * TS + 2, x: o.fx, draw: () => {
     drawChar(sheets[o.color] || sheets.default, o.fx, o.fy, o.dir || 'down', o.walking, t / 1000);
     const cx = o.fx * TS + 32, top = (o.fy + 1) * TS - 96;
@@ -984,7 +1044,8 @@ function draw() {
   } });
   list.push({ y: (p.fy + 1) * TS + 3, x: p.fx, draw: () => {
     ctx.strokeStyle = 'rgba(120,255,120,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.fx * TS + 32, (p.fy + 1) * TS - 12, 20, 8, 0, 0, Math.PI * 2); ctx.stroke();
-    drawChar(sheets[S.me.color] || sheets.default, p.fx, p.fy, p.dir, !!p.path.length, p.animT);
+    if (S.mounted) drawHorseAt(p.fx, p.fy, p.dir, !!p.path.length);
+    drawChar(sheets[S.me.color] || sheets.default, p.fx, S.mounted ? p.fy - 0.35 : p.fy, p.dir, !!p.path.length, p.animT);
     const sel = selected(); if (sel && W.items[sel].category === 'tool' && imgs['icon:' + sel]) ctx.drawImage(imgs['icon:' + sel], Math.round(p.fx * TS + 40), Math.round((p.fy + 1) * TS - 56), 24, 24);
     const cx = p.fx * TS + 32, top = (p.fy + 1) * TS - 96;
     nameplate(cx, top - 20, [[S.me.name, '#9df59a', 12], ...(S.me.clan ? [[`<${S.me.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${totalLevel()}`, '#b8e0ff', 11]]);
@@ -1111,7 +1172,7 @@ function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTM
 
 window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
- interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
+ interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
 function autotest() {
@@ -1173,9 +1234,10 @@ function autotest() {
   const unreach = W.nodes.filter(n => !bfs(W.spawn.x, W.spawn.y, (a, b) => cheb(a, b, n.x, n.y) === 1)); ok(!unreach.length, 'todos los nodos alcanzables' + (unreach.length ? ': ' + unreach.map(n => n.id).join(',') : ''));
   ok(['astrologia', 'combate', 'religion', 'artesania'].every(k => W.skills[k] && W.skills[k].stub) && /Astrología/.test($('#habilidades').textContent), 'habilidades educativas (stubs) en el panel');
   for (const m of W.memories) ok(!!bfs(W.spawn.x,W.spawn.y,(x,y)=>x===m.x&&y===m.y),'memoria y región alcanzable: '+m.id);
-  ok(W.width===80 && W.height===64,'mundo compartido 80x64');
-  ok(!walkable(49,20)&&walkable(49,30),'río bloqueado y puente caminable');
+  ok(W.width===352 && W.height===176,'mundo compartido 352×176');
+  ok(!walkable(214,44) && walkable(214,68) && W.tiles[W.ground[44][214]].kind==='water' && W.tiles[W.ground[68][214]].kind==='bridge','río bloqueado y puente caminable');
   p.x = p.fx = W.spawn.x; p.y = p.fy = W.spawn.y;
+  if (window.Simulacion) Simulacion.autotest(ok);
   const fails = out.filter(l => l.startsWith('FALLO')).length;
   const el = $('#autotest'); el.hidden = false; el.textContent = (fails ? 'AUTOTEST FALLÓ' : 'AUTOTEST OK') + ` (${out.length} comprobaciones)\n` + out.join('\n');
   document.title = fails ? 'AUTOTEST FALLÓ' : 'AUTOTEST OK';

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Utilidades de pixel art original para Live Ink (El Jardín). Todo se pinta por código."""
 import math, random
 from PIL import Image, ImageDraw

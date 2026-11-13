@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Genera El Jardín completo: teselas, sprites, iconos, JSON del mapa y vistas previas.
 Uso: cd /workspace/Live-Ink/El-Jardin/tools && python3 build.py
 Todo el arte es original y se pinta por código (sin assets externos)."""

@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Casa colonial privada (Antioquia, siglos XVII–XIX).
    Cada jugador tiene su propio interior; el plano se guarda en localStorage por nombre. */
 (() => {
