@@ -9,7 +9,7 @@
       "sprites": { "idle": "caballo_0", "walk": ["caballo_0", "caballo_1"] },
       "spawn": [
         { "id": "caballo_1", "x": 224, "y": 64 },
-        { "id": "caballo_2", "x": 226, "y": 64 }
+        { "id": "caballo_2", "x": 225, "y": 65 }
       ],
       "blockedKinds": ["water", "creek"],
       "cannotEnterBuildings": true,

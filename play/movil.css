@@ -36,5 +36,5 @@ html.movil body:has(.ventana:not([hidden])) #movil-menu, html.movil body:has(#fu
 html.movil #mine-enter { left: auto; right: max(10px, env(safe-area-inset-right)); transform: none; bottom: calc(214px + env(safe-area-inset-bottom)); }
 html.movil #touch-extra{display:flex;flex-direction:column;gap:8px;position:fixed;z-index:18;right:max(10px,env(safe-area-inset-right));bottom:calc(270px + env(safe-area-inset-bottom))}
 html.movil #touch-extra button{min-width:96px;min-height:48px;padding:10px 12px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:12px;font:700 15px system-ui,sans-serif}
-html.movil #sai-legal{left:max(8px,env(safe-area-inset-left));right:auto;top:auto;bottom:calc(52px + env(safe-area-inset-bottom));transform:none;max-width:42vw;font-size:11px;text-align:left;z-index:4}
+html.movil #sai-legal{left:max(8px,env(safe-area-inset-left));right:auto;top:auto;bottom:calc(128px + env(safe-area-inset-bottom));transform:none;max-width:42vw;font-size:11px;text-align:left;z-index:4}
 body:not(.in-game) #touch-extra{display:none!important}
