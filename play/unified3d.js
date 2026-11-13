@@ -4,7 +4,8 @@ import {buildMine} from './mine3d.js?v=valle-hud-r5';
 import {enrichWorld} from './park3d.js?v=props-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
 import {placeEnvigadoProps} from './envigado-props.js?v=props-r4';
-import {placeSkatePark} from './skate-park.js?v=skate-r1';
+import {placeSkatePark} from './skate-park.js?v=skate-r2';
+import {GLTFLoader} from './glb-loader.js?v=skate-r2';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
 import {createValleyView} from './valle-vista.js?v=mapa-fijo-r6';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
@@ -344,7 +345,7 @@ function boot(api){
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  if(S.mounted)me.position.y+=.95;
- if(!me.userData.tabla){const g=new T.Group();const deck=new T.Mesh(new T.BoxGeometry(.26,.035,.72),material('#e4d2ad'));deck.position.y=.1;g.add(deck);const truck=material('#2c3136');for(const z of [-.22,.22])for(const x of [-.09,.09]){const wheel=new T.Mesh(new T.CylinderGeometry(.035,.035,.04,6),truck);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.06,z);g.add(wheel);}me.add(g);me.userData.tabla=g;}
+ if(!me.userData.tabla){const g=new T.Group();const deck=new T.Mesh(new T.BoxGeometry(.26,.035,.72),material('#e4d2ad'));deck.position.y=.1;g.add(deck);const truck=material('#2c3136');for(const z of [-.22,.22])for(const x of [-.09,.09]){const wheel=new T.Mesh(new T.CylinderGeometry(.035,.035,.04,6),truck);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.06,z);g.add(wheel);}me.add(g);me.userData.tabla=g;new GLTFLoader().load('../graphics/models/skateboard.glb',gltf=>{const src=gltf.scene;src.rotation.y=Math.PI/2;src.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});for(const child of g.children)child.visible=false;g.add(src);window.SKATEBOARD_GLB=true;},undefined,()=>{});}
  me.userData.tabla.visible=!!S.skating&&!indoors();
  if(S.skating)me.position.y+=.06;
  if(!indoors())updateTerrainChunks(S.player.fx,S.player.fy);

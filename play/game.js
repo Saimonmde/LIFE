@@ -345,7 +345,7 @@ function prepareMining(){
  if(W.skills.order&&!W.skills.order.includes('smelting'))W.skills.order.push('smelting');
  W.skills.skate={name:'Patinaje',verb:'Patinar',learn:'En el Skate Park de la 4 Sur se recoge la patineta. Sobre la pista, patinar da experiencia. Todavía no hay trucos.'};
  if(W.skills.order&&!W.skills.order.includes('skate'))W.skills.order.push('skate');
- const icon={ '16':'graphics/icons/patineta.svg','32':'graphics/icons/patineta.svg','64':'graphics/icons/patineta.svg' };
+ const icon={ '16':'graphics/icons/skate_icon.svg','32':'graphics/icons/skate_icon.svg','64':'graphics/icons/skate_icon.svg' };
  W.items.patineta={id:'patineta',name:'Patineta',category:'ride',stackable:false,maxStack:1,icon};
  const park=window.SKATE_4_SUR&&window.SKATE_4_SUR.placement;
  if(park)for(let y=park.y;y<park.y+park.h;y++)for(let x=park.x;x<park.x+park.w;x++){if(W.tiles[String(W.ground[y][x])].kind==='water')continue;W.ground[y][x]=104;W.collision[y][x]=0;}
@@ -494,7 +494,8 @@ function updateSkateButton() {
     const el = document.getElementById(id);
     if (!el) continue;
     el.hidden = false;
-    el.textContent = label;
+    el.setAttribute('aria-label', label);
+    if (!el.querySelector('img')) el.textContent = label;
   }
 }
 function toggleSkate() {

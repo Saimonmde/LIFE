@@ -38,6 +38,7 @@ export class GLTFLoader {
       const count = a.count * n;
       const off = bin.byteOffset + start;
       let array;
+      // 5126: COLOR_0 en float (la patineta). 5121: bytes normalizados (la banca).
       if (a.componentType === 5126) array = new Float32Array(bin.buffer, off, count);
       else if (a.componentType === 5123) array = new Uint16Array(bin.buffer, off, count);
       else if (a.componentType === 5125) array = new Uint32Array(bin.buffer, off, count);

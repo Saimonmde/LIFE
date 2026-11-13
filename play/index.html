@@ -16,7 +16,7 @@
 </head>
 <body>
 <canvas id="juego"></canvas>
-<button id="b-descansar" hidden>Descansar</button><button type="button" id="b-skate" hidden>Patinar</button><div id="rest-status" role="alert"></div>
+<button id="b-descansar" hidden>Descansar</button><button type="button" id="b-skate" hidden aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><div id="rest-status" role="alert"></div>
 
 <!-- ===== Marca + perfil (arriba izquierda) ===== -->
 <div id="hud-perfil" class="hud">
@@ -107,7 +107,7 @@
   <button type="button" id="pow-plata">Minar Plata</button>
   <p id="plata-hint">Hace falta una cuenta, caminar y el tope del día. Un invitado no recibe Plata.</p>
 </aside>
-<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-skate-movil">Patinar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
+<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-skate-movil" aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
 <section id="w-inv" class="ventana" hidden><header>Inventario <button class="x" data-cierra="w-inv">✕</button></header><div id="inventario"></div><div id="seleccion">Seleccionado: —</div></section>
@@ -268,7 +268,7 @@
 <script src="paneles.js?v=valle-hud-r5"></script>
 <script src="../data/skate-4-sur.js?v=skate-r1"></script>
 <script src="game.js?v=skate-r1"></script>
-<script type="module" src="unified3d.js?v=skate-r1"></script>
+<script type="module" src="unified3d.js?v=skate-r2"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
 <script src="hud-layout.js?v=vidrio-r1"></script>

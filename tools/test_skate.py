@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Aparición en Envigado, la pista de la 4 Sur y la habilidad de patinaje."""
+import hashlib
 import json
 import os
 import subprocess
@@ -62,7 +63,15 @@ class SkateTests(unittest.TestCase):
         self.assertIn("name:'Patinaje'", self.game.replace(' ', ''))
         self.assertIn('patineta', self.game)
         self.assertIn('S.skating ? 1.9', self.game)
+        board = open(os.path.join(ROOT, 'graphics', 'models', 'skateboard.glb'), 'rb').read()
+        self.assertEqual(len(board), 54740)
+        self.assertEqual(hashlib.sha256(board).hexdigest(), 'e43887485f9911ff7fb9af2e09d4a1160293dc3b96c15e55c65d12ee8496df55')
+        loader = open(os.path.join(ROOT, 'play', 'glb-loader.js'), encoding='utf-8').read()
+        self.assertIn('5126', loader)
+        self.assertIn('5121', loader)
         self.assertIn('id="b-skate"', self.html)
+        self.assertIn('skate_button.svg', self.html)
+        self.assertIn('skate_icon.svg', self.game)
         self.assertIn('id="b-skate-movil"', self.html)
         out = subprocess.check_output(
             ['node', '--input-type=module', '-e',
