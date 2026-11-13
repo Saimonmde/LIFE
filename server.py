@@ -11,6 +11,7 @@ import secrets, sys, uuid
 import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, socket, struct, time, urllib.parse
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
 import economy as ECO
+import supply as SUP
 import ed25519
 import libro as LIBRO
 import nft as NFT
@@ -62,7 +63,7 @@ FOUNDRY = {
 }
 SHIFT_SWINGS = 8
 SHIFT_PAY = 10
-QUEST_GRANTS = {'primeros_pasos': 250}
+QUEST_GRANTS = {'primeros_pasos': 250, 'el_libro_mayor': 50}
 
 def save_econ():
     ECO.save_state(ECON_PATH, ECON)
@@ -142,7 +143,7 @@ def block_page(before=None):
     older = [b for b in blocks if int(b.get('height') or 0) < int(before)]
     return older[-LEDGER_PAGE:]
 
-def econ_msg(who=None, before=None, reveal_token=None, locked=False):
+def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=None):
     page = block_page(before)
     m = {'t': 'economy', 'state': {
         'minedSmh': int(ECON.get('minedSmh') or 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
@@ -156,6 +157,10 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False):
         m['walletLocked'] = bool(locked)
     if reveal_token:
         m['walletToken'] = reveal_token
+    view = SUP.public_view(ECON, profile)
+    if who:
+        view['owedSubs'] = int((ECON.get('questOwed') or {}).get(who) or 0)
+    m['supply'] = view
     return m
 
 def token_matches(stored, presented):
@@ -238,7 +243,118 @@ def pagar(sender, dest, smh, note='Transferencia /pagar'):
     send(sender, {'t': 'pay_result', 'ok': True, 'to': hit, 'note': note, 'amountSmh': smh, 'amountText': ECO.format_pair(smh)})
     broadcast({'t': 'system', 'text': f'{sender.name} pagó {ECO.format_pair(smh)} a {hit}. Sólo es una simulación, sin valor real.'})
 
-def mint_for(sender, node_id):
+def client_ip(headers, writer):
+    forwarded = (headers.get('x-forwarded-for') or '').split(',')[0].strip()
+    if forwarded:
+        return forwarded[:64]
+    peer = writer.get_extra_info('peername') if writer else None
+    if peer:
+        return str(peer[0])[:64]
+    return ''
+
+def note_motion(sender, step):
+    step = float(step or 0)
+    if step <= 0:
+        return
+    sender.activity_tiles = float(getattr(sender, 'activity_tiles', 0) or 0) + min(step, 4.0)
+    sender.last_activity_at = time.time()
+
+def account_profile(sender, now=None):
+    """Edad, juego y misiones. Las marcas de admin se pasan y supply las tira."""
+    now = time.time() if now is None else now
+    user = getattr(sender, 'user', None) or {}
+    name = getattr(sender, 'name', '') or ''
+    box = PLAY.ensure(PLAYERS, name, now=int(now)) if name else {}
+    created = int(user.get('createdAt') or box.get('createdAt') or now)
+    role = str(user.get('role') or '')
+    return {
+        'account': str(user.get('id') or ''),
+        'name': name,
+        'ip': str(getattr(sender, 'ip', '') or ''),
+        'age': max(0, int(now - created)),
+        'play': int(box.get('playtime') or 0),
+        'quests': SUP.quest_count(ECON, name),
+        'activity': float(getattr(sender, 'activity_tiles', 0) or 0),
+        'fresh': (now - float(getattr(sender, 'last_activity_at', 0) or 0)) <= SUP.ACTIVITY_FRESH,
+        'admin': bool(user.get('admin') or user.get('owner') or role in ('admin', 'owner', 'dev')),
+        'bypass': bool(user.get('bypass') or user.get('premine')),
+    }
+
+def fail_claim(sender, code, channel='system'):
+    text = SUP.reason_text(code)
+    try:
+        view = SUP.public_view(ECON, account_profile(sender))
+    except Exception:
+        view = {}
+    name = getattr(sender, 'name', '') or ''
+    if isinstance(view, dict):
+        view['owedSubs'] = int((ECON.get('questOwed') or {}).get(name) or 0)
+    send(sender, {'t': 'pow_result', 'ok': False, 'reason': text, 'code': code, 'supply': view})
+    if channel == 'smelt':
+        send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': False, 'reason': text, 'supply': view})
+    else:
+        send(sender, {'t': 'system', 'text': text})
+    return {'ok': False, 'reason': code, 'smh': 0}
+
+def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None):
+    if getattr(sender, 'bot', False):
+        return fail_claim(sender, 'guest', channel='smelt' if action == 'fundicion' else 'system')
+    if not getattr(sender, 'wallet_ok', False):
+        send(sender, {'t': 'system', 'text': 'Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no emitir monedas con ese nombre.'})
+        return {'ok': False, 'reason': 'wallet', 'smh': 0}
+    profile = account_profile(sender)
+    if proof:
+        result = SUP.redeem(
+            ECON, profile, action, context, proof,
+            want_smh=want_smh, room_smh=room_smh, exact=exact, counts_as_mint=counts_as_mint,
+        )
+        save_econ()
+        if not result.get('ok'):
+            return fail_claim(sender, result.get('reason') or 'signature', channel='smelt' if action == 'fundicion' else 'system')
+        return result
+    opened = SUP.open_challenge(ECON, profile, action, context)
+    save_econ()
+    if not opened.get('ok'):
+        return fail_claim(sender, opened.get('reason') or 'guest', channel='smelt' if action == 'fundicion' else 'system')
+    sender.pow_challenge = opened['challenge']
+    view = opened.get('view') or {}
+    view['owedSubs'] = int((ECON.get('questOwed') or {}).get(getattr(sender, 'name', '') or '') or 0)
+    send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': resume, 'supply': view})
+    if action == 'fundicion':
+        send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': True, 'reason': 'Calculando la prueba de trabajo. El mineral sigue en la mochila.', 'supply': view})
+    return {'ok': False, 'pending': True, 'smh': 0}
+
+def revert_issue(name, granted):
+    if granted <= 0:
+        return
+    ECO.debit(ECON, name, granted)
+    ECON['minedSmh'] = max(0, int(ECON.get('minedSmh') or 0) - int(granted))
+    mem = ECON.get('mempool') or []
+    if mem and mem[-1].get('to') == name and int(mem[-1].get('amountSubs') or 0) == int(granted):
+        mem.pop()
+
+def emitir(sender, smh, note, kind, foundry, tile, location):
+    profile = account_profile(sender)
+    granted = ECO.issue(ECON, sender.name, smh, note, kind)
+    if granted <= 0:
+        SUP.restore(ECON, profile['account'], smh, minted=True, undo_claim=True)
+        save_econ()
+        return 0, None, None
+    if granted < int(smh):
+        SUP.restore(ECON, profile['account'], int(smh) - granted, minted=True, undo_claim=False)
+    pub = anotar_emision(sender.name, granted, location)
+    if not pub:
+        revert_issue(sender.name, granted)
+        SUP.restore(ECON, profile['account'], granted, minted=True, undo_claim=True)
+        save_econ()
+        return 0, None, None
+    token = certify(sender.name, granted, foundry, tile)
+    sender.activity_tiles = 0
+    save_econ()
+    broadcast_econ()
+    return granted, token, pub
+
+def mint_for(sender, node_id, proof=None):
     if not getattr(sender, 'wallet_ok', False):
         return send(sender, {'t': 'system', 'text': 'Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no emitir monedas con ese nombre.'})
     if getattr(sender, 'zone', 'city') != 'city':
@@ -249,31 +365,25 @@ def mint_for(sender, node_id):
     now = time.time()
     if now < NODE_READY.get(node['id'], 0):
         return send(sender, {'t': 'system', 'text': 'Esa arena ya se lavó. El río trae más dentro de un rato.'})
-    if now - getattr(sender, 'last_mint', 0) < 1:
-        return send(sender, {'t': 'system', 'text': 'Espera un momento para volver a batear.'})
-    sender.last_mint = now
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
-    reward = min(ECO.reward_smh(ECON.get('minedSmh') or 0), LIBRO.cupo_subs(LIBRO_CHAIN))
-    if reward <= 0:
-        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
-    NODE_READY[node['id']] = now + (float(node.get('respawnMs') or 30000) / 1000.0)
-    granted = ECO.issue(ECON, sender.name, reward, 'Emisión por bateada de oro fluvial', 'mint')
+    room = min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN))
+    result = take_proof(
+        sender, 'mint', node['id'], proof,
+        {'t': 'mint', 'node': node['id']},
+        room_smh=room,
+    )
+    if not result.get('ok'):
+        return
+    lugar = river_label(node)
+    granted, token, libro_pub = emitir(
+        sender, result['smh'], 'Emisión por prueba de trabajo en el río', 'mint',
+        'rio', f"{node['x']},{node['y']}", lugar,
+    )
     if granted <= 0:
         return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
-    lugar = river_label(node)
-    libro_pub = anotar_emision(sender.name, granted, lugar)
-    if not libro_pub:
-        ECO.debit(ECON, sender.name, granted)
-        ECON['minedSmh'] = int(ECON.get('minedSmh') or 0) - granted
-        mem = ECON.get('mempool') or []
-        if mem and int(mem[-1].get('amountSubs') or 0) == granted:
-            mem.pop()
-        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
-    save_econ()
-    token = certify(sender.name, granted, 'rio', f"{node['x']},{node['y']}")
-    broadcast_econ()
+    NODE_READY[node['id']] = time.time() + (float(node.get('respawnMs') or 30000) / 1000.0)
     send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)}. Es una simulación: no es dinero real.'})
-    send(sender, {'t': 'issued', 'amountSmh': granted, 'amountText': ECO.format_pair(granted), 'kind': 'mint', 'certificate': token, 'libro': libro_pub})
+    send(sender, {'t': 'issued', 'amountSmh': granted, 'amountText': ECO.format_pair(granted), 'kind': 'mint', 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
 
 def wallet_ready(sender):
     if not getattr(sender, 'wallet_ok', False):
@@ -282,7 +392,7 @@ def wallet_ready(sender):
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     return True
 
-def smelt_for(sender, ore, batches):
+def smelt_for(sender, ore, batches, proof=None):
     recipe = FOUNDRY.get(str(ore or ''))
     if not recipe or getattr(sender, 'zone', 'city') != 'mine':
         return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Hay que fundir dentro de la cantera.'})
@@ -294,87 +404,150 @@ def smelt_for(sender, ore, batches):
         return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'La cantidad de lotes no es válida.'})
     if not wallet_ready(sender):
         return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Billetera de otro aparato.'})
-    now = time.time()
-    if now - getattr(sender, 'last_smelt', 0) < 1:
-        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Espera un momento para volver a fundir.'})
-    sender.last_smelt = now
     _ore, coins = recipe
-    granted = ECO.issue(ECON, sender.name, ECO.smc_to_smh(coins * batches), f'Fundición de {ore} en la cantera', 'fundicion')
-    libro_pub = anotar_emision(sender.name, granted, 'Fundidora de la cantera') if granted else None
-    save_econ()
-    token = certify(sender.name, granted, 'fundidora', 'horno_cantera') if granted else None
-    broadcast_econ()
+    want = ECO.smc_to_smh(coins * batches)
+    context = f'{ore}:{batches}'
+    result = take_proof(
+        sender, 'fundicion', context, proof,
+        {'t': 'smelt', 'ore': ore, 'batches': batches},
+        want_smh=want, exact=True,
+        room_smh=min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
+    )
+    if not result.get('ok'):
+        return
+    granted, token, libro_pub = emitir(
+        sender, result['smh'], f'Fundición de {ore} en la cantera', 'fundicion',
+        'fundidora', 'horno_cantera', 'Fundidora de la cantera',
+    )
     if granted <= 0:
         return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Se alcanzó el tope de 21.000.000 SMC.', 'grantedSmh': 0})
-    send(sender, {'t': 'smelt_result', 'ok': True, 'grantedSmh': granted, 'amountText': ECO.format_pair(granted), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub})
-    send(sender, {'t': 'system', 'text': f'La fundidora acreditó {ECO.format_pair(granted)} a tu billetera. No hace falta reclamarlas.'})
+    send(sender, {'t': 'smelt_result', 'ok': True, 'grantedSmh': granted, 'amountText': ECO.format_pair(granted), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
+    send(sender, {'t': 'system', 'text': f'La fundidora acreditó {ECO.format_pair(granted)} a tu billetera.'})
 
-def swing_for(sender, mineral):
+def swing_for(sender, mineral, proof=None):
     mineral = str(mineral or '')
     if mineral not in ('cobre', 'plata') or getattr(sender, 'zone', '') != 'mine':
         return
     if not wallet_ready(sender):
         return
-    now = time.time()
-    if now - getattr(sender, 'last_swing', 0) < 1:
+    if not proof and not getattr(sender, 'shift_ready', False):
+        now = time.time()
+        if now - getattr(sender, 'last_swing', 0) < 1:
+            return
+        sender.last_swing = now
+        note_motion(sender, 1)
+        sender.swings = getattr(sender, 'swings', 0) + 1
+        if sender.swings < SHIFT_SWINGS:
+            return send(sender, {'t': 'shift', 'swings': sender.swings, 'need': SHIFT_SWINGS, 'left': SHIFT_SWINGS - sender.swings})
+        sender.shift_ready = True
+    if not getattr(sender, 'shift_ready', False):
         return
-    sender.last_swing = now
-    sender.swings = getattr(sender, 'swings', 0) + 1
-    left = SHIFT_SWINGS - sender.swings
-    if sender.swings < SHIFT_SWINGS:
-        return send(sender, {'t': 'shift', 'swings': sender.swings, 'need': SHIFT_SWINGS, 'left': left})
+    result = take_proof(
+        sender, 'mina', mineral, proof,
+        {'t': 'swing', 'mineral': mineral},
+        want_smh=ECO.smc_to_smh(SHIFT_PAY),
+        room_smh=min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
+    )
+    if not result.get('ok'):
+        return
+    granted, token, _pub = emitir(
+        sender, result['smh'], 'Turno del capataz en la cantera (cobre o plata)', 'mina',
+        'mina', 'cantera', 'Cantera · turno',
+    )
     sender.swings = 0
-    granted = ECO.issue(ECON, sender.name, ECO.smc_to_smh(SHIFT_PAY), 'Turno del capataz en la cantera (cobre o plata)', 'mina')
-    if granted:
-        anotar_emision(sender.name, granted, 'Cantera · turno')
-    save_econ()
-    token = certify(sender.name, granted, 'mina', 'cantera') if granted else None
-    broadcast_econ()
+    sender.shift_ready = False
     try:
         PAYOUT.ADAPTER.payout(sender.name, granted, 'USDT')
     except RuntimeError:
         pass
     send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': granted, 'amountText': ECO.format_pair(granted), 'certificate': token,
-                  'note': 'El turno paga SMC del juego. No hay retiro a OnePay ni a USDT. SMC no tiene valor real.'})
+                  'note': 'El turno paga sólo lo que cabe en el tope de hoy. No hay retiro a OnePay ni a USDT.', 'supply': result.get('view')})
 
-def migrate_for(sender, amount):
-    if not wallet_ready(sender):
-        return send(sender, {'t': 'migrate_result', 'ok': False})
+def migration_left(sender, amount):
+    prior = (ECON.get('migrations') or {}).get(sender.name)
+    if isinstance(prior, dict) and prior.get('done', True):
+        return 0
+    if isinstance(prior, dict):
+        return max(0, int(prior.get('requested') or 0) - int(prior.get('credited') or 0))
     try:
         if isinstance(amount, str):
             amount = ECO.parse_amount(amount) // ECO.SUBS
+        requested = ECO.smc_to_smh(amount or 0)
     except (TypeError, ValueError, ECO.AmountError):
-        amount = 0
-    result = ECO.migrate_monedas(ECON, sender.name, amount or 0)
-    if result['credited']:
-        anotar_emision(sender.name, result['credited'], 'Conversión de monedas antiguas')
-    save_econ()
-    token = certify(sender.name, result['credited'], 'migracion', 'jardin') if result['credited'] else None
-    broadcast_econ()
-    send(sender, {'t': 'migrate_result', 'ok': True, 'rate': result['rate'], 'credited': result['credited'],
-                  'already': result['already'], 'certificate': token,
-                  'note': '1 moneda antigua del Jardín = 1 SMC. El SAI ya guardado sigue 1:1 y no se vuelve a convertir.'})
+        requested = 0
+    return max(0, requested)
 
-def quest_for(sender, quest_id):
-    amount = QUEST_GRANTS.get(str(quest_id or ''))
-    if not amount or not wallet_ready(sender):
+def migrate_for(sender, amount, proof=None):
+    if not wallet_ready(sender):
+        return send(sender, {'t': 'migrate_result', 'ok': False})
+    left = migration_left(sender, amount)
+    if left <= 0:
+        return send(sender, {'t': 'migrate_result', 'ok': True, 'already': True, 'credited': 0, 'rate': 1,
+                             'note': '1 moneda antigua del Jardín = 1 SMC. El SAI ya guardado sigue 1:1 y no se vuelve a convertir.'})
+    result = take_proof(
+        sender, 'migrate', 'migrate', proof,
+        {'t': 'migrate', 'amount': amount or 0},
+        want_smh=left,
+        room_smh=min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
+    )
+    if not result.get('ok'):
         return
-    done = ECON.setdefault('questGrants', {})
-    if sender.name in done:
-        return send(sender, {'t': 'quest_result', 'ok': True, 'already': True, 'amount': 0})
-    smh = ECO.smc_to_smh(amount)
-    if not ECO.debit(ECON, 'tesoro_genesis', smh):
+    converted = ECO.migrate_monedas(ECON, sender.name, amount or 0, limit_smh=result['smh'])
+    credited = int(converted.get('credited') or 0)
+    if credited < int(result['smh']):
+        SUP.restore(ECON, account_profile(sender)['account'], int(result['smh']) - credited, minted=True, undo_claim=credited <= 0)
+    if credited:
+        anotar_emision(sender.name, credited, 'Conversión de monedas antiguas')
+    else:
+        save_econ()
+    token = certify(sender.name, credited, 'migracion', 'jardin') if credited else None
+    if credited:
+        sender.activity_tiles = 0
+        save_econ()
+        broadcast_econ()
+    send(sender, {'t': 'migrate_result', 'ok': True, 'rate': converted['rate'], 'credited': credited,
+                  'already': converted['already'], 'certificate': token, 'supply': result.get('view'),
+                  'note': '1 moneda antigua del Jardín = 1 SMC. Si no cupo hoy, el resto espera al próximo día.'})
+
+def quest_for(sender, quest_id, proof=None):
+    quest_id = str(quest_id or '')
+    amount = QUEST_GRANTS.get(quest_id)
+    owed = int((ECON.get('questOwed') or {}).get(sender.name) or 0)
+    done = quest_id in SUP.quest_ids(ECON, sender.name)
+    if not wallet_ready(sender):
+        return
+    if (not amount and owed <= 0) or (done and owed <= 0):
+        return send(sender, {'t': 'quest_result', 'ok': True, 'already': True, 'amountSmh': 0})
+    want = owed if done else ECO.smc_to_smh(amount)
+    treasury = int((ECON.get('wallets') or {}).get('tesoro_genesis') or 0)
+    result = take_proof(
+        sender, 'quest', quest_id, proof,
+        {'t': 'quest', 'id': quest_id},
+        want_smh=min(want, treasury), exact=False, counts_as_mint=False, room_smh=treasury,
+    )
+    if not result.get('ok'):
+        return
+    smh = int(result['smh'])
+    if smh <= 0 or not ECO.debit(ECON, 'tesoro_genesis', smh):
+        SUP.restore(ECON, account_profile(sender)['account'], smh, minted=False, undo_claim=True)
+        save_econ()
         return send(sender, {'t': 'quest_result', 'ok': False, 'reason': 'La reserva de misiones no alcanza.'})
     ECO.credit(ECON, sender.name, smh)
-    ECO.append_tx(ECON, {'type': 'grant', 'from': 'tesoro_genesis', 'to': sender.name, 'amountSubs': smh, 'note': 'Primeros Pasos'})
+    ECO.append_tx(ECON, {'type': 'grant', 'from': 'tesoro_genesis', 'to': sender.name, 'amountSubs': smh, 'note': quest_id})
     try:
-        anotar_pase('tesoro_genesis', sender.name, smh, 'Primeros Pasos')
+        anotar_pase('tesoro_genesis', sender.name, smh, quest_id)
     except (LIBRO.LibroError, persist_duplicate):
         pass
-    done[sender.name] = str(quest_id)
+    if not done and amount:
+        SUP.mark_quest(ECON, sender.name, quest_id)
+        ECON.setdefault('questOwed', {})[sender.name] = max(0, ECO.smc_to_smh(amount) - smh)
+    else:
+        ECON.setdefault('questOwed', {})[sender.name] = max(0, owed - smh)
+    sender.activity_tiles = 0
     save_econ()
     broadcast_econ()
-    send(sender, {'t': 'quest_result', 'ok': True, 'already': False, 'amount': amount})
+    send(sender, {'t': 'quest_result', 'ok': True, 'already': False, 'amountSmh': smh, 'amountText': ECO.format_pair(smh),
+                  'owedSubs': int(ECON['questOwed'].get(sender.name) or 0), 'supply': result.get('view')})
 
 def vault_for(sender):
     if not wallet_ready(sender):
@@ -499,7 +672,7 @@ def broadcast(obj, who=None, exclude=None):
 def broadcast_econ():
     for c in list(clients.values()):
         if c.hello and not c.bot:
-            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False)))
+            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c)))
 
 def dist(a, b):
     if a is b: return 0
@@ -599,8 +772,9 @@ def travel_for(sender, dest_id):
         broadcast({'t': 'move', 'id': sender.id, 'x': sender.x, 'y': sender.y, 'dir': sender.dir, 'moving': False, 'level': sender.level, 'zone': 'city'}, exclude=sender)
     send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
 
-async def handle_ws(reader, writer, cookie=''):
+async def handle_ws(reader, writer, cookie='', ip=''):
     c = Client(writer); clients[c.id] = c
+    c.ip = ip or ''
     c.user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
     try:
         while True:
@@ -631,7 +805,7 @@ async def handle_ws(reader, writer, cookie=''):
                 if c.zone != 'casa':
                     broadcast({'t': 'join', 'player': c.public()}, exclude=c)
                     broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
-                send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok))
+                send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
                 if c.wallet_ok:
                     send(c, {'t': 'playtime', **play_for(c.name, active=True)})
                 if not c.wallet_ok:
@@ -648,8 +822,11 @@ async def handle_ws(reader, writer, cookie=''):
                 was_casa = c.zone != 'city'
                 c.zone = 'city'
                 try:
-                    c.x = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); c.y = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
+                    nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
                 except Exception: continue
+                step = max(abs(nx - c.x), abs(ny - c.y))
+                c.x, c.y = nx, ny
+                note_motion(c, step)
                 c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
                 c.moving = bool(m.get('moving')); c.level = int(m.get('level') or c.level)
                 if was_casa: broadcast({'t': 'join', 'player': c.public()}, exclude=c)
@@ -659,13 +836,13 @@ async def handle_ws(reader, writer, cookie=''):
             elif t == 'chat' and c.hello:
                 chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
             elif t == 'mint' and c.hello:
-                mint_for(c, clean(m.get('node'), 40))
+                mint_for(c, clean(m.get('node'), 40), m.get('proof'))
             elif t == 'ledger' and c.hello:
                 try:
                     before = int(m.get('before'))
                 except (TypeError, ValueError):
                     before = None
-                send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok))
+                send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c)))
             elif t == 'pay' and c.hello:
                 try:
                     smh = leer_smh(m)
@@ -673,13 +850,13 @@ async def handle_ws(reader, writer, cookie=''):
                     continue
                 pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
             elif t == 'smelt' and c.hello:
-                smelt_for(c, m.get('ore'), m.get('batches'))
+                smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'))
             elif t == 'swing' and c.hello:
-                swing_for(c, m.get('mineral'))
+                swing_for(c, m.get('mineral'), m.get('proof'))
             elif t == 'migrate' and c.hello:
-                migrate_for(c, m.get('amount'))
+                migrate_for(c, m.get('amount'), m.get('proof'))
             elif t == 'quest' and c.hello:
-                quest_for(c, m.get('id'))
+                quest_for(c, m.get('id'), m.get('proof'))
             elif t == 'heartbeat' and c.hello and c.wallet_ok:
                 send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
             elif t == 'vault' and c.hello:
@@ -886,7 +1063,7 @@ async def handle(reader, writer):
         writer.write(('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
                       f'Sec-WebSocket-Accept: {acc}\r\n\r\n').encode())
         await writer.drain()
-        return await handle_ws(reader, writer, headers.get('cookie', ''))
+        return await handle_ws(reader, writer, headers.get('cookie', ''), client_ip(headers, writer))
     if path == '/healthz' and method in ('GET', 'HEAD'):
         body = b'ok'
         writer.write(b'HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: 2\r\nConnection: close\r\n\r\n')

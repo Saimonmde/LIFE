@@ -71,7 +71,15 @@
 <div id="hotbar" class="hud"></div>
 <div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo" class="smc">0 SMC</b></span></div>
 <button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
-<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short"><span class="smc">SMC</span> · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
+<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short"><span class="smc">SMC</span> · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. Cada moneda nueva pide una prueba de trabajo y cabe en el tope del día. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
+<aside id="pow-panel" class="hud" aria-live="polite">
+  <strong>Minado SMC</strong>
+  <p id="pow-status">Sin prueba en curso.</p>
+  <p id="pow-cap">Tope de hoy: —</p>
+  <p id="pow-left">Te quedan: —</p>
+  <p id="pow-hint">La prueba de trabajo sola no frena a un bot. Mandan la cuenta, el movimiento y el tope del día.</p>
+  <button type="button" id="pow-cobrar" hidden>Cobrar misión pendiente</button>
+</aside>
 <div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
@@ -142,7 +150,7 @@
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
     <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas al cuádruple de la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua.</li>
-    <li><b>SaiMonCoins (SMC):</b> se emiten al lavar oro en el río, al fundir en la cantera y al cumplir un turno de cobre o plata. Tope 21.000.000. 1 SMC = 100.000.000 Simonchis (SMH). El Libro madre guarda cada acuñación con un código que no se repite. Es una simulación: no es dinero real.</li>
+    <li><b>SaiMonCoins (SMC):</b> cada moneda nueva pide una prueba de trabajo, una cuenta y juego real. Tope 21.000.000. El premio de la era empieza en 1 SMC y se parte a la mitad cada 10,5 millones. Cada cuenta tiene un tope diario. 1 SMC = 100.000.000 Simonchis (SMH). El Libro madre guarda cada acuñación con un código que no se repite. Es una simulación: no es dinero real.</li>
     <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
@@ -179,6 +187,7 @@
 </section>
 <div id="autotest" hidden></div>
 <script src="simulacion.js?v=valle-auth-r2"></script>
+<script src="pow.js?v=pow-r1"></script>
 <script src="../data/el-jardin.js?v=saimon-door-r3"></script>
 <script src="mining-rules.js?v=saimon-door-r3"></script>
 <script src="casa.js?v=saimon-door-r3"></script>

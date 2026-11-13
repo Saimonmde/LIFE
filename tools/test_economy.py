@@ -23,11 +23,11 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual(old['blocks'][0]['hash'], genesis)
 
     def test_reward_and_cap(self):
-        self.assertEqual(eco.reward_sai(0), 50)
-        self.assertEqual(eco.reward_sai(10_500_000), 25)
+        self.assertEqual(eco.reward_sai(0), 1)
+        self.assertEqual(eco.reward_sai(10_500_000), 0.5)
         self.assertEqual(eco.reward_sai(21_000_000), 0)
-        self.assertEqual(eco.reward_smh(0), 50 * eco.SUBS)
-        self.assertEqual(eco.reward_smh(eco.HALVING_SMH), 25 * eco.SUBS)
+        self.assertEqual(eco.reward_smh(0), eco.SUBS)
+        self.assertEqual(eco.reward_smh(eco.HALVING_SMH), eco.SUBS // 2)
         self.assertEqual(eco.SUBS, 100_000_000)
         self.assertEqual(eco.MAX_SUPPLY, 21_000_000)
         self.assertEqual(eco.MAX_SMH, 2_100_000_000_000_000)
@@ -165,11 +165,14 @@ class ServerGuardTests(unittest.TestCase):
         self.assertEqual(int(s.ECON.get('minedSmh') or 0), before)
         who.x, who.y = node['x'] + 1, node['y']
         s.mint_for(who, 'oro_fluvial_1')
-        self.assertGreater(int(s.ECON.get('minedSmh') or 0), before)
-        mid = int(s.ECON.get('minedSmh') or 0)
-        who.last_mint = 0
+        self.assertEqual(int(s.ECON.get('minedSmh') or 0), before, 'sin cuenta y sin prueba no se emite')
+        who.user = {'id': 'cta-batea', 'createdAt': 0, 'admin': True}
+        who.activity_tiles = 8
+        who.last_activity_at = __import__('time').time()
+        who.ip = '198.51.100.77'
+        who.w = None
         s.mint_for(who, 'oro_fluvial_1')
-        self.assertEqual(int(s.ECON.get('minedSmh') or 0), mid)
+        self.assertEqual(int(s.ECON.get('minedSmh') or 0), before, 'hace falta la prueba de trabajo')
 
     def test_wallet_token_blocks_a_stranger(self):
         s = self.server

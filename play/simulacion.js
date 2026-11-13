@@ -2,7 +2,7 @@
 /* SaiMonCoins (SMC), caballos, Libro Mayor y lecciones. Simulación educativa: sin valor real. */
 (() => {
 'use strict';
-const SUBS = 100000000, MAX_SUPPLY = 21000000, MAX_SMH = 2100000000000000, INITIAL_REWARD_SMH = 50 * SUBS, HALVING_SMH = 10500000 * SUBS, TREASURY_SMH = 210000 * SUBS;
+const SUBS = 100000000, MAX_SUPPLY = 21000000, MAX_SMH = 2100000000000000, INITIAL_REWARD_SMH = 1 * SUBS, HALVING_SMH = 10500000 * SUBS, TREASURY_SMH = 210000 * SUBS;
 const GENESIS_PREV = '0'.repeat(64), BLOCK_SECONDS = 60;
 const DOOR_TYPES = new Set(['home_door', 'mine_entrance', 'mine_exit', 'casa_exit']);
 
@@ -176,7 +176,12 @@ function paintHud() {
   el.textContent = formatSai(subs);
   const chip = $('#sai-chip');
   if (chip) {
-    chip.title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
+    const extra = api.S.supply
+      ? (api.S.supply.guest
+        ? ' Invitado: puedes jugar y recoger objetos, no SMC.'
+        : ` Tope de hoy ${formatPair(api.S.supply.dailyCapSubs || 0)}. Te quedan ${formatPair(api.S.supply.remainingSubs || 0)}.`)
+      : '';
+    chip.title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))}${extra} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
     if (!chip.dataset.unidad) {
       chip.dataset.unidad = '1';
       chip.addEventListener('click', () => {
@@ -379,7 +384,7 @@ function renderLibro() {
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} ${moneyHtml('1 SMC = 100.000.000 SMH')}.</p>
-    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio actual: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))} · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio de la era: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}${api.S.supply && !api.S.supply.guest ? ` · Tope de hoy: ${moneyHtml(formatPair(api.S.supply.dailyCapSubs || 0))} · Quedan ${moneyHtml(formatPair(api.S.supply.remainingSubs || 0))}` : ''} · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
     ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
       const ok = blockOk(blocks, b);
@@ -490,9 +495,14 @@ function talkProfesora() {
     after = () => {
       api.S.libro.turnedIn = true;
       const r = (api.S.libro.def && api.S.libro.def.reward) || {};
-      if (r.coins) grantTreasury(r.coins, 'Recompensa de El Libro Mayor');
+      if (r.coins) {
+        if (api.S.net && api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'quest', id: 'el_libro_mayor' }));
+        else grantTreasury(r.coins, 'Recompensa de El Libro Mayor');
+      }
       for (const [k, v] of Object.entries(r.xp || {})) api.addXp(k, v);
-      api.game('¡El Libro Mayor completado! +' + (r.coins || 0) + ' SMC. No es dinero real.', 'oro');
+      api.game(api.S.net && api.S.net.ok
+        ? '¡El Libro Mayor completado! El tesoro paga sólo hasta el tope de hoy. El resto queda en la reserva.'
+        : '¡El Libro Mayor completado! +' + (r.coins || 0) + ' SMC. No es dinero real.', 'oro');
       api.save(); api.renderAll();
     };
   } else if (api.S.libro.turnedIn) lines = d.after;
@@ -524,7 +534,16 @@ function offlineCommand(text) {
   payLocal(hit, monto, 'Transferencia /pagar');
   return true;
 }
+function rememberSupply(view) {
+  if (!api || !view) return;
+  api.S.supply = Object.assign({}, api.S.supply || {}, view);
+  paintHud();
+}
+function net() {
+  return api && api.S.net && api.S.net.ok ? api.S.net.ws : null;
+}
 function onNet(m) {
+  if (window.PowMint && PowMint.observe(m) && (m.t === 'pow_challenge' || m.t === 'pow_result')) return true;
   if (m.t === 'issued' && m.libro && window.LibroMadre) LibroMadre.toast(m.libro);
   if (m.t === 'economy') {
     applyServer(m);
@@ -537,6 +556,11 @@ function onNet(m) {
     return true;
   }
   if (m.t === 'smelt_result') {
+    if (m.needPow) {
+      const box = document.getElementById('forge-result');
+      if (box) box.textContent = m.reason || 'Calculando la prueba de trabajo. El mineral sigue en la mochila.';
+      return true;
+    }
     const pending = api.S.pendingSmelt;
     api.S.pendingSmelt = null;
     if (m.ok && pending && api.applySmelt) api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
@@ -563,7 +587,11 @@ function onNet(m) {
     if (m.paidSmh || m.paid) api.game(`Turno cumplido: ${m.amountText || formatPair(m.paidSmh || m.paid)}. ${m.note || 'No es dinero real.'}`, 'oro');
     return true;
   }
-  if (m.t === 'quest_result') return true;
+  if (m.t === 'quest_result') {
+    if (m.amountText) api.game(`El tesoro acreditó ${m.amountText}. Lo que no cupo hoy sigue en la reserva.`, 'oro');
+    else if (m.reason) api.game(m.reason, 'aviso');
+    return true;
+  }
   if (m.t === 'playtime') {
     api.S.playtime = m.playtime || 0;
     api.S.createdAt = m.createdAt || 0;
@@ -698,7 +726,7 @@ function wireLessonButtons() {
 }
 function autotest(ok) {
   ok(!!F && F.economy.symbol === 'SMC' && F.economy.unit === 'SaiMonCoin' && F.economy.maxSupply === 21000000 && !(F.economy.alias || []).length, 'economía SMC / SaiMonCoins / 21 millones');
-  ok(rewardSai(0) === 50 && rewardSai(10500000) === 25, 'halving: 50 SMC y luego 25');
+  ok(rewardSai(0) === 1 && rewardSai(10500000) === 0.5, 'halving: 1 SMC y luego 0,5');
   ok(!!api.W().npcs.find(n => n.id === 'profesora_cadena' && n.name === 'Profesora de la Cadena' && !/Satoshi/i.test(n.name)), 'Profesora de la Cadena');
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
@@ -735,7 +763,7 @@ function autotest(ok) {
   api.S.libro.started = true;
   const beforeSai = walletSubs(walletName());
   const got = localMint();
-  ok(got === subunits(50) && walletSubs(walletName()) > beforeSai, 'batear oro emite 50 SMC');
+  ok(got === subunits(1) && walletSubs(walletName()) > beforeSai, 'batear oro emite 1 SMC');
   ok(payLocal('puesto_frutas', 5, 'autotest'), 'pago al puesto de frutas');
   sealBlocks(Math.floor(Date.now() / 1000) + BLOCK_SECONDS + 5, true);
   const last = api.S.econ.blocks[api.S.econ.blocks.length - 1];
@@ -754,6 +782,7 @@ window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankItem,
+  rememberSupply, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
   hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, parseAmount, walletToken, SUBS, GENESIS_PREV,
 };

@@ -397,3 +397,20 @@ header button, header .x, header .plegar, #libro-madre-cuerpo button, #libro-toa
   background: none;
   filter: none;
 }
+
+#pow-panel{
+  top: 252px;
+  left: max(12px, env(safe-area-inset-left));
+  width: min(250px, calc(100vw - 24px));
+  z-index: 6;
+  padding: 8px 10px;
+  background: #24180ee6;
+  border: 1px solid #b48a46;
+  border-radius: 8px;
+  color: #ffe7b0;
+  font: 12px/1.35 system-ui, sans-serif;
+}
+#pow-panel strong{display:block;color:#f5d27a;font-size:13px;margin-bottom:2px}
+#pow-panel p{margin:2px 0}
+#pow-hint{color:#d9c8a4}
+#pow-panel button{margin-top:4px;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer}

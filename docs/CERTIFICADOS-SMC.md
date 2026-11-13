@@ -4,7 +4,7 @@ Simulación educativa. Las SaiMonCoins (SMC) no son dinero real, no se venden y 
 
 ## Tope
 
-Hay como máximo 21.000.000 SMC. La reserva génesis (210.000 SMC, para recompensas de misión) ya cuenta dentro de ese tope y no es una emisión nueva. El río, la fundidora, el turno de la cantera y la conversión de monedas antiguas sí emiten, y se detienen cuando no queda cupo. Si una conversión no cabe entera, se acredita sólo el resto y el libro guarda las dos cifras.
+Hay como máximo 21.000.000 SMC. La reserva génesis (210.000 SMC, para recompensas de misión) ya cuenta dentro de ese tope y no es una emisión nueva: se conserva, no se borra. El río, el turno de la cantera y la conversión de monedas antiguas emiten sólo con una prueba de trabajo aceptada, y se detienen cuando no queda cupo, cuando la red ya emitió el cupo del día (144 pruebas, una cada 10 minutos) o cuando la cuenta llegó a su tope. El premio de cada prueba empieza en 1 SMC y se parte a la mitad cada 10,5 millones minados. Una cuenta nueva puede recibir 0,25 SMC al día; con el tiempo, el juego y las misiones llega como máximo a 6,25 SMC. Nadie, ni una cuenta de administración, tiene un cupo distinto. Un invitado juega y recoge objetos, pero no recibe SMC. Si una conversión no cabe entera, se acredita sólo el tramo del día y el resto queda pendiente.
 
 ## Conversión
 
