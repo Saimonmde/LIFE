@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Saimon Coins, caballos, Libro Mayor y lecciones. Simulación educativa: sin valor real. */
+/* SaiMonCoins (SMC), caballos, Libro Mayor y lecciones. Simulación educativa: sin valor real. */
 (() => {
 'use strict';
 const SUBS = 100000000, MAX_SUPPLY = 21000000, INITIAL_REWARD = 50, HALVING_MINED = 10500000, TREASURY = 210000;
@@ -60,8 +60,8 @@ const subunits = (sai) => Math.round(Number(sai) * SUBS);
 const saiOf = (subs) => (subs || 0) / SUBS;
 function formatSai(subs) {
   const s = saiOf(subs);
-  if (Math.abs(s - Math.round(s)) < 1e-12) return Math.round(s).toLocaleString('es-CO') + ' SAI';
-  return s.toFixed(8).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',') + ' SAI';
+  if (Math.abs(s - Math.round(s)) < 1e-12) return Math.round(s).toLocaleString('es-CO') + ' SMC';
+  return s.toFixed(8).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',') + ' SMC';
 }
 function rewardSai(mined) {
   mined = Number(mined) || 0;
@@ -81,14 +81,14 @@ function verifyBlock(block, prev) {
   return block.hash === hashBlock(block.prev, block.ts, block.txs);
 }
 function emptyEcon(disclaimer) {
-  const txs = [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: subunits(TREASURY), note: 'Reserva inicial de Saimon Coins (no es dinero real).' }];
+  const txs = [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: subunits(TREASURY), note: 'Reserva inicial de SaiMonCoins (no es dinero real).' }];
   const ts = 0, h = hashBlock(GENESIS_PREV, ts, txs);
   return {
     mined: 0,
     wallets: { tesoro_genesis: subunits(TREASURY), puesto_frutas: 0 },
     blocks: [{ height: 0, ts, prev: GENESIS_PREV, hash: h, txs }],
     mempool: [],
-    disclaimer: disclaimer || 'Las Saimon Coins (SAI, alias Saimony) son sólo una moneda del juego. No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.',
+    disclaimer: disclaimer || 'Las SaiMonCoins (SMC) son sólo una moneda del juego. No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.',
   };
 }
 
@@ -107,7 +107,7 @@ function paintHud() {
   const subs = walletSubs(walletName());
   el.textContent = formatSai(subs);
   const chip = $('#sai-chip');
-  if (chip) chip.title = `Minadas ${(api.S.econ.mined || 0).toLocaleString('es-CO')} / ${MAX_SUPPLY.toLocaleString('es-CO')} SAI · premio ${rewardSai(api.S.econ.mined)} SAI · 1 SAI = 100.000.000 saimonitos · simulación, sin valor real`;
+  if (chip) chip.title = `Minadas ${(api.S.econ.mined || 0).toLocaleString('es-CO')} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${rewardSai(api.S.econ.mined)} SMC · 1 SMC = 100.000.000 saimonitos · simulación, sin valor real`;
   syncButton();
 }
 function ensureWallet() {
@@ -149,7 +149,7 @@ function libroProgress(id) {
 function localMint() {
   ensureWallet();
   const reward = rewardSai(api.S.econ.mined);
-  if (reward <= 0) { api.game('Se alcanzó el tope minable de SAI.', 'aviso'); return 0; }
+  if (reward <= 0) { api.game('Se alcanzó el tope minable de SMC.', 'aviso'); return 0; }
   const subs = subunits(reward);
   api.S.econ.mined += reward;
   creditNamed(walletName(), subs);
@@ -162,7 +162,7 @@ function payLocal(dest, sai, note) {
   ensureWallet();
   const subs = subunits(sai);
   if (subs <= 0) { api.game('El monto debe ser mayor que cero.', 'aviso'); return false; }
-  if (!debitNamed(walletName(), subs)) { api.game('No tienes saldo suficiente en SAI.', 'aviso'); return false; }
+  if (!debitNamed(walletName(), subs)) { api.game('No tienes saldo suficiente en SMC.', 'aviso'); return false; }
   creditNamed(dest, subs);
   pushTx({ type: 'pay', from: walletName(), to: dest, amountSubs: subs, note: note || 'Pago' });
   libroProgress('pagar_alguien');
@@ -213,8 +213,8 @@ function renderLibro() {
   const disc = (api.S.econ.disclaimer || (F && F.economy && F.economy.disclaimer) || '') + ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.';
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
-  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} 1 SAI = 100.000.000 saimonitos.</p>
-    <p>Minadas: <b>${(api.S.econ.mined || 0).toLocaleString('es-CO')}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SAI · Premio actual: <b>${rewardSai(api.S.econ.mined)} SAI</b> · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} 1 SMC = 100.000.000 saimonitos.</p>
+    <p>Minadas: <b>${(api.S.econ.mined || 0).toLocaleString('es-CO')}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · Premio actual: <b>${rewardSai(api.S.econ.mined)} SMC</b> · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
     ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
       const ok = blockOk(blocks, b);
@@ -327,7 +327,7 @@ function talkProfesora() {
       const r = (api.S.libro.def && api.S.libro.def.reward) || {};
       if (r.coins) grantTreasury(r.coins, 'Recompensa de El Libro Mayor');
       for (const [k, v] of Object.entries(r.xp || {})) api.addXp(k, v);
-      api.game('¡El Libro Mayor completado! +' + (r.coins || 0) + ' SAI. No es dinero real.', 'oro');
+      api.game('¡El Libro Mayor completado! +' + (r.coins || 0) + ' SMC. No es dinero real.', 'oro');
       api.save(); api.renderAll();
     };
   } else if (api.S.libro.turnedIn) lines = d.after;
@@ -345,7 +345,7 @@ function offlineCommand(text) {
   if (cmd === 'libro') { toggleLibro(); return true; }
   if (cmd !== 'pagar') return false;
   if (api.S.net.ok) return false;
-  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (Saimon Coins, sólo en el juego)'); return true; }
+  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (SaiMonCoins, sólo en el juego)'); return true; }
   const monto = parseFloat(String(parts.pop()).replace(',', '.'));
   const dest = parts.join(' ');
   if (!dest || !isFinite(monto)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;'); return true; }
@@ -372,7 +372,7 @@ function onNet(m) {
       api.S.pendingBuy = false;
       const sku = (F.stand && F.stand.sku) || 'mango';
       api.invAdd(sku, 1);
-      api.game(`Compras 1 × <b>${api.esc(api.W().items[sku].name)}</b> por ${F.stand.priceSai} SAI.`, 'oro');
+      api.game(`Compras 1 × <b>${api.esc(api.W().items[sku].name)}</b> por ${F.stand.priceSai} SMC.`, 'oro');
       libroProgress('pagar_alguien');
     } else if (!m.ok) api.S.pendingBuy = false;
     return true;
@@ -384,19 +384,19 @@ function buyStand() {
   const price = (F.stand && F.stand.priceSai) || 5;
   const sku = (F.stand && F.stand.sku) || 'mango';
   if (api.S.net.ok) {
-    if (api.S.walletLocked) { api.game('Esta billetera SAI se creó en otro aparato. Puedes jugar, pero no gastar esas monedas.', 'aviso'); return; }
+    if (api.S.walletLocked) { api.game('Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no gastar esas monedas.', 'aviso'); return; }
     api.S.pendingBuy = true;
     api.S.net.ws.send(JSON.stringify({ t: 'pay', to: 'puesto_frutas', amountSai: price, note: 'Compra en el puesto de frutas' }));
     return;
   }
   if (!payLocal('puesto_frutas', price, 'Compra en el puesto de frutas')) return;
   api.invAdd(sku, 1);
-  api.game(`Compras 1 × <b>${api.esc(api.W().items[sku].name)}</b> por ${price} SAI.`);
+  api.game(`Compras 1 × <b>${api.esc(api.W().items[sku].name)}</b> por ${price} SMC.`);
 }
 function onRiverGold(nodeId) {
   if ((api.W().mapId || 'city') !== 'city') return 0;
   if (api.S.net.ok) {
-    if (api.S.walletLocked) { api.game('Esta billetera SAI se creó en otro aparato. Puedes jugar, pero no emitir con ese nombre.', 'aviso'); return 0; }
+    if (api.S.walletLocked) { api.game('Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no emitir con ese nombre.', 'aviso'); return 0; }
     api.S.net.ws.send(JSON.stringify({ t: 'mint', node: nodeId || '' }));
     return 0;
   }
@@ -484,8 +484,8 @@ function wireLessonButtons() {
   document.querySelectorAll('.estudiar').forEach(b => b.onclick = () => study(b.dataset.leccion));
 }
 function autotest(ok) {
-  ok(!!F && F.economy.symbol === 'SAI' && F.economy.maxSupply === 21000000 && (F.economy.alias || []).includes('Saimony'), 'economía SAI / Saimony / 21 millones');
-  ok(rewardSai(0) === 50 && rewardSai(10500000) === 25, 'halving: 50 SAI y luego 25');
+  ok(!!F && F.economy.symbol === 'SMC' && F.economy.unit === 'SaiMonCoin' && F.economy.maxSupply === 21000000 && !(F.economy.alias || []).length, 'economía SMC / SaiMonCoins / 21 millones');
+  ok(rewardSai(0) === 50 && rewardSai(10500000) === 25, 'halving: 50 SMC y luego 25');
   ok(!!api.W().npcs.find(n => n.id === 'profesora_cadena' && n.name === 'Profesora de la Cadena' && !/Satoshi/i.test(n.name)), 'Profesora de la Cadena');
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
@@ -520,7 +520,7 @@ function autotest(ok) {
   api.S.libro.started = true;
   const beforeSai = walletSubs(walletName());
   const got = localMint();
-  ok(got === subunits(50) && walletSubs(walletName()) > beforeSai, 'batear oro emite 50 SAI');
+  ok(got === subunits(50) && walletSubs(walletName()) > beforeSai, 'batear oro emite 50 SMC');
   ok(payLocal('puesto_frutas', 5, 'autotest'), 'pago al puesto de frutas');
   sealBlocks(Math.floor(Date.now() / 1000) + BLOCK_SECONDS + 5, true);
   const last = api.S.econ.blocks[api.S.econ.blocks.length - 1];

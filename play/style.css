@@ -225,7 +225,7 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-sal
 
 #login .login-legal{display:block;text-align:center;color:#d6c191;font:11px/1.5 system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px}
 
-/* Simulación educativa: SAI, Libro Mayor y caballos. No altera el título gótico ni la casa. */
+/* Simulación educativa: SMC, Libro Mayor y caballos. No altera el título gótico ni la casa. */
 #b-libro{font:700 16px system-ui,sans-serif;color:#f6e7c2}
 #sai-chip{color:#ffe14d}
 #sai-legal{left:50%;bottom:64px;transform:translateX(-50%);max-width:min(420px,70vw);margin:0;padding:4px 10px;background:#24180ee6;border:1px solid #b48a46;border-radius:6px;color:#ffe7b0;font:12px/1.35 system-ui,sans-serif;text-align:center;z-index:4;cursor:pointer}

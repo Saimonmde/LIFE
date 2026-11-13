@@ -50,7 +50,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False):
     m = {'t': 'economy', 'state': {
         'mined': ECON.get('mined', 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
         'mempool': ECON.get('mempool', []), 'disclaimer': (ECON.get('disclaimer') or '') + RESET_NOTE,
-        'ledgerResets': True, 'symbol': 'SAI', 'alias': ['Saimony'],
+        'ledgerResets': True, 'symbol': 'SMC', 'unit': 'SaiMonCoin',
         'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
     }}
     if who:
@@ -91,7 +91,7 @@ def gold_node_for(x, y, node_id):
 def pagar(sender, dest, monto, note='Transferencia /pagar'):
     if not getattr(sender, 'wallet_ok', False):
         send(sender, {'t': 'pay_result', 'ok': False, 'to': dest})
-        return send(sender, {'t': 'system', 'text': 'Esta billetera SAI se creó en otro aparato. Puedes jugar con este nombre, pero no gastar esas monedas.'})
+        return send(sender, {'t': 'system', 'text': 'Esta billetera SMC se creó en otro aparato. Puedes jugar con este nombre, pero no gastar esas monedas.'})
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     dests = {c.name: c.name for c in clients.values() if c.hello}
     dests['puesto_frutas'] = 'puesto_frutas'
@@ -108,7 +108,7 @@ def pagar(sender, dest, monto, note='Transferencia /pagar'):
         return send(sender, {'t': 'system', 'text': 'El monto debe ser mayor que cero.'})
     if not ECO.debit(ECON, sender.name, subs):
         send(sender, {'t': 'pay_result', 'ok': False, 'to': hit})
-        return send(sender, {'t': 'system', 'text': 'No tienes saldo suficiente en SAI.'})
+        return send(sender, {'t': 'system', 'text': 'No tienes saldo suficiente en SMC.'})
     ECO.credit(ECON, hit, subs)
     ECO.append_tx(ECON, {'type': 'pay', 'from': sender.name, 'to': hit, 'amountSubs': subs, 'note': note})
     save_econ()
@@ -118,12 +118,12 @@ def pagar(sender, dest, monto, note='Transferencia /pagar'):
 
 def mint_for(sender, node_id):
     if not getattr(sender, 'wallet_ok', False):
-        return send(sender, {'t': 'system', 'text': 'Esta billetera SAI se creó en otro aparato. Puedes jugar, pero no emitir monedas con ese nombre.'})
+        return send(sender, {'t': 'system', 'text': 'Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no emitir monedas con ese nombre.'})
     if getattr(sender, 'zone', 'city') != 'city':
-        return send(sender, {'t': 'system', 'text': 'Las SAI sólo se emiten al lavar oro en el río, fuera de la casa.'})
+        return send(sender, {'t': 'system', 'text': 'Las SMC sólo se emiten al lavar oro en el río, fuera de la casa.'})
     node = gold_node_for(sender.x, sender.y, node_id)
     if not node:
-        return send(sender, {'t': 'system', 'text': 'Hay que estar junto a la arena de oro del río para emitir SAI.'})
+        return send(sender, {'t': 'system', 'text': 'Hay que estar junto a la arena de oro del río para emitir SMC.'})
     now = time.time()
     if now < NODE_READY.get(node['id'], 0):
         return send(sender, {'t': 'system', 'text': 'Esa arena ya se lavó. El río trae más dentro de un rato.'})
@@ -133,7 +133,7 @@ def mint_for(sender, node_id):
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     reward = ECO.reward_sai(ECON.get('mined') or 0)
     if reward <= 0:
-        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SAI.'})
+        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
     NODE_READY[node['id']] = now + (float(node.get('respawnMs') or 30000) / 1000.0)
     subs = ECO.subunits(reward)
     ECON['mined'] = float(ECON.get('mined') or 0) + float(reward)
@@ -141,7 +141,7 @@ def mint_for(sender, node_id):
     ECO.append_tx(ECON, {'type': 'mint', 'to': sender.name, 'amountSubs': subs, 'note': 'Emisión por bateada de oro fluvial'})
     save_econ()
     broadcast_econ()
-    send(sender, {'t': 'system', 'text': f'Se emitieron {ECO.format_sai(subs)} (Saimon Coins, sólo en el juego; no es dinero real).'})
+    send(sender, {'t': 'system', 'text': f'Se emitieron {ECO.format_sai(subs)} (SaiMonCoins, sólo en el juego; no es dinero real).'})
 
 clients = {}      # id -> Client
 next_id = 1
@@ -221,7 +221,7 @@ def chat(sender, channel, text):
         if cmd == 'pagar':
             bits = rest.rsplit(None, 1)
             if len(bits) != 2:
-                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto>  (Saimon Coins, sólo en el juego)'})
+                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto>  (SaiMonCoins, sólo en el juego)'})
             dest, monto_s = bits[0], bits[1].replace(',', '.')
             try:
                 monto = float(monto_s)
@@ -299,7 +299,7 @@ async def handle_ws(reader, writer):
                     broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
                 send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok))
                 if not c.wallet_ok:
-                    send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SAI en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
+                    send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
             elif t == 'move' and c.hello:
                 if m.get('zone') == 'casa':
                     if c.zone != 'casa':
