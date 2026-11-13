@@ -3,6 +3,7 @@ import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=saimon-door-r3';
 import {enrichWorld} from './park3d.js?v=saimon-door-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-door-r3';
+import {placeEnvigadoProps} from './envigado-props.js?v=envigado-r1';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
@@ -220,6 +221,7 @@ function boot(api){
  for(const a of (initialZone?api.cityAnimals:S.animals)){const sp=sprite(a.def.sprites.alive[0],a.fx,a.fy,a.def.id);if(sp)dynamic.push({sp,a});}
  for(const d of W.doors){const m=box(d.x*2+1,height(d.x,d.y)+1,d.y*2+1,1.4,2,.3,'#684b2e');m.userData.id=d.id;pick.push(m);}
  const cityLighting=enrichWorld(T,scene,W,pick,height,material);status.lamps=cityLighting.count;
+ placeEnvigadoProps(T,scene,height);
  for(const road of W.roads3d||[]){
   for(let i=0;i<road.points.length-1;i++){
    const a=road.points[i],b=road.points[i+1],dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length;

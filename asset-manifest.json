@@ -1144,6 +1144,16 @@
       "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
     },
     {
+      "path": "graphics/models/caneca_envigado.glb",
+      "sha256": "eb0271e8d7eea0a5630ff6c148afe41d3ba6b64574b52f4112b7c81f3e21b595",
+      "author": "Simón / @Saimon888",
+      "source": "https://scaniverse.com/scan/duzirnpnsmy2egz7 — photogrammetry, ground patch removed",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón / @Saimon888 — caneca del Parque de Envigado"
+    },
+    {
       "path": "graphics/objects/antorcha_0.png",
       "sha256": "0920b3c0afaf9f7480b9a534359355a051c0563ffb7310752c57de05410b5934",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
