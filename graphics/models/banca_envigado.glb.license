@@ -1,5 +1,15 @@
-SPDX-FileCopyrightText: 2026 Simón / @Saimon888. Escaneo propio de una banca de concreto del Parque de Envigado.
 SPDX-License-Identifier: CC-BY-SA-4.0
 
-El GLB es un proxy de cajas con las medidas de ese escaneo (ver banca_envigado.json).
-El modelo estilizado final usa la misma ruta y la misma licencia del escaneo.
+banca_envigado.glb is licensed under the Creative Commons Attribution-ShareAlike
+4.0 International License (CC BY-SA 4.0).
+https://creativecommons.org/licenses/by-sa/4.0/
+
+This is an original low-poly stylized 3D model. Its proportions were measured
+from a Scaniverse Gaussian-splat scan by Saimon888 (Jay / Saimon888oficial),
+scan title “Zona Centro”. The model does not include photogrammetry or any
+photograph as a texture; colors are original (vertex colors) derived only as a
+base tint from the scan’s average/median color, then contrast and warmth were
+raised to match the game’s look.
+
+Scan used for measurement only. Please attribute: model for Saimon City / LIFE INC,
+based on a scan by Saimon888, CC BY-SA 4.0.

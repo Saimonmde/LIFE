@@ -1,10 +1,11 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Bancas, canecas verdes y esculturas propias. Sin escaneo de caneca y sin marcas.
-import { GLTFLoader } from './glb-loader.js?v=valle-hud-r5';
+import { GLTFLoader } from './glb-loader.js?v=props-r4';
 
-// Medidas del escaneo (graphics/models/banca_envigado.json). El GLB final usa la misma ruta.
+// Banca de sentarse. Medidas de graphics/models/banca_envigado.json.
+// El GLB estilizado usa esta ruta. Si falta, queda el proxy de caja y cuña con las mismas medidas.
 const BENCH_URL = '../graphics/models/banca_envigado.glb';
-const BENCH = { length: 1.63, width: 0.51, seat: 0.48, slab: 0.10, wedgeL: 1.40, wedgeW: 0.28, wedgeBack: 0.38, wedgeFront: 0.16 };
+const BENCH = { length: 1.443, width: 0.433, seat: 0.465, slab: 0.09, wedgeL: 1.788, wedgeW: 0.30, wedgeBack: 0.36, wedgeFront: 0.14 };
 
 export function placeEnvigadoProps(T, scene, height) {
   const park = window.EnvigadoPark;
@@ -24,14 +25,15 @@ export function placeEnvigadoProps(T, scene, height) {
     scene.add(g);
     park.drawn3d.push(prop.id);
   }
-  if (benches.length) buildBenches(T, scene, height, benches);
+  park.benchModel = 'proxy';
+  if (benches.length) buildBenches(T, scene, height, benches, park);
   park.model = 'original';
   buildSkate(T, scene, height, park, concrete, paver);
   buildCanopy(T, scene, height);
   buildHouses(T, scene, height);
 }
 
-function buildBenches(T, scene, height, benches) {
+function buildBenches(T, scene, height, benches, park) {
   const mesh = new T.InstancedMesh(benchProxyGeometry(T), benchMaterial(T, true), benches.length);
   mesh.name = 'bancas';
   mesh.castShadow = mesh.receiveShadow = true;
@@ -46,18 +48,23 @@ function buildBenches(T, scene, height, benches) {
   mesh.computeBoundingSphere();
   scene.add(mesh);
   new GLTFLoader().load(BENCH_URL, gltf => {
-    const geometry = mergeBenchGeometry(T, gltf.scene);
-    if (!geometry) return;
-    mesh.geometry.dispose();
-    mesh.geometry = geometry;
-    const colored = !!geometry.getAttribute('color');
-    mesh.material.vertexColors = colored;
-    if (!colored) {
-      const source = firstMesh(gltf.scene);
-      if (source && source.material && source.material.color) mesh.material.color.copy(source.material.color);
+    try {
+      const geometry = mergeBenchGeometry(T, gltf.scene);
+      if (!geometry) { park.benchError = 'sin malla'; return; }
+      mesh.geometry.dispose();
+      mesh.geometry = geometry;
+      const colored = !!geometry.getAttribute('color');
+      mesh.material.vertexColors = colored;
+      if (!colored) {
+        const source = firstMesh(gltf.scene);
+        if (source && source.material && source.material.color) mesh.material.color.copy(source.material.color);
+      }
+      mesh.computeBoundingSphere();
+      park.benchModel = 'glb';
+    } catch (err) {
+      park.benchError = String(err && (err.message || err));
     }
-    mesh.computeBoundingSphere();
-  }, undefined, () => { /* el proxy se queda si el GLB no está */ });
+  }, undefined, err => { park.benchError = String(err && (err.message || err)); });
 }
 
 function benchMaterial(T, vertexColors) {

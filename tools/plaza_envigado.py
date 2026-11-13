@@ -82,9 +82,10 @@ def main():
         if mark.get('kind') == 'santa_gertrudis':
             mark['x'], mark['y'], mark['w'], mark['h'] = CHURCH
             mark['note'] = (
-                'Al oriente del parque, fachada al occidente. Arte original: '
+                'Al oriente del parque, fachada al occidente, sobre la Carrera 42. Arte original: '
                 'dos torres, cúpulas y pórtico. Fachada de 28 m; la nave del juego mide 12 m '
-                'porque la loma empieza en la casilla 126.'
+                'porque la loma empieza en la casilla 126. La altura hasta la cruz no está medida: '
+                'la estimación provisional es 30 a 40 m.'
             )
             church = mark
 
@@ -168,16 +169,34 @@ def main():
         ),
         'osm': {
             'parkWay': 154893173,
-            'parkName': 'Parque de Envigado',
+            'parkName': 'Parque Principal Marceliano Vélez',
             'squareSide_m': 73.1,
-            'rotationFromTrueNorth_deg': 32.4,
-            'streets': ['Calle 37 Sur', 'Calle 38 Sur', 'Carrera 43', 'Carrera 42'],
+            'square_m': [73.1, 73.2],
+            'area_m2': 5349,
+            'rotationFromTrueNorth_deg': 45,
+            'streets': {
+                'nw': 'Carrera 43, peatonal',
+                'se': 'Carrera 42, lado de la iglesia',
+                'ne': 'Calle 37 Sur',
+                'sw': 'Calle 38 Sur',
+            },
+            'fountain': 'Cerca del centro-norte, unos 19 m del centro del parque.',
+            'floor': 'Trenzado de piedra en dos tonos, beige cálido y franjas carbón. Jardineras de concreto oscuro.',
+            'kiosk': False,
+            'monuments': 'Omitidos. Nunca el bronce del Primer Poblado.',
             'churchWay': 552362722,
-            'churchName': 'Parroquia Santa Gertrudis',
+            'churchName': 'Iglesia de Santa Gertrudis',
+            'churchGap_m': 7.3,
+            'churchCentroid_m': 74,
+            'churchLong_m': 59.5,
+            'churchBody_m': 45,
+            'churchNaveWidth_m': [23, 28],
+            'churchHeightToCross_m': 'provisional 30-40; OSM no da la altura',
             'churchBBox_m': [55.6, 57.4],
-            'churchVaras': '71 x 33 varas. 1 vara castellana = 0.8359 m, o sea 59.3 m por 27.6 m. La nave citada mide 54 varas (45.1 m).',
+            'churchVaras': '71 x 33 varas. 1 vara castellana = 0.8359 m, o sea 59.3 m por 27.6 m. La nave citada mide 54 varas (45.1 m). El ancho de 54.7 m en OSM incluye anexos.',
             'fetched': '2026-11-13',
-            'source': 'OpenStreetMap, ODbL, api.openstreetmap.org. Las varas, de la ficha de la Iglesia de Santa Gertrudis en Wikipedia.',
+            'license': 'OpenStreetMap, ODbL',
+            'source': 'OpenStreetMap, ODbL, vía 154893173 y vía 552362722. Dossier del diseñador, 13 nov 2026.',
         },
         'play': {
             'lawnTiles': {'x0': x0, 'x1': x1, 'y0': y0, 'y1': y1},

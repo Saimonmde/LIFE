@@ -55,8 +55,9 @@ process.stdout.write(props.map(p => p.id).join(',') + '\n' + park.drawn2d.join('
         self.assertIn('banca_envigado.glb', props)
         self.assertIn('InstancedMesh', props)
         self.assertIn('benchProxyGeometry', props)
-        self.assertIn('length: 1.63', props)
-        self.assertIn('seat: 0.48', props)
+        self.assertIn('length: 1.443', props)
+        self.assertIn('seat: 0.465', props)
+        self.assertIn('Banca de sentarse', props)
 
     def test_benches_block_their_tile_and_leave_the_door_open(self):
         script = r"""
@@ -76,7 +77,7 @@ for (const [x, y] of [[93, 267], [92, 268], [94, 267]]) {
   if (W.collision[y][x] !== 0) process.exit(4);
 }
 const spec = JSON.parse(fs.readFileSync('graphics/models/banca_envigado.json', 'utf8'));
-if (spec.length_m !== 1.63 || spec.width_m !== 0.51 || spec.seat_height_m !== 0.48) process.exit(5);
+if (spec.largo !== 1.443 || spec.ancho !== 0.433 || spec.alto !== 0.465) process.exit(5);
 process.stdout.write(String(benches.length));
 """
         out = subprocess.check_output(['node', '-e', script], cwd=ROOT, text=True)

@@ -33,13 +33,17 @@ export class GLTFLoader {
     const views = json.bufferViews || [];
     function read(index) {
       const a = acc[index], bv = views[a.bufferView];
-      const n = TYPE_N[a.type], size = COMP[a.componentType];
+      const n = TYPE_N[a.type];
       const start = (bv.byteOffset || 0) + (a.byteOffset || 0);
       const count = a.count * n;
-      if (a.componentType === 5126) return new Float32Array(bin.buffer, bin.byteOffset + start, count);
-      if (a.componentType === 5123) return new Uint16Array(bin.buffer, bin.byteOffset + start, count);
-      if (a.componentType === 5125) return new Uint32Array(bin.buffer, bin.byteOffset + start, count);
-      throw new Error('componente GLB no soportado');
+      const off = bin.byteOffset + start;
+      let array;
+      if (a.componentType === 5126) array = new Float32Array(bin.buffer, off, count);
+      else if (a.componentType === 5123) array = new Uint16Array(bin.buffer, off, count);
+      else if (a.componentType === 5125) array = new Uint32Array(bin.buffer, off, count);
+      else if (a.componentType === 5121) array = new Uint8Array(bin.buffer, off, count);
+      else throw new Error('componente GLB no soportado');
+      return new T.BufferAttribute(array, n, !!a.normalized);
     }
     const scene = new T.Group();
     const pending = [];
@@ -47,13 +51,12 @@ export class GLTFLoader {
       if (node.mesh == null) continue;
       for (const prim of json.meshes[node.mesh].primitives || []) {
       const geo = new T.BufferGeometry();
-      const pos = read(prim.attributes.POSITION);
-      geo.setAttribute('position', new T.BufferAttribute(pos, 3));
-      if (prim.attributes.NORMAL != null) geo.setAttribute('normal', new T.BufferAttribute(read(prim.attributes.NORMAL), 3));
+      geo.setAttribute('position', read(prim.attributes.POSITION));
+      if (prim.attributes.NORMAL != null) geo.setAttribute('normal', read(prim.attributes.NORMAL));
       else geo.computeVertexNormals();
-      if (prim.attributes.COLOR_0 != null) geo.setAttribute('color', new T.BufferAttribute(read(prim.attributes.COLOR_0), 3));
-      if (prim.attributes.TEXCOORD_0 != null) geo.setAttribute('uv', new T.BufferAttribute(read(prim.attributes.TEXCOORD_0), 2));
-      if (prim.indices != null) geo.setIndex(new T.BufferAttribute(read(prim.indices), 1));
+      if (prim.attributes.COLOR_0 != null) geo.setAttribute('color', read(prim.attributes.COLOR_0));
+      if (prim.attributes.TEXCOORD_0 != null) geo.setAttribute('uv', read(prim.attributes.TEXCOORD_0));
+      if (prim.indices != null) geo.setIndex(read(prim.indices));
       const pbr = (json.materials && json.materials[prim.material || 0] && json.materials[prim.material || 0].pbrMetallicRoughness) || {};
       const factor = pbr.baseColorFactor || [0.84, 0.83, 0.8, 1];
       const mat = new T.MeshLambertMaterial({

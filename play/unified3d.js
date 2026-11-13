@@ -3,7 +3,7 @@ import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=valle-hud-r5';
 import {enrichWorld} from './park3d.js?v=props-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
-import {placeEnvigadoProps} from './envigado-props.js?v=props-r3';
+import {placeEnvigadoProps} from './envigado-props.js?v=props-r4';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
 import {createValleyView} from './valle-vista.js?v=mapa-fijo-r6';
 // The existing game remains the sole owner of simulation, actions, chat and saves.

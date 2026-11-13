@@ -170,9 +170,10 @@ def spec():
 
 
 def main():
-    MODEL.write_bytes(glb_bytes())
-    SPEC.write_text(json.dumps(spec(), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-    print('wrote', MODEL, MODEL.stat().st_size)
+    raise SystemExit(
+        'banca_envigado.glb y su JSON son el modelo del diseñador. '
+        'Este script ya no los reemplaza. El juego usa el proxy de envigado-props.js solo si el GLB falta.'
+    )
 
 
 if __name__ == '__main__':

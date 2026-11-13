@@ -177,13 +177,14 @@ class ParquesTests(unittest.TestCase):
         self.assertEqual(scale['play']['facadeFaces'], 'west')
         self.assertGreater(church['x'], lawn['x1'])
         spec = json.load(open(os.path.join(ROOT, 'graphics', 'models', 'banca_envigado.json'), encoding='utf-8'))
-        self.assertEqual(spec['length_m'], 1.63)
-        self.assertEqual(spec['width_m'], 0.51)
-        self.assertEqual(spec['seat_height_m'], 0.48)
-        self.assertEqual(spec['top_slant_m'], 0.01)
-        self.assertEqual(spec['up'], 'Y')
-        self.assertEqual(spec['front'], '+Z')
-        self.assertIn('CC-BY-SA-4.0', spec['source']['license'])
+        self.assertEqual(spec['largo'], 1.443)
+        self.assertEqual(spec['ancho'], 0.433)
+        self.assertEqual(spec['alto'], 0.465)
+        self.assertEqual(spec['notas']['largo_base_m'], 1.788)
+        self.assertEqual(spec['unidades'], 'metros y grados')
+        license_text = open(os.path.join(ROOT, 'graphics', 'models', 'banca_envigado.glb.license'), encoding='utf-8').read()
+        self.assertIn('CC-BY-SA-4.0', license_text)
+        self.assertIn('Saimon888', license_text)
 
     def test_horse_road_reaches_every_park(self):
         world = self.world
