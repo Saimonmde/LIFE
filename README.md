@@ -20,6 +20,14 @@ La simulación de **SaiMonCoins (SMC)**, del **Libro Mayor** y del **Libro madre
 
 La **Plata (SMP)** es la segunda moneda del libro. 1 SMP = 100.000.000 platicas (SPH). El tope es 84.000.000 SMP y no hay reserva inicial: ese número cabe entero en el navegador. El premio empieza en 5 SMP y se parte a la mitad cada 42 millones. La red apunta a 144 pruebas al día. Una cuenta nueva puede minar 5 SMP al día; con la edad, el tiempo jugado y las misiones llega a 125 SMP. Cambiar Plata por SMC quema la Plata y paga con el fondo ya emitido, a 100 SMP por 1 SMC. No se acuñan SMC fuera de la prueba de trabajo ni por encima de 21.000.000. Cada cuenta puede sacar hoy como máximo un quinto de su tope de SMC, y nunca más de la décima parte del fondo. Entre todas, hoy sólo sale la mitad del fondo. Un invitado no recibe Plata. Nadie, ni una cuenta de administración, tiene un cupo distinto.
 
+## Acceso e identidad
+
+Las cuentas conservan su identificador y un identificador público de avatar estable. Ninguno sustituye la contraseña ni la sesión. El acceso por correo y contraseña reutiliza cuentas verificadas existentes; el registro por correo exige código enviado por el proveedor configurado. El teléfono es opcional y, cuando se indica, conserva la verificación por SMS.
+
+Los nuevos nicknames se reservan en el servidor sin distinguir mayúsculas ni variantes Unicode equivalentes. El código comprueba disponibilidad al solicitar el registro y otra vez al verificarlo. Los registros pendientes reservan temporalmente el nombre. Las cuentas OAuth nuevas reciben un nombre libre; las cuentas existentes mantienen sus identificadores y monederos. Los invitados no pueden presentarse con nombres reservados por una cuenta. No se renombran cuentas antiguas ni se convierten nombres/avatar públicos en claves secretas. Si existen duplicados históricos, requieren conciliación individual; no se concede ni transfiere el nombre de otra persona.
+
+El cambio/venta de nombres queda pendiente de un diseño con consentimiento y controles contra acaparamiento; no hay cobros ni transferencias de nombres. La unicidad corresponde al servidor actual; varias instancias escritoras requerirían una restricción transaccional adicional en la base de datos. Sin proveedor de correo configurado, el registro por correo permanece oculto; las cuentas Google y el acceso a cuentas por contraseña ya existentes siguen disponibles según su configuración.
+
 ## Mapa del repositorio
 
 Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del mapa.

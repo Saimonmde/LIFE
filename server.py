@@ -743,7 +743,7 @@ class Client:
         self.x, self.y, self.dir, self.moving = float(SPAWN[0]), float(SPAWN[1]), 'down', False
         self.level = 1; self.hello = False; self.stamps = []; self.zone = 'city'
     def public(self):
-        return {'id': self.id, 'name': self.name, 'color': self.color, 'clan': self.clan, 'group': self.group,
+        return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'color': self.color, 'clan': self.clan, 'group': self.group,
                 'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone}
 
 def clean(s, n):
@@ -792,8 +792,12 @@ def dist(a, b):
 def unique_name(name, me):
     if PLATA.reserved_name(name):
         name = 'Viajero'
+    if not getattr(me, 'user', None) and ACC.reserved_nickname(ACCOUNTS, name):
+        name = 'Invitado'
+    if getattr(me, 'user', None):
+        return me.user.get('wallet_name') or me.user['name']
     base = name or f'Jugador{me.id}'; n = base; k = 2
-    while any(c is not me and c.name.lower() == n.lower() for c in clients.values()): n = f'{base}{k}'; k += 1
+    while ACC.reserved_nickname(ACCOUNTS, n) or any(c is not me and ACC.name_key(c.name) == ACC.name_key(n) for c in clients.values()): n = f'{base[:12]}{k}'; k += 1
     return n
 
 def chat(sender, channel, text):
@@ -1069,7 +1073,7 @@ def vuelta_pedida(query, cookie):
     return juego_vuelta(asked)
 
 
-async def try_auth(method, path, target, headers, body):
+async def try_auth(method, path, target, headers, body, remote_ip=None):
     if not path.startswith('/auth'):
         return None
     query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
@@ -1124,6 +1128,15 @@ async def try_auth(method, path, target, headers, body):
         except (ACC.AuthError, urllib.error.URLError, TimeoutError, OSError):
             return redirect(fallo, headers, [ACC.cookie('life_return', '', 0, secure)])
         return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure), ACC.cookie('life_return', '', 0, secure)])
+    if path == '/auth/entrar' and method == 'POST':
+        try:
+            result = ACC.login_password(ACCOUNTS, payload.get('email'), payload.get('password'), client_ip=remote_ip)
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': result['user']}, headers,
+                             ['Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)])
     if path == '/auth/registro' and method == 'POST':
         try:
             ACC.begin_signup(ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('phone'), payload.get('password') or '', ACC.send_email, ACC.start_sms)
@@ -1179,7 +1192,7 @@ async def handle(reader, writer):
             length = 0
         if length:
             body = await reader.readexactly(length)
-    answered = await try_auth(method, path, target, headers, body)
+    answered = await try_auth(method, path, target, headers, body, client_ip(headers, writer))
     if answered is not None:
         writer.write(answered)
         await writer.drain(); writer.close(); return
@@ -1197,6 +1210,7 @@ async def handle(reader, writer):
         await writer.drain(); writer.close(); return
     if path == '/session.json' and method in ('GET', 'HEAD'):
         body = json.dumps({'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
+                           'revision': os.environ.get('RENDER_GIT_COMMIT') or None,
                            'playersOnline': sum(c.hello and not c.bot for c in clients.values())}).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)

@@ -10,6 +10,7 @@ import re
 import secrets
 import smtplib
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 from email.message import EmailMessage
@@ -51,7 +52,9 @@ def providers():
     return {
         'google': bool(os.environ.get('GOOGLE_CLIENT_ID') and os.environ.get('GOOGLE_CLIENT_SECRET')),
         'facebook': bool(os.environ.get('FACEBOOK_APP_ID') and os.environ.get('FACEBOOK_APP_SECRET')),
-        'registro': email_ready() and sms_ready(),
+        'registro': email_ready(),
+        'email_login': True,
+        'sms': sms_ready(),
         'guest': True,
     }
 
@@ -67,8 +70,8 @@ def sms_ready():
 
 
 def hash_password(password, salt=None):
-    if len(password) < 8:
-        raise AuthError('La contraseña necesita al menos 8 caracteres.')
+    if not isinstance(password, str) or not 8 <= len(password) <= 1024:
+        raise AuthError('La contraseña necesita entre 8 y 1024 caracteres.')
     salt = salt or os.urandom(16)
     digest = hashlib.scrypt(password.encode('utf-8'), salt=salt, n=2 ** 14, r=8, p=1, dklen=32)
     return 'scrypt$' + salt.hex() + '$' + digest.hex()
@@ -106,7 +109,7 @@ def _hit_rate(doc, key, now):
 
 
 def game_name(text):
-    cleaned = re.sub(r'[^0-9A-Za-zÁÉÍÓÚáéíóúÑñ ]', '', str(text or '')).strip()
+    cleaned = re.sub(r'[^0-9A-Za-zÁÉÍÓÚáéíóúÑñ ]', '', unicodedata.normalize('NFKC', str(text or ''))).strip()
     return cleaned[:16]
 
 
@@ -117,6 +120,46 @@ def _user_by(doc, **query):
     return None
 
 
+def name_key(name):
+    return ' '.join(unicodedata.normalize('NFKC', str(name or '')).casefold().split())
+
+
+def name_available(doc, name, email=None, user_id=None, now=None):
+    key = name_key(name)
+    if not key:
+        return False
+    if any(name_key(u.get('name')) == key and u.get('id') != user_id for u in doc['users']):
+        return False
+    return not any(name_key(p.get('name')) == key and owner != email and p.get('exp', 0) >= _now(now)
+                   for owner, p in doc['pending'].items())
+
+
+def reserved_nickname(doc, name):
+    key = name_key(name)
+    return any(key in (name_key(u.get('name')), name_key(u.get('wallet_name'))) for u in doc['users'])
+
+
+def login_password(doc, email, password, now=None, client_ip=None):
+    now = _now(now)
+    email = str(email or '').strip().lower()
+    if not EMAIL_RE.match(email) or len(email) > 254 or not isinstance(password, str) or len(password) > 1024:
+        raise AuthError('Correo o contraseña incorrectos.')
+    if client_ip:
+        key = 'login-ip:' + hashlib.sha256(str(client_ip).encode()).hexdigest()
+        recent = _prune_rates(doc, key, now)
+        if len(recent) >= 30:
+            raise AuthError('Demasiados intentos. Espera un rato.')
+        recent.append(now)
+    _hit_rate(doc, 'login:' + email, now)
+    user = _user_by(doc, email=email)
+    stored = (user or {}).get('password_hash') or ('scrypt$' + '00' * 16 + '$' + '00' * 32)
+    verified = verify_password(password, stored)
+    if not user or not user.get('password_hash') or not verified:
+        raise AuthError('Correo o contraseña incorrectos.')
+    doc['rates'].pop('login:' + email, None)
+    return open_session(doc, user, now)
+
+
 def begin_signup(doc, name, email, phone, password, send_email, start_sms, now=None):
     now = _now(now)
     name = game_name(name)
@@ -124,14 +167,17 @@ def begin_signup(doc, name, email, phone, password, send_email, start_sms, now=N
     phone = str(phone or '').strip().replace(' ', '')
     if not name:
         raise AuthError('Escribe un nombre de hasta 16 letras.')
-    if not EMAIL_RE.match(email):
+    if not EMAIL_RE.match(email) or len(email) > 254:
         raise AuthError('El correo no parece válido.')
-    if not PHONE_RE.match(phone):
+    if phone and not PHONE_RE.match(phone):
         raise AuthError('El teléfono va en formato internacional, por ejemplo +573001112233.')
-    if _user_by(doc, email=email) or _user_by(doc, phone=phone):
+    if _user_by(doc, email=email) or (phone and _user_by(doc, phone=phone)):
         raise AuthError('Ese correo o teléfono ya tiene cuenta.')
+    if not name_available(doc, name, email=email, now=now):
+        raise AuthError('Ese nombre ya pertenece a otra cuenta o está reservado por un registro pendiente.')
     _hit_rate(doc, 'email:' + email, now)
-    _hit_rate(doc, 'phone:' + phone, now)
+    if phone:
+        _hit_rate(doc, 'phone:' + phone, now)
     code = f'{secrets.randbelow(1_000_000):06d}'
     doc['pending'][email] = {
         'name': name, 'email': email, 'phone': phone,
@@ -140,7 +186,8 @@ def begin_signup(doc, name, email, phone, password, send_email, start_sms, now=N
         'exp': now + CODE_TTL, 'attempts': 0,
     }
     send_email(email, code)
-    start_sms(phone)
+    if phone:
+        start_sms(phone)
     return {'email': email, 'phone': phone, 'exp': now + CODE_TTL}
 
 
@@ -157,8 +204,12 @@ def verify_signup(doc, email, email_code, phone_code, check_sms, now=None):
     digest = hashlib.sha256(str(email_code or '').encode()).hexdigest()
     if not secrets.compare_digest(digest, pending['email_hash']):
         raise AuthError('El código del correo no coincide.')
-    if not check_sms(pending['phone'], str(phone_code or '')):
+    if pending['phone'] and not check_sms(pending['phone'], str(phone_code or '')):
         raise AuthError('El código del teléfono no coincide.')
+    if _user_by(doc, email=email) or (pending['phone'] and _user_by(doc, phone=pending['phone'])):
+        raise AuthError('Esa identidad ya tiene una cuenta.')
+    if not name_available(doc, pending['name'], email=email, now=now):
+        raise AuthError('Ese nombre ya no está disponible. Elige otro y pide un código nuevo.')
     doc['pending'].pop(email, None)
     user = {
         'id': secrets.token_hex(8),
@@ -186,6 +237,7 @@ def public_user(user):
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or user['name'],
+        'avatar_id': 'avatar_' + user['id'],
     }
 
 
@@ -230,7 +282,7 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
         name = game_name(profile.get('name') or email.split('@')[0] or 'Jugador') or 'Jugador'
         base = name
         n = 2
-        while _user_by(doc, name=name):
+        while not name_available(doc, name, email=email, now=now):
             name = (base[:12] + str(n))[:16]
             n += 1
         user = {
