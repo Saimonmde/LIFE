@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Parque de Envigado props. Move PARK_ORIGIN and every caneca and the skate cluster move with the block.
-   El origen es el tile (214, 52) más VALLE_OFFSET, el mismo desplazamiento que PARK_DOOR. */
+/* Parque de Envigado props. Move PARK_ORIGIN and every caneca and the skate cluster move with the block. */
 (() => {
   'use strict';
+  // Sara's origin (214, 52) plus the same VALLE_OFFSET as PARK_DOOR. Keep this file on rebase of PR #5.
   const off = (window.Casa && window.Casa.VALLE_OFFSET) || { x: 0, y: 0 };
   const PARK_ORIGIN = { x: 214 + off.x, y: 52 + off.y };
   const canecas = [

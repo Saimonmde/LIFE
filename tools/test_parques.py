@@ -43,6 +43,32 @@ class ParquesTests(unittest.TestCase):
         self.assertGreater(by_id['girardota']['y'], by_id['barbosa']['y'])
         self.assertLess(by_id['girardota']['x'], by_id['barbosa']['x'])
 
+    def test_door_horse_and_exit_stay_clear(self):
+        world = self.world
+        tiles = world['tiles']
+        clear = {'caballo_2': (92, 268), 'casa': (93, 267), 'salida': (94, 267)}
+        for name, (x, y) in clear.items():
+            self.assertEqual(tiles[str(world['ground'][y][x])]['kind'], 'cobble', name)
+            self.assertEqual(world['collision'][y][x], 0, name)
+        dx, dy = self.offset['x'], self.offset['y']
+        origin = (214 + dx, 52 + dy)
+        blocked = [(origin[0] + dx_, origin[1] + dy_) for dx_, dy_ in ((18, 8), (15, 11), (22, 18))]
+        blocked += [(origin[0] + 3 + dx_, origin[1] + 18 + dy_) for dx_, dy_ in ((0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (2, 1))]
+        self.assertTrue(set(clear.values()).isdisjoint(blocked))
+        for group in ('decorations', 'nodes', 'landmarks'):
+            for obj in world[group]:
+                ox, oy = obj.get('x'), obj.get('y')
+                ww, hh = obj.get('w', 1), obj.get('h', 1)
+                for x, y in clear.values():
+                    self.assertFalse(ox <= x < ox + ww and oy <= y < oy + hh, obj.get('id') or obj.get('name'))
+
+    def test_church_returns_and_bronze_head_stays_out(self):
+        src = open(os.path.join(ROOT, 'play', 'unified3d.js'), encoding='utf-8').read()
+        self.assertIn('102+offChurch.x', src)
+        self.assertIn('12+offChurch.y', src)
+        self.assertNotIn('Bronze head', src)
+        self.assertNotIn("id==='poblado'", src)
+
     def test_sara_origin_uses_the_same_offset(self):
         src = open(os.path.join(ROOT, 'play', 'envigado-park.js'), encoding='utf-8').read()
         self.assertIn('const PARK_ORIGIN = { x: 214 + off.x, y: 52 + off.y }', src)

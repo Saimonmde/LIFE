@@ -211,6 +211,10 @@ function boot(api){
   box(cx,y+23,front-2,.18,2.4,.18,'#f1dfab');box(cx,y+23.4,front-2,1.4,.18,.18,'#f1dfab');
   for(let i=0;i<4;i++)box(cx,y+.08+i*.13,front+1.8-i*.35,d.w*2+2-i*.6,.17,3.2-i*.4,'#b9b3a0');
  }
+ // Iglesia que estaba fija en (102, 12), ahora con el mismo VALLE_OFFSET. Si la x sale del mapa, se recorta al borde de esa fila.
+ const offChurch=window.Casa?.VALLE_OFFSET||{x:0,y:0};
+ church(Math.max(1,Math.min(W.width-4,102+offChurch.x)),Math.max(1,Math.min(W.height-4,12+offChurch.y)),3,3,'#ba805c');
+ // La cabeza de bronce de parkDetails 'poblado' no vuelve: es el monumento del Primer Poblado.
  for(const d of W.landmarks){if(d.kind==='santa_gertrudis')santaGertrudis(d);else if(d.kind==='santa_ana')santaAna(d);else if(d.kind==='basilica')church(d.x,d.y,d.w,d.h,d.color);else civicChurch(d);}
  for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type==='home_door')continue;const sp=sprite(api.spriteKeyFor(n),n.def.x,n.def.y,n.def.id);if(sp)dynamic.push({sp,n});}
  for(const a of (initialZone?api.cityAnimals:S.animals)){const sp=sprite(a.def.sprites.alive[0],a.fx,a.fy,a.def.id);if(sp)dynamic.push({sp,a});}
