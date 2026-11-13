@@ -171,6 +171,7 @@ function prepareCave(){
  W.signs3d=W.signs3d||[];
  W.signs3d.push({text:'TU CASA · PARQUE DE ENVIGADO',x:home.x+2,y:home.y-1});
  W.homeDoor={x:home.x,y:home.y,standX:window.Casa.PARK_STAND.x,standY:window.Casa.PARK_STAND.y};
+ if (window.EnvigadoPark) EnvigadoPark.block(W);
 }
 function applyCasaLayout(){
  if((W.mapId||'city')!=='casa')return;
