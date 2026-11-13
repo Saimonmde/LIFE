@@ -96,8 +96,29 @@ async function init() {
   if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) S.me.name = Q.get('nombre'); beginAtHome(); W.clientReady = true; startGame(); return; }
   W.clientReady = true;
   if (prof && prof.name) { $('#l-nombre').value = prof.name; if (prof.color) S.me.color = prof.color; buildColorPicker(); }
+  if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con el proveedor. Intenta otra vez.';
+  let sessionUser = null;
+  if (Q.get('auth') !== 'error') {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      const ses = await fetch('/auth/sesion', { signal: ctrl.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null);
+      clearTimeout(timer);
+      sessionUser = ses && ses.user;
+    } catch (e) { sessionUser = null; }
+  }
+  if (sessionUser) {
+    const name = String(sessionUser.wallet_name || sessionUser.name || '').slice(0, 16);
+    if (name) {
+      S.me.name = name;
+      if ($('#l-nombre')) $('#l-nombre').value = name;
+      try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
+      startGame();
+      return;
+    }
+  }
   $('#login').hidden = false; $('#l-nombre').focus();
-  fetch('auth/providers').then(r => r.json()).then(p => {
+  fetch('/auth/providers').then(r => r.json()).then(p => {
     const box = $('#login-cuentas'); if (!box) return;
     const show = !!(p.google || p.facebook || p.registro);
     box.hidden = !show;
@@ -115,22 +136,27 @@ function buildColorPicker() {
     b.onclick = () => { S.me.color = c; buildColorPicker(); }; box.appendChild(b);
   }
 }
+function vueltaJuego() {
+  if (location.pathname.indexOf('/movil') === 0 || Q.get('movil') === '1') return '/play/?movil=1';
+  return '/play/';
+}
 function linkCookie() {
   let token = '';
   try { token = (window.Simulacion && Simulacion.walletToken && Simulacion.walletToken($('#l-nombre').value.trim())) || ''; } catch (e) {}
   const name = ($('#l-nombre').value || '').trim();
   document.cookie = 'life_link=' + encodeURIComponent(name + '|' + token) + '; Path=/; SameSite=Lax; Max-Age=600';
+  document.cookie = 'life_return=' + encodeURIComponent(vueltaJuego()) + '; Path=/; SameSite=Lax; Max-Age=600';
 }
-const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = 'auth/google'; };
-const bFacebook = $('#b-facebook'); if (bFacebook) bFacebook.onclick = () => { linkCookie(); location.href = 'auth/facebook'; };
+const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego()); };
+const bFacebook = $('#b-facebook'); if (bFacebook) bFacebook.onclick = () => { linkCookie(); location.href = '/auth/facebook?vuelta=' + encodeURIComponent(vueltaJuego()); };
 const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { const box = $('#registro'); if (box) box.hidden = !box.hidden; };
 const bPedir = $('#b-pedir-codigo'); if (bPedir) bPedir.onclick = () => {
-  fetch('auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), phone:$('#r-phone').value.trim(), password:$('#r-pass').value})}).then(r => r.json()).then(m => { $('#login-status').textContent = m.error || 'Te enviamos un código al correo y un SMS.'; });
+  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), phone:$('#r-phone').value.trim(), password:$('#r-pass').value})}).then(r => r.json()).then(m => { $('#login-status').textContent = m.error || 'Te enviamos un código al correo y un SMS.'; });
 };
 const bVer = $('#b-verificar'); if (bVer) bVer.onclick = () => {
   let token = '';
   try { token = (window.Simulacion && Simulacion.walletToken && Simulacion.walletToken($('#l-nombre').value.trim())) || ''; } catch (e) {}
-  fetch('auth/verificar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), email_code:$('#r-email-code').value.trim(), phone_code:$('#r-phone-code').value.trim(), walletToken: token})}).then(r => r.json()).then(m => { if (m.user) { $('#l-nombre').value = m.user.wallet_name || m.user.name; $('#login-form').requestSubmit(); } else $('#login-status').textContent = m.error || 'No se pudo verificar.'; });
+  fetch('/auth/verificar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), email_code:$('#r-email-code').value.trim(), phone_code:$('#r-phone-code').value.trim(), walletToken: token})}).then(r => r.json()).then(m => { if (m.user) { $('#l-nombre').value = m.user.wallet_name || m.user.name; $('#login-form').requestSubmit(); } else $('#login-status').textContent = m.error || 'No se pudo verificar.'; });
 };
 $('#login-form').onsubmit = (e) => {
   e.preventDefault();
@@ -296,7 +322,7 @@ function prepareMining(){
 }
 let furnaceNode=null;
 function setupMiningUI(){
- const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>Selecciona mineral en tu mochila y toca el horno. Cada lote produce un lingote o acredita SMC en tu billetera, sin reclamarlas.</p><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one">1 lote</button><button id="forge-all">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div class="forge-actions"><button id="forge-ingot">Crear lingotes</button><button id="forge-coins">Acreditar SMC</button></div><p id="forge-result" role="status"></p></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>Selecciona mineral en tu mochila y toca el horno. Cada lote produce un lingote o acredita SMC en tu billetera, sin reclamarlas.</p><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one">1 lote</button><button id="forge-all">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div class="forge-actions"><button id="forge-ingot">Crear lingotes</button><button id="forge-coins">Acreditar <span class="smc">SMC</span></button></div><p id="forge-result" role="status"></p></div>';document.body.append(panel);
  for(const [id,r] of Object.entries(MiningRules.recipes)){const o=document.createElement('option');o.value=id;o.textContent=W.items[id].name;$('#forge-ore').append(o);}
  $('#furnace-close').onclick=()=>panel.hidden=true;
  $('#forge-ore').onchange=$('#forge-batches').oninput=renderForge;
@@ -313,7 +339,7 @@ function setupMiningUI(){
 function openFurnace(n){furnaceNode=n;if(pendingFurnaceDrop?.nodeId===n.def.id){const item=pendingFurnaceDrop.item;pendingFurnaceDrop=null;openForgeChat(item);return;}closeForgeChat();const id=selected();if(MiningRules.recipes[id])$('#forge-ore').value=id;$('#forge-result').textContent='';$('#furnace-panel').hidden=false;renderForge();}
 function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value,r=MiningRules.recipes[id],q=Number($('#forge-batches').value),max=Math.floor(invCount(id)/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  $('#forge-stock').textContent=`En mochila: ${invCount(id)} · ${r.ore} minerales por lote · disponibles: ${max} lotes`;
- $('#forge-batches').max=Math.max(1,max);$('#forge-preview').textContent=valid?`${q*r.ore} minerales → ${q} lingote${q===1?'':'s'} de ${r.metal} o ${q*r.coins} SMC, que entran solas a la billetera.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
+ $('#forge-batches').max=Math.max(1,max);$('#forge-preview').innerHTML=valid?`${q*r.ore} minerales → ${q} lingote${q===1?'':'s'} de ${esc(r.metal)} o <span class="smc">${q*r.coins} SMC</span>, que entran solas a la billetera.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
  $('#forge-ingot').disabled=$('#forge-coins').disabled=!valid;
 }
 function applySmelt(id,q,mode,result){
@@ -356,7 +382,7 @@ function setupBagForge(){
  const ghost=document.createElement('div');ghost.id='ore-drag-ghost';ghost.hidden=true;document.body.append(ghost);
  document.addEventListener('dragover',e=>{if(!oreDrag)return;e.preventDefault();e.dataTransfer.dropEffect=window.LiveInk.furnaceAtScreen?.(e.clientX,e.clientY)?'copy':'none';moveOreDrag(e.clientX,e.clientY);});
  document.addEventListener('drop',e=>{if(!oreDrag)return;e.preventDefault();dropOre(e.clientX,e.clientY);});addEventListener('blur',()=>{if(oreDrag||touchOre)endOreDrag();});
- const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>¿Quieres hacer lingotes o acreditar SMC?</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-ingot">Hacer lingotes</button><button type="button" id="forge-chat-coins">Acreditar SMC</button></div><p id="forge-chat-result" role="status"></p>';
+ const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>¿Quieres hacer lingotes o acreditar SMC?</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-ingot">Hacer lingotes</button><button type="button" id="forge-chat-coins">Acreditar <span class="smc">SMC</span></button></div><p id="forge-chat-result" role="status"></p>';
  $('#chat-form').before(card);$('#forge-chat-cancel').onclick=closeForgeChat;$('#forge-chat-batches').oninput=renderForgeChat;
  $('#forge-chat-max').onclick=()=>{if(!chatForgeItem)return;$('#forge-chat-batches').value=Math.max(1,Math.floor(invCount(chatForgeItem)/MiningRules.recipes[chatForgeItem].ore));renderForgeChat();};
  for(const [id,mode] of [['forge-chat-ingot','ingot'],['forge-chat-coins','coins']])$('#'+id).onclick=()=>{if(!chatForgeItem)return;$('#forge-ore').value=chatForgeItem;$('#forge-batches').value=$('#forge-chat-batches').value;const message=smelt(mode);$('#forge-chat-result').textContent=message||$('#forge-result').textContent;renderForgeChat();if(message)game(esc(message));};
@@ -365,7 +391,7 @@ function closeForgeChat(){chatForgeItem=null;const card=document.getElementById(
 function openForgeChat(item){chatForgeItem=item;$('#furnace-panel').hidden=true;$('#forge-chat-card').hidden=false;$('#hud-chat').classList.add('forge-chat-open');$('#forge-chat-batches').value=1;$('#forge-chat-result').textContent='';renderForgeChat();game(`Horno: trajiste <b>${esc(W.items[item].name)}</b>. ¿Quieres hacer lingotes o acreditar SMC?`);window.ChatUI?.setOpen(true);}
 function renderForgeChat(){if(!chatForgeItem)return;const r=MiningRules.recipes[chatForgeItem],have=invCount(chatForgeItem),q=Number($('#forge-chat-batches').value),max=Math.floor(have/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  $('#forge-chat-title').textContent='Horno · '+r.name;$('#forge-chat-stock').textContent=`Tienes ${have} minerales · ${r.ore} por lote`;
- $('#forge-chat-batches').max=Math.max(1,max);$('#forge-chat-preview').textContent=valid?`${q*r.ore} minerales → ${q} lingote${q===1?'':'s'} o ${q*r.coins} SMC. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;
+ $('#forge-chat-batches').max=Math.max(1,max);$('#forge-chat-preview').innerHTML=valid?`${q*r.ore} minerales → ${q} lingote${q===1?'':'s'} o <span class="smc">${q*r.coins} SMC</span>. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;
  $('#forge-chat-ingot').disabled=$('#forge-chat-coins').disabled=!valid;
 }
 
@@ -729,7 +755,7 @@ function describe(t) {
     case 'farm_plot': return n.state === 'empty' ? 'Sembrar en <b>parcela vacía</b>' : n.state === 'planted' ? `Parcela sembrada: <b>${W.items[n.crop].name}</b>` : `Cosechar: <b>${W.items[n.crop].name}</b>`;
     case 'fishing_spot': return n.state === 'active' ? `Pescar con red: <b>${d.waterBody === 'rio_claro' ? 'Río Claro' : 'Estanque'}</b>` : 'Agua tranquila';
     case 'nodo_oro_fluvial': return n.state === 'active' ? 'Lavar arena: <b>oro fluvial en el río</b> (batea)' : 'Arena lavada';
-    case 'fruit_stand': return 'Comprar un <b>mango</b> por 5 SMC (simulación)';
+    case 'fruit_stand': return `Comprar un <b>mango</b> por <span class="smc">${d.priceSai || 5} SMC</span> (simulación)`;
     case 'mineral_rock': return n.state === 'active' ? `Picar: <b>${NOMBRES[d.mineral]}</b>` : 'Roca agotada';
   }
   return '';

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 @font-face { font-family: "Pixelify"; src: url("PixelifySans.ttf") format("truetype"); font-weight: 400 700; }
 @font-face { font-family: "UnifrakturMaguntia"; src: url("fonts/UnifrakturMaguntia-Book.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Carolingian"; src: url("fonts/Scriven.otf") format("opentype"); font-display: swap; }
 @font-face { font-family: "Cinzel"; src: url("fonts/Cinzel-wght.ttf") format("truetype"); font-weight: 400 900; font-display: swap; }
 @font-face { font-family: "Atkinson"; src: url("fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype"); font-display: swap; }
 * { box-sizing: border-box; }
@@ -13,9 +14,9 @@ button { font-family: inherit; }
   background: linear-gradient(180deg, rgba(42,30,20,.92), rgba(24,17,11,.92)); border: 2px solid #b48a46; border-radius: 6px;
   box-shadow: 0 0 0 1px #2a1a0c, inset 0 0 0 1px rgba(255,220,150,.08), 0 3px 8px rgba(0,0,0,.45);
 }
-header, .marca, #ayuda h2, .simoncity-place { font-family: "Cinzel", Palatino, Georgia, serif; }
+header, #ayuda h2, .simoncity-place, .simoncity-welcome, #zona-nombre, #aviso .titulo, #misiones .seccion { font-family: "Carolingian", Palatino, Georgia, serif; text-transform: none; font-feature-settings: "liga" 0, "dlig" 0, "hist" 0, "calt" 0; }
 header { font-weight: 700; color: #f5d27a; font-size: 15px; display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-bottom: 1px solid rgba(180,138,70,.45); cursor: grab; touch-action: none; }
-#tiempo-jugado, #jugador-desde, #sai-saldo, .barra span { font-family: "Atkinson", "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
+#tiempo-jugado, #jugador-desde, .barra span { font-family: "Atkinson", "Segoe UI", sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 #tiempo-jugado, #jugador-desde { font-size: 14px; color: #fff6df; margin-top: 2px; }
 .ventana.plegado > :not(header), .panel.plegado > :not(header), #ayuda.plegado > :not(header) { display: none !important; }
 header .plegar { margin-left: auto; background: none; border: 0; color: #f5d27a; cursor: pointer; font-size: 18px; min-width: 32px; min-height: 32px; }
@@ -41,7 +42,7 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 .barra i { position: absolute; inset: 0; width: 100%; } .vida i { background: linear-gradient(#e2504a, #a52520); } .energia i { background: linear-gradient(#4f8be6, #2350a8); }
 .barra span { position: relative; display: block; text-align: center; font-size: 10px; line-height: 12px; color: #fff; text-shadow: 1px 1px 0 #000; }
 #mi-nivel { font-size: 12px; color: #f5d27a; }
-#zona-nombre { margin-top: 6px; display: inline-block; padding: 3px 10px; font-size: 18px; color: #fff1c9; background: rgba(24,17,11,.75); border: 1px solid #b48a46; border-radius: 4px; text-shadow: 1px 1px 0 #000; }
+#zona-nombre { margin-top: 6px; display: inline-block; padding: 3px 10px; font-size: 22px; line-height: 1.25; color: #fff1c9; background: rgba(24,17,11,.75); border: 1px solid #b48a46; border-radius: 4px; text-shadow: 1px 1px 0 #000; }
 /* arriba derecha */
 #hud-top { top: 8px; right: 196px; display: flex; gap: 5px; align-items: center; }
 .ico { width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -114,7 +115,7 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 #ayuda button, #login button { background: #6b4a26; color: #fff1c9; border: 1px solid #b48a46; border-radius: 4px; padding: 8px 14px; cursor: pointer; font: 16px/1.3 "Atkinson", "Segoe UI", sans-serif; }
 #login-cuentas[hidden], #registro[hidden], #login button[hidden] { display: none; }
 #login-cuentas:not([hidden]), #registro:not([hidden]) { display: flex; flex-direction: column; gap: 8px; }
-.login-o { text-align: center; color: #d9c08c; margin: 4px 0; font-family: "Cinzel", Palatino, serif; }
+.login-o { text-align: center; color: #d9c08c; margin: 4px 0; font-family: "Carolingian", Palatino, Georgia, serif; text-transform: none; }
 #cargando { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; font-size: 22px; background: #0f170b; }
 #login { position: fixed; inset: 0; z-index: 15; display: flex; align-items: flex-start; justify-content: center; overflow: auto; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); background: radial-gradient(ellipse at center, rgba(42,32,18,.42), rgba(6,5,3,.9)); }
 #login form { width: min(460px, 94vw); margin: auto; padding: 22px 26px 18px; display: flex; flex-direction: column; gap: 9px; }
@@ -123,8 +124,8 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 .simoncity-wordmark { height: clamp(72px, 18vw, 132px); width: auto; display: block; filter: drop-shadow(1px 1px 0 #fff1c4) drop-shadow(0 3px 0 #6a4a16) drop-shadow(0 8px 12px rgba(180, 130, 40, .45)); }
 .simoncity-city { position: relative; bottom: 36%; font-family: "UnifrakturMaguntia", Palatino, Georgia, serif; font-size: clamp(40px, 10vw, 84px); font-weight: 400; line-height: 0.8; padding: 0 0 0.04em; background: linear-gradient(180deg, #fff6d2 0%, #f0d48a 28%, #c4963a 62%, #7a5418 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 #4a3010) drop-shadow(0 7px 8px rgba(180, 130, 40, .4)); }
 .simoncity-rule { height: 14px; margin: 2px auto 4px; width: min(220px, 70%); background: linear-gradient(90deg, transparent, #e2b23c 18%, #f7f0dc 50%, #e2b23c 82%, transparent); clip-path: polygon(0 46%, 42% 46%, 50% 8%, 58% 46%, 100% 46%, 100% 58%, 58% 58%, 50% 96%, 42% 58%, 0 58%); }
-.simoncity-place { font-family: Georgia, "Times New Roman", serif; font-size: 26px; letter-spacing: 0.42em; color: #fff6e4; margin-top: 4px; text-transform: none; text-shadow: 0 1px 0 #2a1608; }
-.simoncity-welcome { margin: 6px 0 2px; font-family: Georgia, "Times New Roman", serif; font-size: 17px; color: #f3e2b4; letter-spacing: 0.04em; text-transform: none; }
+.simoncity-place { font-family: "Carolingian", Palatino, Georgia, serif; font-size: 32px; letter-spacing: 0.02em; color: #fff6e4; margin-top: 4px; text-transform: none; text-shadow: 0 1px 0 #2a1608; }
+.simoncity-welcome { margin: 6px 0 2px; font-family: "Carolingian", Palatino, Georgia, serif; font-size: 22px; color: #f3e2b4; letter-spacing: 0.01em; text-transform: none; }
 #login .sub { text-align: center; margin: 0 0 4px; color: #d9c08c; }
 @keyframes simoncity-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .simoncity-lockup { animation: none; } }
@@ -214,12 +215,12 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 #city-map-canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;cursor:pointer}.city-map-panel p{font:13px system-ui;text-align:center;margin:7px 4px;color:#ffe59b}.city-map-panel .map-note{color:#b9c9b9;font-size:11px;margin-bottom:12px}
 #viaje-dialogo{position:fixed;z-index:60;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:18px 18px 14px;background:#24180ee6;border:2px solid #e2b23c;border-radius:12px;box-shadow:0 16px 50px #000a}
 #viaje-dialogo[hidden]{display:none!important}
-#viaje-pregunta{margin:0 0 14px;text-align:center;font:600 22px/1.35 "Cinzel",Palatino,serif;color:#fff1c9}
+#viaje-pregunta{margin:0 0 14px;text-align:center;font:600 22px/1.35 "Carolingian",Palatino,serif;color:#fff1c9;text-transform:none}
 .viaje-botones{display:flex;gap:10px;justify-content:center}
 .viaje-botones button{min-height:44px;padding:8px 16px;border-radius:8px;cursor:pointer;font:16px/1.2 "Atkinson","Segoe UI",sans-serif}
 #viaje-si{background:#e2b23c;color:#2a1c0c;border:2px solid #8a6a22}
 #viaje-no{background:#3a2b1b;color:#f6e7c2;border:2px solid #b48a46}
-#viaje-vuelo{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;background:#0c1008;color:#f6e7c2;font:600 28px "Cinzel",Palatino,serif;opacity:0;pointer-events:none;transition:opacity .45s ease}
+#viaje-vuelo{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;background:#0c1008;color:#f6e7c2;font:600 28px "Carolingian",Palatino,serif;text-transform:none;opacity:0;pointer-events:none;transition:opacity .45s ease}
 #viaje-vuelo.activo{opacity:1;pointer-events:auto}
 #minimapa{cursor:pointer}
 
@@ -263,22 +264,22 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-sal
 #login .login-legal{display:inline;text-align:center;color:#d6c191;font:11px/1.5 system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px}
 
 /* Simulación educativa: SMC, Libro Mayor y caballos. No altera el título gótico ni la casa. */
-#b-libro,#b-libro-madre{font:700 16px "Cinzel",Palatino,serif;color:#f6e7c2}
+#b-libro,#b-libro-madre{font:700 16px "Carolingian",Palatino,serif;color:#f6e7c2}
 #w-libro-madre{width:min(460px,94vw);max-height:72vh;overflow:auto;z-index:30}
-#w-libro-madre header{font-family:"Cinzel",Palatino,serif}
+#w-libro-madre header{font-family:"Carolingian",Palatino,serif;text-transform:none}
 #libro-madre-cuerpo{padding:8px 10px;font:14px/1.4 "Atkinson","Segoe UI",sans-serif}
 #w-libro-madre[hidden],#libro-toast[hidden]{display:none !important}
 #w-libro-madre:not([hidden]){display:flex;flex-direction:column}
 .madre-aviso{color:#ffd27a}
 .madre-card{border:1px solid #b48a46;border-radius:8px;padding:8px;margin:8px 0;background:#2a1c10}
-.madre-card header{font-family:"Cinzel",Palatino,serif;border:0;padding:0 0 4px;cursor:inherit}
-.madre-card .ok{color:#b6f3a0}
-.madre-card .hash{font:11px/1.3 ui-monospace,monospace;color:#c8e6ff;word-break:break-all}
+.madre-card header{font-family:"Carolingian",Palatino,serif;border:0;padding:0 0 4px;cursor:inherit;text-transform:none}
+.madre-card .ok{color:#b6f3a0;font-family:"Atkinson","Segoe UI",sans-serif;letter-spacing:0}
+.madre-card .hash{font-family:"UnifrakturMaguntia",Palatino,Georgia,serif;font-size:16px;line-height:1.7;letter-spacing:0.12em;color:#ffe7b0;text-shadow:0 1px 0 #1a1008;word-break:break-all;font-variant-numeric:tabular-nums}
 .madre-card.brilla{box-shadow:0 0 0 2px #ffe14d}
 #libro-madre-cuerpo button{margin-top:4px;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer;font-family:"Atkinson","Segoe UI",sans-serif}
 body:not(.in-game) #libro-toast{display:none !important}
 #libro-toast:not([hidden]){position:fixed;z-index:40;left:50%;bottom:88px;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;width:min(420px,92vw);padding:10px 12px;background:#2a1c10;color:#f6e7c2;border:2px solid #e2b23c;border-radius:8px;font-family:"Atkinson","Segoe UI",sans-serif}
-#libro-toast strong{font-family:"Cinzel",Palatino,serif}
+#libro-toast strong{font-family:"Carolingian",Palatino,serif;font-size:20px;text-transform:none}
 #libro-toast button{align-self:flex-start;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer}
 #sai-chip{color:#ffe14d}
 #sai-legal{left:50%;bottom:64px;transform:translateX(-50%);max-width:min(420px,70vw);margin:0;padding:4px 10px;background:#24180ee6;border:1px solid #b48a46;border-radius:6px;color:#ffe7b0;font:12px/1.35 system-ui,sans-serif;text-align:center;z-index:4;cursor:pointer}
@@ -287,7 +288,7 @@ body.in-game:not(.in-casa) #dialogo{top:68px}
 #w-libro{width:min(460px,94vw);max-height:72vh;overflow:auto;z-index:30}
 #libro-cuerpo{padding:8px 10px;font:13px/1.4 system-ui,sans-serif}
 #libro-cuerpo .aviso-legal{color:#ffd27a}
-#libro-cuerpo .hash{font:10px/1.35 ui-monospace,monospace;word-break:break-all;color:#c8e6ff}
+#libro-cuerpo .hash{font-family:"UnifrakturMaguntia",Palatino,Georgia,serif;font-size:16px;line-height:1.7;letter-spacing:0.12em;word-break:break-all;color:#ffe7b0;text-shadow:0 1px 0 #1a1008;font-variant-numeric:tabular-nums}
 #libro-cuerpo .bloque{border-top:1px solid #6b5230;padding:8px 0}
 #libro-cuerpo .ver-hash,#habilidades .estudiar{margin-top:4px;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer}
 #habilidades .lecciones{list-style:none;margin:0;padding:0 8px 8px}
@@ -296,7 +297,7 @@ body.in-game:not(.in-casa) #dialogo{top:68px}
 #misiones .seccion{color:#f5d27a;font-weight:700}
 #touch-extra{display:none}
 
-/* Vista 3D del valle. Las reglas de fuente de arriba no se tocan. */
+/* Vista 3D del valle. */
 #city-map .city-map-panel{width:min(980px,calc(100vw - 12px));height:min(940px,calc(100dvh - 12px));max-height:calc(100dvh - 12px);display:flex;flex-direction:column}
 #city-map-view{position:relative;flex:1;min-height:220px;background:#163026;touch-action:none}
 #city-map-stage{position:absolute;inset:0}
@@ -315,3 +316,84 @@ body.in-game:not(.in-casa) #dialogo{top:68px}
 #city-map-muni:empty{display:none}
 #city-map-muni button{flex:0 0 auto;min-height:40px;padding:6px 10px;border-radius:999px;background:#2c2418;color:#fff1c9;border:1px solid #b48a46;cursor:pointer}
 @media(max-width:600px){#city-map{padding:4px}#city-map .city-map-panel{width:calc(100vw - 8px);height:calc(100dvh - 8px)}#city-map-view{min-height:180px}}
+
+/* Títulos en minúscula carolingia. El rótulo gótico de Saimon City no cambia. */
+header,
+.madre-card header,
+.city-map-panel header,
+#furnace-panel header,
+#w-inv header,
+#casa-editor header,
+#banquito header,
+#w-libro-madre header,
+#aviso .titulo,
+#dialogo .quien,
+#zona-nombre,
+.simoncity-place,
+.simoncity-welcome,
+.login-o,
+#misiones .seccion,
+#objetivo,
+#libro-toast strong,
+#city-map-title {
+  font-family: "Carolingian", Palatino, Georgia, serif;
+  text-transform: none;
+  letter-spacing: 0.015em;
+  font-feature-settings: "liga" 0, "dlig" 0, "hist" 0, "calt" 0;
+}
+header button, header .x, header .plegar, #libro-madre-cuerpo button, #libro-toast button {
+  font-family: "Atkinson", "Segoe UI", sans-serif;
+  letter-spacing: 0;
+  font-feature-settings: normal;
+}
+#libro-cuerpo, #libro-madre-cuerpo, #sai-legal, #banquito p, #forge-preview, #forge-chat-preview {
+  font-family: "Atkinson", "Segoe UI", sans-serif;
+}
+
+/* Saldos SMC/SMH y códigos del libro, en la gótica de oro del título. */
+.smc, #sai-saldo, .codigo, header .codigo, #libro-toast .codigo {
+  font-family: "UnifrakturMaguntia", Palatino, Georgia, serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 1.35em;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "kern" 0;
+  color: #f0d48a;
+}
+#sai-saldo { font-size: 22px; }
+.codigo, header .codigo, #libro-toast .codigo { font-size: 1.15em; letter-spacing: 0.04em; }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .smc, #sai-saldo, .codigo, header .codigo, #libro-toast .codigo {
+    background-image: linear-gradient(180deg, #fff6d2 0%, #f0d48a 28%, #c4963a 62%, #7a5418 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 1px 0 #4a3010);
+  }
+}
+#libro-cuerpo .hash small {
+  font-family: "Atkinson", "Segoe UI", sans-serif;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #d9c08c;
+  -webkit-text-fill-color: #d9c08c;
+  text-shadow: none;
+}
+#libro-cuerpo .hash, .madre-card .hash, .codigo-largo {
+  font-family: "UnifrakturMaguntia", Palatino, Georgia, serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.7;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "kern" 0;
+  color: #ffe7b0;
+  -webkit-text-fill-color: #ffe7b0;
+  text-shadow: 0 1px 0 #1a1008;
+  word-break: break-all;
+  background: none;
+  filter: none;
+}

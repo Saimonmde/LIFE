@@ -751,6 +751,21 @@ def redirect(location, headers, cookies):
     return ''.join(parts).encode()
 
 
+def juego_vuelta(raw):
+    """Sólo /play/ o el modo móvil. Evita una redirección abierta."""
+    text = urllib.parse.unquote(raw or '').strip()
+    if text in ('/play/?movil=1', '/movil', '/movil/', '/movil/index.html'):
+        return '/play/?movil=1'
+    return '/play/'
+
+
+def vuelta_pedida(query, cookie):
+    asked = (query.get('vuelta') or [''])[0]
+    if not asked:
+        asked = ACC.read_cookie(cookie, 'life_return')
+    return juego_vuelta(asked)
+
+
 async def try_auth(method, path, target, headers, body):
     if not path.startswith('/auth'):
         return None
@@ -764,30 +779,37 @@ async def try_auth(method, path, target, headers, body):
         payload = {}
     if path == '/auth/providers' and method == 'GET':
         return auth_response('200 OK', ACC.providers(), headers)
+    if path == '/auth/sesion' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        return auth_response('200 OK', {'user': ACC.public_user(user) if user else None}, headers)
     if path == '/auth/google' and method == 'GET':
         if not ACC.providers()['google']:
             return auth_response('404 Not Found', {'error': 'Google no está configurado.'}, headers)
         state = ACC.start_oauth(ACCOUNTS, 'google')
         save_accounts()
+        back = vuelta_pedida(query, cookie)
         loc = 'https://accounts.google.com/o/oauth2/v2/auth?' + urllib.parse.urlencode({
             'client_id': os.environ['GOOGLE_CLIENT_ID'], 'redirect_uri': base + '/auth/google/callback',
             'response_type': 'code', 'scope': 'openid email profile', 'state': state,
         })
-        return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure)])
+        return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure), ACC.cookie('life_return', urllib.parse.quote(back, safe=''), 600, secure)])
     if path == '/auth/facebook' and method == 'GET':
         if not ACC.providers()['facebook']:
             return auth_response('404 Not Found', {'error': 'Facebook no está configurado.'}, headers)
         state = ACC.start_oauth(ACCOUNTS, 'facebook')
         save_accounts()
+        back = vuelta_pedida(query, cookie)
         loc = 'https://www.facebook.com/v19.0/dialog/oauth?' + urllib.parse.urlencode({
             'client_id': os.environ['FACEBOOK_APP_ID'], 'redirect_uri': base + '/auth/facebook/callback',
             'state': state, 'scope': 'email',
         })
-        return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure)])
+        return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure), ACC.cookie('life_return', urllib.parse.quote(back, safe=''), 600, secure)])
     if path in ('/auth/google/callback', '/auth/facebook/callback') and method == 'GET':
         provider = 'google' if 'google' in path else 'facebook'
         state = (query.get('state') or [''])[0]
         code = (query.get('code') or [''])[0]
+        back = vuelta_pedida(query, cookie)
+        fallo = '/play/?movil=1&auth=error' if back.endswith('movil=1') else '/play/?auth=error'
         try:
             profile = ACC.exchange_google(code, base + '/auth/google/callback') if provider == 'google' else ACC.exchange_facebook(code, base + '/auth/facebook/callback')
             result = ACC.finish_oauth(ACCOUNTS, provider, state, ACC.read_cookie(cookie, 'oauth_state'), profile)
@@ -796,9 +818,9 @@ async def try_auth(method, path, target, headers, body):
             link_name, _, link_token = link.partition('|')
             settle_wallet(user, link_name, link_token)
             save_accounts()
-        except ACC.AuthError as exc:
-            return redirect('/play/?auth=error', headers, [])
-        return redirect('/play/', headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure)])
+        except (ACC.AuthError, urllib.error.URLError, TimeoutError, OSError):
+            return redirect(fallo, headers, [ACC.cookie('life_return', '', 0, secure)])
+        return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure), ACC.cookie('life_return', '', 0, secure)])
     if path == '/auth/registro' and method == 'POST':
         try:
             ACC.begin_signup(ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('phone'), payload.get('password') or '', ACC.send_email, ACC.start_sms)

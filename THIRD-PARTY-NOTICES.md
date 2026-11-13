@@ -21,3 +21,7 @@ La captura web de la caneca de Envigado no está incorporada ni se relicencia de
 ## UnifrakturMaguntia (versión GitHub)
 
 Archivo play/fonts/UnifrakturMaguntia-Book.ttf. Copyright (c) 2010 j. ‘mach’ wust y Copyright (c) 2009 Peter Wiegel. SIL OFL 1.1, con Reserved Font Name UnifrakturMaguntia. No se relicencia como obra de Simón. Aviso completo en LICENSES/UnifrakturMaguntia-OFL-1.1.txt, obtenido de https://github.com/google/fonts/blob/main/ofl/unifrakturmaguntia/OFL.txt .
+
+## Scriven
+
+Archivo play/fonts/Scriven.otf. Copyright (c) 2024 Kevin Smith (smithkm@draconic.ca), con Reserved Font Name Scriven. SIL OFL 1.1. Minúscula de estilo carolingio, con apoyo para español. No se relicencia como obra de Simón. Aviso completo en LICENSES/Scriven-OFL-1.1.txt, obtenido de https://github.com/smithkm/scriven . El archivo se genera desde el fuente del autor con su misma orden de FontForge, sin cambiar el diseño.

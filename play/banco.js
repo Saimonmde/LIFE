@@ -74,7 +74,8 @@
     if (!saldo) return;
     const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {} };
     const smh = box.smh != null ? box.smh : (box.smcSubs || 0);
-    saldo.textContent = window.Simulacion && Simulacion.formatPair ? `En el depósito: ${Simulacion.formatPair(smh)}` : `En el depósito: ${smh} SMH`;
+    const texto = window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(smh) : `${smh} SMH`;
+    saldo.innerHTML = 'En el depósito: <span class="smc">' + texto.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '</span>';
     const rows = Object.entries(box.items || {});
     const carried = (window.LiveInk && LiveInk.state && LiveInk.state.inv || []).filter(Boolean);
     const deposit = carried.map(slot => `<button type="button" data-dep="${slot.item}" data-qty="1">Depositar 1 ${slot.item}</button>`).join(' ');
