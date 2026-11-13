@@ -29,7 +29,7 @@
       "intro": [
         "Soy la Profesora de la Cadena. Aquí nadie representa a Satoshi Nakamoto: yo sólo enseño ideas, con mis palabras.",
         "En 2008 se publicó Bitcoin: A Peer-to-Peer Electronic Cash System (Nakamoto, 2008). En este juego lo simulamos, sin dinero real.",
-        "Las SaiMonCoins (SMC) tienen un tope de 21 millones. Sólo se emiten al lavar oro en el río, y el premio se reduce a la mitad por tramos, como en esa propuesta.",
+        "Las SaiMonCoins (SMC) tienen un tope de 21 millones. Cada moneda nueva pide una prueba de trabajo. El premio empieza en 1 SMC y se reduce a la mitad cada 10,5 millones. Cada cuenta, también la mía, tiene un tope diario.",
         "Tu primera práctica: lava oro en el río, paga a alguien o en el puesto de frutas, abre el Libro Mayor, e inspecciona y verifica un bloque."
       ],
       "inProgress": [
@@ -67,7 +67,7 @@
     "subunitsPerUnit": 100000000,
     "maxSupply": 21000000,
     "genesisTreasury": 210000,
-    "initialReward": 50,
+    "initialReward": 1,
     "halvingMined": 10500000,
     "issuance": "sólo al lavar oro fluvial con la batea (nodo_oro_fluvial)",
     "blockIntervalSeconds": 60,
@@ -81,10 +81,10 @@
     "lessons": [
       { "id": "p2p", "title": "Efectivo electrónico entre pares", "text": "Un pago puede ir de una persona a otra, de frente, sin un banco en el medio. En el juego eso es el comando /pagar o pagar en el puesto.", "mechanic": "pagar" },
       { "id": "sin_tercero", "title": "Sin un tercero de confianza", "text": "El saldo no vive en la caja de un personaje que te lo guarda. Vive en el Libro Mayor, que cualquiera puede leer.", "mechanic": "libro_mayor" },
-      { "id": "pow", "title": "Prueba de trabajo (analogía)", "text": "En la propuesta de 2008 el trabajo es computar hashes. Aquí la analogía didáctica es lavar oro con la batea: sólo ese esfuerzo emite SMC nuevas.", "mechanic": "batear" },
+      { "id": "pow", "title": "Prueba de trabajo", "text": "En la propuesta de 2008 el trabajo es computar hashes. Aquí el servidor da un reto firmado y tu aparato busca un nonce. Lavarse las manos en el río no basta: sin esa prueba no hay SMC nuevas. La prueba sola no frena a un bot; también cuentan la cuenta, el movimiento y el tope del día.", "mechanic": "batear" },
       { "id": "doble_gasto", "title": "El problema del doble gasto", "text": "Si pudieras gastar las mismas monedas dos veces, el sistema se rompería. El Libro Mayor rechaza un pago si no hay saldo.", "mechanic": "pagar" },
       { "id": "cadena_larga", "title": "La cadena de bloques", "text": "Cada bloque apunta al hash del anterior. La historia que se acepta es esa cadena continua que todos pueden recalcular.", "mechanic": "verificar_hash" },
-      { "id": "tope", "title": "Tope de 21 millones y halvings", "text": "Hay un máximo de 21.000.000 SMC. El premio por bateada empieza en 50 SMC y se reduce a la mitad cada 10,5 millones minados.", "mechanic": "hud_suministro" },
+      { "id": "tope", "title": "Tope de 21 millones y halvings", "text": "Hay un máximo de 21.000.000 SMC. 210.000 ya están en la reserva de misiones y no son emisión nueva. El premio de cada prueba aceptada empieza en 1 SMC y se reduce a la mitad cada 10,5 millones minados. La red apunta a una prueba cada 10 minutos.", "mechanic": "hud_suministro" },
       { "id": "seudonimo", "title": "Seudónimo, no identidad real", "text": "En el juego tu nombre de jugador hace las veces de seudónimo: se ve el pago, no tu vida fuera de la pantalla. No hay monedero real.", "mechanic": "pagar" },
       { "id": "verificar", "title": "No confíes, verifica", "text": "Puedes recalcular el hash de un bloque (SHA-256 del hash anterior, el tiempo y las transacciones) y comprobar que coincide. Si no cuadra, la copia no sirve.", "mechanic": "verificar_hash" }
     ]

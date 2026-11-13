@@ -579,7 +579,9 @@ function talkCapataz() {
       for (const [k, v] of Object.entries(r.xp || {})) addXp(k, v);
       if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'quest', id: 'primeros_pasos' }));
       else if (window.Simulacion) Simulacion.grantTreasury(r.coins || 0, 'Primeros Pasos');
-      game(`¡Primeros Pasos completado! +${r.coins} SMC del tesoro de misiones.`, 'oro'); save(); renderAll(); updateTutorial();
+      game(S.net.ok
+        ? '¡Primeros Pasos completado! El tesoro paga sólo hasta el tope de hoy. El resto queda en la reserva.'
+        : `¡Primeros Pasos completado! +${r.coins} SMC del tesoro de misiones.`, 'oro'); save(); renderAll(); updateTutorial();
     };
   } else if (S.quest.turnedIn) lines = d.after; else lines = d.inProgress;
   S.dialog = { lines, i: 0, after }; $('#aviso').hidden = true; showDialog();
@@ -881,7 +883,7 @@ function act(t) {
       if (S.net.ok) S.net.ws.send(JSON.stringify({ t:'swing', mineral:d.mineral }));
       else if (window.Simulacion) {
         S.swings=(S.swings||0)+1;
-        if (S.swings>=8) { S.swings=0; Simulacion.issueLocal(10,'Turno del capataz en la cantera','mina'); game('Turno cumplido: 10 SMC. No es dinero real y no se puede retirar.','oro'); }
+        if (S.swings>=8) { S.swings=0; game('Turno cumplido. Las SMC del turno sólo las acredita el servidor, con prueba de trabajo y el tope del día.','aviso'); }
       }
     }
   }
