@@ -1,0 +1,104 @@
+{
+  "x": -133,
+  "y": 203,
+  "anchor": {
+    "from": [
+      239,
+      59
+    ],
+    "lat": 6.1698424,
+    "lon": -75.5869528,
+    "to": [
+      106,
+      262
+    ]
+  },
+  "parkDoor": {
+    "from": [
+      226,
+      64
+    ],
+    "to": [
+      93,
+      267
+    ]
+  },
+  "parkStand": {
+    "from": [
+      227,
+      64
+    ],
+    "to": [
+      94,
+      267
+    ]
+  },
+  "stable": {
+    "from": [
+      224,
+      62
+    ],
+    "to": [
+      91,
+      265
+    ]
+  },
+  "profesora": {
+    "from": [
+      230,
+      66
+    ],
+    "to": [
+      97,
+      269
+    ]
+  },
+  "gold": {
+    "oro_fluvial_1": {
+      "from": [
+        214,
+        54
+      ],
+      "to": [
+        81,
+        257
+      ]
+    },
+    "oro_fluvial_2": {
+      "from": [
+        214,
+        57
+      ],
+      "to": [
+        81,
+        260
+      ]
+    },
+    "oro_fluvial_3": {
+      "from": [
+        214,
+        72
+      ],
+      "to": [
+        81,
+        275
+      ]
+    },
+    "oro_fluvial_4": {
+      "from": [
+        214,
+        81
+      ],
+      "to": [
+        81,
+        284
+      ]
+    }
+  },
+  "parkOrigin": {
+    "from": [214, 52],
+    "to": [81, 255],
+    "note": "Constante de Sara (PR #5): PARK_ORIGIN = (214, 52) + este offset. Canecas en (232,60), (229,63), (236,70) y skate en x 217–219, y 70–71 se mueven con los mismos dx/dy."
+  },
+  "note": "Único desplazamiento del Parque de Envigado. casa.js lo suma a la puerta (226, 64) y a la llegada (227, 64). play/envigado-park.js lo suma al origen (214, 52)."
+}

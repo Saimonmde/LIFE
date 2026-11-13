@@ -3367,8 +3367,21 @@
     "BLOCKCHAIN-Y-PROPIEDAD.md",
     "CREDITOS-RECURSOS.md",
     "data/el-jardin.json",
-    "data/el-jardin.js"
+    "data/el-jardin.js",
+    "data/relieve-aburra.json",
+    "data/valle-offset.json",
+    "data/parque-envigado-bloque.json"
   ],
+  "elevation": {
+    "path": "data/relieve-aburra.json",
+    "source": "NASA SRTM GL1 (Shuttle Radar Topography Mission), tile N06W076",
+    "license": "Public domain (U.S. Government work)",
+    "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1",
+    "mirror": "https://elevation-tiles-prod.s3.amazonaws.com/skadi/N06/N06W076.hgt.gz",
+    "derived_by": "tools/relieve_aburra.py",
+    "scaled_by": "tools/valle_aburra.py",
+    "note": "Remuestreo simplificado y escala vertical del juego. No es el modelo original ni un mapa oficial. La disposición se comparte CC-BY-SA-4.0 conservando esta atribución."
+  },
   "repository": "https://github.com/Saimonmde/LIFE",
   "last_inventory_update": "2026-11-13"
 }

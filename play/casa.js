@@ -6,8 +6,10 @@
   const MAP_W = 14, MAP_H = 12;
   const DOOR = { x: 4, y: 9 };
   const SPAWN = { x: 4, y: 6, dir: 'down' };
-  const PARK_DOOR = { x: 226, y: 64 };
-  const PARK_STAND = { x: 227, y: 64 };
+  // Único desplazamiento del Parque de Envigado. Lo escribe tools/valle_aburra.py.
+  const VALLE_OFFSET = { x: -133, y: 203 };
+  const PARK_DOOR = { x: 226 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y };
+  const PARK_STAND = { x: 227 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y };
   const CATALOG = {
     bed: { name: 'Cama', w: 2, h: 1, solid: true },
     table: { name: 'Mesa', w: 2, h: 1, solid: true },
@@ -277,7 +279,7 @@
   }
 
   window.Casa = {
-    MAP_W, MAP_H, DOOR, SPAWN, PARK_DOOR, PARK_STAND, CATALOG, WALLS, FLOORS, floor,
+    MAP_W, MAP_H, DOOR, SPAWN, VALLE_OFFSET, PARK_DOOR, PARK_STAND, CATALOG, WALLS, FLOORS, floor,
     get layout() { return layout; },
     get editing() { return editing; },
     get selected() { return selected; },

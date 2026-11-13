@@ -2,7 +2,9 @@
 /* Parque de Envigado props. Move PARK_ORIGIN and every caneca and the skate cluster move with the block. */
 (() => {
   'use strict';
-  const PARK_ORIGIN = { x: 214, y: 52 };
+  // Sara's origin (214, 52) plus the same VALLE_OFFSET as PARK_DOOR.
+  const off = (window.Casa && window.Casa.VALLE_OFFSET) || { x: 0, y: 0 };
+  const PARK_ORIGIN = { x: 214 + off.x, y: 52 + off.y };
   const canecas = [
     { dx: 18, dy: 8, ry: 0.4 },
     { dx: 15, dy: 11, ry: 1.7 },

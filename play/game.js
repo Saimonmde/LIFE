@@ -191,7 +191,7 @@ function enterHouse(){
 function exitHouse(){
  if((W.mapId||'city')!=='casa')return;
  S.portalUntil=now()+900;
- if(window.LIVE3D)window.LIVE3D.lookAt={x:239,y:69};
+ if(window.LIVE3D){const off=window.Casa.VALLE_OFFSET||{x:0,y:0};window.LIVE3D.lookAt={x:239+off.x,y:69+off.y};}
  switchMap('city');
 }
 function switchMap(id,restored=false){
@@ -1013,7 +1013,15 @@ function draw() {
   const x0 = Math.max(0, Math.floor(S.cam.x / TS)), y0 = Math.max(0, Math.floor(S.cam.y / TS));
   const x1 = Math.min(W.width - 1, Math.ceil((S.cam.x + vw) / TS)), y1 = Math.min(W.height - 1, Math.ceil((S.cam.y + vh) / TS));
   const cols = W.tileset.columns;
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const id = W.ground[y][x]; ctx.drawImage(tileset, (id % cols) * TS, Math.floor(id / cols) * TS, TS, TS, x * TS, y * TS, TS + 0.5, TS + 0.5); }
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const id = W.ground[y][x]; ctx.drawImage(tileset, (id % cols) * TS, Math.floor(id / cols) * TS, TS, TS, x * TS, y * TS, TS + 0.5, TS + 0.5);
+    if (W.elevation && W.mapId !== 'casa' && W.mapId !== 'mine') {
+      const h = W.elevation[y][x], west = W.elevation[y][Math.max(0, x - 1)], north = W.elevation[Math.max(0, y - 1)][x];
+      const shade = Math.max(-0.42, Math.min(0.32, (west - h) * 0.08 + (north - h) * 0.05));
+      if (shade) { ctx.fillStyle = shade > 0 ? `rgba(255,244,214,${shade})` : `rgba(16,26,14,${-shade})`; ctx.fillRect(x * TS, y * TS, TS, TS); }
+      if (Math.floor(h / 8) !== Math.floor(west / 8)) { ctx.fillStyle = 'rgba(42,32,18,.38)'; ctx.fillRect(x * TS, y * TS, 3, TS); }
+    }
+  }
   const list = [];
   for (const n of S.nodes.values()) {
     const d = n.def;
@@ -1113,6 +1121,7 @@ function drawMinimapBase() {
   for (let y = 0; y < W.height; y++) for (let x = 0; x < W.width; x++) {
     if (W.mapId==='casa') { const kind=window.Casa.floor.get(x+','+y); c.fillStyle=!kind?'#f4f0e6':kind==='patio'?'#6f8f55':kind==='door'?'#6b4228':'#c4623c'; c.fillRect(x*k,y*k,k,k); continue; }
     const kind=W.tiles[W.ground[y][x]].kind; c.fillStyle = W.mapId==='mine'?(W.collision[y][x]?'#35291e':'#80603d'):(col[kind] || '#5f9a3a'); if(kind==='mountain'&&W.mapId!=='mine'){const v=Math.round(70+W.elevation[y][x]*1.6);c.fillStyle=`rgb(${v},${Math.min(154,v+26)},${Math.max(58,v-12)})`;}  c.fillRect(x * k, y * k, k, k);
+    if(W.elevation&&W.mapId!=='casa'&&W.mapId!=='mine'){const h=W.elevation[y][x],west=W.elevation[y][Math.max(0,x-1)],north=W.elevation[Math.max(0,y-1)][x];const s=Math.max(-.5,Math.min(.28,(west-h)*.07+(north-h)*.05));if(s){c.fillStyle=s>0?`rgba(255,255,255,${s})`:`rgba(0,0,0,${-s})`;c.fillRect(x*k,y*k,k,k);}if(Math.floor(h/8)!==Math.floor(west/8)){c.fillStyle='rgba(28,22,12,.7)';c.fillRect(x*k,y*k,1,k);}}
   }
   if (W.mapId==='casa' && window.Casa) { for (const it of Casa.layout.items) { const s=Casa.cellsOf(it); c.fillStyle=Casa.CATALOG[it.type].solid?'#6b4228':'#e6c27a'; for (const [x,y] of s) c.fillRect(x*k+1,y*k+1,k-2,k-2); } }
   for (const z of W.surfaceZones || []) { c.fillStyle = '#aab0b1'; c.fillRect(z.x*k,z.y*k,z.w*k,z.h*k); }
@@ -1122,7 +1131,8 @@ function drawMinimapBase() {
     if (d.type === 'waterfall') { c.fillRect(d.x * k, d.y * k, (d.w || 1) * k, 3 * k); c.fillStyle = '#e8fbff'; c.fillRect(31 * k, d.y * k, 3 * k, (d.h || 1) * k); }
     else c.fillRect(d.x * k, d.y * k, (d.w || 1) * k, (d.h || 1) * k);
   }
-  for (const d of W.landmarks || []) { c.fillStyle = d.kind === 'santa_gertrudis' ? '#f5f3ec' : '#a88a68'; c.fillRect(d.x*k,d.y*k,d.w*k,d.h*k); }
+  const landmarkColor={santa_gertrudis:'#f5f3ec',santa_ana:'#f0eadc',torre_unica:'#f7f4ee',capilla:'#f6f1e4',torres_bajas:'#c4a48a',catedral:'#c98962',nave_larga:'#e7e1d4',fronton:'#e6d3a8',aguja:'#efe6d6'};
+  for (const d of W.landmarks || []) { c.fillStyle = landmarkColor[d.kind] || '#a88a68'; c.fillRect(d.x*k,d.y*k,d.w*k,d.h*k); }
   const nc = { fruit_tree: '#2e6b2a', wood_tree: '#1f4d2a', farm_plot: '#6b4a26', mineral_rock: '#b0aaa0', fishing_spot: '#e8fbff', nodo_oro_fluvial: '#ffd400' };
   for (const n of W.nodes) if (nc[n.type]) { c.fillStyle = nc[n.type]; c.fillRect(n.x * k + 1, n.y * k + 1, k - 1, k - 1); }
 }
@@ -1235,8 +1245,16 @@ function autotest() {
   const unreach = W.nodes.filter(n => !bfs(W.spawn.x, W.spawn.y, (a, b) => cheb(a, b, n.x, n.y) === 1)); ok(!unreach.length, 'todos los nodos alcanzables' + (unreach.length ? ': ' + unreach.map(n => n.id).join(',') : ''));
   ok(['astrologia', 'combate', 'religion', 'artesania'].every(k => W.skills[k] && W.skills[k].stub) && /Astrología/.test($('#habilidades').textContent), 'habilidades educativas (stubs) en el panel');
   for (const m of W.memories) ok(!!bfs(W.spawn.x,W.spawn.y,(x,y)=>x===m.x&&y===m.y),'memoria y región alcanzable: '+m.id);
-  ok(W.width===352 && W.height===176,'mundo compartido 352×176');
-  ok(!walkable(214,44) && walkable(214,68) && W.tiles[W.ground[44][214]].kind==='water' && W.tiles[W.ground[68][214]].kind==='bridge','río bloqueado y puente caminable');
+  const off=window.Casa.VALLE_OFFSET||{x:0,y:0};
+  ok(W.valle && W.valle.municipios && W.valle.municipios.length===10,'diez municipios del Valle de Aburrá');
+  ok(W.width===W.valle.width && W.height===W.valle.height,'tamaño del valle');
+  ok(W.elevation && W.valle.relief && W.valle.relief.max>W.valle.relief.min+20,'relieve con diferencia de altura');
+  const south=W.waypoints.find(w=>w.id==='caldas'), north=W.waypoints.find(w=>w.id==='barbosa'), estrella=W.waypoints.find(w=>w.id==='la_estrella');
+  ok(!!south && !!north && south.y>north.y,'Caldas al sur y Barbosa al norte');
+  ok(!!bfs(south.x,south.y,(x,y)=>x===north.x&&y===north.y),'a caballo se puede ir de Caldas a Barbosa');
+  ok(!!bfs(estrella.x,estrella.y,(x,y)=>x===north.x&&y===north.y),'a caballo se puede ir de La Estrella a Barbosa');
+  for(const id of W.valle.municipios){const park=W.waypoints.find(w=>w.id===id);ok(!!park && !!bfs(south.x,south.y,(x,y)=>x===park.x&&y===park.y),'parque en el camino: '+id);}
+  ok(!walkable(214+off.x,44+off.y) && walkable(214+off.x,68+off.y) && W.tiles[W.ground[44+off.y][214+off.x]].kind==='water' && W.tiles[W.ground[68+off.y][214+off.x]].kind==='bridge','quebrada bloqueada y puente caminable');
   p.x = p.fx = W.spawn.x; p.y = p.fy = W.spawn.y;
   if (window.Simulacion) Simulacion.autotest(ok);
   const fails = out.filter(l => l.startsWith('FALLO')).length;
