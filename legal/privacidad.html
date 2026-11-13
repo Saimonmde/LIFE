@@ -1,0 +1,92 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad · Saimon City</title>
+<link rel="stylesheet" href="/legal/estilo.css">
+</head>
+<body>
+<main>
+  <p class="marca">Saimon City · Medellín</p>
+  <h1>Política de privacidad</h1>
+  <p class="fecha">13 de noviembre de 2026</p>
+  <nav>
+    <a href="/play/">Volver al juego</a>
+    <a href="/terminos">Términos de uso</a>
+    <a href="/play/licencias.html">Licencias</a>
+  </nav>
+
+  <p>Esta política describe los datos del juego web Saimon City (LifeIn), en <a href="https://lifein.onrender.com">https://lifein.onrender.com</a>. El juego se abre en <a href="/play/">/play/</a> y en <a href="/movil/">/movil/</a>. La raíz del sitio redirige a <a href="/play/">/play/</a>.</p>
+
+  <h2>Quién responde</h2>
+  <p>Saimon City, a cargo de Juan Simón Barrera Jaramillo, en Medellín, Colombia. Para privacidad, borrado de cuenta o cualquier aviso: <a href="mailto:saimon888oficial@gmail.com">saimon888oficial@gmail.com</a>.</p>
+
+  <h2>Cómo se entra</h2>
+  <p>Hay dos formas de entrar en este sitio.</p>
+  <ul>
+    <li><b>Con un nombre.</b> Escribes un nombre de hasta 16 caracteres y eliges un color. No se crea una cuenta y no pedimos correo.</li>
+    <li><b>Con Google.</b> El botón «Entrar con Google» abre el inicio de sesión de Google con los permisos <b>openid</b>, <b>email</b> y <b>profile</b>. De esa respuesta guardamos tres datos: el identificador de la cuenta de Google (el campo <b>sub</b>), el correo y el nombre. Con ese nombre se arma el nombre visible en el juego, recortado a 16 caracteres. No guardamos la foto de perfil ni el resto de campos que Google pueda incluir en la misma respuesta.</li>
+  </ul>
+  <p>El código también tiene entrada con Facebook (identificador, nombre y correo) y un alta con correo, teléfono y contraseña. En este sitio esas dos vías están apagadas: el botón sólo aparece si el servidor tiene las claves correspondientes, y aquí no las tiene. Mientras sigan apagadas no pedimos teléfono ni contraseña, y no enviamos datos a Meta, a Twilio ni a un servicio de correo.</p>
+
+  <h2>La cuenta de Google</h2>
+  <p>Si entras con Google, el servidor guarda un identificador interno de la cuenta, el nombre de juego, el correo, el identificador de Google, la fecha de creación, el nombre de la billetera del juego y, si ya jugabas con ese nombre en ese aparato, el token secreto de esa billetera. El teléfono y la contraseña quedan vacíos.</p>
+
+  <h2>Cookies y sesión</h2>
+  <p>No hay cookies de publicidad ni de analítica. El juego no carga medidores de terceros.</p>
+  <ul>
+    <li><b>life_session.</b> Cookie de la cuenta. Dura 30 días. Es HttpOnly y SameSite=Lax, y lleva la marca Secure cuando la página va por HTTPS. El valor es un token al azar. En el servidor se anota a qué cuenta pertenece y cuándo caduca. La pantalla «Descansar» guarda la partida en el navegador y vuelve a la entrada; no borra esta cookie.</li>
+    <li><b>oauth_state.</b> Dura unos 10 minutos. Es HttpOnly. Sirve para comprobar que la vuelta desde Google corresponde a la misma visita. Se borra al terminar.</li>
+    <li><b>life_link.</b> Dura unos 10 minutos. La escribe el navegador al pulsar «Entrar con Google». Lleva el nombre que estaba en el formulario y el token de la billetera de ese aparato, para vincular las SaiMonCoins que ya tenías. No es HttpOnly.</li>
+  </ul>
+  <p>El programa ofrece <b>POST /auth/salir</b> para invalidar la sesión. La pantalla del juego no tiene un botón que llame a esa ruta.</p>
+
+  <h2>Datos del juego en el servidor</h2>
+  <p>Van asociados al nombre con el que juegas, sea el de la cuenta o el del invitado.</p>
+  <ul>
+    <li><b>Billetera de SaiMonCoins (SMC).</b> El saldo y un token secreto, para que otro aparato no gaste esas monedas.</li>
+    <li><b>Libro de la simulación.</b> Emisiones, pagos entre nombres, depósitos y notas, con el nombre y la cantidad. Ese libro se envía a quien está conectado y se consulta en el Libro Mayor.</li>
+    <li><b>Casa bancaria.</b> El banquito y el baúl de la casa son el mismo depósito: SMC y objetos. El detalle de objetos se envía a quien tiene esa billetera. El movimiento de SMC queda en el libro.</li>
+    <li><b>Certificados de emisión.</b> Cada emisión nueva puede dejar un registro con código, nombre del dueño, cantidad, fecha, casilla o fundición, y una firma del servidor. El programa los guarda en un almacén interno llamado nft. Se pueden leer sin iniciar sesión en <b>/api/nft/list</b> y <b>/api/nft/&lt;id&gt;</b>. No están en una cadena pública, no pagan gas y no son un bien que se venda.</li>
+    <li><b>Tiempo jugado</b> y la fecha de la primera sesión con esa billetera. El servidor suma tramos cortos mientras la partida sigue activa y esa billetera está reconocida en el aparato. Una pestaña en silencio deja de sumar.</li>
+  </ul>
+  <p>La clave con la que el servidor firma los certificados es un secreto del servicio, no un dato de tu perfil.</p>
+  <p>Mientras estás conectado, los demás jugadores ven tu nombre, color, nivel, clan, grupo y posición. Los mensajes de chat tienen como máximo 160 caracteres, se entregan en ese momento al canal (global, cercanía, clan o grupo) y no se archivan.</p>
+  <p>El programa del juego no guarda tu dirección IP. Render, que aloja el servicio, puede registrar datos técnicos de la conexión para operarlo.</p>
+
+  <h2>Lo que queda en tu navegador</h2>
+  <p>El almacenamiento local de este aparato guarda el perfil (nombre, color, clan y grupo), el progreso de la partida (inventario, experiencia, energía, misiones, posición y lecciones), una copia del depósito y del tiempo, el plano de la casa, los recuerdos del mapa ya encontrados, el token de la billetera y algunas opciones de la interfaz. Eso no se sube por el solo hecho de estar en el navegador.</p>
+  <p>«Reiniciar progreso», en la ayuda, borra el guardado local de la partida en ese navegador. No borra la cuenta ni lo que está en el servidor.</p>
+
+  <h2>Dónde se guarda</h2>
+  <p>El sitio público corre en Render, servicio lifein. Las cuentas y el estado del juego se guardan en PostgreSQL de Render, en Estados Unidos, región Virginia, cuando el servicio tiene la variable DATABASE_URL. Es una tabla con documentos: cuentas, economía, depósito, certificados, tiempo de juego y la clave de firma.</p>
+  <p>Si esa variable no está, el mismo programa escribe archivos JSON en el disco del proceso. En Render ese disco no se conserva entre despliegues. Este sitio está previsto para usar la base de Virginia.</p>
+
+  <h2>Para qué, y con quién</h2>
+  <p>Usamos estos datos para dejarte entrar, mantener la sesión, guardar la partida y evitar que otra persona mueva las SMC de tu nombre. No los vendemos, no los alquilamos y no los usamos para publicidad ni para armar un perfil comercial.</p>
+  <ul>
+    <li><b>Google</b>, sólo si pulsas «Entrar con Google». Google trata ese inicio según su propia política. No le enviamos la partida.</li>
+    <li><b>Otros jugadores</b>, en lo que el juego muestra en directo y en el libro de SMC.</li>
+    <li><b>Quien consulte un certificado</b> en la dirección pública del juego ve el nombre, la cantidad y el lugar de esa emisión.</li>
+    <li><b>Render</b>, que aloja el servidor y la base en Virginia.</li>
+  </ul>
+
+  <h2>Edad</h2>
+  <p>Saimon City es para personas de 13 años o más. No está dirigido a menores de 13 años. Si crees que un menor nos dio datos, escribe a <a href="mailto:saimon888oficial@gmail.com">saimon888oficial@gmail.com</a> y los quitamos.</p>
+
+  <h2>Cuánto tiempo, y cómo pedir el borrado</h2>
+  <p>La sesión de la cuenta dura 30 días desde que se abre, o hasta que la invalidemos. El estado del juego sigue en la base mientras el servicio esté en pie. Dentro del juego no hay un botón para borrar la cuenta.</p>
+  <p>Para pedir el borrado, escribe a <a href="mailto:saimon888oficial@gmail.com">saimon888oficial@gmail.com</a>. Indica el correo de Google o el nombre con el que juegas. Borraremos la cuenta, la sesión y los registros del servidor atados a ese nombre: billetera de SMC, depósito, certificados y tiempo jugado. Lo que haya quedado en el almacenamiento local de un navegador se borra en ese aparato (por ejemplo, con «Reiniciar progreso» o limpiando los datos del sitio).</p>
+
+  <h2>Cambios</h2>
+  <p>Si esta política cambia, actualizaremos esta página y la fecha de arriba.</p>
+
+  <section class="en" lang="en">
+    <h2>English summary</h2>
+    <p>Saimon City (LifeIn) at lifein.onrender.com is run by Juan Simón Barrera Jaramillo in Medellín, Colombia. Contact: saimon888oficial@gmail.com. Sign in with Google (scopes openid, email and profile) stores your Google account id, email and name. We do not store your profile photo. Guest play uses a display name and no account. The server stores SaiMonCoin (SMC) balances, the in-game ledger, bank deposits, educational mint certificates and playtime, in PostgreSQL on Render in Virginia, USA. Chat is live and is not archived. We do not sell data. SMC has no real-world value. The game is for ages 13 and up. To delete your account and the server-side game records tied to your name, email saimon888oficial@gmail.com. Facebook and email/phone signup exist in the code and are not enabled on this site.</p>
+  </section>
+</main>
+</body>
+</html>
