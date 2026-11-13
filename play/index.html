@@ -5,9 +5,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=envigado-r1">
-<link rel="stylesheet" href="movil.css?v=saimon-door-r3">
-<script src="movil.js?v=saimon-door-r3"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=valle-hud-r5">
+<link rel="stylesheet" href="movil.css?v=valle-hud-r5">
+<link rel="stylesheet" href="hud-layout.css?v=valle-hud-r5">
+<script src="movil.js?v=valle-hud-r5"></script>
 </head>
 <body>
 <canvas id="juego"></canvas>
@@ -23,10 +27,13 @@
       <div class="barra vida"><i id="bar-vida"></i><span id="txt-vida">100 / 100</span></div>
       <div class="barra energia"><i id="bar-energia"></i><span id="txt-energia">100 / 100</span></div>
       <div id="mi-nivel">Nv. 1</div>
+      <div id="tiempo-jugado">Tiempo jugado: 0 min</div>
+      <div id="jugador-desde">Jugador desde: —</div>
     </div>
   </div>
   <div id="zona-nombre">El Jardín</div>
 </div>
+<div id="hud-reloj" class="hud" aria-label="Hora y fecha reales"><time id="reloj-ahora"></time></div>
 
 <!-- ===== Botones + minimapa (arriba derecha) ===== -->
 <div id="hud-top" class="hud">
@@ -36,7 +43,9 @@
   <button class="ico" id="b-soc" title="Jugadores cercanos"><img src="../graphics/ui/social.png" alt=""></button>
   <button class="ico" id="b-noche" title="Ciclo día/noche cada 10 min (N previsualiza)"><img id="ico-noche" src="../graphics/ui/luna.png" alt=""></button>
   <button class="ico" id="b-ayuda" title="Ayuda (H)"><img src="../graphics/ui/ayuda.png" alt=""></button>
+  <button class="ico" id="b-tutorial" type="button" title="Cómo se juega">?</button>
   <button class="ico" id="b-libro" title="Libro Mayor (L)">L</button>
+  <button class="ico" id="b-libro-madre" title="Libro madre">LM</button>
   <div id="ping"><i></i><span>sin conexión</span></div>
 </div>
 <div id="hud-mapa" class="hud" role="button" tabindex="0" aria-label="Abrir mapa de SaimonCity" aria-haspopup="dialog" aria-expanded="false"><canvas id="minimapa" width="168" height="168"></canvas><span class="norte">N</span><span class="map-sur">S</span><span class="map-or">OR</span><span class="map-oc">OC</span><button id="mm-zoom" title="Zoom del minimapa">+</button></div>
@@ -65,14 +74,25 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span><img src="../graphics/ui/moneda.png" alt=""><b id="monedas">0</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo">0 SMC</b></span></div>
-<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, el libro se reinicia</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.</span></button>
-<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button></div>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo" class="smc">0 SMC</b></span></div>
+<button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
+<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short"><span class="smc">SMC</span> · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. Cada moneda nueva pide una prueba de trabajo y cabe en el tope del día. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
+<aside id="pow-panel" class="hud" aria-live="polite">
+  <strong>Minado SMC</strong>
+  <p id="pow-status">Sin prueba en curso.</p>
+  <p id="pow-cap">Tope de hoy: —</p>
+  <p id="pow-left">Te quedan: —</p>
+  <p id="pow-hint">La prueba de trabajo sola no frena a un bot. Mandan la cuenta, el movimiento y el tope del día.</p>
+  <button type="button" id="pow-cobrar" hidden>Cobrar misión pendiente</button>
+</aside>
+<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
 <section id="w-inv" class="ventana" hidden><header>Inventario <button class="x" data-cierra="w-inv">✕</button></header><div id="inventario"></div><div id="seleccion">Seleccionado: —</div></section>
 <section id="w-hab" class="ventana" hidden><header>Habilidades <button class="x" data-cierra="w-hab">✕</button></header><ul id="habilidades"></ul></section>
 <section id="w-libro" class="ventana" hidden><header>Libro Mayor <button class="x" data-cierra="w-libro">✕</button></header><div id="libro-cuerpo"></div></section>
+<section id="w-libro-madre" class="ventana" hidden><header>Libro madre <button class="x" data-cierra="w-libro-madre">✕</button></header><div id="libro-madre-cuerpo"></div></section>
+<div id="libro-toast" hidden role="status"></div>
 <div id="aviso" hidden><div class="titulo" id="aviso-titulo">Continuemos</div><div id="aviso-txt"></div></div>
 <div id="objetivo" class="hud" hidden><div id="objetivo-txt"></div></div>
 <div id="dialogo" hidden><canvas id="dialogo-cara" width="64" height="64"></canvas><div class="cuerpo"><div class="quien">Capataz</div><div id="dialogo-txt"></div><div class="seguir">Toca aquí para continuar ▸</div></div></div>
@@ -82,21 +102,51 @@
 <div id="login" hidden>
   <form id="login-form" autocomplete="off">
     <div class="simoncity-lockup">
-      <img class="saimon-entry-logo" src="../graphics/brand/saimon-gold-v1.png" alt="Saimon"><div class="simoncity-title">Saimon City</div>
+      <h1 class="simoncity-title">
+        <img class="simoncity-wordmark" src="../graphics/ui/saimon-logo-gold.png" alt="Saimon City" width="980" height="532">
+        <span class="simoncity-city" aria-hidden="true">City</span>
+      </h1>
       <div class="simoncity-rule" aria-hidden="true"></div>
       <div class="simoncity-place">Medellín</div>
       <p class="simoncity-welcome">Bienvenido a Medellín</p>
     </div>
     <label>Nombre<input id="l-nombre" maxlength="16" required placeholder="Tu nombre"></label>
     <div class="colores" id="l-colores"></div>
-    <button type="submit">Entrar</button>
-    <a class="login-legal" href="licencias.html">© 2026 Simón · Licencias y créditos</a>
+    <button type="submit">Entrar con nombre</button>
+    <div id="login-cuentas" hidden>
+      <p class="login-o">o entra con una cuenta</p>
+      <button type="button" id="b-google" hidden>Entrar con Google</button>
+      <button type="button" id="b-facebook" hidden>Entrar con Facebook</button>
+      <button type="button" id="b-registro" hidden>Crear cuenta con correo y teléfono</button>
+    </div>
+    <div id="registro" hidden>
+      <label>Correo<input id="r-email" type="email" autocomplete="email"></label>
+      <label>Teléfono<input id="r-phone" inputmode="tel" placeholder="+573001112233" autocomplete="tel"></label>
+      <label>Contraseña<input id="r-pass" type="password" minlength="8" autocomplete="new-password"></label>
+      <button type="button" id="b-pedir-codigo">Enviar códigos</button>
+      <label>Código del correo<input id="r-email-code" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label>Código del SMS<input id="r-phone-code" inputmode="numeric" autocomplete="one-time-code"></label>
+      <button type="button" id="b-verificar">Verificar y entrar</button>
+    </div>
+    <nav class="login-pie" aria-label="Avisos legales">
+      <a class="login-legal" href="/privacidad">Privacidad</a>
+      <a class="login-legal" href="/terminos">Términos</a>
+      <a class="login-legal" href="licencias.html">© 2026 Simón · Licencias y créditos</a>
+    </nav>
     <p id="login-status" role="status"></p>
   </form>
 </div>
 
-<div id="ayuda" hidden>
-  <h2>Cómo jugar en El Jardín</h2>
+<section id="tutorial" class="ventana" hidden>
+  <header>Cómo jugar <button type="button" class="x" id="tutorial-cerrar" aria-label="Cerrar tutorial">✕</button></header>
+  <div class="tutorial-cuerpo">
+    <p class="solo-escritorio"><b>Escritorio.</b> WASD o flechas caminan (siguen la cámara). Clic en el suelo para ir. M o E monta y desmonta; el botón Bajarse aparece a caballo. La Casa bancaria, junto al parque, guarda SMC y objetos. I inventario, K habilidades, L Libro Mayor, H ayuda.</p>
+    <p class="solo-movil"><b>Móvil.</b> El joystick o un toque en el suelo mueven. Pellizca para el zoom y arrastra para girar la vista. Montar y el Libro Mayor están en los botones grandes. La Casa bancaria está junto al parque. Los paneles se arrastran desde la barra y se pliegan con –.</p>
+    <button type="button" id="tutorial-saltar">Entendido</button>
+  </div>
+</section>
+<div id="ayuda" class="ventana" hidden>
+  <header>Cómo jugar en El Jardín <button type="button" class="x" id="btn-cerrar-ayuda" data-cierra="ayuda">✕</button></header>
   <ul>
     <li><b>Casa:</b> entras en tu casa colonial. La puerta (clic, toque o caminar hasta ella) sale al Parque de Envigado. El botón <b>Casa</b> vuelve. <b>Editar casa</b> mueve, rota, quita y coloca muebles; el plano queda guardado en este navegador.</li>
     <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr. Clic en algo para ir e interactuar.</li>
@@ -104,26 +154,59 @@
     <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
-    <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). Vas al doble de prisa. No entran a edificios ni al agua.</li>
-    <li><b>SaiMonCoins (SMC):</b> sólo se emiten al lavar oro en el río. Tope 21.000.000. El puesto de frutas vende un mango por 5 SMC. Es una simulación: no es dinero real.</li>
+    <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas al cuádruple de la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua.</li>
+    <li><b>Interfaz:</b> la rueda ⚙ abre el modo edición. Ahí se mueve cada barra, se agranda o se achica, y se minimiza. − deja una pestaña y × cierra; se vuelven a abrir desde la rueda o su botón. El diseño se guarda en este aparato, aparte en el celular y en el escritorio, y también al girar la pantalla. Se puede jugar vertical y horizontal.</li>
+    <li><b>SaiMonCoins (SMC):</b> cada moneda nueva pide una prueba de trabajo, una cuenta y juego real. Tope 21.000.000. El premio de la era empieza en 1 SMC y se parte a la mitad cada 10,5 millones. Cada cuenta tiene un tope diario. 1 SMC = 100.000.000 Simonchis (SMH). El Libro madre guarda cada acuñación con un código que no se repite. Es una simulación: no es dinero real.</li>
+    <li><b>Horno:</b> en la mina convierte mineral en lingotes o en monedas de cobre, plata y oro. Esas monedas son objetos de la mochila y no crean SMC. Acreditar SMC pasa por la prueba de trabajo y el tope del día; no se inventa saldo sin el servidor.</li>
+    <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
   </ul>
-  <button id="btn-cerrar-ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
+  <button type="button" id="btn-jugar" data-cierra="ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
 </div>
+<div id="viaje-dialogo" class="viaje" hidden role="dialog" aria-modal="true" aria-labelledby="viaje-pregunta">
+  <p id="viaje-pregunta"></p>
+  <div class="viaje-botones">
+    <button type="button" id="viaje-si">Sí, vamos</button>
+    <button type="button" id="viaje-no">Cancelar</button>
+  </div>
+</div>
+<div id="viaje-vuelo" aria-hidden="true"></div>
 <section id="city-map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
-  <div class="city-map-panel"><header><span id="city-map-title">Mapa de SaimonCity</span><button id="city-map-close" aria-label="Cerrar mapa">✕</button></header>
-  <canvas id="city-map-canvas" width="800" height="800" role="img" aria-label="Mapa completo de SaimonCity. Tu posición está marcada con una estrella amarilla."></canvas>
-  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente</p></div>
+  <div class="city-map-panel"><header><span id="city-map-title">Valle de Aburrá</span><button id="city-map-close" aria-label="Cerrar mapa">✕</button></header>
+  <div id="city-map-view">
+    <div id="city-map-stage"></div>
+    <div id="city-map-labels"></div>
+    <div id="city-map-zoom"></div>
+    <canvas id="city-map-canvas" width="800" height="800" role="img" aria-label="Mapa del Valle de Aburrá. Tu posición está marcada con una estrella amarilla."></canvas>
+  </div>
+  <div id="city-map-muni" aria-label="Municipios de norte a sur"></div>
+  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Arrastra para girar y pellizca para acercar. Toca un municipio para ir.</p></div>
+</section>
+<section id="banquito" class="ventana" hidden>
+  <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
+  <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Las SMC y los objetos que dejas aquí no se pierden si caes. Sólo lo que llevas en la mochila puede caerse.</p>
+  <p id="banquito-saldo">En el depósito: <span class="smc">0 SMC</span></p>
+  <label><span class="smc">SMC</span> o <span class="smc">SMH</span> <input id="banquito-monto" inputmode="decimal" value="1" placeholder="1 SMC o 12345 SMH"></label>
+  <p><button type="button" id="banquito-depositar">Depositar SMC</button> <button type="button" id="banquito-retirar">Retirar SMC</button></p>
+  <div id="banquito-items"></div>
+  <p class="bag-note">SMC no es dinero real. El turno de la cantera tampoco se paga por OnePay ni por USDT.</p>
 </section>
 <div id="autotest" hidden></div>
-<script src="simulacion.js?v=simulacion-1"></script>
-<script src="../data/el-jardin.js?v=saimon-door-r3"></script>
-<script src="mining-rules.js?v=saimon-door-r3"></script>
-<script src="casa.js?v=saimon-door-r3"></script>
-<script src="envigado-park.js?v=envigado-r1"></script>
-<script src="game.js?v=envigado-r1"></script>
-<script type="module" src="unified3d.js?v=envigado-r1"></script>
-<script src="interface.js?v=saimon-door-r3"></script>
+<script src="simulacion.js?v=valle-hud-r5"></script>
+<script src="pow.js?v=valle-hud-r5"></script>
+<script src="../data/el-jardin.js?v=valle-hud-r5"></script>
+<script src="mining-rules.js?v=valle-hud-r5"></script>
+<script src="casa.js?v=valle-hud-r5"></script>
+<script src="envigado-park.js?v=valle-hud-r5"></script>
+<script src="banco.js?v=valle-hud-r5"></script>
+<script src="tutorial.js?v=valle-hud-r5"></script>
+<script src="libro-madre.js?v=valle-hud-r5"></script>
+<script src="paneles.js?v=valle-hud-r5"></script>
+<script src="game.js?v=valle-hud-r5"></script>
+<script type="module" src="unified3d.js?v=valle-hud-r5"></script>
+<script src="interface.js?v=valle-hud-r5"></script>
+<script src="hud-layout-core.js?v=valle-hud-r5"></script>
+<script src="hud-layout.js?v=valle-hud-r5"></script>
 </body>
 </html>

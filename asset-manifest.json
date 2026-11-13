@@ -4,15 +4,6 @@
   "policy": "Only entries marked release_approved are licensed as stated, to the extent the licensor holds the necessary rights. Other rights and third-party notices remain intact. Brand assets are excluded. Exact generator pixel matches document provenance, not legal exclusivity.",
   "assets": [
     {
-      "path": "graphics/brand/saimon-gold-v1.png",
-      "sha256": "ec74332937cacf99e839379089a1f0ecd3b142f572bd5c56926e74243b30ca5f",
-      "author": null,
-      "source": null,
-      "release_approved": false,
-      "license": "LicenseRef-Saimon-Brand-Reserved",
-      "status": "brand-excluded"
-    },
-    {
       "path": "graphics/characters/animal_ave_0.png",
       "sha256": "832f41c0d6b62d513cec0f2f668f2f19ff89e382951b78292391e96a546d947e",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
@@ -3363,6 +3354,26 @@
       "status": "authorized",
       "license": "CC-BY-SA-4.0",
       "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/saimon-logo.png",
+      "sha256": "d37a731d875a2142072e9a529310057ebfa2947a574de6f749481c0fe28378d9",
+      "author": "Simón / @Saimon888",
+      "source": "Logo propio de Simón. El título del juego usa el derivado en oro; City va en sans seminegra.",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wordmark Saimon de Simón / @Saimon888, fondo blanco retirado"
+    },
+    {
+      "path": "graphics/ui/saimon-logo-gold.png",
+      "sha256": "7a773663a004bd868a854a75add94a3308f9090d46a4ed2c25a9d11a3f65dbd0",
+      "author": "Simón / @Saimon888",
+      "source": "Logo propio de Simón. El título del juego usa el derivado en oro; City va en sans seminegra.",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Derivado en oro antiguo con bisel, a partir del wordmark de Simón"
     }
   ],
   "public_creator_name": "Simón",

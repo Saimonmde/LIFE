@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Canecas from Simón's scan, and a low-poly Zona skate modelled after his concrete ledges.
-import { GLTFLoader } from './glb-loader.js?v=envigado-r1';
+import { GLTFLoader } from './glb-loader.js?v=valle-hud-r5';
 
 export function placeEnvigadoProps(T, scene, height) {
   const park = window.EnvigadoPark;
@@ -35,6 +35,114 @@ export function placeEnvigadoProps(T, scene, height) {
     console.warn('La caneca de Envigado usa el cilindro de respaldo.', err);
   });
   buildSkate(T, scene, height, park, concrete, paver);
+  buildBenches(T, scene, height, park);
+  buildSculptures(T, scene, height, park);
+  buildCanopy(T, scene, height);
+  buildHouses(T, scene, height);
+}
+
+function buildCanopy(T, scene, height) {
+  const world = window.LiveInk?.world;
+  if (!world) return;
+  const trunk = new T.MeshLambertMaterial({ color: '#6b4a2c', flatShading: true });
+  const leaf = new T.MeshLambertMaterial({ color: '#2f6a32', flatShading: true });
+  for (const d of world.decorations || []) {
+    if (d.type !== 'canopy') continue;
+    const g = new T.Group();
+    g.position.set(d.x * 2 + 1, height(d.x, d.y), d.y * 2 + 1);
+    const stem = new T.Mesh(new T.CylinderGeometry(0.18, 0.28, 2.2, 6), trunk);
+    stem.position.y = 1.1;
+    const crown = new T.Mesh(new T.IcosahedronGeometry(1.35, 0), leaf);
+    crown.position.y = 2.8;
+    const crown2 = new T.Mesh(new T.IcosahedronGeometry(0.9, 0), leaf);
+    crown2.position.set(0.6, 3.3, 0.3);
+    stem.castShadow = crown.castShadow = crown2.castShadow = true;
+    g.add(stem, crown, crown2);
+    scene.add(g);
+  }
+}
+
+function buildHouses(T, scene, height) {
+  const world = window.LiveInk?.world;
+  if (!world) return;
+  const wall = new T.MeshLambertMaterial({ color: '#f3ead7', flatShading: true });
+  const roof = new T.MeshLambertMaterial({ color: '#a85a3a', flatShading: true });
+  const box = new T.BoxGeometry(1, 1, 1);
+  for (const d of world.decorations || []) {
+    if (d.type !== 'casa_envigado') continue;
+    const floors = d.floors || 2;
+    const g = new T.Group();
+    const y0 = height(d.x, d.y);
+    const body = new T.Mesh(box, wall);
+    body.scale.set(d.w * 2, floors * 1.35, d.h * 2);
+    body.position.set((d.x + d.w / 2) * 2, y0 + floors * 0.67, (d.y + d.h / 2) * 2);
+    const cap = new T.Mesh(box, roof);
+    cap.scale.set(d.w * 2 + 0.4, 0.45, d.h * 2 + 0.4);
+    cap.position.set(body.position.x, y0 + floors * 1.35 + 0.2, body.position.z);
+    body.castShadow = cap.castShadow = true;
+    g.add(body, cap);
+    scene.add(g);
+  }
+}
+
+function buildBenches(T, scene, height, park) {
+  const wood = new T.MeshLambertMaterial({ color: '#6e4a2c', flatShading: true });
+  const iron = new T.MeshLambertMaterial({ color: '#3e4650', flatShading: true });
+  const box = new T.BoxGeometry(1, 1, 1);
+  for (const spot of park.benchTiles()) {
+    const g = new T.Group();
+    g.position.set(spot.x * 2 + 1, height(spot.x, spot.y), spot.y * 2 + 1);
+    g.name = spot.id;
+    const seat = new T.Mesh(box, wood);
+    seat.scale.set(1.5, 0.12, 0.48);
+    seat.position.y = 0.48;
+    const back = new T.Mesh(box, wood);
+    back.scale.set(1.5, 0.42, 0.08);
+    back.position.set(0, 0.78, -0.2);
+    for (const x of [-0.62, 0.62]) {
+      const leg = new T.Mesh(box, iron);
+      leg.scale.set(0.08, 0.48, 0.4);
+      leg.position.set(x, 0.24, 0);
+      g.add(leg);
+    }
+    seat.castShadow = back.castShadow = true;
+    g.add(seat, back);
+    scene.add(g);
+  }
+}
+
+function buildSculptures(T, scene, height, park) {
+  const stone = new T.MeshLambertMaterial({ color: '#d9d3c7', flatShading: true });
+  const bronze = new T.MeshStandardMaterial({ color: '#b08a4a', metalness: 0.35, roughness: 0.45 });
+  for (const spot of park.sculptureTiles()) {
+    const g = new T.Group();
+    g.position.set(spot.x * 2 + 1, height(spot.x, spot.y), spot.y * 2 + 1);
+    g.name = spot.id;
+    const plinth = new T.Mesh(new T.BoxGeometry(1.5, 1.1, 1.5), stone);
+    plinth.position.y = 0.55;
+    plinth.castShadow = plinth.receiveShadow = true;
+    g.add(plinth);
+    let art;
+    if (spot.id === 'anillo') {
+      art = new T.Mesh(new T.TorusGeometry(0.7, 0.16, 10, 22), bronze);
+      art.position.y = 2.0;
+      art.rotation.x = Math.PI / 2.4;
+    } else if (spot.id === 'columna') {
+      art = new T.Group();
+      [[0, 1.5, 0], [0.28, 2.25, 0.08], [-0.22, 2.95, -0.06]].forEach(([x, y, z], i) => {
+        const block = new T.Mesh(new T.BoxGeometry(0.7 - i * 0.1, 0.7, 0.7 - i * 0.1), bronze);
+        block.position.set(x, y, z);
+        art.add(block);
+      });
+    } else {
+      art = new T.Mesh(new T.SphereGeometry(0.62, 14, 12), bronze);
+      art.scale.set(1, 1.45, 0.7);
+      art.position.y = 2.15;
+    }
+    art.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
+    g.add(art);
+    scene.add(g);
+  }
 }
 
 function buildSkate(T, scene, height, park, concrete, paver) {

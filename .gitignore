@@ -10,7 +10,3 @@ releases/*.zip
 previews/
 lifein.json
 state/
-
-*.sqlite3
-*.sqlite3-wal
-*.sqlite3-shm

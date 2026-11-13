@@ -56,9 +56,9 @@ PARKS = [
     {'id': 'envigado', 'name': 'Parque de Envigado', 'lat': CHURCH_LAT, 'lon': CHURCH_LON,
      'kind': 'santa_gertrudis', 'color': '#f3f1e9', 'keep': True, 'w': 10, 'h': 7,
      'note': 'OSM Parroquia Santa Gertrudis. Teselas copiadas, no redibujadas.'},
-    {'id': 'medellin', 'name': 'Parque de Bolívar', 'lat': 6.25260, 'lon': -75.56380,
+    {'id': 'medellin', 'name': 'Medellín', 'lat': 6.25260, 'lon': -75.56380,
      'kind': 'catedral', 'color': '#c98962', 'roof': '#8f5b42', 'w': 10, 'h': 7,
-     'note': 'Plaza frente a la catedral, junto a la estación Catedral'},
+     'note': 'Centro de Medellín, sobre el río, entre Bello e Itagüí. El parque es el de Bolívar.'},
     {'id': 'bello', 'name': 'Parque de Bello', 'lat': 6.3349881, 'lon': -75.5582772,
      'kind': 'nave_larga', 'color': '#e7e1d4', 'roof': '#a86b48', 'w': 8, 'h': 10,
      'note': 'OSM Parque Principal de Bello'},
@@ -583,9 +583,10 @@ def main():
     world['waypoints'] = [{'id': park['id'], 'name': park['name'], 'x': park['x'], 'y': park['y']} for park in placed]
     if mirador:
         world['waypoints'].append({'id': 'las_palmas', 'name': 'Las Palmas · mirador', 'x': mirador[0], 'y': mirador[1]})
-    world['mapLabels'] = [{'name': park['name'], 'x': park['x'], 'y': park['y']} for park in placed]
+    # Los nombres visibles salen de tools/mapa_etiquetas.py (Medellín, no «Bolívar»).
+    world['mapLabels'] = [{'id': park['id'], 'name': park['name'], 'x': park['x'], 'y': park['y'], 'kind': 'municipio'} for park in placed]
     if mirador:
-        world['mapLabels'].append({'name': 'Las Palmas · mirador', 'x': mirador[0], 'y': mirador[1]})
+        world['mapLabels'].append({'id': 'las_palmas', 'name': 'Las Palmas', 'x': mirador[0], 'y': mirador[1], 'kind': 'poi'})
 
     road_points = []
     for park in ordered:

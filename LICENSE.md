@@ -23,6 +23,6 @@ Los recursos de procedencia pendiente no quedan liberados por defecto. Cada auto
 
 El nombre Saimon City y el logo original/adaptado no forman parte de la licencia general de contenidos: consultar MARCA.md. No se afirma que la marca esté registrada. Los usos permitidos por la ley y la atribución veraz no quedan eliminados por esta reserva.
 
-Three.js conserva MIT; Pixelify Sans y UnifrakturMaguntia conservan SIL OFL 1.1; véase THIRD-PARTY-NOTICES.md. Ni esta licencia ni un token transfieren por sí solos derechos sobre obras ajenas, objetos físicos, edificios, parques o terrenos reales. Las SaiMonCoins (SMC) del juego son una simulación educativa, sin valor ni canje. Véase BLOCKCHAIN-Y-PROPIEDAD.md.
+Three.js conserva MIT; Pixelify Sans conserva SIL OFL 1.1; véase THIRD-PARTY-NOTICES.md. Ni esta licencia ni un token transfieren por sí solos derechos sobre obras ajenas, objetos físicos, edificios, parques o terrenos reales. Las SaiMonCoins (SMC) del juego son una simulación educativa, sin valor ni canje. Véase BLOCKCHAIN-Y-PROPIEDAD.md.
 
 Copyright © 2026 Simón, sobre sus aportes propios. Otros autores conservan sus derechos y los avisos correspondientes.

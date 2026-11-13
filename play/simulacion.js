@@ -2,7 +2,7 @@
 /* SaiMonCoins (SMC), caballos, Libro Mayor y lecciones. Simulación educativa: sin valor real. */
 (() => {
 'use strict';
-const SUBS = 100000000, MAX_SUPPLY = 21000000, INITIAL_REWARD = 50, HALVING_MINED = 10500000, TREASURY = 210000;
+const SUBS = 100000000, MAX_SUPPLY = 21000000, MAX_SMH = 2100000000000000, INITIAL_REWARD_SMH = 1 * SUBS, HALVING_SMH = 10500000 * SUBS, TREASURY_SMH = 210000 * SUBS;
 const GENESIS_PREV = '0'.repeat(64), BLOCK_SECONDS = 60;
 const DOOR_TYPES = new Set(['home_door', 'mine_entrance', 'mine_exit', 'casa_exit']);
 
@@ -56,21 +56,85 @@ function stableStringify(x) {
   if (Array.isArray(x)) return '[' + x.map(stableStringify).join(',') + ']';
   return '{' + Object.keys(x).sort().map(k => JSON.stringify(k) + ':' + stableStringify(x[k])).join(',') + '}';
 }
-const subunits = (sai) => Math.round(Number(sai) * SUBS);
-const saiOf = (subs) => (subs || 0) / SUBS;
-function formatSai(subs) {
-  const s = saiOf(subs);
-  if (Math.abs(s - Math.round(s)) < 1e-12) return Math.round(s).toLocaleString('es-CO') + ' SMC';
-  return s.toFixed(8).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',') + ' SMC';
+function parseAmount(text) {
+  let raw = String(text == null ? '' : text).trim().toLowerCase();
+  if (!raw) throw new Error('monto vacío');
+  let unit = 'smc';
+  for (const [name, kind] of [['simonchis', 'smh'], ['simonchi', 'smh'], ['smh', 'smh'], ['smc', 'smc']]) {
+    if (raw.endsWith(name)) { unit = kind; raw = raw.slice(0, -name.length).trim(); break; }
+  }
+  raw = raw.replace(/\s+/g, '');
+  if (unit === 'smh') {
+    const marks = raw.match(/[.,]/g) || [];
+    const parts = raw.replace(/,/g, '.').split('.');
+    if (marks.length && parts.slice(1).some(part => part.length !== 3)) throw new Error('un Simonchi no se parte');
+    const grouped = raw.replace(/[.,]/g, '');
+    if (!/^\d+$/.test(grouped)) throw new Error('monto ilegible');
+    return Number(grouped);
+  }
+  if (raw.includes(',') && raw.includes('.')) raw = raw.lastIndexOf(',') > raw.lastIndexOf('.') ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  else if (raw.includes(',')) raw = raw.replace(',', '.');
+  const neg = raw.startsWith('-');
+  if (neg) raw = raw.slice(1);
+  if (raw.startsWith('+')) raw = raw.slice(1);
+  let whole = raw, frac = '';
+  if (raw.includes('.')) { const bits = raw.split('.'); whole = bits[0]; frac = bits.slice(1).join(''); }
+  if (whole === '') whole = '0';
+  if (!/^\d+$/.test(whole) || (frac && !/^\d+$/.test(frac))) throw new Error('monto ilegible');
+  if (frac.length > 8) throw new Error('como máximo 8 decimales');
+  frac = frac.padEnd(8, '0');
+  const smh = Number(whole) * SUBS + Number(frac || 0);
+  return neg ? -smh : smh;
 }
-function rewardSai(mined) {
-  mined = Number(mined) || 0;
-  if (mined >= MAX_SUPPLY - TREASURY) return 0;
-  const era = Math.floor(mined / HALVING_MINED);
-  let r = INITIAL_REWARD / Math.pow(2, era);
-  const remaining = (MAX_SUPPLY - TREASURY) - mined;
-  if (r > remaining) r = Math.max(0, remaining);
-  return r;
+function smcToSmh(value) {
+  if (typeof value === 'string') return parseAmount(value);
+  if (typeof value === 'number' && Number.isInteger(value)) return value * SUBS;
+  return parseAmount(String(value));
+}
+const subunits = (sai) => smcToSmh(sai);
+function formatSmc(smh) {
+  smh = Math.trunc(Number(smh) || 0);
+  const neg = smh < 0;
+  smh = Math.abs(smh);
+  const whole = Math.floor(smh / SUBS);
+  const frac = smh % SUBS;
+  const grouped = whole.toLocaleString('es-CO');
+  if (!frac) return (neg ? '-' : '') + grouped + ' SMC';
+  return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(8, '0').replace(/0+$/, '') + ' SMC';
+}
+function formatSmh(smh) {
+  smh = Math.trunc(Number(smh) || 0);
+  return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
+}
+function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function moneyHtml(text) { return `<span class="smc">${api.esc(text)}</span>`; }
+function unidadActiva() {
+  try { return localStorage.getItem('lifeinc.unidad') === 'SMH' ? 'SMH' : 'SMC'; } catch (e) { return 'SMC'; }
+}
+function formatSai(subs) { return unidadActiva() === 'SMH' ? formatSmh(subs) : formatSmc(subs); }
+function rewardSmh(minedSmh) {
+  minedSmh = Math.trunc(Number(minedSmh) || 0);
+  const cap = (MAX_SUPPLY - 210000) * SUBS;
+  if (minedSmh >= cap) return 0;
+  const era = Math.floor(minedSmh / HALVING_SMH);
+  let reward = era >= 53 ? 0 : Math.floor(INITIAL_REWARD_SMH / (2 ** era));
+  const remaining = cap - minedSmh;
+  if (reward > remaining) reward = remaining;
+  return reward;
+}
+function rewardSai(minedSmc) {
+  const smh = rewardSmh(smcToSmh(minedSmc));
+  return smh % SUBS === 0 ? smh / SUBS : smh / SUBS;
+}
+function ensureSmh(econ) {
+  if (!econ) return econ;
+  if (econ.amountUnit !== 'SMH' || econ.minedSmh == null) {
+    econ.minedSmh = smcToSmh(econ.mined || 0);
+    delete econ.mined;
+    econ.amountUnit = 'SMH';
+  }
+  econ.minedSmh = Math.trunc(econ.minedSmh || 0);
+  return econ;
 }
 function hashBlock(prev, ts, txs) {
   return sha256hex(prev + '\n' + String(ts) + '\n' + stableStringify(txs));
@@ -81,11 +145,12 @@ function verifyBlock(block, prev) {
   return block.hash === hashBlock(block.prev, block.ts, block.txs);
 }
 function emptyEcon(disclaimer) {
-  const txs = [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: subunits(TREASURY), note: 'Reserva inicial de SaiMonCoins (no es dinero real).' }];
+  const txs = [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: TREASURY_SMH, note: 'Reserva inicial de SaiMonCoins (no es dinero real).' }];
   const ts = 0, h = hashBlock(GENESIS_PREV, ts, txs);
   return {
-    mined: 0,
-    wallets: { tesoro_genesis: subunits(TREASURY), puesto_frutas: 0 },
+    minedSmh: 0,
+    amountUnit: 'SMH',
+    wallets: { tesoro_genesis: TREASURY_SMH, puesto_frutas: 0 },
     blocks: [{ height: 0, ts, prev: GENESIS_PREV, hash: h, txs }],
     mempool: [],
     disclaimer: disclaimer || 'Las SaiMonCoins (SMC) son sólo una moneda del juego. No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.',
@@ -100,6 +165,9 @@ function walletSubs(name) { return (api.S.econ && api.S.econ.wallets && api.S.ec
 function syncButton() {
   const b = $('#b-montar');
   if (b) b.textContent = api.S.mounted ? 'Bajar' : 'Montar';
+  const down = $('#b-bajar');
+  if (down) down.hidden = !api.S.mounted;
+  document.body.classList.toggle('mounted', !!api.S.mounted);
 }
 function paintHud() {
   const el = $('#sai-saldo');
@@ -107,7 +175,22 @@ function paintHud() {
   const subs = walletSubs(walletName());
   el.textContent = formatSai(subs);
   const chip = $('#sai-chip');
-  if (chip) chip.title = `Minadas ${(api.S.econ.mined || 0).toLocaleString('es-CO')} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${rewardSai(api.S.econ.mined)} SMC · 1 SMC = 100.000.000 saimonitos · simulación, sin valor real`;
+  if (chip) {
+    const extra = api.S.supply
+      ? (api.S.supply.guest
+        ? ' Invitado: puedes jugar y recoger objetos, no SMC.'
+        : ` Tope de hoy ${formatPair(api.S.supply.dailyCapSubs || 0)}. Te quedan ${formatPair(api.S.supply.remainingSubs || 0)}.`)
+      : '';
+    chip.title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))}${extra} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
+    if (!chip.dataset.unidad) {
+      chip.dataset.unidad = '1';
+      chip.addEventListener('click', () => {
+        try { localStorage.setItem('lifeinc.unidad', unidadActiva() === 'SMH' ? 'SMC' : 'SMH'); } catch (e) {}
+        paintHud();
+        if (window.Banco) Banco.paint();
+      });
+    }
+  }
   syncButton();
 }
 function ensureWallet() {
@@ -148,14 +231,14 @@ function libroProgress(id) {
 }
 function localMint() {
   ensureWallet();
-  const reward = rewardSai(api.S.econ.mined);
-  if (reward <= 0) { api.game('Se alcanzó el tope minable de SMC.', 'aviso'); return 0; }
-  const subs = subunits(reward);
-  api.S.econ.mined += reward;
+  ensureSmh(api.S.econ);
+  const subs = rewardSmh(api.S.econ.minedSmh);
+  if (subs <= 0) { api.game('Se alcanzó el tope minable de SMC.', 'aviso'); return 0; }
+  api.S.econ.minedSmh += subs;
   creditNamed(walletName(), subs);
   pushTx({ type: 'mint', to: walletName(), amountSubs: subs, note: 'Emisión por bateada de oro fluvial' });
   libroProgress('lavar_oro_sai');
-  api.game(`El río emite <b>${api.esc(formatSai(subs))}</b>. Es una simulación: no es dinero real.`, 'oro');
+  api.game(`El río emite <b>${api.esc(formatPair(subs))}</b>. Es una simulación: no es dinero real.`, 'oro');
   return subs;
 }
 function payLocal(dest, sai, note) {
@@ -168,6 +251,92 @@ function payLocal(dest, sai, note) {
   libroProgress('pagar_alguien');
   api.game(`Pagas ${api.esc(formatSai(subs))} a <b>${api.esc(dest)}</b>. Sólo dentro del juego.`, 'oro');
   return true;
+}
+const TREASURY_SMC = 210000;
+function issueLocal(amount, note, kind) {
+  ensureWallet();
+  ensureSmh(api.S.econ);
+  const room = Math.max(0, (MAX_SUPPLY - TREASURY_SMC) * SUBS - (api.S.econ.minedSmh || 0));
+  const requested = typeof amount === 'string' ? parseAmount(amount) : smcToSmh(amount);
+  const subs = Math.min(requested, room);
+  if (subs <= 0) { api.game('Se alcanzó el tope de 21.000.000 SMC.', 'aviso'); return 0; }
+  api.S.econ.minedSmh += subs;
+  creditNamed(walletName(), subs);
+  pushTx({ type: kind || 'mint', to: walletName(), amountSubs: subs, note: note || 'Emisión' });
+  return subs;
+}
+function noteLegacy(amount) {
+  if (api.S.migrationAck) return;
+  api.S.legacyCoins = Math.max(0, Number(amount) || 0);
+}
+function flushMigration() {
+  if (!api || api.S.migrationAck) return;
+  if (api.S.net && api.S.net.ok && api.S.net.ws) {
+    api.S.net.ws.send(JSON.stringify({ t: 'migrate', amount: api.S.legacyCoins || 0 }));
+    return;
+  }
+  if (/^https?:/.test(location.protocol)) return;
+  const got = api.S.legacyCoins ? issueLocal(api.S.legacyCoins, 'Conversión 1 moneda antigua del Jardín = 1 SMC', 'migrate') : 0;
+  api.S.migrationAck = true;
+  api.S.coins = 0;
+  api.save();
+  if (got) api.game('Se convirtieron las monedas antiguas a SMC, 1 a 1.', 'oro');
+}
+function onWelcome() { flushMigration(); }
+function localVault() {
+  if (!api.S.vault) api.S.vault = { smcSubs: 0, items: {} };
+  return api.S.vault;
+}
+function requestVault() {
+  if (api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'vault' }));
+  else if (window.Banco) Banco.paint(localVault());
+}
+function bankSmc(dir, amount) {
+  let subs;
+  try { subs = parseAmount(String(amount)); }
+  catch (e) { api.game('Monto no válido. Ejemplo: 1 SMC o 12.345 SMH.', 'aviso'); return; }
+  if (!(subs > 0)) return;
+  if (api.S.net.ok) {
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_smc' : 'withdraw_smc', amountSmh: subs }));
+    return;
+  }
+  const box = localVault();
+  if (dir === 'in') {
+    if (!debitNamed(walletName(), subs)) { api.game('No hay SMC suficientes en la billetera.', 'aviso'); return; }
+    box.smh = (box.smh || box.smcSubs || 0) + subs;
+    box.smcSubs = box.smh;
+    pushTx({ type: 'bank', from: walletName(), to: 'deposito', amountSubs: subs, note: 'Depósito en el banquito' });
+  } else {
+    const have = box.smh || box.smcSubs || 0;
+    if (have < subs) { api.game('El depósito no tiene tantas SMC.', 'aviso'); return; }
+    box.smh = have - subs;
+    box.smcSubs = box.smh;
+    creditNamed(walletName(), subs);
+    pushTx({ type: 'bank', from: 'deposito', to: walletName(), amountSubs: subs, note: 'Retiro del banquito' });
+  }
+  api.save();
+  if (window.Banco) Banco.paint(box);
+}
+function bankItem(dir, item, qty) {
+  qty = Number(qty);
+  if (!item || !(qty > 0)) return;
+  if (api.S.net.ok) {
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty }));
+    return;
+  }
+  const box = localVault();
+  box.items = box.items || {};
+  if (dir === 'in') {
+    if (!api.invRemove(item, qty)) { api.game('No llevas esa cantidad.', 'aviso'); return; }
+    box.items[item] = (box.items[item] || 0) + qty;
+  } else {
+    if ((box.items[item] || 0) < qty) { api.game('El depósito no tiene tanto.', 'aviso'); return; }
+    if (!api.invAdd(item, qty)) return;
+    box.items[item] -= qty;
+    if (!box.items[item]) delete box.items[item];
+  }
+  api.save();
+  if (window.Banco) Banco.paint(box);
 }
 function grantTreasury(sai, note) {
   ensureWallet();
@@ -182,10 +351,11 @@ function walletToken(name) { try { return localStorage.getItem(tokenKey(name || 
 function saveToken(name, token) { if (!token) return; try { localStorage.setItem(tokenKey(name), token); } catch (e) {} }
 function applyServer(m) {
   if (!m || !m.state) return;
-  const prev = api.S.econ ? api.S.econ.mined : 0;
+  const prev = api.S.econ ? (api.S.econ.minedSmh || 0) : 0;
   const st = m.state;
   if (!api.S.econ) api.S.econ = emptyEcon(st.disclaimer);
-  api.S.econ.mined = st.mined || 0;
+  ensureSmh(api.S.econ);
+  api.S.econ.minedSmh = st.minedSmh || 0;
   api.S.econ.disclaimer = st.disclaimer || api.S.econ.disclaimer;
   api.S.econ.ledgerResets = !!st.ledgerResets;
   api.S.econ.blockCount = st.blockCount || (st.blocks || []).length;
@@ -196,7 +366,7 @@ function applyServer(m) {
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
   if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
-  if ((api.S.econ.mined || 0) > prev) libroProgress('lavar_oro_sai');
+  if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
 }
 function blockOk(blocks, b) {
@@ -213,16 +383,16 @@ function renderLibro() {
   const disc = (api.S.econ.disclaimer || (F && F.economy && F.economy.disclaimer) || '') + ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.';
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
-  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} 1 SMC = 100.000.000 saimonitos.</p>
-    <p>Minadas: <b>${(api.S.econ.mined || 0).toLocaleString('es-CO')}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · Premio actual: <b>${rewardSai(api.S.econ.mined)} SMC</b> · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} ${moneyHtml('1 SMC = 100.000.000 SMH')}.</p>
+    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio de la era: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}${api.S.supply && !api.S.supply.guest ? ` · Tope de hoy: ${moneyHtml(formatPair(api.S.supply.dailyCapSubs || 0))} · Quedan ${moneyHtml(formatPair(api.S.supply.remainingSubs || 0))}` : ''} · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
     ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
       const ok = blockOk(blocks, b);
       const txs = b.txs || [];
       return `<article class="bloque"><header>Bloque #${b.height} · ${ok ? 'hash válido' : 'NO COINCIDE'}</header>
-        <div class="hash"><small>prev</small> ${api.esc(b.prev)}</div>
-        <div class="hash"><small>hash</small> ${api.esc(b.hash)}</div>
-        <ul>${txs.map(tx => `<li>${api.esc(tx.type)} ${tx.from ? api.esc(tx.from) + ' → ' : ''}${api.esc(tx.to || '')} ${formatSai(tx.amountSubs || 0)}${tx.note ? ' · ' + api.esc(tx.note) : ''}</li>`).join('')}</ul>
+        <div class="hash codigo-largo"><small>prev</small> ${api.esc(b.prev)}</div>
+        <div class="hash codigo-largo"><small>hash</small> ${api.esc(b.hash)}</div>
+        <ul>${txs.map(tx => `<li>${api.esc(tx.type)} ${tx.from ? api.esc(tx.from) + ' → ' : ''}${api.esc(tx.to || '')} ${moneyHtml(formatSai(tx.amountSubs || 0))}${tx.note ? ' · ' + api.esc(tx.note) : ''}</li>`).join('')}</ul>
         <button type="button" class="ver-hash" data-h="${b.height}">Verificar hash</button></article>`;
     }).join('')}</div>`;
   const older = $('#libro-mas');
@@ -325,9 +495,14 @@ function talkProfesora() {
     after = () => {
       api.S.libro.turnedIn = true;
       const r = (api.S.libro.def && api.S.libro.def.reward) || {};
-      if (r.coins) grantTreasury(r.coins, 'Recompensa de El Libro Mayor');
+      if (r.coins) {
+        if (api.S.net && api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'quest', id: 'el_libro_mayor' }));
+        else grantTreasury(r.coins, 'Recompensa de El Libro Mayor');
+      }
       for (const [k, v] of Object.entries(r.xp || {})) api.addXp(k, v);
-      api.game('¡El Libro Mayor completado! +' + (r.coins || 0) + ' SMC. No es dinero real.', 'oro');
+      api.game(api.S.net && api.S.net.ok
+        ? '¡El Libro Mayor completado! El tesoro paga sólo hasta el tope de hoy. El resto queda en la reserva.'
+        : '¡El Libro Mayor completado! +' + (r.coins || 0) + ' SMC. No es dinero real.', 'oro');
       api.save(); api.renderAll();
     };
   } else if (api.S.libro.turnedIn) lines = d.after;
@@ -345,10 +520,13 @@ function offlineCommand(text) {
   if (cmd === 'libro') { toggleLibro(); return true; }
   if (cmd !== 'pagar') return false;
   if (api.S.net.ok) return false;
-  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (SaiMonCoins, sólo en el juego)'); return true; }
-  const monto = parseFloat(String(parts.pop()).replace(',', '.'));
+  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (SMC o SMH, sólo en el juego)'); return true; }
+  let monto = parts.pop();
+  if (/^(smc|smh|simonchis?)$/i.test(monto) && parts.length >= 2) monto = parts.pop() + ' ' + monto;
   const dest = parts.join(' ');
-  if (!dest || !isFinite(monto)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;'); return true; }
+  let parsed = NaN;
+  try { parsed = parseAmount(monto); } catch (e) { parsed = NaN; }
+  if (!dest || !(parsed > 0)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt; SMC o SMH'); return true; }
   const names = new Set(['puesto_frutas']);
   for (const o of api.S.others.values()) names.add(o.name);
   const hit = [...names].find(n => n.toLowerCase() === dest.toLowerCase());
@@ -356,7 +534,17 @@ function offlineCommand(text) {
   payLocal(hit, monto, 'Transferencia /pagar');
   return true;
 }
+function rememberSupply(view) {
+  if (!api || !view) return;
+  api.S.supply = Object.assign({}, api.S.supply || {}, view);
+  paintHud();
+}
+function net() {
+  return api && api.S.net && api.S.net.ok ? api.S.net.ws : null;
+}
 function onNet(m) {
+  if (window.PowMint && PowMint.observe(m) && (m.t === 'pow_challenge' || m.t === 'pow_result')) return true;
+  if (m.t === 'issued' && m.libro && window.LibroMadre) LibroMadre.toast(m.libro);
   if (m.t === 'economy') {
     applyServer(m);
     if (api.S.pendingBuy && m.balanceSubs != null) {
@@ -365,6 +553,55 @@ function onNet(m) {
         /* el servidor ya descontó; el mango se entrega con pay_result */
       }
     }
+    return true;
+  }
+  if (m.t === 'smelt_result') {
+    if (m.needPow) {
+      const box = document.getElementById('forge-result');
+      if (box) box.textContent = m.reason || 'Calculando la prueba de trabajo. El mineral sigue en la mochila.';
+      return true;
+    }
+    const pending = api.S.pendingSmelt;
+    api.S.pendingSmelt = null;
+    if (m.ok && pending && api.applySmelt) {
+      api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
+      if (m.amountText) {
+        const done = document.getElementById('forge-result');
+        if (done) done.textContent = `La fundidora acreditó ${m.amountText} tras la prueba de trabajo. No sale de las monedas de la mochila.`;
+      }
+    } else api.game(m.reason || 'La fundidora no acreditó las SMC.', 'aviso');
+    return true;
+  }
+  if (m.t === 'migrate_result') {
+    api.S.migrationAck = true;
+    api.S.coins = 0;
+    api.save();
+    if (!m.already && m.credited) api.game(`Conversión ${m.rate}:1. Entraron ${formatPair(m.credited)}.`, 'oro');
+    return true;
+  }
+  if (m.t === 'vault') {
+    if (window.Banco) Banco.paint(m.account || { smcSubs: 0, items: {} });
+    return true;
+  }
+  if (m.t === 'vault_item') {
+    if (m.op === 'deposit') api.invRemove(m.item, m.qty);
+    else api.invAdd(m.item, m.qty);
+    return true;
+  }
+  if (m.t === 'shift') {
+    if (m.paidSmh || m.paid) api.game(`Turno cumplido: ${m.amountText || formatPair(m.paidSmh || m.paid)}. ${m.note || 'No es dinero real.'}`, 'oro');
+    return true;
+  }
+  if (m.t === 'quest_result') {
+    if (m.amountText) api.game(`El tesoro acreditó ${m.amountText}. Lo que no cupo hoy sigue en la reserva.`, 'oro');
+    else if (m.reason) api.game(m.reason, 'aviso');
+    return true;
+  }
+  if (m.t === 'playtime') {
+    api.S.playtime = m.playtime || 0;
+    api.S.createdAt = m.createdAt || 0;
+    if (api.renderProfile) api.renderProfile();
+    api.save();
     return true;
   }
   if (m.t === 'pay_result') {
@@ -477,7 +714,7 @@ function restore(d) {
   if (!d || !api) return;
   if (d.libro) Object.assign(api.S.libro, d.libro);
   if (d.studied) api.S.studied = d.studied;
-  if (d.econ && d.econ.blocks && d.econ.wallets) api.S.econ = d.econ;
+  if (d.econ && d.econ.blocks && d.econ.wallets) api.S.econ = ensureSmh(d.econ);
 }
 function drawDialogFace(who) {
   const canvas = $('#dialogo-cara');
@@ -494,7 +731,7 @@ function wireLessonButtons() {
 }
 function autotest(ok) {
   ok(!!F && F.economy.symbol === 'SMC' && F.economy.unit === 'SaiMonCoin' && F.economy.maxSupply === 21000000 && !(F.economy.alias || []).length, 'economía SMC / SaiMonCoins / 21 millones');
-  ok(rewardSai(0) === 50 && rewardSai(10500000) === 25, 'halving: 50 SMC y luego 25');
+  ok(rewardSai(0) === 1 && rewardSai(10500000) === 0.5, 'halving: 1 SMC y luego 0,5');
   ok(!!api.W().npcs.find(n => n.id === 'profesora_cadena' && n.name === 'Profesora de la Cadena' && !/Satoshi/i.test(n.name)), 'Profesora de la Cadena');
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
@@ -507,15 +744,16 @@ function autotest(ok) {
   api.S.player.x = api.S.player.fx = horse.x;
   api.S.player.y = api.S.player.fy = horse.y + 1;
   mountHorse(horse);
-  ok(!!api.S.mounted && speedMul() === 2, 'montar: velocidad ×2');
+  ok(!!api.S.mounted && speedMul() === 4, 'montar: velocidad ×4, el doble de la montura anterior');
+  ok(!!$('#b-bajar') && $('#b-bajar').hidden === false, 'botón Bajarse del caballo visible al montar');
   if (api.update) {
     const rider = api.S.player;
     rider.path = []; rider.x = rider.fx = 220 + off.x; rider.y = rider.fy = 70 + off.y;
-    for (let i = 1; i <= 8; i++) rider.path.push([220 + off.x + i, 70 + off.y]);
+    for (let i = 1; i <= 16; i++) rider.path.push([220 + off.x + i, 70 + off.y]);
     api.S.keys.clear();
     api.update(0.5);
     const travelled = rider.fx - (220 + off.x);
-    ok(travelled > 3.8 && travelled < 4.6, 'a caballo se recorren unas 4,2 casillas en medio segundo (' + travelled.toFixed(2) + ')');
+    ok(travelled > 7.6 && travelled < 9.2, 'a caballo se recorren unas 8,4 casillas en medio segundo (' + travelled.toFixed(2) + ')');
   }
   const water = (api.W().waterBodies.rio_claro.tiles || [])[0];
   ok(blocksTile(api.W(), water[0], water[1]) || api.W().collision[water[1]][water[0]] !== 0, 'el caballo no entra al agua');
@@ -530,7 +768,7 @@ function autotest(ok) {
   api.S.libro.started = true;
   const beforeSai = walletSubs(walletName());
   const got = localMint();
-  ok(got === subunits(50) && walletSubs(walletName()) > beforeSai, 'batear oro emite 50 SMC');
+  ok(got === subunits(1) && walletSubs(walletName()) > beforeSai, 'batear oro emite 1 SMC');
   ok(payLocal('puesto_frutas', 5, 'autotest'), 'pago al puesto de frutas');
   sealBlocks(Math.floor(Date.now() / 1000) + BLOCK_SECONDS + 5, true);
   const last = api.S.econ.blocks[api.S.econ.blocks.length - 1];
@@ -548,8 +786,10 @@ function speedMul() { return api.S.mounted ? ((F.mounts[0] && F.mounts[0].speed)
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
+  grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankItem,
+  rememberSupply, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
-  hashBlock, verifyBlock, emptyEcon, rewardSai, formatSai, walletToken, SUBS, GENESIS_PREV,
+  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, parseAmount, walletToken, SUBS, GENESIS_PREV,
 };
 const legal = document.getElementById('sai-legal');
 if (legal) legal.onclick = () => { const open = legal.classList.toggle('open'); legal.setAttribute('aria-expanded', open ? 'true' : 'false'); };

@@ -17,7 +17,3 @@ Ocho imágenes sin coincidencia exacta de píxeles se mantienen con procedencia 
 Las referencias geográficas del conjunto de datos se conservan. Una referencia no equivale a una licencia sobre material copiado de una página externa; no se reclama exclusividad sobre hechos ni sobre obras ajenas.
 
 La captura web de la caneca de Envigado no está incorporada ni se relicencia desde aquí. Otros componentes y aportes posteriores deberán añadir sus avisos antes de distribuirse. Este inventario no sustituye una verificación completa de titularidad.
-
-## UnifrakturMaguntia (versión GitHub)
-
-Archivo play/fonts/UnifrakturMaguntia-Book.ttf. Copyright (c) 2010 j. ‘mach’ wust y Copyright (c) 2009 Peter Wiegel. SIL OFL 1.1, con Reserved Font Name UnifrakturMaguntia. No se relicencia como obra de Simón. Aviso completo en LICENSES/UnifrakturMaguntia-OFL-1.1.txt, obtenido de https://github.com/google/fonts/blob/main/ofl/unifrakturmaguntia/OFL.txt .

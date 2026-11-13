@@ -13,4 +13,4 @@ El logo original fue aportado por el usuario y su adaptación dorada se produjo 
 
 La captura de Scaniverse de la caneca de Envigado no está incorporada al juego y no se relicencia mediante este aviso. Los recursos de procedencia pendiente se identifican en asset-manifest.json.
 
-La versión de GitHub incluye además UnifrakturMaguntia, SIL OFL 1.1; se conservan los avisos de sus autores.
+Los títulos y los importes usan una sans del sistema. Inter, si el navegador la descarga, es el respaldo común.

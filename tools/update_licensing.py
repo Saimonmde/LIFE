@@ -26,8 +26,8 @@ def source_files():
             continue
         if p.name == '.DS_Store' or p.name == 'lifein.json' or p.name.startswith('.env') or p.suffix in {'.pyc', '.pyo', '.pem', '.key'}:
             continue
-        allowed_dirs = {'play', 'movil', 'graphics', 'tools', 'LICENSES'}
-        allowed_root = set(NOTICES) | {'README.md', 'SCHEMA.md', 'server.py', 'jugar.sh', 'render.yaml', '.python-version', '.gitignore'}
+        allowed_dirs = {'play', 'movil', 'graphics', 'tools', 'LICENSES', 'legal'}
+        allowed_root = set(NOTICES) | {'README.md', 'SCHEMA.md', 'server.py', 'jugar.sh', 'render.yaml', 'requirements.txt', '.python-version', '.gitignore'}
         data_files = {
             'data/el-jardin.json', 'data/el-jardin.js', 'data/el-jardin.json.license', 'data/el-jardin.js.license',
             'data/simulacion.json', 'data/simulacion.json.license', 'README.md.license', 'SCHEMA.md.license',

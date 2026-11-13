@@ -107,6 +107,30 @@ class ParquesTests(unittest.TestCase):
         door = (226 + dx, 64 + dy)
         self.assertNotIn(door, {(node['x'], node['y']) for node in gold})
 
+    def test_envigado_props_spare_the_doors_and_the_path(self):
+        text = open(os.path.join(ROOT, 'play', 'envigado-park.js'), encoding='utf-8').read()
+        import re
+        spots = [(int(x), int(y)) for x, y in re.findall(r"dx: (\d+), dy: (\d+), id: '(?:banca_|anillo|columna|ovalo)", text)]
+        origin = (81, 255)
+        world = [(origin[0] + dx, origin[1] + dy) for dx, dy in spots]
+        forbidden = {(92, 268), (93, 267), (94, 267), (99, 263), (96, 266), (103, 273)}
+        forbidden |= {(x, y) for x in range(84, 87) for y in (273, 274)}
+        forbidden |= {(x, y) for x in range(83, 92) for y in (271, 272)}
+        self.assertTrue(forbidden.isdisjoint(world), sorted(set(world) & forbidden))
+        self.assertGreaterEqual(text.count("id: 'banca_"), 4)
+        self.assertGreaterEqual(text.count("id: 'anillo'"), 1)
+        self.assertIn('Columna', text)
+        self.assertIn('Óvalo', text)
+        block = json.load(open(os.path.join(ROOT, 'data', 'parque-envigado-bloque.json'), encoding='utf-8'))
+        self.assertEqual(len(block['props']['canecas']), 3)
+        self.assertEqual(len(block['props']['benches']), 4)
+        self.assertEqual([s['id'] for s in block['props']['sculptures']], ['anillo', 'columna', 'ovalo'])
+        layout = block['layout']
+        church = layout['church']
+        self.assertGreater(church['x'], 100)
+        self.assertGreater(church['y'], 266)
+        self.assertGreaterEqual(len(layout['trees']), 8)
+
     def test_horse_road_reaches_every_park(self):
         world = self.world
         width, height = world['width'], world['height']
