@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=envigado-r1">
+<link rel="stylesheet" href="style.css?v=brujula-r1">
 <link rel="stylesheet" href="movil.css?v=saimon-door-r3">
 <script src="movil.js?v=saimon-door-r3"></script>
 </head>
@@ -23,6 +23,8 @@
       <div class="barra vida"><i id="bar-vida"></i><span id="txt-vida">100 / 100</span></div>
       <div class="barra energia"><i id="bar-energia"></i><span id="txt-energia">100 / 100</span></div>
       <div id="mi-nivel">Nv. 1</div>
+      <div id="tiempo-jugado">Tiempo jugado: 0 min</div>
+      <div id="jugador-desde">Jugador desde: —</div>
     </div>
   </div>
   <div id="zona-nombre">El Jardín</div>
@@ -36,6 +38,7 @@
   <button class="ico" id="b-soc" title="Jugadores cercanos"><img src="../graphics/ui/social.png" alt=""></button>
   <button class="ico" id="b-noche" title="Ciclo día/noche cada 10 min (N previsualiza)"><img id="ico-noche" src="../graphics/ui/luna.png" alt=""></button>
   <button class="ico" id="b-ayuda" title="Ayuda (H)"><img src="../graphics/ui/ayuda.png" alt=""></button>
+  <button class="ico" id="b-tutorial" type="button" title="Cómo se juega">?</button>
   <button class="ico" id="b-libro" title="Libro Mayor (L)">L</button>
   <div id="ping"><i></i><span>sin conexión</span></div>
 </div>
@@ -99,8 +102,16 @@
   </form>
 </div>
 
-<div id="ayuda" hidden>
-  <h2>Cómo jugar en El Jardín</h2>
+<section id="tutorial" class="ventana" hidden>
+  <header>Cómo jugar <button type="button" class="x" id="tutorial-cerrar" aria-label="Cerrar tutorial">✕</button></header>
+  <div class="tutorial-cuerpo">
+    <p class="solo-escritorio"><b>Escritorio.</b> WASD o flechas caminan (siguen la cámara). Clic en el suelo para ir. M o E monta y desmonta; el botón Bajarse aparece a caballo. La Casa bancaria, junto al parque, guarda SMC y objetos. I inventario, K habilidades, L Libro Mayor, H ayuda.</p>
+    <p class="solo-movil"><b>Móvil.</b> El joystick o un toque en el suelo mueven. Pellizca para el zoom y arrastra para girar la vista. Montar y el Libro Mayor están en los botones grandes. La Casa bancaria está junto al parque. Los paneles se arrastran desde la barra y se pliegan con –.</p>
+    <button type="button" id="tutorial-saltar">Entendido</button>
+  </div>
+</section>
+<div id="ayuda" class="ventana" hidden>
+  <header>Cómo jugar en El Jardín <button type="button" class="x" id="btn-cerrar-ayuda" data-cierra="ayuda">✕</button></header>
   <ul>
     <li><b>Casa:</b> entras en tu casa colonial. La puerta (clic, toque o caminar hasta ella) sale al Parque de Envigado. El botón <b>Casa</b> vuelve. <b>Editar casa</b> mueve, rota, quita y coloca muebles; el plano queda guardado en este navegador.</li>
     <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr. Clic en algo para ir e interactuar.</li>
@@ -114,7 +125,7 @@
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
   </ul>
-  <button id="btn-cerrar-ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
+  <button type="button" id="btn-jugar" data-cierra="ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
 </div>
 <section id="city-map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
   <div class="city-map-panel"><header><span id="city-map-title">Mapa de SaimonCity</span><button id="city-map-close" aria-label="Cerrar mapa">✕</button></header>
@@ -137,6 +148,8 @@
 <script src="casa.js?v=saimon-door-r3"></script>
 <script src="envigado-park.js?v=smc-r2"></script>
 <script src="banco.js?v=smc-r1"></script>
+<script src="tutorial.js?v=brujula-r1"></script>
+<script src="paneles.js?v=brujula-r1"></script>
 <script src="game.js?v=smc-r1"></script>
 <script type="module" src="unified3d.js?v=smc-r3"></script>
 <script src="interface.js?v=saimon-door-r3"></script>

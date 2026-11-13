@@ -125,6 +125,11 @@ class ParquesTests(unittest.TestCase):
         self.assertEqual(len(block['props']['canecas']), 3)
         self.assertEqual(len(block['props']['benches']), 4)
         self.assertEqual([s['id'] for s in block['props']['sculptures']], ['anillo', 'columna', 'ovalo'])
+        layout = block['layout']
+        church = layout['church']
+        self.assertGreater(church['x'], 100)
+        self.assertGreater(church['y'], 266)
+        self.assertGreaterEqual(len(layout['trees']), 8)
 
     def test_horse_road_reaches_every_park(self):
         world = self.world

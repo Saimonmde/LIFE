@@ -18,7 +18,7 @@ function boot(api){
  const camera=new T.PerspectiveCamera(45,innerWidth/innerHeight,.1,600);
  const PITCH_MIN=10*Math.PI/180,PITCH_MAX=Math.PI/2;
  const clampYaw=v=>((v%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
- let yaw=.45,pitch=1.12,distance=32;
+ let yaw=0,pitch=1.12,distance=32;
  // Convert screen-relative input to the nearest walkable grid heading.
  api.keyboardDirection=(dx,dy)=>{
   if(stickX||stickY){dx=stickX;dy=stickY;}
@@ -143,7 +143,7 @@ function boot(api){
  }
 
  const dynamic=[];
- for(const d of W.decorations){if(d.type==='building'){house(d.x,d.y,d.w||3,d.h||3,4,'#bc875f');}else sprite(d.sprite||d.frames?.[0],d.x,d.y);}
+ for(const d of W.decorations){if(d.type==='building'){house(d.x,d.y,d.w||3,d.h||3,4,'#bc875f');}else if(d.type==='canopy'||d.type==='casa_envigado'){/* los dibuja envigado-props */}else sprite(d.sprite||d.frames?.[0],d.x,d.y);}
  function house(x,y,w,d,h,c){const ground=height(x,y),cx=(x+w/2)*2,cz=(y+d/2)*2;box(cx,ground+h/2,cz,w*2,h,d*2,c);gableRoof(cx,ground+h,cz,w*2,d*2,c);for(let xx=0;xx<w;xx++)for(let level=0;level<Math.max(1,Math.floor(h/2.5));level++){for(const face of [-1,1])box((x+xx)*2+1,ground+1.5+level*2.3,cz+face*(d+.03),.7,1.25,.08,'#455653');}box(cx,ground+1,(y+d)*2+.08,1.1,2,.12,'#65503b');box(cx,ground+.2,(y+d)*2+.6,w*2+.6,.4,1.2,'#b9af98');}
  function church(x,y,w,d,brick){const ground=height(x,y);house(x,y,w,d,6,brick);const cx=(x+w/2)*2,front=(y+d)*2;box(cx,ground+7.2,front-2,3.4,14.4,3.4,brick);for(const h of [5,8.5,11.5]){box(cx,ground+h,front-.24,3.65,.25,3.65,'#d2b28d');for(const xx of [-.65,.65]){const arch=new T.Mesh(geometry('arch',()=>new T.CapsuleGeometry(.25,.9,4,8)),material('#49534d'));arch.position.set(cx+xx,ground+h-1,front-.12);arch.scale.z=.3;scene.add(arch);}}box(cx,ground+15.6,front-2,.13,2,.13,'#e2cda0');box(cx,ground+16,front-2,1.15,.12,.13,'#e2cda0');const clock=new T.Mesh(geometry('clock',()=>new T.CircleGeometry(.5,24)),material('#eee2bf'));clock.position.set(cx,ground+9.8,front-.25);scene.add(clock);box(cx,ground+9.95,front-.2,.06,.35,.05,'#4c4d40');box(cx+.13,ground+9.8,front-.2,.3,.05,.05,'#4c4d40');}
  function santaGertrudis(d){
@@ -284,7 +284,7 @@ function boot(api){
  function syncCameraControls(){const az=Math.round(clampYaw(yaw)*180/Math.PI)%360,zen=Math.round(90-pitch*180/Math.PI);for(const [input,value] of [[azimuthRange,az],[azimuthValue,az],[zenithRange,zen],[zenithValue,zen]])if(document.activeElement!==input&&input.value!==String(value))input.value=value;}
  for(const input of [azimuthRange,azimuthValue])input.oninput=()=>{if(input.value===''||!Number.isFinite(Number(input.value)))return;yaw=clampYaw(Math.max(0,Math.min(360,Number(input.value)))*Math.PI/180);syncCameraControls();};
  for(const input of [zenithRange,zenithValue])input.oninput=()=>{if(input.value===''||!Number.isFinite(Number(input.value)))return;pitch=(90-Math.max(0,Math.min(80,Number(input.value))))*Math.PI/180;syncCameraControls();};
- document.querySelector('#camera-home').onclick=()=>{yaw=.45;pitch=1.12;distance=36;syncCameraControls();};
+ document.querySelector('#camera-home').onclick=()=>{yaw=0;pitch=1.12;distance=36;syncCameraControls();};
 
  document.querySelector('#zoom-in').onclick=()=>distance=Math.max(10,distance-7);
  document.querySelector('#zoom-out').onclick=()=>distance=Math.min(110,distance+7);
@@ -306,8 +306,10 @@ function boot(api){
  function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}addEventListener('resize',resize);
  const colors={azul:'#376fc2',rojo:'#a33d30',verde:'#43843d',amarillo:'#d1aa36',morado:'#8858a5'};let color='';
  function updateTilt(dt){pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+((turning.has('ArrowUp')?1:0)-(turning.has('ArrowDown')?1:0))*dt*.8));}
- function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;}}else if(status._casaCam||status._bancoCam){status._casaCam=false;status._bancoCam=false;yaw=.45;pitch=1.12;distance=36;}
- if(status.view){if(status.view.yaw!=null)yaw=status.view.yaw;if(status.view.pitch!=null)pitch=status.view.pitch;if(status.view.distance!=null)distance=status.view.distance;status.view=null;}if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=activeScene();if(me.parent!==view)view.add(me);
+ function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;}}else if(status._casaCam||status._bancoCam){status._casaCam=false;status._bancoCam=false;yaw=0;pitch=1.12;distance=36;}
+ if(status.view){if(status.view.yaw!=null)yaw=status.view.yaw;if(status.view.pitch!=null)pitch=status.view.pitch;if(status.view.distance!=null)distance=status.view.distance;status.view=null;}
+ if(status.fly){const t=Math.min(1,(performance.now()-status.fly.t0)/status.fly.dur),e=1-Math.pow(1-t,3);distance=680*(1-e)+18*e;pitch=(0.55*(1-e)+1.08*e);yaw=0.2*(1-e);if(t>=1){status.fly=null;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}window.Tutorial?.afterFly?.();}}
+ if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=activeScene();if(me.parent!==view)view.add(me);
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  if(S.mounted)me.position.y+=.95;
@@ -326,5 +328,9 @@ function boot(api){
  document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
+ status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:5200};};
+ const skipFly=()=>{if(!status.fly)return;status.fly.t0=performance.now()-status.fly.dur;};
+ addEventListener('keydown',skipFly);addEventListener('pointerdown',skipFly);
+ if(window.LIFE_WANT_FLY)status.startFly();
  status.active=true;status.regions=W.regions.map(r=>r.id);status.ready=true;frame();
 }

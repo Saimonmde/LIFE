@@ -26,7 +26,7 @@ const CANALES = { global: 'Global', proximidad: 'Proximidad', clan: 'Clan', grup
 const S = window.__ELJARDIN = {
   me: { name: 'Viajero', color: 'azul', clan: '', group: '' }, houseEdit: false,
   player: { x: 0, y: 0, fx: 0, fy: 0, path: [], dir: 'down', animT: 0, busyUntil: 0, pending: null, repaths: 0 },
-  nodes: new Map(), animals: [], inv: [], sel: -1, xp: {}, coins: 0, energy: 100,
+  nodes: new Map(), animals: [], inv: [], sel: -1, xp: {}, coins: 0, energy: 100, playtime: 0, createdAt: 0, lastInput: 0,
   quest: { stage: 0, steps: {}, done: false, turnedIn: false },
   floaters: [], cam: { x: 0, y: 0 }, hover: null, dest: null, keys: new Set(), night: false, circadianIndex: null, nightOverride: null, mmZoom: 1,
   others: new Map(), net: { ws: null, ok: false, hasJoined: false, serverId: null, id: 0, ping: 0, lastSent: 0, sentKey: '' },
@@ -45,7 +45,7 @@ async function init() {
   await Simulacion.installWorld(W, S);
   Simulacion.bind({
     S, game, sys, esc, invAdd, save, addXp, renderAll, renderQuest, renderSkills, showDialog, act, update,
-    W: () => W, imgs, capataz: () => capatazImg, invRemove, invCount, applySmelt,
+    W: () => W, imgs, capataz: () => capatazImg, invRemove, invCount, applySmelt, renderProfile,
   });
   const bLibro = $('#b-libro'), bLibroMovil = $('#b-libro-movil'), bMontar = $('#b-montar'), bBajar = $('#b-bajar');
   if (bLibro) bLibro.onclick = () => Simulacion.toggleLibro();
@@ -120,11 +120,19 @@ function startGame() {
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = S.me.name; drawPortrait();
-  beginAtHome();
+  const fly = !AUTOTEST && !localStorage.getItem('lifeinc.vuelo.v1');
+  if (fly) {
+    if ((W.mapId || 'city') === 'casa') switchMap('city');
+    const stand = window.Casa.PARK_STAND;
+    S.player.x = S.player.fx = stand.x; S.player.y = S.player.fy = stand.y; S.player.dir = 'up';
+    window.LIFE_WANT_FLY = true;
+    if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
+  } else beginAtHome();
   Casa.load(S.me.name);
-  if ((W.mapId || 'city') === 'casa') placeAtHouseSpawn();
+  if (!fly && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Bienvenido a Medellín, ${esc(S.me.name)}.`);
   connect(); updateTutorial(true);
+  if (!fly && window.Tutorial) Tutorial.afterFly();
 }
 
 function rest() {
@@ -351,10 +359,10 @@ function addXp(skill, n) {
   if (level(S.xp[skill]) > before) game(`¡Subiste a nivel ${level(S.xp[skill])} de ${W.skills[skill].name}!`, 'oro');
 }
 function totalLevel() { return skillIds().filter(k => !W.skills[k].stub).reduce((a, k) => a + level(S.xp[k] || 0), 0) - (skillIds().filter(k => !W.skills[k].stub).length - 1); }
-function save() { try { localStorage.setItem('lifeinc.eljardin.v3', JSON.stringify({ inv: S.inv, xp: S.xp, coins: S.coins, legacyCoins: S.legacyCoins || 0, migrationAck: !!S.migrationAck, vault: S.vault || { smcSubs: 0, items: {} }, energy: S.energy, mapId:W.mapId||'city', cityReturn, resourceState:Object.fromEntries([...(caveNodes||[])].filter(([,n])=>n.state==='depleted').map(([id,n])=>[id,Date.now()+Math.max(0,n.until-now())])), mapRevision: W.expansion?.revision || 0, position: {x:S.player.x,y:S.player.y,dir:S.player.dir}, quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn }, libro: S.libro, studied: S.studied, econ: S.econ })); return true; } catch (e) { return false; } }
+function save() { try { localStorage.setItem('lifeinc.eljardin.v3', JSON.stringify({ inv: S.inv, xp: S.xp, coins: S.coins, legacyCoins: S.legacyCoins || 0, migrationAck: !!S.migrationAck, vault: S.vault || { smcSubs: 0, items: {} }, playtime: S.playtime || 0, createdAt: S.createdAt || 0, energy: S.energy, mapId:W.mapId||'city', cityReturn, resourceState:Object.fromEntries([...(caveNodes||[])].filter(([,n])=>n.state==='depleted').map(([id,n])=>[id,Date.now()+Math.max(0,n.until-now())])), mapRevision: W.expansion?.revision || 0, position: {x:S.player.x,y:S.player.y,dir:S.player.dir}, quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn }, libro: S.libro, studied: S.studied, econ: S.econ })); return true; } catch (e) { return false; } }
 function restore() {
   let d = null; try { d = JSON.parse(localStorage.getItem('lifeinc.eljardin.v3')); } catch (e) {}
-  if (d && Array.isArray(d.inv) && d.inv.every(s => !s || W.items[s.item])) { S.inv = d.inv; S.xp = d.xp || {}; S.coins = d.coins || 0; S.legacyCoins = d.legacyCoins || d.coins || 0; S.migrationAck = !!d.migrationAck; S.vault = d.vault || { smcSubs: 0, items: {} }; Object.assign(S.quest, d.quest || {});
+  if (d && Array.isArray(d.inv) && d.inv.every(s => !s || W.items[s.item])) { S.inv = d.inv; S.xp = d.xp || {}; S.coins = d.coins || 0; S.legacyCoins = d.legacyCoins || d.coins || 0; S.migrationAck = !!d.migrationAck; S.vault = d.vault || { smcSubs: 0, items: {} }; S.playtime = d.playtime || 0; S.createdAt = d.createdAt || 0; Object.assign(S.quest, d.quest || {});
     if (Number.isFinite(d.energy)) S.energy = Math.max(0, Math.min(100, d.energy));
     if(d.cityReturn)cityReturn=d.cityReturn;
     // Inventory, skills and quests carry over. The saved map and coordinates never decide where a session starts.
@@ -411,8 +419,23 @@ function renderSkills() {
   }
   if (window.Simulacion) { el.insertAdjacentHTML('beforeend', Simulacion.skillExtraHtml()); Simulacion.wireLessonButtons(); }
 }
+function formatPlay(seconds) {
+  const s = Math.max(0, Math.floor(Number(seconds) || 0));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}
+function formatSince(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts * 1000);
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
 function renderProfile() {
   $('#mi-nivel').textContent = `Nv. ${totalLevel()}`;
+  const tiempo = $('#tiempo-jugado'), desde = $('#jugador-desde');
+  if (tiempo) { tiempo.textContent = `Tiempo jugado: ${formatPlay(S.playtime)}`; tiempo.title = 'Lo cuenta el servidor. En Render vuelve a cero al redeploy.'; }
+  if (desde) desde.textContent = `Jugador desde: ${formatSince(S.createdAt)}`;
   $('#bar-energia').style.width = S.energy + '%'; $('#txt-energia').textContent = `${Math.round(S.energy)} / 100`;
 }
 function drawPortrait() {
@@ -565,7 +588,7 @@ function connect() {
   let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { return; }
   S.net.ws = ws;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined && !window.LIFE_WANT_FLY) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     const m = JSON.parse(ev.data);
@@ -622,6 +645,13 @@ function sendMove(force) {
   S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel() }));
 }
 setInterval(() => { if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'ping', c: performance.now() })); }, 3000);
+addEventListener('pointerdown', () => { S.lastInput = now(); }, true);
+addEventListener('keydown', () => { S.lastInput = now(); }, true);
+setInterval(() => {
+  if (!started || !S.net.ok) return;
+  const active = now() - (S.lastInput || 0) < 60000;
+  S.net.ws.send(JSON.stringify({ t: 'heartbeat', active }));
+}, 30000);
 const dist = (o) => Math.hypot(o.fx - S.player.fx, o.fy - S.player.fy);
 function renderNearby() {
   const el = $('#cercanos'), list = [...S.others.values()].filter(o => !o.bot).sort((a, b) => dist(a) - dist(b));
@@ -906,7 +936,9 @@ function toggleNight() {
 $('#b-inv').onclick = () => toggle('#w-inv'); $('#b-hab').onclick = () => toggle('#w-hab'); $('#b-mis').onclick = () => toggle('#p-misiones');
 $('#b-soc').onclick = () => toggle('#p-cercanos'); $('#b-noche').onclick = toggleNight; $('#b-ayuda').onclick = () => toggle('#ayuda');
 document.querySelectorAll('[data-cierra]').forEach(b => b.onclick = () => { $('#' + b.dataset.cierra).hidden = true; });
-$('#btn-cerrar-ayuda').onclick = () => { $('#ayuda').hidden = true; };
+const cerrarAyuda = () => { $('#ayuda').hidden = true; };
+const btnAyuda = $('#btn-cerrar-ayuda'); if (btnAyuda) btnAyuda.onclick = cerrarAyuda;
+const btnJugar = $('#btn-jugar'); if (btnJugar) btnJugar.onclick = cerrarAyuda;
 $('#btn-reiniciar').onclick = () => { localStorage.removeItem('lifeinc.eljardin.v3'); location.reload(); };
 function resize() { const r = devicePixelRatio || 1; cv.width = innerWidth * r; cv.height = innerHeight * r; }
 addEventListener('resize', resize);
