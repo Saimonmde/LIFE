@@ -22,6 +22,10 @@ import accounts as ACC
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 BLOCKED = ('/references', '/tools', '/server.py', '/state')
+LEGAL_PAGES = {
+    '/privacidad': 'legal/privacidad.html',
+    '/terminos': 'legal/terminos.html',
+}
 PROX_TILES = 15           # 30 m con 2 m por casilla
 MAX_TEXT = 160
 CHANNELS = ('global', 'proximidad', 'clan', 'grupo')
@@ -795,6 +799,18 @@ async def try_auth(method, path, target, headers, body):
     return auth_response('404 Not Found', {'error': 'no existe'}, headers)
 
 
+def legal_page(path):
+    """Páginas públicas, sin sesión: /privacidad y /terminos."""
+    rel = LEGAL_PAGES.get('/' + path.strip('/'))
+    if not rel:
+        return None
+    full = os.path.join(ROOT, rel)
+    if not os.path.isfile(full):
+        return None
+    with open(full, 'rb') as handle:
+        return handle.read()
+
+
 # ---------------- HTTP estático ----------------
 async def handle(reader, writer):
     try:
@@ -881,6 +897,12 @@ async def handle(reader, writer):
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
+    if method in ('GET', 'HEAD'):
+        page = legal_page(path)
+        if page is not None:
+            writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-cache\r\nContent-Length: {len(page)}\r\nConnection: close\r\n\r\n'.encode())
+            if method == 'GET': writer.write(page)
+            await writer.drain(); writer.close(); return
     if path in ('/', ''):
         writer.write(b'HTTP/1.1 302 Found\r\nLocation: /play/\r\nContent-Length: 0\r\n\r\n'); await writer.drain(); writer.close(); return
     if path.endswith('/'): path += 'index.html'
