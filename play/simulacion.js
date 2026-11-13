@@ -480,6 +480,13 @@ function onNet(m) {
     return true;
   }
   if (m.t === 'quest_result') return true;
+  if (m.t === 'playtime') {
+    api.S.playtime = m.playtime || 0;
+    api.S.createdAt = m.createdAt || 0;
+    if (api.renderProfile) api.renderProfile();
+    api.save();
+    return true;
+  }
   if (m.t === 'pay_result') {
     if (m.ok && api.S.pendingBuy && m.to === 'puesto_frutas') {
       api.S.pendingBuy = false;

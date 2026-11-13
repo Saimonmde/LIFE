@@ -37,6 +37,52 @@ export function placeEnvigadoProps(T, scene, height) {
   buildSkate(T, scene, height, park, concrete, paver);
   buildBenches(T, scene, height, park);
   buildSculptures(T, scene, height, park);
+  buildCanopy(T, scene, height);
+  buildHouses(T, scene, height);
+}
+
+function buildCanopy(T, scene, height) {
+  const world = window.LiveInk?.world;
+  if (!world) return;
+  const trunk = new T.MeshLambertMaterial({ color: '#6b4a2c', flatShading: true });
+  const leaf = new T.MeshLambertMaterial({ color: '#2f6a32', flatShading: true });
+  for (const d of world.decorations || []) {
+    if (d.type !== 'canopy') continue;
+    const g = new T.Group();
+    g.position.set(d.x * 2 + 1, height(d.x, d.y), d.y * 2 + 1);
+    const stem = new T.Mesh(new T.CylinderGeometry(0.18, 0.28, 2.2, 6), trunk);
+    stem.position.y = 1.1;
+    const crown = new T.Mesh(new T.IcosahedronGeometry(1.35, 0), leaf);
+    crown.position.y = 2.8;
+    const crown2 = new T.Mesh(new T.IcosahedronGeometry(0.9, 0), leaf);
+    crown2.position.set(0.6, 3.3, 0.3);
+    stem.castShadow = crown.castShadow = crown2.castShadow = true;
+    g.add(stem, crown, crown2);
+    scene.add(g);
+  }
+}
+
+function buildHouses(T, scene, height) {
+  const world = window.LiveInk?.world;
+  if (!world) return;
+  const wall = new T.MeshLambertMaterial({ color: '#f3ead7', flatShading: true });
+  const roof = new T.MeshLambertMaterial({ color: '#a85a3a', flatShading: true });
+  const box = new T.BoxGeometry(1, 1, 1);
+  for (const d of world.decorations || []) {
+    if (d.type !== 'casa_envigado') continue;
+    const floors = d.floors || 2;
+    const g = new T.Group();
+    const y0 = height(d.x, d.y);
+    const body = new T.Mesh(box, wall);
+    body.scale.set(d.w * 2, floors * 1.35, d.h * 2);
+    body.position.set((d.x + d.w / 2) * 2, y0 + floors * 0.67, (d.y + d.h / 2) * 2);
+    const cap = new T.Mesh(box, roof);
+    cap.scale.set(d.w * 2 + 0.4, 0.45, d.h * 2 + 0.4);
+    cap.position.set(body.position.x, y0 + floors * 1.35 + 0.2, body.position.z);
+    body.castShadow = cap.castShadow = true;
+    g.add(body, cap);
+    scene.add(g);
+  }
 }
 
 function buildBenches(T, scene, height, park) {

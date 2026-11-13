@@ -22,7 +22,7 @@ La clave privada sale de la variable `NFT_PRIVATE_KEY` (64 caracteres hexadecima
 - `GET /api/nft/<id>` devuelve JSON compatible con metadatos ERC-721, por si más adelante se ancla. Hoy no hay cadena pública ni gas.
 - `python3 tools/verify_nft.py state/nft.json` comprueba eslabones y firmas.
 
-`state/` vive en el disco del servidor. En Render ese disco se pierde al redeploy: el libro, los certificados y el depósito vuelven a empezar. Está dicho en el aviso del juego.
+`state/` vive en el disco del servidor. En Render ese disco se pierde al redeploy: el libro, los certificados, el depósito y el tiempo jugado (`state/players.json`) vuelven a empezar. Está dicho en el aviso del juego. El tiempo sólo suma sesiones con latido (30 s) y corta a los 90 s de silencio.
 
 ## Banco
 

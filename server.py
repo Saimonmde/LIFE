@@ -14,6 +14,7 @@ import economy as ECO
 import ed25519
 import nft as NFT
 import payout as PAYOUT
+import playtime as PLAY
 import vault as VAULT
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +37,8 @@ ECON = ECO.load_state(ECON_PATH)
 NFT_PATH = os.path.join(ROOT, 'state', 'nft.json')
 NFT_KEY_PATH = os.path.join(ROOT, 'state', 'nft-key.json')
 VAULT_PATH = os.path.join(ROOT, 'state', 'vault.json')
+PLAY_PATH = os.path.join(ROOT, 'state', 'players.json')
+PLAYERS = PLAY.load(PLAY_PATH)
 NFT_SEED = NFT.load_seed(NFT_KEY_PATH)
 NFT_PUB = ed25519.publickey(NFT_SEED)
 NFT_CHAIN = NFT.load_chain(NFT_PATH, NFT_PUB.hex())
@@ -58,6 +61,14 @@ def save_nft():
 
 def save_vault():
     VAULT.save(VAULT_PATH, VAULT_STATE)
+
+def save_play():
+    PLAY.save(PLAY_PATH, PLAYERS)
+
+def play_for(name, active=True):
+    info = PLAY.beat(PLAYERS, name, active=active)
+    save_play()
+    return info
 
 def certify(owner, amount, foundry, tile):
     token = NFT.issue(NFT_CHAIN, NFT_SEED, owner, amount, foundry, tile)
@@ -486,6 +497,8 @@ async def handle_ws(reader, writer):
                     broadcast({'t': 'join', 'player': c.public()}, exclude=c)
                     broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
                 send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok))
+                if c.wallet_ok:
+                    send(c, {'t': 'playtime', **play_for(c.name, active=True)})
                 if not c.wallet_ok:
                     send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
             elif t == 'move' and c.hello:
@@ -530,6 +543,8 @@ async def handle_ws(reader, writer):
                 migrate_for(c, m.get('amount'))
             elif t == 'quest' and c.hello:
                 quest_for(c, m.get('id'))
+            elif t == 'heartbeat' and c.hello and c.wallet_ok:
+                send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
             elif t == 'vault' and c.hello:
                 vault_for(c)
             elif t == 'deposit_smc' and c.hello:
@@ -577,6 +592,21 @@ async def handle(reader, writer):
         body = json.dumps({'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                            'playersOnline': sum(c.hello and not c.bot for c in clients.values())}).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
+    if path.startswith('/api/jugador') and method in ('GET', 'HEAD'):
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
+        name = clean((query.get('nombre') or [''])[0], 16)
+        token = headers.get('x-wallet-token', '')
+        stored = (ECON.get('walletTokens') or {}).get(name)
+        if not name or not token_matches(stored, token):
+            body = '{"error":"solo el propio jugador"}'.encode()
+            writer.write(f'HTTP/1.1 403 Forbidden\r\nContent-Type: application/json\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            if method == 'GET': writer.write(body)
+            await writer.drain(); writer.close(); return
+        box = PLAY.ensure(PLAYERS, name)
+        body = json.dumps(PLAY.public(box), ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
     if path.startswith('/api/nft') and method in ('GET', 'HEAD'):
