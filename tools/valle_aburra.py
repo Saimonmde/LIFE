@@ -590,6 +590,15 @@ def main():
 
     road_points = []
     for park in ordered:
+        if park['id'] == 'envigado':
+            # La carretera del valle rodea la plaza: no la cruza con guardarraíl.
+            px, py = park['x'], park['y']
+            east = min(width - 2, px + 16)
+            south = min(height - 2, py + 24)
+            north = max(1, py - 26)
+            road_points.append({'x': east, 'y': south, 'height': elev[south][east]})
+            road_points.append({'x': east, 'y': north, 'height': elev[north][east]})
+            continue
         road_points.append({'x': park['x'], 'y': park['y'], 'height': elev[park['y']][park['x']]})
     world['roads3d'] = [{'id': 'valle', 'name': 'Camino del Valle de Aburrá', 'points': road_points}]
     if mirador:

@@ -198,23 +198,32 @@ function paintHud() {
   const el = $('#sai-saldo');
   if (!el || !api.S.econ) return;
   const subs = walletSubs(walletName());
-  el.textContent = formatSai(subs);
+  const text = formatSai(subs);
+  el.textContent = text;
+  const pill = $('#smc-pill-saldo');
+  if (pill) pill.textContent = text;
   const chip = $('#sai-chip');
+  const always = $('#smc-pill');
+  function bindUnit(node) {
+    if (!node || node.dataset.unidad) return;
+    node.dataset.unidad = '1';
+    node.addEventListener('click', () => {
+      try { localStorage.setItem('lifeinc.unidad', unidadActiva() === 'SMH' ? 'SMC' : 'SMH'); } catch (e) {}
+      paintHud();
+      if (window.Banco) Banco.paint();
+    });
+  }
+  bindUnit(always);
   if (chip) {
     const extra = api.S.supply
       ? (api.S.supply.guest
         ? ' Invitado: puedes jugar y recoger objetos, no SMC.'
         : ` Tope de hoy ${formatPair(api.S.supply.dailyCapSubs || 0)}. Te quedan ${formatPair(api.S.supply.remainingSubs || 0)}.`)
       : '';
-    chip.title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))}${extra} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
-    if (!chip.dataset.unidad) {
-      chip.dataset.unidad = '1';
-      chip.addEventListener('click', () => {
-        try { localStorage.setItem('lifeinc.unidad', unidadActiva() === 'SMH' ? 'SMC' : 'SMH'); } catch (e) {}
-        paintHud();
-        if (window.Banco) Banco.paint();
-      });
-    }
+    const title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))}${extra} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
+    chip.title = title;
+    if (always) always.title = title;
+    bindUnit(chip);
   }
   const plata = (api.S.plata && api.S.plata.balanceSph) || 0;
   const plataText = formatPlata(plata);
@@ -409,6 +418,7 @@ function applyServer(m) {
   const byH = new Map((api.S.econ.blocks || []).map(b => [b.height, b]));
   for (const b of st.blocks || []) byH.set(b.height, b);
   api.S.econ.blocks = [...byH.values()].sort((a, b) => a.height - b.height);
+  if (st.historia) api.S.econ.historia = st.historia;
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
   if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
@@ -426,15 +436,52 @@ function blockOk(blocks, b) {
   if (prev && prev.hash !== b.prev) return false;
   return verifyBlock(b, b.prev);
 }
+function libroWhen(ts) {
+  if (!ts) return 'Génesis';
+  try {
+    return new Date(ts * 1000).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'short', timeStyle: 'short' });
+  } catch (e) {
+    return new Date(ts * 1000).toLocaleString('es-CO');
+  }
+}
+function historiaRows() {
+  if (api.S.econ.historia && api.S.econ.historia.length) return api.S.econ.historia;
+  if (window.Historia) return Historia.filas(api.S.econ);
+  return [];
+}
 function renderLibro() {
   const el = $('#libro-cuerpo');
   if (!el || !api || !api.S.econ) return;
   const blocks = api.S.econ.blocks || [];
-  const disc = (api.S.econ.disclaimer || (F && F.economy && F.economy.disclaimer) || '') + ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.';
+  const disc = 'Simulación: las SMC no son dinero real, no se retiran y el libro se reinicia si el servidor se apaga.';
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
-  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} ${moneyHtml('1 SMC = 100.000.000 SMH')}.</p>
-    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio de la era: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}${api.S.supply && !api.S.supply.guest ? ` · Tope de hoy: ${moneyHtml(formatPair(api.S.supply.dailyCapSubs || 0))} · Quedan ${moneyHtml(formatPair(api.S.supply.remainingSubs || 0))}` : ''} · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+  const filtro = el.dataset.filtro || 'todo';
+  const rows = historiaRows().filter(row => filtro === 'todo' || row.type === filtro);
+  const body = rows.length ? rows.slice().reverse().map(row => `<tr title="${api.esc(row.note || '')}">
+      <td>${api.esc(libroWhen(row.ts))}</td>
+      <td>${api.esc(row.label || row.type || '')}</td>
+      <td class="num">${moneyHtml(formatSai(row.amountSubs || 0))}</td>
+      <td>${api.esc(row.account || '')}</td>
+      <td class="num">${moneyHtml(formatSai(row.balanceSubs || 0))}</td>
+    </tr>`).join('') : '<tr><td colspan="5" class="libro-vacio">Todavía no hay movimientos de este tipo.</td></tr>';
+  el.innerHTML = `<aside class="libro-guia" aria-label="Cómo funcionan las monedas">
+      <div class="libro-par"><img src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><p><b>SMC</b> es la moneda de oro. Es escasa: habrá como máximo <b>21 millones</b> para siempre. Esa cantidad no crece, como el Bitcoin.</p></div>
+      <div class="libro-par"><img src="../graphics/mining/moneda_plata.svg?v=fusion-r1" alt=""><p><b>SMP</b> es la moneda de plata. Es más abundante: <b>84 millones</b>, y se mina más fácil.</p></div>
+      <div class="libro-cambio" aria-hidden="true"><img src="../graphics/mining/moneda_plata.svg?v=fusion-r1" alt=""><span>× 100</span><span class="flecha">→</span><img src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><span>× 1</span></div>
+      <p>Al cambiar, la plata se quema y el oro sale de un fondo que recibe 1/5 de cada SMC nuevo.</p>
+      <p>Cada cuenta tiene un tope al día para minar y para cambiar; cuando se acaba, toca esperar al día siguiente.</p>
+    </aside>
+    <p class="aviso-legal">${api.esc(disc)} ${moneyHtml('1 SMC = 100.000.000 SMH')}.</p>
+    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio de la era: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}${api.S.supply && !api.S.supply.guest ? ` · Tope de hoy: ${moneyHtml(formatPair(api.S.supply.dailyCapSubs || 0))} · Quedan ${moneyHtml(formatPair(api.S.supply.remainingSubs || 0))}` : ''}</p>
+    <div class="libro-tabs" role="tablist">
+      <button type="button" data-filtro="todo">Todo</button>
+      <button type="button" data-filtro="minado">Minado</button>
+      <button type="button" data-filtro="cambio">Cambio plata→oro</button>
+      <button type="button" data-filtro="fusion">Fusión</button>
+    </div>
+    <table class="libro-tabla"><thead><tr><th>Fecha</th><th>Tipo</th><th>Monto</th><th>Cuenta</th><th>Saldo</th></tr></thead><tbody>${body}</tbody></table>
+    <details class="libro-bloques"><summary>Bloques y hashes</summary>
     ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
       const ok = blockOk(blocks, b);
@@ -444,7 +491,11 @@ function renderLibro() {
         <div class="hash codigo-largo"><small>hash</small> ${api.esc(b.hash)}</div>
         <ul>${txs.map(tx => `<li>${api.esc(tx.type)} ${tx.from ? api.esc(tx.from) + ' → ' : ''}${api.esc(tx.to || '')} ${moneyHtml(formatSai(tx.amountSubs || 0))}${tx.note ? ' · ' + api.esc(tx.note) : ''}</li>`).join('')}</ul>
         <button type="button" class="ver-hash" data-h="${b.height}">Verificar hash</button></article>`;
-    }).join('')}</div>`;
+    }).join('')}</div></details>`;
+  el.querySelectorAll('.libro-tabs button').forEach(btn => {
+    btn.classList.toggle('activa', btn.dataset.filtro === filtro);
+    btn.onclick = () => { el.dataset.filtro = btn.dataset.filtro; renderLibro(); };
+  });
   const older = $('#libro-mas');
   if (older) older.onclick = () => { if (api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'ledger', before: oldest })); };
   el.querySelectorAll('.ver-hash').forEach(btn => btn.onclick = () => {

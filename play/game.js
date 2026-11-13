@@ -1044,13 +1044,25 @@ const TRAVEL_IDS=new Set(['barbosa','girardota','copacabana','bello','medellin',
 let travelPick=null;
 function travelName(id){const label=(W.mapLabels||[]).find(item=>item.id===id);return label?label.name:id;}
 function closeTravelAsk(){const box=$('#viaje-dialogo'); if(box) box.hidden=true; travelPick=null;}
+function openTravelAsk(pick, name){
+  travelPick=pick;
+  const box=$('#viaje-dialogo');
+  $('#viaje-pregunta').textContent='¿Teletransportarte a '+name+'?';
+  const yes=$('#viaje-si'); if(yes) yes.textContent='Confirmar';
+  const no=$('#viaje-no'); if(no) no.textContent='Cancelar';
+  box.hidden=false;
+  if(yes) yes.focus();
+}
 function askTravel(id){
   if(!started||!TRAVEL_IDS.has(id)) return;
-  travelPick=id;
-  const box=$('#viaje-dialogo');
-  $('#viaje-pregunta').textContent='¿Quieres ir a '+travelName(id)+'?';
-  box.hidden=false;
-  $('#viaje-si').focus();
+  openTravelAsk(id, travelName(id));
+}
+function askMapSpot(x, y){
+  if(!started) return;
+  setMapPin(x, y);
+  const spot=nearestSafe(Math.floor(x), Math.floor(y));
+  if(!spot){ game('No se puede teletransportar ahí.', 'aviso'); return; }
+  openTravelAsk({ map:true, x:spot[0], y:spot[1] }, 'ese punto del mapa');
 }
 function canvasPoint(canvas,event){
   const rect=canvas.getBoundingClientRect();
@@ -1107,6 +1119,12 @@ function nearestSafe(tx,ty){
 }
 function confirmTravel(){
   const id=travelPick; if(!id) return;
+  if(typeof id==='object' && id.map){
+    const x=id.x, y=id.y;
+    closeTravelAsk();
+    flyTo(x, y, 'ese punto');
+    return;
+  }
   const name=travelName(id);
   closeTravelAsk();
   if(S.net.ok&&S.net.ws){ S.net.ws.send(JSON.stringify({t:'travel', id})); return; }
@@ -1225,7 +1243,7 @@ if (mapSurface) {
     if (!hit) return;
     const id = labelHit(hit.pt.x, hit.pt.y, (x, y) => [hit.frame.left + (x + .5) * hit.frame.scale, hit.frame.top + (y + .5) * hit.frame.scale], hit.frame.scale);
     if (id) { askTravel(id); return; }
-    setMapPin(hit.tx, hit.ty);
+    askMapSpot(hit.tx, hit.ty);
   };
   mapSurface.addEventListener('pointerup', endMapPointer);
   mapSurface.addEventListener('pointercancel', (e) => { mapPointers.delete(e.pointerId); if (mapPointers.size === 0) { mapDrag = null; mapPinch = 0; } });
@@ -1718,7 +1736,7 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel, damage: damagePlayer, markMap(x, y){ setMapPin(x, y); },
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
