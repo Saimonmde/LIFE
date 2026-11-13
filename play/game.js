@@ -97,6 +97,14 @@ async function init() {
   W.clientReady = true;
   if (prof && prof.name) { $('#l-nombre').value = prof.name; if (prof.color) S.me.color = prof.color; buildColorPicker(); }
   $('#login').hidden = false; $('#l-nombre').focus();
+  fetch('auth/providers').then(r => r.json()).then(p => {
+    const box = $('#login-cuentas'); if (!box) return;
+    const show = !!(p.google || p.facebook || p.registro);
+    box.hidden = !show;
+    const g = $('#b-google'); if (g) g.hidden = !p.google;
+    const f = $('#b-facebook'); if (f) f.hidden = !p.facebook;
+    const reg = $('#b-registro'); if (reg) reg.hidden = !p.registro;
+  }).catch(() => {});
 }
 function buildColorPicker() {
   const box = $('#l-colores'); box.innerHTML = '';
@@ -107,6 +115,23 @@ function buildColorPicker() {
     b.onclick = () => { S.me.color = c; buildColorPicker(); }; box.appendChild(b);
   }
 }
+function linkCookie() {
+  let token = '';
+  try { token = (window.Simulacion && Simulacion.walletToken && Simulacion.walletToken($('#l-nombre').value.trim())) || ''; } catch (e) {}
+  const name = ($('#l-nombre').value || '').trim();
+  document.cookie = 'life_link=' + encodeURIComponent(name + '|' + token) + '; Path=/; SameSite=Lax; Max-Age=600';
+}
+const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = 'auth/google'; };
+const bFacebook = $('#b-facebook'); if (bFacebook) bFacebook.onclick = () => { linkCookie(); location.href = 'auth/facebook'; };
+const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { const box = $('#registro'); if (box) box.hidden = !box.hidden; };
+const bPedir = $('#b-pedir-codigo'); if (bPedir) bPedir.onclick = () => {
+  fetch('auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), phone:$('#r-phone').value.trim(), password:$('#r-pass').value})}).then(r => r.json()).then(m => { $('#login-status').textContent = m.error || 'Te enviamos un código al correo y un SMS.'; });
+};
+const bVer = $('#b-verificar'); if (bVer) bVer.onclick = () => {
+  let token = '';
+  try { token = (window.Simulacion && Simulacion.walletToken && Simulacion.walletToken($('#l-nombre').value.trim())) || ''; } catch (e) {}
+  fetch('auth/verificar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), email_code:$('#r-email-code').value.trim(), phone_code:$('#r-phone-code').value.trim(), walletToken: token})}).then(r => r.json()).then(m => { if (m.user) { $('#l-nombre').value = m.user.wallet_name || m.user.name; $('#login-form').requestSubmit(); } else $('#login-status').textContent = m.error || 'No se pudo verificar.'; });
+};
 $('#login-form').onsubmit = (e) => {
   e.preventDefault();
   S.me.name = $('#l-nombre').value.trim().slice(0, 16) || 'Viajero';

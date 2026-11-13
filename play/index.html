@@ -96,7 +96,22 @@
     </div>
     <label>Nombre<input id="l-nombre" maxlength="16" required placeholder="Tu nombre"></label>
     <div class="colores" id="l-colores"></div>
-    <button type="submit">Entrar</button>
+    <button type="submit">Entrar con nombre</button>
+    <div id="login-cuentas" hidden>
+      <p class="login-o">o entra con una cuenta</p>
+      <button type="button" id="b-google" hidden>Entrar con Google</button>
+      <button type="button" id="b-facebook" hidden>Entrar con Facebook</button>
+      <button type="button" id="b-registro" hidden>Crear cuenta con correo y teléfono</button>
+    </div>
+    <div id="registro" hidden>
+      <label>Correo<input id="r-email" type="email" autocomplete="email"></label>
+      <label>Teléfono<input id="r-phone" inputmode="tel" placeholder="+573001112233" autocomplete="tel"></label>
+      <label>Contraseña<input id="r-pass" type="password" minlength="8" autocomplete="new-password"></label>
+      <button type="button" id="b-pedir-codigo">Enviar códigos</button>
+      <label>Código del correo<input id="r-email-code" inputmode="numeric" autocomplete="one-time-code"></label>
+      <label>Código del SMS<input id="r-phone-code" inputmode="numeric" autocomplete="one-time-code"></label>
+      <button type="button" id="b-verificar">Verificar y entrar</button>
+    </div>
     <a class="login-legal" href="licencias.html">© 2026 Simón · Licencias y créditos</a>
     <p id="login-status" role="status"></p>
   </form>

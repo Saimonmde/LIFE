@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# LIFE INC · El Jardín — un servicio web gratuito. Sin dependencias.
+# LIFE INC · El Jardín. Postgres (psycopg) sólo si DATABASE_URL está definida.
 services:
   - type: web
     name: lifein
@@ -8,6 +8,6 @@ services:
     branch: main
     autoDeploy: true
     autoDeployTrigger: commit
-    buildCommand: python3 tools/update_licensing.py --build-source-only
+    buildCommand: pip install -r requirements.txt && python3 tools/update_licensing.py --build-source-only
     startCommand: python3 server.py --host 0.0.0.0
     healthCheckPath: /healthz

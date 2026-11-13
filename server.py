@@ -16,6 +16,7 @@ import nft as NFT
 import payout as PAYOUT
 import playtime as PLAY
 import vault as VAULT
+import accounts as ACC
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -39,6 +40,8 @@ NFT_KEY_PATH = os.path.join(ROOT, 'state', 'nft-key.json')
 VAULT_PATH = os.path.join(ROOT, 'state', 'vault.json')
 PLAY_PATH = os.path.join(ROOT, 'state', 'players.json')
 PLAYERS = PLAY.load(PLAY_PATH)
+ACCOUNTS_PATH = os.path.join(ROOT, 'state', 'accounts.json')
+ACCOUNTS = ACC.load(ACCOUNTS_PATH)
 NFT_SEED = NFT.load_seed(NFT_KEY_PATH)
 NFT_PUB = ed25519.publickey(NFT_SEED)
 NFT_CHAIN = NFT.load_chain(NFT_PATH, NFT_PUB.hex())
@@ -64,6 +67,9 @@ def save_vault():
 
 def save_play():
     PLAY.save(PLAY_PATH, PLAYERS)
+
+def save_accounts():
+    ACC.save(ACCOUNTS_PATH, ACCOUNTS)
 
 def play_for(name, active=True):
     info = PLAY.beat(PLAYERS, name, active=active)
@@ -467,8 +473,9 @@ def arrival_position(resume=None):
                 seen.add(tile); queue.append(tile)
     return float(SPAWN[0]), float(SPAWN[1])
 
-async def handle_ws(reader, writer):
+async def handle_ws(reader, writer, cookie=''):
     c = Client(writer); clients[c.id] = c
+    c.user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
     try:
         while True:
             op, data = await asyncio.wait_for(read_frame(reader), 45)  # el cliente hace ping cada 3 s
@@ -483,11 +490,13 @@ async def handle_ws(reader, writer):
                 c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'city') else 'city'
                 if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
                 else: c.x, c.y = arrival_position(m.get('resume'))
-                c.name = unique_name(clean(m.get('name'), 16), c)
+                asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
+                token_src = c.user.get('wallet_token') if getattr(c, 'user', None) else m.get('walletToken')
+                c.name = unique_name(clean(asked, 16), c)
                 c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
                 c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
                 c.level = int(m.get('level') or 1);                 c.hello = True
-                presented = clean(m.get('walletToken'), 64)
+                presented = clean(token_src, 64)
                 owned = bind_wallet(c.name, presented)
                 c.wallet_ok = bool(owned)
                 c.wallet_token = owned or ''
@@ -565,6 +574,121 @@ async def handle_ws(reader, writer):
         try: writer.close()
         except Exception: pass
 
+def public_base(headers):
+    env = os.environ.get('PUBLIC_URL', '').strip().rstrip('/')
+    if env:
+        return env
+    proto = headers.get('x-forwarded-proto', 'http')
+    host = headers.get('x-forwarded-host') or headers.get('host') or '127.0.0.1'
+    return f'{proto}://{host}'
+
+
+def secure_cookie(headers):
+    return headers.get('x-forwarded-proto') == 'https' or bool(os.environ.get('RENDER'))
+
+
+def settle_wallet(user, link_name, link_token):
+    if link_token and link_name:
+        owned = bind_wallet(link_name, link_token)
+        if owned:
+            ACC.link_wallet(user, link_name, owned)
+            return
+    if not user.get('wallet_token'):
+        token = bind_wallet(user.get('wallet_name') or user['name'], user.get('wallet_token') or '')
+        if token:
+            ACC.link_wallet(user, user.get('wallet_name') or user['name'], token)
+
+
+def auth_response(status, body, headers, extra_headers=()):
+    raw = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
+    lines = [f'HTTP/1.1 {status}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(raw)}\r\n']
+    for item in extra_headers:
+        lines.append(item + '\r\n')
+    lines.append('Connection: close\r\n\r\n')
+    return ''.join(lines).encode() + raw
+
+
+def redirect(location, headers, cookies):
+    raw = b''
+    parts = [f'HTTP/1.1 302 Found\r\nLocation: {location}\r\nContent-Length: 0\r\n']
+    for item in cookies:
+        parts.append('Set-Cookie: ' + item + '\r\n')
+    parts.append('Connection: close\r\n\r\n')
+    return ''.join(parts).encode()
+
+
+async def try_auth(method, path, target, headers, body):
+    if not path.startswith('/auth'):
+        return None
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
+    secure = secure_cookie(headers)
+    base = public_base(headers)
+    cookie = headers.get('cookie', '')
+    try:
+        payload = json.loads(body.decode() or '{}') if body else {}
+    except Exception:
+        payload = {}
+    if path == '/auth/providers' and method == 'GET':
+        return auth_response('200 OK', ACC.providers(), headers)
+    if path == '/auth/google' and method == 'GET':
+        if not ACC.providers()['google']:
+            return auth_response('404 Not Found', {'error': 'Google no está configurado.'}, headers)
+        state = ACC.start_oauth(ACCOUNTS, 'google')
+        save_accounts()
+        loc = 'https://accounts.google.com/o/oauth2/v2/auth?' + urllib.parse.urlencode({
+            'client_id': os.environ['GOOGLE_CLIENT_ID'], 'redirect_uri': base + '/auth/google/callback',
+            'response_type': 'code', 'scope': 'openid email profile', 'state': state,
+        })
+        return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure)])
+    if path == '/auth/facebook' and method == 'GET':
+        if not ACC.providers()['facebook']:
+            return auth_response('404 Not Found', {'error': 'Facebook no está configurado.'}, headers)
+        state = ACC.start_oauth(ACCOUNTS, 'facebook')
+        save_accounts()
+        loc = 'https://www.facebook.com/v19.0/dialog/oauth?' + urllib.parse.urlencode({
+            'client_id': os.environ['FACEBOOK_APP_ID'], 'redirect_uri': base + '/auth/facebook/callback',
+            'state': state, 'scope': 'email',
+        })
+        return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure)])
+    if path in ('/auth/google/callback', '/auth/facebook/callback') and method == 'GET':
+        provider = 'google' if 'google' in path else 'facebook'
+        state = (query.get('state') or [''])[0]
+        code = (query.get('code') or [''])[0]
+        try:
+            profile = ACC.exchange_google(code, base + '/auth/google/callback') if provider == 'google' else ACC.exchange_facebook(code, base + '/auth/facebook/callback')
+            result = ACC.finish_oauth(ACCOUNTS, provider, state, ACC.read_cookie(cookie, 'oauth_state'), profile)
+            user = next(u for u in ACCOUNTS['users'] if u['id'] == result['user']['id'])
+            link = urllib.parse.unquote(ACC.read_cookie(cookie, 'life_link'))
+            link_name, _, link_token = link.partition('|')
+            settle_wallet(user, link_name, link_token)
+            save_accounts()
+        except ACC.AuthError as exc:
+            return redirect('/play/?auth=error', headers, [])
+        return redirect('/play/', headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure)])
+    if path == '/auth/registro' and method == 'POST':
+        try:
+            ACC.begin_signup(ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('phone'), payload.get('password') or '', ACC.send_email, ACC.start_sms)
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True}, headers)
+    if path == '/auth/verificar' and method == 'POST':
+        try:
+            result = ACC.verify_signup(ACCOUNTS, payload.get('email'), payload.get('email_code'), payload.get('phone_code'), ACC.check_sms)
+            user = next(u for u in ACCOUNTS['users'] if u['id'] == result['user']['id'])
+            settle_wallet(user, payload.get('name') or user['name'], payload.get('walletToken') or '')
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': ACC.public_user(user)}, headers, [ 'Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)])
+    if path == '/auth/salir' and method == 'POST':
+        token = ACC.read_cookie(cookie, 'life_session')
+        ACCOUNTS['sessions'].pop(token, None)
+        save_accounts()
+        return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    return auth_response('404 Not Found', {'error': 'no existe'}, headers)
+
+
 # ---------------- HTTP estático ----------------
 async def handle(reader, writer):
     try:
@@ -576,13 +700,25 @@ async def handle(reader, writer):
     except ValueError: writer.close(); return
     headers = {k.strip().lower(): v.strip() for k, _, v in (l.partition(':') for l in lines[1:] if l)}
     path = urllib.parse.unquote(urllib.parse.urlparse(target).path)
+    body = b''
+    if method == 'POST' and path.startswith('/auth'):
+        try:
+            length = min(int(headers.get('content-length') or 0), 20000)
+        except ValueError:
+            length = 0
+        if length:
+            body = await reader.readexactly(length)
+    answered = await try_auth(method, path, target, headers, body)
+    if answered is not None:
+        writer.write(answered)
+        await writer.drain(); writer.close(); return
     if path == '/ws' and headers.get('upgrade', '').lower() == 'websocket':
         key = headers.get('sec-websocket-key', '')
         acc = base64.b64encode(hashlib.sha1((key + GUID).encode()).digest()).decode()
         writer.write(('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
                       f'Sec-WebSocket-Accept: {acc}\r\n\r\n').encode())
         await writer.drain()
-        return await handle_ws(reader, writer)
+        return await handle_ws(reader, writer, headers.get('cookie', ''))
     if path == '/healthz' and method in ('GET', 'HEAD'):
         body = b'ok'
         writer.write(b'HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: 2\r\nConnection: close\r\n\r\n')

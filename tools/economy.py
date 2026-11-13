@@ -138,22 +138,19 @@ def normalize_state(state):
 
 
 def load_state(path):
-    if not os.path.isfile(path):
-        st = empty_state()
-        save_state(path, st)
-        return st
-    with open(path, encoding='utf-8') as f:
-        state = json.load(f)
+    import persist
+    state = persist.load_named('economy', path)
+    if state is None:
+        state = empty_state()
+        save_state(path, state)
+        return state
     normalize_state(state)
     return state
 
 
 def save_state(path, state):
-    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-    tmp = path + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as f:
-        json.dump(state, f, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
+    import persist
+    persist.save_named('economy', path, state)
 
 
 # 1 moneda antigua del Jardín (el contador que no era SMC) = 1 SMC. El SAI ya guardado

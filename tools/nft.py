@@ -22,39 +22,45 @@ def empty_chain(pubkey_hex):
 
 
 def load_chain(path, pubkey_hex):
-    if not os.path.isfile(path):
+    import persist
+    chain = persist.load_named('nft', path)
+    if chain is None:
         chain = empty_chain(pubkey_hex)
         save_chain(path, chain)
         return chain
-    with open(path, encoding='utf-8') as handle:
-        chain = json.load(handle)
     chain['pubkey'] = pubkey_hex
     chain.setdefault('tokens', [])
     return chain
 
 
 def save_chain(path, chain):
-    os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
-    tmp = path + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as handle:
-        json.dump(chain, handle, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
+    import persist
+    persist.save_named('nft', path, chain)
+
+
+def _seed_bytes(text):
+    seed = bytes.fromhex(text)
+    if len(seed) != 32:
+        raise ValueError('NFT_PRIVATE_KEY debe ser 32 bytes en hexadecimal')
+    return seed
 
 
 def load_seed(path):
-    """Semilla de 32 bytes. NFT_PRIVATE_KEY (hex) o un archivo en state/, nunca en git."""
+    """Semilla de 32 bytes. NFT_PRIVATE_KEY, o la guardada (Postgres o state/), nunca en git."""
+    import persist
     env = os.environ.get('NFT_PRIVATE_KEY', '').strip()
     if env:
-        seed = bytes.fromhex(env)
-        if len(seed) != 32:
-            raise ValueError('NFT_PRIVATE_KEY debe ser 32 bytes en hexadecimal')
+        return _seed_bytes(env)
+    if persist.enabled():
+        doc = persist.load_named('nft_seed', path)
+        if doc and doc.get('seed'):
+            return _seed_bytes(doc['seed'])
+        seed = os.urandom(32)
+        persist.save_named('nft_seed', path, {'seed': seed.hex()})
         return seed
     if os.path.isfile(path):
         with open(path, encoding='utf-8') as handle:
-            seed = bytes.fromhex(json.load(handle)['seed'])
-        if len(seed) != 32:
-            raise ValueError('la semilla guardada no mide 32 bytes')
-        return seed
+            return _seed_bytes(json.load(handle)['seed'])
     seed = os.urandom(32)
     os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
     tmp = path + '.tmp'
