@@ -500,7 +500,7 @@ function autotest(ok) {
   ok(!!api.S.mounted && speedMul() === 2, 'montar: velocidad ×2');
   if (api.update) {
     const rider = api.S.player;
-    rider.path = []; rider.x = rider.fx = 220; rider.y = rider.fy = 70;
+    rider.path = []; rider.x = rider.fx = F.stable.x-4; rider.y = rider.fy = F.stable.y+8;
     for (let i = 1; i <= 8; i++) rider.path.push([220 + i, 70]);
     api.S.keys.clear();
     api.update(0.5);

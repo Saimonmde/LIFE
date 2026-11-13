@@ -26,6 +26,12 @@ export function enrichWorld(T,scene,W,pick,height,material){
  }
  function planter(x,z,palm=false){const y=ground(x,z);disc(x,y+.18,z,1.6,.36,'#aaa38e');disc(x,y+.39,z,1.4,.08,'#5d754f');tree(x,z,palm);}
  for(const park of W.parkDetails||[]){const cx=park.x*2,cz=park.y*2,cy=ground(cx,cz);
+  if(['barbosa','girardota','copacabana','bello','itagui','la_estrella','caldas'].includes(park.id)){
+   const square=mesh(new T.PlaneGeometry(48,48),pavement,cx,cy+.03,cz);square.rotation.x=-Math.PI/2;
+   const tones={barbosa:'#b8a183',girardota:'#a9977b',copacabana:'#bba17d',bello:'#a8a29a',itagui:'#b99070',la_estrella:'#b3a384',caldas:'#a4a299'};
+   disc(cx,cy+.2,cz+6,3,.4,tones[park.id]);disc(cx,cy+.45,cz+6,2.6,.12,'#719b9e');
+   box(cx,cy+1.1,cz+6,.65,1.3,.65,tones[park.id]);mesh(new T.SphereGeometry(.45,8,6),'#bc9561',cx,cy+2,cz+6);
+  }
   if(park.id==='poblado'){
    disc(cx,cy-.05,cz,8.8,.18,'#bca98c');for(let i=3;i>=0;i--){const radius=5+i*1.05;const ring=mesh(new T.RingGeometry(radius-.65,radius,80),i%2?'#c49276':'#b47c61',cx,cy+.025+i*.025,cz);ring.rotation.x=-Math.PI/2;const rim=mesh(new T.TorusGeometry(radius,.09,6,80),'#b7a18c',cx,cy+.08+i*.025,cz);rim.rotation.x=Math.PI/2;}disc(cx,cy+.06,cz,4.1,.12,'#c99172');
    for(const [dx,dz] of [[-6,-11],[8,-8],[-9,4],[7,9]])planter(cx+dx,cz+dz);

@@ -4,7 +4,7 @@ import {buildMine} from './mine3d.js?v=saimon-door-r3';
 import {enrichWorld} from './park3d.js?v=saimon-door-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-door-r3';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
-const BUILD='saimoncity-camera360-r1';
+const BUILD='valle-diez-parques-logo-r3';
 const status=window.LIVE3D={active:false,build:BUILD};
 const wait=setInterval(()=>{if(window.LiveInk?.world?.clientReady){clearInterval(wait);try{boot(window.LiveInk);}catch(e){console.error(e);status.error=String(e);document.querySelector('#zona-nombre').textContent='No se pudo iniciar 3D · recarga o activa WebGL';}}},100);
 function boot(api){

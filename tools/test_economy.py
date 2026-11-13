@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Comprueba la emisión, el tope, el halving y el libro mayor de la simulación SAI."""
-import json, os, sys, unittest
+import json, os, sys, unittest, tempfile
+from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import economy as eco
 
@@ -30,12 +31,13 @@ class EconomyTests(unittest.TestCase):
         self.assertFalse(eco.debit(st, 'Ana', eco.subunits(999)))
 
     def test_features_stay_off_the_house_door(self):
-        features = json.load(open(os.path.join(ROOT, 'data', 'simulacion.json'), encoding='utf-8'))
-        casa = open(os.path.join(ROOT, 'play', 'casa.js'), encoding='utf-8').read()
+        features = json.loads(Path(ROOT,'data/simulacion.json').read_text())
+        world=json.loads(Path(ROOT,'data/el-jardin.json').read_text())
+        casa = Path(ROOT,'play/casa.js').read_text()
         self.assertIn('PARK_DOOR = { x: 226, y: 64 }', casa)
         self.assertIn('PARK_STAND = { x: 227, y: 64 }', casa)
         self.assertIn('SPAWN = { x: 4, y: 6, dir: \'down\' }', casa)
-        door = {(226, 64), (227, 64)}
+        door = {tuple(world['homeLocation'][k].values()) for k in ['door','stand']}
         spots = [(features['stable']['x'], features['stable']['y']), (features['npc']['x'], features['npc']['y']), (features['stand']['x'], features['stand']['y'])]
         spots += [(s['x'], s['y']) for s in features['mounts'][0]['spawn']]
         self.assertTrue(door.isdisjoint(spots))
@@ -51,10 +53,20 @@ class ServerGuardTests(unittest.TestCase):
         import server
         cls.server = server
 
+    def setUp(self):
+        self.saved=(self.server.ECON,self.server.ECON_PATH,self.server.NODE_READY)
+        self.temp=tempfile.TemporaryDirectory()
+        self.server.ECON=eco.empty_state();self.server.ECON_PATH=os.path.join(self.temp.name,'economy.json');self.server.NODE_READY={}
+
+    def tearDown(self):
+        self.server.ECON,self.server.ECON_PATH,self.server.NODE_READY=self.saved
+        self.temp.cleanup()
+
     def test_mint_requires_the_river_and_a_real_pan(self):
         s = self.server
         self.assertIsNone(s.gold_node_for(227, 64, 'oro_fluvial_1'))
-        self.assertIsNotNone(s.gold_node_for(215, 54, 'oro_fluvial_1'))
+        gold=next(n for n in s.GOLD_NODES if n['id']=='oro_fluvial_1')
+        self.assertIsNotNone(s.gold_node_for(gold['x'],gold['y'],'oro_fluvial_1'))
         name = 'BateaPrueba'
         token = s.bind_wallet(name, '')
         before = float(s.ECON.get('mined') or 0)
@@ -70,7 +82,7 @@ class ServerGuardTests(unittest.TestCase):
         who = Who()
         s.mint_for(who, 'oro_fluvial_1')
         self.assertEqual(float(s.ECON.get('mined') or 0), before)
-        who.x, who.y = 215, 54
+        who.x, who.y = gold['x'],gold['y']
         s.mint_for(who, 'oro_fluvial_1')
         self.assertGreater(float(s.ECON.get('mined') or 0), before)
         mid = float(s.ECON.get('mined') or 0)

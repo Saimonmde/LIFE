@@ -41,6 +41,7 @@ const loadImg = (src) => new Promise((ok, ko) => { const i = new Image(); i.onlo
 
 async function init() {
   W = await load();
+  if(W.homeLocation){Object.assign(Casa.PARK_DOOR,W.homeLocation.door);Object.assign(Casa.PARK_STAND,W.homeLocation.stand);}
   prepareMining();
   await Simulacion.installWorld(W, S);
   Simulacion.bind({
@@ -190,7 +191,7 @@ function enterHouse(){
 function exitHouse(){
  if((W.mapId||'city')!=='casa')return;
  S.portalUntil=now()+900;
- if(window.LIVE3D)window.LIVE3D.lookAt={x:239,y:69};
+ if(window.LIVE3D)window.LIVE3D.lookAt={x:239,y:229};
  switchMap('city');
 }
 function switchMap(id,restored=false){

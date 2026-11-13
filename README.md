@@ -2,6 +2,10 @@
 
 Creación y dirección original: **Simón**. Mundo 3D en desarrollo, con mapa del Valle de Aburrá, minería y fundición, inventario, chat y cámara orbital.
 
+## Diez parques del Valle de Aburrá
+
+Mapa ampliado de 352×176 a 352×448 casillas, con diez municipios y parques conectados. Es una interpretación jugable del valle, sin precisión topográfica. El logo dorado vuelve al inicio junto al título gótico. Se conservan el establo, los caballos, Saimon Coins y el Libro Mayor de la versión reciente.
+
 ## Licencias y contribución
 
 Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-SA-4.0**. Marca y logo: política separada. Three.js conserva MIT y Pixelify Sans conserva SIL OFL 1.1.
