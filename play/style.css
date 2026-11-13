@@ -362,6 +362,28 @@ header button, header .x, header .plegar, #libro-madre-cuerpo button, #libro-toa
   color: #f0d48a;
 }
 #sai-saldo { font-size: 22px; }
+.smp, #plata-saldo, #plata-saldo-panel {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-style: normal;
+  font-size: 1.05em;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  color: #e7eef2;
+}
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .smp, #plata-saldo, #plata-saldo-panel {
+    background-image: linear-gradient(180deg, #ffffff 0%, #d5dee6 42%, #8ea0ae 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 1px 0 #24303a);
+  }
+}
+#plata-saldo { font-size: 22px; }
 .codigo, header .codigo, #libro-toast .codigo { font-size: 1.15em; letter-spacing: 0.04em; }
 @supports ((-webkit-background-clip: text) or (background-clip: text)) {
   .smc, #sai-saldo, .codigo, header .codigo, #libro-toast .codigo {
@@ -414,3 +436,27 @@ header button, header .x, header .plegar, #libro-madre-cuerpo button, #libro-toa
 #pow-panel p{margin:2px 0}
 #pow-hint{color:#d9c8a4}
 #pow-panel button{margin-top:4px;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer}
+#plata-panel{
+  top: 252px;
+  left: 276px;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(520px, 72vh);
+  overflow: auto;
+  z-index: 6;
+  padding: 8px 10px 10px;
+  background: #24180ee6;
+  border: 1px solid #b48a46;
+  border-radius: 8px;
+  color: #ffe7b0;
+  font: 12px/1.35 var(--sans);
+}
+#plata-panel p{margin:2px 0}
+#plata-meter{height:8px;margin:6px 0;background:#2a1c12;border:1px solid #8d6d40;border-radius:8px;overflow:hidden}
+#plata-meter-bar{display:block;height:100%;width:0;background:linear-gradient(90deg,#d5dee6,#8ea0ae)}
+#plata-cambio-box{margin-top:6px;padding:6px;border:1px solid #b48a46;border-radius:8px;background:#1b140ee6}
+#plata-cambio-box label{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:6px 0}
+#plata-cambio-box input{width:96px;background:#33271d;color:#ffe4ae;border:1px solid #826139;border-radius:5px;padding:6px;font:inherit}
+.plata-acciones{display:flex;gap:6px}
+.plata-acciones button,#pow-plata{flex:1;min-height:44px;background:#5c4124;color:#ffe7c2;border:1px solid #b48a46;border-radius:5px;padding:6px 8px;cursor:pointer;font:inherit}
+#pow-plata{width:100%;margin-top:6px}
+#plata-hint,#cambio-preview{color:#d9c8a4}

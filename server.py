@@ -12,6 +12,7 @@ import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, sock
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
 import economy as ECO
 import supply as SUP
+import plata as PLATA
 import ed25519
 import libro as LIBRO
 import nft as NFT
@@ -161,6 +162,13 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     if who:
         view['owedSubs'] = int((ECON.get('questOwed') or {}).get(who) or 0)
     m['supply'] = view
+    plata_profile = dict(profile or {})
+    if who and not locked:
+        plata_profile['name'] = who
+    pview = PLATA.public_view(ECON, plata_profile)
+    pview['balanceSph'] = 0 if locked or not who else PLATA.balance_of(ECON, who)
+    m['plata'] = pview
+    m['balanceSph'] = pview['balanceSph']
     return m
 
 def token_matches(stored, presented):
@@ -349,6 +357,16 @@ def emitir(sender, smh, note, kind, foundry, tile, location):
         save_econ()
         return 0, None, None
     token = certify(sender.name, granted, foundry, tile)
+    kept, pooled = PLATA.apartar(ECON, sender.name, granted)
+    if pooled:
+        try:
+            anotar_pase(sender.name, PLATA.POOL, pooled, 'Aporte al fondo de cambio')
+        except (LIBRO.LibroError, persist_duplicate):
+            PLATA.devolver(ECON, sender.name, pooled)
+            pooled = 0
+            kept = granted
+    sender.kept_smh = kept
+    sender.pool_smh = pooled
     sender.activity_tiles = 0
     save_econ()
     broadcast_econ()
@@ -382,8 +400,84 @@ def mint_for(sender, node_id, proof=None):
     if granted <= 0:
         return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
     NODE_READY[node['id']] = time.time() + (float(node.get('respawnMs') or 30000) / 1000.0)
-    send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)}. Es una simulación: no es dinero real.'})
-    send(sender, {'t': 'issued', 'amountSmh': granted, 'amountText': ECO.format_pair(granted), 'kind': 'mint', 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
+    kept = int(getattr(sender, 'kept_smh', granted) or 0)
+    pooled = int(getattr(sender, 'pool_smh', 0) or 0)
+    if pooled:
+        send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)}. Tu billetera recibe {ECO.format_pair(kept)} y el fondo de cambio aparta {ECO.format_pair(pooled)}. No es dinero real.'})
+    else:
+        send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)}. Es una simulación: no es dinero real.'})
+    send(sender, {'t': 'issued', 'amountSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_pair(kept), 'kind': 'mint', 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
+
+def fail_plata(sender, code):
+    text = PLATA.reason_text(code)
+    try:
+        view = PLATA.public_view(ECON, account_profile(sender))
+    except Exception:
+        view = {}
+    if isinstance(view, dict):
+        view['balanceSph'] = PLATA.balance_of(ECON, getattr(sender, 'name', '') or '')
+    send(sender, {'t': 'plata_result', 'ok': False, 'reason': text, 'code': code, 'plata': view, 'coin': 'SMP'})
+    send(sender, {'t': 'system', 'text': text})
+    return {'ok': False, 'reason': code, 'sph': 0}
+
+
+def mint_plata(sender, proof=None):
+    if getattr(sender, 'bot', False):
+        return fail_plata(sender, 'guest')
+    if not getattr(sender, 'wallet_ok', False):
+        return fail_plata(sender, 'wallet')
+    profile = account_profile(sender)
+    if proof:
+        result = PLATA.redeem(ECON, profile, 'plata', 'libre', proof)
+        save_econ()
+        if not result.get('ok'):
+            return fail_plata(sender, result.get('reason') or 'signature')
+        sender.activity_tiles = 0
+        save_econ()
+        broadcast_econ()
+        sph = int(result.get('sph') or 0)
+        text = f'Se minaron {PLATA.format_pair(sph)}. Es una simulación: no es dinero real.'
+        send(sender, {'t': 'system', 'text': text})
+        send(sender, {'t': 'issued', 'coin': 'SMP', 'amountSph': sph, 'amountText': PLATA.format_pair(sph), 'kind': 'plata', 'plata': result.get('view')})
+        send(sender, {'t': 'plata_result', 'ok': True, 'reason': text, 'amountSph': sph, 'amountText': PLATA.format_pair(sph), 'plata': result.get('view'), 'coin': 'SMP'})
+        return result
+    opened = PLATA.open_challenge(ECON, profile, 'plata', 'libre')
+    save_econ()
+    if not opened.get('ok'):
+        return fail_plata(sender, opened.get('reason') or 'guest')
+    sender.pow_challenge = opened['challenge']
+    send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'mint_plata'}, 'plata': opened.get('view'), 'coin': 'SMP'})
+    return {'ok': False, 'pending': True, 'sph': 0}
+
+
+def exchange_plata(sender, sph=None):
+    if getattr(sender, 'bot', False):
+        return fail_plata(sender, 'guest')
+    if not getattr(sender, 'wallet_ok', False):
+        return fail_plata(sender, 'wallet')
+    profile = account_profile(sender)
+    result = PLATA.exchange(ECON, profile, sph)
+    if not result.get('ok'):
+        save_econ()
+        return fail_plata(sender, result.get('reason') or 'pool')
+    smh = int(result.get('smh') or 0)
+    spent = int(result.get('sph') or 0)
+    try:
+        anotar_pase(PLATA.POOL, sender.name, smh, 'Cambio de Plata por SMC')
+    except (LIBRO.LibroError, persist_duplicate):
+        PLATA.undo_exchange(ECON, profile, smh, spent)
+        save_econ()
+        return fail_plata(sender, 'pool')
+    sender.activity_tiles = 0
+    save_econ()
+    broadcast_econ()
+    text = f'Cambiaste {PLATA.format_pair(spent)} por {ECO.format_pair(smh)}. La Plata se quemó y el SMC salió del fondo. No es dinero real.'
+    view = PLATA.public_view(ECON, profile)
+    view['balanceSph'] = PLATA.balance_of(ECON, sender.name)
+    send(sender, {'t': 'system', 'text': text})
+    send(sender, {'t': 'exchange_result', 'ok': True, 'spentSph': spent, 'gotSmh': smh, 'amountText': ECO.format_pair(smh), 'plataText': PLATA.format_pair(spent), 'reason': text, 'plata': view, 'coin': 'SMP'})
+    return result
+
 
 def wallet_ready(sender):
     if not getattr(sender, 'wallet_ok', False):
@@ -421,8 +515,13 @@ def smelt_for(sender, ore, batches, proof=None):
     )
     if granted <= 0:
         return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Se alcanzó el tope de 21.000.000 SMC.', 'grantedSmh': 0})
-    send(sender, {'t': 'smelt_result', 'ok': True, 'grantedSmh': granted, 'amountText': ECO.format_pair(granted), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
-    send(sender, {'t': 'system', 'text': f'La fundidora acreditó {ECO.format_pair(granted)} a tu billetera.'})
+    kept = int(getattr(sender, 'kept_smh', granted) or 0)
+    pooled = int(getattr(sender, 'pool_smh', 0) or 0)
+    note = f'La fundidora acreditó {ECO.format_pair(kept)} a tu billetera.'
+    if pooled:
+        note += f' El fondo de cambio apartó {ECO.format_pair(pooled)}.'
+    send(sender, {'t': 'smelt_result', 'ok': True, 'grantedSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_pair(kept), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
+    send(sender, {'t': 'system', 'text': note})
 
 def swing_for(sender, mineral, proof=None):
     mineral = str(mineral or '')
@@ -460,8 +559,13 @@ def swing_for(sender, mineral, proof=None):
         PAYOUT.ADAPTER.payout(sender.name, granted, 'USDT')
     except RuntimeError:
         pass
-    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': granted, 'amountText': ECO.format_pair(granted), 'certificate': token,
-                  'note': 'El turno paga sólo lo que cabe en el tope de hoy. No hay retiro a OnePay ni a USDT.', 'supply': result.get('view')})
+    kept = int(getattr(sender, 'kept_smh', granted) or 0)
+    pooled = int(getattr(sender, 'pool_smh', 0) or 0)
+    shift_note = 'El turno paga sólo lo que cabe en el tope de hoy. No hay retiro a OnePay ni a USDT.'
+    if pooled:
+        shift_note = f'El turno acredita {ECO.format_pair(kept)}. El fondo de cambio aparta {ECO.format_pair(pooled)}. ' + shift_note
+    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_pair(kept), 'certificate': token,
+                  'note': shift_note, 'supply': result.get('view')})
 
 def migration_left(sender, amount):
     prior = (ECON.get('migrations') or {}).get(sender.name)
@@ -498,6 +602,12 @@ def migrate_for(sender, amount, proof=None):
         SUP.restore(ECON, account_profile(sender)['account'], int(result['smh']) - credited, minted=True, undo_claim=credited <= 0)
     if credited:
         anotar_emision(sender.name, credited, 'Conversión de monedas antiguas')
+        _kept, pooled = PLATA.apartar(ECON, sender.name, credited)
+        if pooled:
+            try:
+                anotar_pase(sender.name, PLATA.POOL, pooled, 'Aporte al fondo de cambio')
+            except (LIBRO.LibroError, persist_duplicate):
+                PLATA.devolver(ECON, sender.name, pooled)
     else:
         save_econ()
     token = certify(sender.name, credited, 'migracion', 'jardin') if credited else None
@@ -680,6 +790,8 @@ def dist(a, b):
     return max(abs(a.x - b.x), abs(a.y - b.y))
 
 def unique_name(name, me):
+    if PLATA.reserved_name(name):
+        name = 'Viajero'
     base = name or f'Jugador{me.id}'; n = base; k = 2
     while any(c is not me and c.name.lower() == n.lower() for c in clients.values()): n = f'{base}{k}'; k += 1
     return n
@@ -837,6 +949,20 @@ async def handle_ws(reader, writer, cookie='', ip=''):
                 chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
             elif t == 'mint' and c.hello:
                 mint_for(c, clean(m.get('node'), 40), m.get('proof'))
+            elif t == 'mint_plata' and c.hello:
+                mint_plata(c, m.get('proof'))
+            elif t == 'exchange_plata' and c.hello:
+                try:
+                    if m.get('max'):
+                        exchange_plata(c, None)
+                    elif m.get('sph') is not None:
+                        exchange_plata(c, m.get('sph'))
+                    elif m.get('amount') is not None:
+                        exchange_plata(c, m.get('amount'))
+                    else:
+                        fail_plata(c, 'dust')
+                except (TypeError, ValueError, ECO.AmountError):
+                    fail_plata(c, 'dust')
             elif t == 'ledger' and c.hello:
                 try:
                     before = int(m.get('before'))
