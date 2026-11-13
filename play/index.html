@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=brujula-r1">
+<link rel="stylesheet" href="style.css?v=libro-madre-r1">
 <link rel="stylesheet" href="movil.css?v=saimon-door-r3">
 <script src="movil.js?v=saimon-door-r3"></script>
 </head>
@@ -40,6 +40,7 @@
   <button class="ico" id="b-ayuda" title="Ayuda (H)"><img src="../graphics/ui/ayuda.png" alt=""></button>
   <button class="ico" id="b-tutorial" type="button" title="Cómo se juega">?</button>
   <button class="ico" id="b-libro" title="Libro Mayor (L)">L</button>
+  <button class="ico" id="b-libro-madre" title="Libro madre">LM</button>
   <div id="ping"><i></i><span>sin conexión</span></div>
 </div>
 <div id="hud-mapa" class="hud" role="button" tabindex="0" aria-label="Abrir mapa de SaimonCity" aria-haspopup="dialog" aria-expanded="false"><canvas id="minimapa" width="168" height="168"></canvas><span class="norte">N</span><span class="map-sur">S</span><span class="map-or">OR</span><span class="map-oc">OC</span><button id="mm-zoom" title="Zoom del minimapa">+</button></div>
@@ -70,13 +71,15 @@
 <div id="hotbar" class="hud"></div>
 <div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo">0 SMC</b></span></div>
 <button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
-<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean, y no se retiran por OnePay ni por USDT. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Lo guardado en el banquito no se pierde al caer.</span></button>
-<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button></div>
+<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
+<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
 <section id="w-inv" class="ventana" hidden><header>Inventario <button class="x" data-cierra="w-inv">✕</button></header><div id="inventario"></div><div id="seleccion">Seleccionado: —</div></section>
 <section id="w-hab" class="ventana" hidden><header>Habilidades <button class="x" data-cierra="w-hab">✕</button></header><ul id="habilidades"></ul></section>
 <section id="w-libro" class="ventana" hidden><header>Libro Mayor <button class="x" data-cierra="w-libro">✕</button></header><div id="libro-cuerpo"></div></section>
+<section id="w-libro-madre" class="ventana" hidden><header>Libro madre <button class="x" data-cierra="w-libro-madre">✕</button></header><div id="libro-madre-cuerpo"></div></section>
+<div id="libro-toast" hidden role="status"></div>
 <div id="aviso" hidden><div class="titulo" id="aviso-titulo">Continuemos</div><div id="aviso-txt"></div></div>
 <div id="objetivo" class="hud" hidden><div id="objetivo-txt"></div></div>
 <div id="dialogo" hidden><canvas id="dialogo-cara" width="64" height="64"></canvas><div class="cuerpo"><div class="quien">Capataz</div><div id="dialogo-txt"></div><div class="seguir">Toca aquí para continuar ▸</div></div></div>
@@ -135,7 +138,7 @@
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
     <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas al cuádruple de la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua.</li>
-    <li><b>SaiMonCoins (SMC):</b> se emiten al lavar oro en el río, al fundir en la cantera y al cumplir un turno de cobre o plata. Tope 21.000.000. Cada emisión lleva un certificado con código. El puesto de frutas vende un mango por 5 SMC. Es una simulación: no es dinero real.</li>
+    <li><b>SaiMonCoins (SMC):</b> se emiten al lavar oro en el río, al fundir en la cantera y al cumplir un turno de cobre o plata. Tope 21.000.000. 1 SMC = 100.000.000 Simonchis (SMH). El Libro madre guarda cada acuñación con un código que no se repite. Es una simulación: no es dinero real.</li>
     <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
@@ -151,19 +154,20 @@
   <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
   <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Las SMC y los objetos que dejas aquí no se pierden si caes. Sólo lo que llevas en la mochila puede caerse.</p>
   <p id="banquito-saldo">En el depósito: 0 SMC</p>
-  <label>SMC <input id="banquito-monto" type="number" min="1" value="1"></label>
+  <label>SMC o SMH <input id="banquito-monto" inputmode="decimal" value="1" placeholder="1 SMC o 12345 SMH"></label>
   <p><button type="button" id="banquito-depositar">Depositar SMC</button> <button type="button" id="banquito-retirar">Retirar SMC</button></p>
   <div id="banquito-items"></div>
   <p class="bag-note">SMC no es dinero real. El turno de la cantera tampoco se paga por OnePay ni por USDT.</p>
 </section>
 <div id="autotest" hidden></div>
-<script src="simulacion.js?v=smc-r1"></script>
+<script src="simulacion.js?v=libro-madre-r1"></script>
 <script src="../data/el-jardin.js?v=saimon-door-r3"></script>
 <script src="mining-rules.js?v=saimon-door-r3"></script>
 <script src="casa.js?v=saimon-door-r3"></script>
 <script src="envigado-park.js?v=smc-r2"></script>
 <script src="banco.js?v=smc-r1"></script>
 <script src="tutorial.js?v=brujula-r1"></script>
+<script src="libro-madre.js?v=libro-madre-r1"></script>
 <script src="paneles.js?v=brujula-r1"></script>
 <script src="game.js?v=smc-r1"></script>
 <script type="module" src="unified3d.js?v=smc-r3"></script>

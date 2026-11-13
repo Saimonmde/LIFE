@@ -73,8 +73,8 @@
     const items = document.getElementById('banquito-items');
     if (!saldo) return;
     const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {} };
-    const smc = (box.smcSubs || 0) / 100000000;
-    saldo.textContent = `En el depósito: ${smc} SMC`;
+    const smh = box.smh != null ? box.smh : (box.smcSubs || 0);
+    saldo.textContent = window.Simulacion && Simulacion.formatPair ? `En el depósito: ${Simulacion.formatPair(smh)}` : `En el depósito: ${smh} SMH`;
     const rows = Object.entries(box.items || {});
     const carried = (window.LiveInk && LiveInk.state && LiveInk.state.inv || []).filter(Boolean);
     const deposit = carried.map(slot => `<button type="button" data-dep="${slot.item}" data-qty="1">Depositar 1 ${slot.item}</button>`).join(' ');

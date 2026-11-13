@@ -2,7 +2,7 @@
 /* SaiMonCoins (SMC), caballos, Libro Mayor y lecciones. Simulación educativa: sin valor real. */
 (() => {
 'use strict';
-const SUBS = 100000000, MAX_SUPPLY = 21000000, INITIAL_REWARD = 50, HALVING_MINED = 10500000, TREASURY = 210000;
+const SUBS = 100000000, MAX_SUPPLY = 21000000, MAX_SMH = 2100000000000000, INITIAL_REWARD_SMH = 50 * SUBS, HALVING_SMH = 10500000 * SUBS, TREASURY_SMH = 210000 * SUBS;
 const GENESIS_PREV = '0'.repeat(64), BLOCK_SECONDS = 60;
 const DOOR_TYPES = new Set(['home_door', 'mine_entrance', 'mine_exit', 'casa_exit']);
 
@@ -56,21 +56,84 @@ function stableStringify(x) {
   if (Array.isArray(x)) return '[' + x.map(stableStringify).join(',') + ']';
   return '{' + Object.keys(x).sort().map(k => JSON.stringify(k) + ':' + stableStringify(x[k])).join(',') + '}';
 }
-const subunits = (sai) => Math.round(Number(sai) * SUBS);
-const saiOf = (subs) => (subs || 0) / SUBS;
-function formatSai(subs) {
-  const s = saiOf(subs);
-  if (Math.abs(s - Math.round(s)) < 1e-12) return Math.round(s).toLocaleString('es-CO') + ' SMC';
-  return s.toFixed(8).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',') + ' SMC';
+function parseAmount(text) {
+  let raw = String(text == null ? '' : text).trim().toLowerCase();
+  if (!raw) throw new Error('monto vacío');
+  let unit = 'smc';
+  for (const [name, kind] of [['simonchis', 'smh'], ['simonchi', 'smh'], ['smh', 'smh'], ['smc', 'smc']]) {
+    if (raw.endsWith(name)) { unit = kind; raw = raw.slice(0, -name.length).trim(); break; }
+  }
+  raw = raw.replace(/\s+/g, '');
+  if (unit === 'smh') {
+    const marks = raw.match(/[.,]/g) || [];
+    const parts = raw.replace(/,/g, '.').split('.');
+    if (marks.length && parts.slice(1).some(part => part.length !== 3)) throw new Error('un Simonchi no se parte');
+    const grouped = raw.replace(/[.,]/g, '');
+    if (!/^\d+$/.test(grouped)) throw new Error('monto ilegible');
+    return Number(grouped);
+  }
+  if (raw.includes(',') && raw.includes('.')) raw = raw.lastIndexOf(',') > raw.lastIndexOf('.') ? raw.replace(/\./g, '').replace(',', '.') : raw.replace(/,/g, '');
+  else if (raw.includes(',')) raw = raw.replace(',', '.');
+  const neg = raw.startsWith('-');
+  if (neg) raw = raw.slice(1);
+  if (raw.startsWith('+')) raw = raw.slice(1);
+  let whole = raw, frac = '';
+  if (raw.includes('.')) { const bits = raw.split('.'); whole = bits[0]; frac = bits.slice(1).join(''); }
+  if (whole === '') whole = '0';
+  if (!/^\d+$/.test(whole) || (frac && !/^\d+$/.test(frac))) throw new Error('monto ilegible');
+  if (frac.length > 8) throw new Error('como máximo 8 decimales');
+  frac = frac.padEnd(8, '0');
+  const smh = Number(whole) * SUBS + Number(frac || 0);
+  return neg ? -smh : smh;
 }
-function rewardSai(mined) {
-  mined = Number(mined) || 0;
-  if (mined >= MAX_SUPPLY - TREASURY) return 0;
-  const era = Math.floor(mined / HALVING_MINED);
-  let r = INITIAL_REWARD / Math.pow(2, era);
-  const remaining = (MAX_SUPPLY - TREASURY) - mined;
-  if (r > remaining) r = Math.max(0, remaining);
-  return r;
+function smcToSmh(value) {
+  if (typeof value === 'string') return parseAmount(value);
+  if (typeof value === 'number' && Number.isInteger(value)) return value * SUBS;
+  return parseAmount(String(value));
+}
+const subunits = (sai) => smcToSmh(sai);
+function formatSmc(smh) {
+  smh = Math.trunc(Number(smh) || 0);
+  const neg = smh < 0;
+  smh = Math.abs(smh);
+  const whole = Math.floor(smh / SUBS);
+  const frac = smh % SUBS;
+  const grouped = whole.toLocaleString('es-CO');
+  if (!frac) return (neg ? '-' : '') + grouped + ' SMC';
+  return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(8, '0').replace(/0+$/, '') + ' SMC';
+}
+function formatSmh(smh) {
+  smh = Math.trunc(Number(smh) || 0);
+  return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
+}
+function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function unidadActiva() {
+  try { return localStorage.getItem('lifeinc.unidad') === 'SMH' ? 'SMH' : 'SMC'; } catch (e) { return 'SMC'; }
+}
+function formatSai(subs) { return unidadActiva() === 'SMH' ? formatSmh(subs) : formatSmc(subs); }
+function rewardSmh(minedSmh) {
+  minedSmh = Math.trunc(Number(minedSmh) || 0);
+  const cap = (MAX_SUPPLY - 210000) * SUBS;
+  if (minedSmh >= cap) return 0;
+  const era = Math.floor(minedSmh / HALVING_SMH);
+  let reward = era >= 53 ? 0 : Math.floor(INITIAL_REWARD_SMH / (2 ** era));
+  const remaining = cap - minedSmh;
+  if (reward > remaining) reward = remaining;
+  return reward;
+}
+function rewardSai(minedSmc) {
+  const smh = rewardSmh(smcToSmh(minedSmc));
+  return smh % SUBS === 0 ? smh / SUBS : smh / SUBS;
+}
+function ensureSmh(econ) {
+  if (!econ) return econ;
+  if (econ.amountUnit !== 'SMH' || econ.minedSmh == null) {
+    econ.minedSmh = smcToSmh(econ.mined || 0);
+    delete econ.mined;
+    econ.amountUnit = 'SMH';
+  }
+  econ.minedSmh = Math.trunc(econ.minedSmh || 0);
+  return econ;
 }
 function hashBlock(prev, ts, txs) {
   return sha256hex(prev + '\n' + String(ts) + '\n' + stableStringify(txs));
@@ -81,11 +144,12 @@ function verifyBlock(block, prev) {
   return block.hash === hashBlock(block.prev, block.ts, block.txs);
 }
 function emptyEcon(disclaimer) {
-  const txs = [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: subunits(TREASURY), note: 'Reserva inicial de SaiMonCoins (no es dinero real).' }];
+  const txs = [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: TREASURY_SMH, note: 'Reserva inicial de SaiMonCoins (no es dinero real).' }];
   const ts = 0, h = hashBlock(GENESIS_PREV, ts, txs);
   return {
-    mined: 0,
-    wallets: { tesoro_genesis: subunits(TREASURY), puesto_frutas: 0 },
+    minedSmh: 0,
+    amountUnit: 'SMH',
+    wallets: { tesoro_genesis: TREASURY_SMH, puesto_frutas: 0 },
     blocks: [{ height: 0, ts, prev: GENESIS_PREV, hash: h, txs }],
     mempool: [],
     disclaimer: disclaimer || 'Las SaiMonCoins (SMC) son sólo una moneda del juego. No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.',
@@ -110,7 +174,17 @@ function paintHud() {
   const subs = walletSubs(walletName());
   el.textContent = formatSai(subs);
   const chip = $('#sai-chip');
-  if (chip) chip.title = `Minadas ${(api.S.econ.mined || 0).toLocaleString('es-CO')} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${rewardSai(api.S.econ.mined)} SMC · 1 SMC = 100.000.000 saimonitos · simulación, sin valor real`;
+  if (chip) {
+    chip.title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
+    if (!chip.dataset.unidad) {
+      chip.dataset.unidad = '1';
+      chip.addEventListener('click', () => {
+        try { localStorage.setItem('lifeinc.unidad', unidadActiva() === 'SMH' ? 'SMC' : 'SMH'); } catch (e) {}
+        paintHud();
+        if (window.Banco) Banco.paint();
+      });
+    }
+  }
   syncButton();
 }
 function ensureWallet() {
@@ -151,14 +225,14 @@ function libroProgress(id) {
 }
 function localMint() {
   ensureWallet();
-  const reward = rewardSai(api.S.econ.mined);
-  if (reward <= 0) { api.game('Se alcanzó el tope minable de SMC.', 'aviso'); return 0; }
-  const subs = subunits(reward);
-  api.S.econ.mined += reward;
+  ensureSmh(api.S.econ);
+  const subs = rewardSmh(api.S.econ.minedSmh);
+  if (subs <= 0) { api.game('Se alcanzó el tope minable de SMC.', 'aviso'); return 0; }
+  api.S.econ.minedSmh += subs;
   creditNamed(walletName(), subs);
   pushTx({ type: 'mint', to: walletName(), amountSubs: subs, note: 'Emisión por bateada de oro fluvial' });
   libroProgress('lavar_oro_sai');
-  api.game(`El río emite <b>${api.esc(formatSai(subs))}</b>. Es una simulación: no es dinero real.`, 'oro');
+  api.game(`El río emite <b>${api.esc(formatPair(subs))}</b>. Es una simulación: no es dinero real.`, 'oro');
   return subs;
 }
 function payLocal(dest, sai, note) {
@@ -175,15 +249,15 @@ function payLocal(dest, sai, note) {
 const TREASURY_SMC = 210000;
 function issueLocal(amount, note, kind) {
   ensureWallet();
-  const room = Math.max(0, (MAX_SUPPLY - TREASURY_SMC) - (api.S.econ.mined || 0));
-  const granted = Math.min(Number(amount) || 0, room);
-  if (granted <= 0) { api.game('Se alcanzó el tope de 21.000.000 SMC.', 'aviso'); return 0; }
-  const subs = subunits(granted);
-  const got = subs / SUBS;
-  api.S.econ.mined += got;
+  ensureSmh(api.S.econ);
+  const room = Math.max(0, (MAX_SUPPLY - TREASURY_SMC) * SUBS - (api.S.econ.minedSmh || 0));
+  const requested = typeof amount === 'string' ? parseAmount(amount) : smcToSmh(amount);
+  const subs = Math.min(requested, room);
+  if (subs <= 0) { api.game('Se alcanzó el tope de 21.000.000 SMC.', 'aviso'); return 0; }
+  api.S.econ.minedSmh += subs;
   creditNamed(walletName(), subs);
   pushTx({ type: kind || 'mint', to: walletName(), amountSubs: subs, note: note || 'Emisión' });
-  return got;
+  return subs;
 }
 function noteLegacy(amount) {
   if (api.S.migrationAck) return;
@@ -212,21 +286,25 @@ function requestVault() {
   else if (window.Banco) Banco.paint(localVault());
 }
 function bankSmc(dir, amount) {
-  const sai = Number(amount);
-  if (!(sai > 0)) return;
+  let subs;
+  try { subs = parseAmount(String(amount)); }
+  catch (e) { api.game('Monto no válido. Ejemplo: 1 SMC o 12.345 SMH.', 'aviso'); return; }
+  if (!(subs > 0)) return;
   if (api.S.net.ok) {
-    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_smc' : 'withdraw_smc', amount: sai }));
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_smc' : 'withdraw_smc', amountSmh: subs }));
     return;
   }
-  const subs = subunits(sai);
   const box = localVault();
   if (dir === 'in') {
     if (!debitNamed(walletName(), subs)) { api.game('No hay SMC suficientes en la billetera.', 'aviso'); return; }
-    box.smcSubs = (box.smcSubs || 0) + subs;
+    box.smh = (box.smh || box.smcSubs || 0) + subs;
+    box.smcSubs = box.smh;
     pushTx({ type: 'bank', from: walletName(), to: 'deposito', amountSubs: subs, note: 'Depósito en el banquito' });
   } else {
-    if ((box.smcSubs || 0) < subs) { api.game('El depósito no tiene tantas SMC.', 'aviso'); return; }
-    box.smcSubs -= subs;
+    const have = box.smh || box.smcSubs || 0;
+    if (have < subs) { api.game('El depósito no tiene tantas SMC.', 'aviso'); return; }
+    box.smh = have - subs;
+    box.smcSubs = box.smh;
     creditNamed(walletName(), subs);
     pushTx({ type: 'bank', from: 'deposito', to: walletName(), amountSubs: subs, note: 'Retiro del banquito' });
   }
@@ -267,10 +345,11 @@ function walletToken(name) { try { return localStorage.getItem(tokenKey(name || 
 function saveToken(name, token) { if (!token) return; try { localStorage.setItem(tokenKey(name), token); } catch (e) {} }
 function applyServer(m) {
   if (!m || !m.state) return;
-  const prev = api.S.econ ? api.S.econ.mined : 0;
+  const prev = api.S.econ ? (api.S.econ.minedSmh || 0) : 0;
   const st = m.state;
   if (!api.S.econ) api.S.econ = emptyEcon(st.disclaimer);
-  api.S.econ.mined = st.mined || 0;
+  ensureSmh(api.S.econ);
+  api.S.econ.minedSmh = st.minedSmh || 0;
   api.S.econ.disclaimer = st.disclaimer || api.S.econ.disclaimer;
   api.S.econ.ledgerResets = !!st.ledgerResets;
   api.S.econ.blockCount = st.blockCount || (st.blocks || []).length;
@@ -281,7 +360,7 @@ function applyServer(m) {
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
   if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
-  if ((api.S.econ.mined || 0) > prev) libroProgress('lavar_oro_sai');
+  if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
 }
 function blockOk(blocks, b) {
@@ -299,7 +378,7 @@ function renderLibro() {
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} 1 SMC = 100.000.000 saimonitos.</p>
-    <p>Minadas: <b>${(api.S.econ.mined || 0).toLocaleString('es-CO')}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · Premio actual: <b>${rewardSai(api.S.econ.mined)} SMC</b> · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+    <p>Minadas: <b>${api.esc(formatSmc(api.S.econ.minedSmh || 0))}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · Premio actual: <b>${api.esc(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}</b> · 1 SMC = 100.000.000 SMH · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
     ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
       const ok = blockOk(blocks, b);
@@ -430,10 +509,13 @@ function offlineCommand(text) {
   if (cmd === 'libro') { toggleLibro(); return true; }
   if (cmd !== 'pagar') return false;
   if (api.S.net.ok) return false;
-  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (SaiMonCoins, sólo en el juego)'); return true; }
-  const monto = parseFloat(String(parts.pop()).replace(',', '.'));
+  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (SMC o SMH, sólo en el juego)'); return true; }
+  let monto = parts.pop();
+  if (/^(smc|smh|simonchis?)$/i.test(monto) && parts.length >= 2) monto = parts.pop() + ' ' + monto;
   const dest = parts.join(' ');
-  if (!dest || !isFinite(monto)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;'); return true; }
+  let parsed = NaN;
+  try { parsed = parseAmount(monto); } catch (e) { parsed = NaN; }
+  if (!dest || !(parsed > 0)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt; SMC o SMH'); return true; }
   const names = new Set(['puesto_frutas']);
   for (const o of api.S.others.values()) names.add(o.name);
   const hit = [...names].find(n => n.toLowerCase() === dest.toLowerCase());
@@ -442,6 +524,7 @@ function offlineCommand(text) {
   return true;
 }
 function onNet(m) {
+  if (m.t === 'issued' && m.libro && window.LibroMadre) LibroMadre.toast(m.libro);
   if (m.t === 'economy') {
     applyServer(m);
     if (api.S.pendingBuy && m.balanceSubs != null) {
@@ -463,7 +546,7 @@ function onNet(m) {
     api.S.migrationAck = true;
     api.S.coins = 0;
     api.save();
-    if (!m.already && m.credited) api.game(`Conversión ${m.rate}:1. Entraron ${m.credited} SMC.`, 'oro');
+    if (!m.already && m.credited) api.game(`Conversión ${m.rate}:1. Entraron ${formatPair(m.credited)}.`, 'oro');
     return true;
   }
   if (m.t === 'vault') {
@@ -476,7 +559,7 @@ function onNet(m) {
     return true;
   }
   if (m.t === 'shift') {
-    if (m.paid) api.game(`Turno cumplido: ${m.paid} SMC. ${m.note || 'No es dinero real.'}`, 'oro');
+    if (m.paidSmh || m.paid) api.game(`Turno cumplido: ${m.amountText || formatPair(m.paidSmh || m.paid)}. ${m.note || 'No es dinero real.'}`, 'oro');
     return true;
   }
   if (m.t === 'quest_result') return true;
@@ -597,7 +680,7 @@ function restore(d) {
   if (!d || !api) return;
   if (d.libro) Object.assign(api.S.libro, d.libro);
   if (d.studied) api.S.studied = d.studied;
-  if (d.econ && d.econ.blocks && d.econ.wallets) api.S.econ = d.econ;
+  if (d.econ && d.econ.blocks && d.econ.wallets) api.S.econ = ensureSmh(d.econ);
 }
 function drawDialogFace(who) {
   const canvas = $('#dialogo-cara');
@@ -671,7 +754,7 @@ window.Simulacion = {
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankItem,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
-  hashBlock, verifyBlock, emptyEcon, rewardSai, formatSai, walletToken, SUBS, GENESIS_PREV,
+  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, parseAmount, walletToken, SUBS, GENESIS_PREV,
 };
 const legal = document.getElementById('sai-legal');
 if (legal) legal.onclick = () => { const open = legal.classList.toggle('open'); legal.setAttribute('aria-expanded', open ? 'true' : 'false'); };

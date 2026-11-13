@@ -44,6 +44,7 @@ class PostgresModeTests(unittest.TestCase):
         except Exception as exc:
             self.skipTest('Postgres no está disponible: ' + str(exc))
         conn.execute('DROP TABLE IF EXISTS stores')
+        conn.execute('DROP TABLE IF EXISTS libro_ids')
         conn.commit()
         conn.close()
         self._url = os.environ.get('DATABASE_URL')

@@ -38,7 +38,7 @@ class CertificateTests(unittest.TestCase):
         ok, message = nft.verify_chain(bag['chain'])
         self.assertTrue(ok, message)
         self.assertEqual(nft.metadata(bag['chain']['tokens'][0])['attributes'][0]['trait_type'], 'code')
-        bag['chain']['tokens'][1]['amount'] = 99
+        bag['chain']['tokens'][1]['amountSmh'] = 99
         bad, _why = nft.verify_chain(bag['chain'])
         self.assertFalse(bad)
 
@@ -46,13 +46,13 @@ class CertificateTests(unittest.TestCase):
         st = eco.empty_state()
         bag = self.chain()
         room = eco.MAX_SUPPLY - eco.TREASURY
-        granted = eco.issue(st, 'Ana', room + 5, 'tope', 'mint', now=1)
-        self.assertEqual(granted, room)
+        granted = eco.issue(st, 'Ana', eco.subunits(room + 5), 'tope', 'mint', now=1)
+        self.assertEqual(granted, eco.subunits(room))
         token = nft.issue(bag['chain'], bag['seed'], 'Ana', granted, 'rio', '81,257', now=1)
-        self.assertEqual(token['amount'], room)
-        self.assertEqual(eco.issue(st, 'Ana', 1, 'de más', 'mint', now=2), 0)
-        total = sum(item['amount'] for item in bag['chain']['tokens'])
-        self.assertLessEqual(total + eco.TREASURY, eco.MAX_SUPPLY)
+        self.assertEqual(token['amountSmh'], eco.subunits(room))
+        self.assertEqual(eco.issue(st, 'Ana', eco.subunits(1), 'de más', 'mint', now=2), 0)
+        total = sum(item['amountSmh'] for item in bag['chain']['tokens'])
+        self.assertLessEqual(total + eco.TREASURY_SMH, eco.MAX_SMH)
         ok, _message = nft.verify_chain(bag['chain'])
         self.assertTrue(ok)
 

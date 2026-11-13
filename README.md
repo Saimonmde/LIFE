@@ -14,7 +14,7 @@ Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-S
 
 Cada persona conserva sus derechos sobre sus aportaciones. No se transfiere automáticamente copyright, marca ni un bien físico mediante un NFT. La licencia no registra la marca ni convierte el servidor actual en una red descentralizada.
 
-La simulación de **SaiMonCoins (SMC)** y del **Libro Mayor** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SMC; 1 SMC = 100.000.000 saimonitos. Sólo el oro del río emite SMC nuevas. El nombre anterior, Saimon Coins (SAI) con alias Saimony, ya no se usa. Sin `DATABASE_URL`, el servidor guarda el libro, el depósito, los certificados, las cuentas y el tiempo jugado en `state/*.json` (no se versiona; en Render ese disco se borra al reciclar la instancia). Con `DATABASE_URL` ese mismo estado vive en Postgres y sobrevive al redeploy. Sigue leyendo un archivo guardado con el símbolo viejo SAI.
+La simulación de **SaiMonCoins (SMC)**, del **Libro Mayor** y del **Libro madre** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SMC. 1 SMC = 100.000.000 **Simonchis (SMH)**, la unidad mínima, como un satoshi. Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. Sólo el oro del río emite SMC nuevas. El nombre anterior, Saimon Coins (SAI) con alias Saimony, ya no se usa. Sin `DATABASE_URL`, el servidor guarda el libro, el depósito, los certificados, las cuentas y el tiempo jugado en `state/*.json` (no se versiona; en Render ese disco se borra al reciclar la instancia). Con `DATABASE_URL` ese mismo estado vive en Postgres y sobrevive al redeploy. Sigue leyendo un archivo guardado con el símbolo viejo SAI.
 
 ## Mapa del repositorio
 
@@ -25,7 +25,7 @@ Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del
 - `movil/` — entrada del teléfono; usa la misma vista con botones táctiles.
 - `data/el-jardin.json` — el mapa del Valle de Aburrá (10 municipios). `data/el-jardin.js` es la misma carga para abrir sin `fetch`. `data/simulacion.json` — establo, profesora, economía y lecciones, fuera de la casa. `data/valle-offset.json` — el único desplazamiento del Parque de Envigado. `data/relieve-aburra.json` — alturas simplificadas. `data/parque-envigado-bloque.json` — teselas del parque, celda por celda, antes y después de moverlas.
 - `graphics/` — arte original: teselas, objetos, personajes e interfaz.
-- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `nft.py`, `ed25519.py`, `vault.py`, `payout.py`, `verify_nft.py`, `test_economy.py`, `test_nft.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `libro.py` (libro madre), `nft.py`, `ed25519.py`, `vault.py`, `payout.py`, `verify_nft.py`, `test_economy.py`, `test_libro.py`, `test_nft.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
 - `docs/CERTIFICADOS-SMC.md` — tope de 21 millones, conversión 1:1, certificados, banco y esculturas de reemplazo.
 - `graphics/ui/saimon-logo.png` — wordmark de Simón (CC-BY-SA-4.0). El título usa el derivado en oro `saimon-logo-gold.png` junto a la palabra City en UnifrakturMaguntia (OFL).
 
@@ -139,3 +139,19 @@ Resend: verifica un dominio, crea una API key y define `RESEND_API_KEY` y `EMAIL
 O SMTP: `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD` y `SMTP_FROM`.
 
 El código del correo también caduca a los 10 minutos. Quien ya jugaba con un nombre y un `X-Wallet-Token` puede escribir el mismo nombre: la cuenta nueva se ata a esa billetera y no pierde las SMC.
+
+## Libro madre y Simonchis
+
+Cada bateada de oro en el río acuña un registro único en el libro madre, por ejemplo `SMC-3-A1B2C3D4`. Lleva monto en SMH enteros, billetera, río, hora, nonce de una prueba de trabajo barata, hash SHA-256, hash anterior y firma Ed25519 con `NFT_PRIVATE_KEY`. No se vuelve a emitir el mismo código. En Postgres el código tiene una clave única (`libro_ids`); sin `DATABASE_URL` el conjunto vive en `state/libro-ids.json` y la cadena en `state/libro-madre.json` (almacén `libro_madre`).
+
+Los saldos, el banco y las transferencias usan sólo enteros SMH. Un saldo que ya estaba en saimonitos no se multiplica otra vez: 1 saimonito = 1 SMH. Un contador guardado en SMC, como el total minado, se multiplica una vez por 100.000.000. El tope es 2.100.000.000.000.000 SMH. Más de 8 decimales se rechaza, para no crear ni destruir un Simonchi al redondear.
+
+En el juego, el panel **Libro madre** (también en `/movil/`) muestra las últimas acuñaciones. Al batear, un aviso dice `Acuñaste SMC-…` y abre ese registro. El saldo se puede ver en SMC o en SMH; `/pagar` acepta `1,5 SMC` o `12345 SMH`.
+
+Lectura pública:
+
+- `GET /api/libro`
+- `GET /api/libro/<id>`
+- `GET /api/libro/verificar`
+
+`LIBRO_DIFICULTAD` (1 a 20, por defecto 12) es cuántos bits en cero pide la prueba de trabajo. Si tarda, el servidor baja un bit para no frenar la partida.

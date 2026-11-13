@@ -62,7 +62,8 @@
   "economy": {
     "unit": "SaiMonCoin",
     "symbol": "SMC",
-    "smallestUnit": "saimonito",
+    "smallestUnit": "SMH",
+    "smallestName": "Simonchi",
     "subunitsPerUnit": 100000000,
     "maxSupply": 21000000,
     "genesisTreasury": 210000,
