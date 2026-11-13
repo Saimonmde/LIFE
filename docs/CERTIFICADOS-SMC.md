@@ -40,6 +40,16 @@ En el horno, «Acuñar monedas» crea objetos de la mochila (`moneda_cobre`, `mo
 
 Ocho golpes de cobre o plata, con al menos un segundo entre ellos, pagan 10 SMC y un certificado. El oro del río sigue siendo la única bateada de oro. El adaptador OnePay/USDT existe en `tools/payout.py` y rechaza cualquier pago. En pantalla se lee que SMC no tiene valor real.
 
+## Plata (SMP)
+
+La Plata es otra moneda del libro, no un objeto de la mochila. 1 SMP = 100.000.000 platicas (SPH), enteros. El tope es 84.000.000 SMP y no hay premine ni reserva. El premio de cada prueba empieza en 5 SMP y se parte a la mitad cada 42 millones minados. La red apunta a 144 pruebas al día. Una cuenta nueva mina hasta 5 SMP ese día; con la edad de la cuenta (hasta 60 días), las horas jugadas (hasta 40) y las misiones (hasta 10) el tope llega a 125 SMP.
+
+Se mina con la misma prueba firmada de un solo uso, en cualquier momento, también cuando la cuenta ya llenó su tope de SMC. Hacen falta cuenta, caminar, la pausa entre pruebas y los límites por IP. Un invitado no recibe nada. Una marca de administración no cambia el cupo.
+
+De cada SMC nueva (río, horno que acredita SMC, turno o conversión) un quinto pasa al fondo de cambio y cuatro quintos se quedan en la billetera. El total emitido no cambia y sigue dentro de los 21.000.000 y del tope del día. Las misiones salen de la reserva génesis y no alimentan ese fondo.
+
+Cambiar Plata por SMC quema la Plata (no vuelve al cupo minable) y paga SMC sólo desde ese fondo, a razón de 100 SMP = 1 SMC. El cambio no llama a la emisión: `minedSmh` no sube. Cada cuenta puede recibir hoy como máximo un quinto de su propio tope diario de SMC, y como máximo la décima parte del fondo (lo que ya había más lo que entró hoy). Entre todas las cuentas, hoy sólo puede salir la mitad del fondo. Así una sola cuenta no se queda con el oro apartado.
+
 ## Esculturas de reemplazo en Envigado
 
 No había una obra pedida en el historial, y el bronce del Primer Poblado sigue fuera. En el parque hay tres piezas abstractas propias, sobre plinto, para que Jay las cambie:

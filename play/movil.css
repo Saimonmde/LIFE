@@ -38,6 +38,8 @@ html.movil #touch-extra{display:flex;flex-direction:column;gap:8px;position:fixe
 html.movil #touch-extra button{min-width:96px;min-height:48px;padding:10px 12px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:12px;font:700 15px system-ui,sans-serif}
 html.movil #sai-legal{left:max(8px,env(safe-area-inset-left));right:auto;top:auto;bottom:calc(128px + env(safe-area-inset-bottom));transform:none;max-width:42vw;font-size:11px;text-align:left;z-index:4}
 html.movil #pow-panel{top:148px;left:max(6px,env(safe-area-inset-left));width:min(210px,68vw);font-size:11px}
+html.movil #plata-panel{top:148px;left:auto;right:max(6px,env(safe-area-inset-right));width:min(220px,48vw);max-height:34vh;font-family:var(--sans);font-size:12px}
+html.movil #plata-saldo{font-size:18px;font-family:var(--sans)}
 body:not(.in-game) #touch-extra{display:none!important}
 html.movil header, html.movil #zona-nombre, html.movil .simoncity-place, html.movil .simoncity-welcome, html.movil #aviso .titulo, html.movil #misiones .seccion, html.movil #objetivo {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;

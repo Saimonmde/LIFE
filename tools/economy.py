@@ -233,8 +233,12 @@ def empty_state():
     }
     import supply
     supply.ensure(state)
+    import plata
+    plata.ensure(state)
     if isinstance(state.get('supply'), dict):
         state['supply'].pop('_fresh', None)
+    if isinstance(state.get('plata'), dict):
+        state['plata'].pop('_fresh', None)
     return state
 
 
@@ -326,6 +330,8 @@ def normalize_state(state):
     migrate_amounts(state)
     import supply
     supply.ensure(state)
+    import plata
+    plata.ensure(state)
     return state
 
 
@@ -337,9 +343,14 @@ def load_state(path):
         save_state(path, state)
         return state
     normalize_state(state)
-    import supply
+    fresh = False
     if state.get('supply', {}).get('_fresh'):
         state['supply'].pop('_fresh', None)
+        fresh = True
+    if state.get('plata', {}).get('_fresh'):
+        state['plata'].pop('_fresh', None)
+        fresh = True
+    if fresh:
         save_state(path, state)
     return state
 

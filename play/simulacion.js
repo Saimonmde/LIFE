@@ -107,6 +107,31 @@ function formatSmh(smh) {
   return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
 }
 function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function formatSmp(sph) {
+  sph = Math.trunc(Number(sph) || 0);
+  const neg = sph < 0;
+  sph = Math.abs(sph);
+  const whole = Math.floor(sph / SUBS);
+  const frac = sph % SUBS;
+  const grouped = whole.toLocaleString('es-CO');
+  if (!frac) return (neg ? '-' : '') + grouped + ' SMP';
+  return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(8, '0').replace(/0+$/, '') + ' SMP';
+}
+function formatSph(sph) {
+  sph = Math.trunc(Number(sph) || 0);
+  return (sph < 0 ? '-' : '') + Math.abs(sph).toLocaleString('es-CO') + ' SPH';
+}
+function formatPlataPair(sph) { return formatSmp(sph) + ' = ' + formatSph(sph); }
+function unidadPlata() {
+  try { return localStorage.getItem('lifeinc.unidad.plata') === 'SPH' ? 'SPH' : 'SMP'; } catch (e) { return 'SMP'; }
+}
+function formatPlata(sph) { return unidadPlata() === 'SPH' ? formatSph(sph) : formatSmp(sph); }
+function parsePlata(text) {
+  const raw = String(text == null ? '' : text).trim();
+  if (!raw) return 0;
+  if (/sph|platica/i.test(raw)) return parseAmount(raw.replace(/platicas?|sph/ig, '').trim() + ' SMH');
+  return parseAmount(raw.replace(/plata|smp/ig, '').trim() + ' SMC');
+}
 function moneyHtml(text) { return `<span class="smc">${api.esc(text)}</span>`; }
 function unidadActiva() {
   try { return localStorage.getItem('lifeinc.unidad') === 'SMH' ? 'SMH' : 'SMC'; } catch (e) { return 'SMC'; }
@@ -188,6 +213,27 @@ function paintHud() {
         try { localStorage.setItem('lifeinc.unidad', unidadActiva() === 'SMH' ? 'SMC' : 'SMH'); } catch (e) {}
         paintHud();
         if (window.Banco) Banco.paint();
+      });
+    }
+  }
+  const plata = (api.S.plata && api.S.plata.balanceSph) || 0;
+  const plataText = formatPlata(plata);
+  const saldo = $('#plata-saldo');
+  const saldoPanel = $('#plata-saldo-panel');
+  if (saldo) saldo.textContent = plataText;
+  if (saldoPanel) saldoPanel.textContent = plataText;
+  const pchip = $('#plata-chip');
+  if (pchip) {
+    const view = api.S.plata;
+    pchip.title = view
+      ? `${formatPlataPair(plata)} · tope de hoy ${formatPlataPair(view.dailyCapSph || 0)} · quedan ${formatPlataPair(view.remainingSph || 0)} · ${view.rateText || '100 SMP = 1 SMC'} · puedes cambiar ${formatPair(view.exchangeLeftSmh || 0)} · simulación, sin valor real. Pulsa para ver ${unidadPlata() === 'SPH' ? 'SMP' : 'SPH'}.`
+      : 'Plata (SMP). Simulación, sin valor real.';
+    if (!pchip.dataset.unidad) {
+      pchip.dataset.unidad = '1';
+      pchip.addEventListener('click', () => {
+        try { localStorage.setItem('lifeinc.unidad.plata', unidadPlata() === 'SPH' ? 'SMP' : 'SPH'); } catch (e) {}
+        paintHud();
+        if (window.PowMint) PowMint.paintPlata(api.S.plata);
       });
     }
   }
@@ -366,6 +412,10 @@ function applyServer(m) {
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
   if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
+  if (m.plata) {
+    api.S.plata = m.plata;
+    if (m.balanceSph != null) api.S.plata.balanceSph = m.walletLocked ? 0 : m.balanceSph;
+  }
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
 }
@@ -539,12 +589,23 @@ function rememberSupply(view) {
   api.S.supply = Object.assign({}, api.S.supply || {}, view);
   paintHud();
 }
+function rememberPlata(view) {
+  if (!api || !view) return;
+  api.S.plata = Object.assign({}, api.S.plata || {}, view);
+  paintHud();
+}
 function net() {
   return api && api.S.net && api.S.net.ok ? api.S.net.ws : null;
 }
 function onNet(m) {
   if (window.PowMint && PowMint.observe(m) && (m.t === 'pow_challenge' || m.t === 'pow_result')) return true;
   if (m.t === 'issued' && m.libro && window.LibroMadre) LibroMadre.toast(m.libro);
+  if (m.t === 'plata_result' || m.t === 'exchange_result') {
+    if (m.plata) rememberPlata(m.plata);
+    const box = document.getElementById('cambio-result');
+    if (box) box.textContent = m.reason || (m.ok ? 'Cambio hecho.' : 'No se pudo cambiar.');
+    return true;
+  }
   if (m.t === 'economy') {
     applyServer(m);
     if (api.S.pendingBuy && m.balanceSubs != null) {
@@ -787,9 +848,9 @@ window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankItem,
-  rememberSupply, net,
+  rememberSupply, rememberPlata, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
-  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, parseAmount, walletToken, SUBS, GENESIS_PREV,
+  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, walletToken, SUBS, GENESIS_PREV,
 };
 const legal = document.getElementById('sai-legal');
 if (legal) legal.onclick = () => { const open = legal.classList.toggle('open'); legal.setAttribute('aria-expanded', open ? 'true' : 'false'); };
