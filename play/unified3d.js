@@ -5,7 +5,7 @@ import {enrichWorld} from './park3d.js?v=valle-hud-r5';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
 import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
-import {createValleyView} from './valle-vista.js?v=valle-hud-r5';
+import {createValleyView} from './valle-vista.js?v=mapa-fijo-r6';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
@@ -87,6 +87,8 @@ function boot(api){
  const valley=createValleyView(T,{W,scene,corner,terrainKind,chunkMeshes,chunkSize:CHUNK,renderer,camera,narrow,height});
  status.openValleyMap=()=>valley.open();
  status.closeValleyMap=()=>valley.close();
+ status.zoomMap=(dir)=>valley.zoomBy(dir);
+ status.setMapPin=(tile)=>valley.setPin(tile);
  Object.defineProperty(status,'mapOpen',{get:()=>valley.isOpen()});
  // All world props are meshes. Inventory portraits/icons remain ordinary UI images.
  function part(g,shape,pos,scale,c){const mesh=new T.Mesh(shape,material(c));mesh.position.set(...pos);mesh.scale.set(...scale);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;}
@@ -327,7 +329,7 @@ function boot(api){
  const dropFurnace=api.draggedMineral?[...S.nodes.values()].find(n=>n.def.type==='furnace'):null;dropHalo.visible=!!dropFurnace;if(dropFurnace){if(dropHalo.parent!==view)view.add(dropHalo);dropHalo.position.set(dropFurnace.def.x*2+1,.09,dropFurnace.def.y*2+1);dropHalo.material.color.set(api.oreDropHovered?'#97ffb0':'#ffd369');}
  target.set(p.fx*2+1,height(p.fx,p.fy)+1,p.fy*2+1);let camYaw=yaw,camPitch=pitch,camDist=distance,camAt=target;const posed=valley.pose();if(posed){camYaw=posed.yaw;camPitch=posed.pitch;camDist=posed.distance;camAt=posed.target;}camera.position.set(camAt.x+Math.sin(camYaw)*Math.cos(camPitch)*camDist,camAt.y+Math.sin(camPitch)*camDist,camAt.z+Math.cos(camYaw)*Math.cos(camPitch)*camDist);camera.up.set(-Math.sin(camYaw)*Math.sin(camPitch),Math.cos(camPitch),-Math.cos(camYaw)*Math.sin(camPitch));camera.lookAt(camAt);if(!valley.isOpen())syncCameraControls();
  sun.position.set(camAt.x-80,camAt.y+120,camAt.z+40);sun.target.position.copy(camAt);const dayView=!!posed;sun.intensity=dayView?2.4:(S.night?.12:2.2);ambient.intensity=dayView?2.4:(S.night?.28:2);ambient.color.set(!dayView&&S.night?'#8ca8dd':'#ffefd3');ambient.groundColor.set(!dayView&&S.night?'#182332':'#405336');scene.background.set(!dayView&&S.night?'#080f1c':'#a4c4bc');scene.fog.color.copy(scene.background);const air=valley.atmosphere();scene.fog.near=air.fogNear;scene.fog.far=air.fogFar;if(camera.far!==air.cameraFar){camera.far=air.cameraFar;camera.updateProjectionMatrix();}const wantShadow=!narrow()&&!posed;if(renderer.shadowMap.enabled!==wantShadow)renderer.shadowMap.enabled=wantShadow;cityLighting.update(S.night,camAt);
- for(const id of ['route-open','book','hud-mapa'])document.getElementById(id).disabled=away;document.querySelector('#mine-route').textContent=W.mapId==='mine'?'♨ Horno central':'⛏ Mina de Las Palmas';
+ for(const id of ['route-open','book'])document.getElementById(id).disabled=away;document.querySelector('#mine-route').textContent=W.mapId==='mine'?'♨ Horno central':'⛏ Mina de Las Palmas';
  const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='banco'?'Casa bancaria':region?.name||'Valle de Aburrá';
  for(const n of W.npcs)actor(n.id,n.x,n.y,'#ab8338');
  for(const m of W.memories){m.mesh.rotation.y+=.01;m.mesh.visible=!found.has(m.id);if(api.started&&!found.has(m.id)&&Math.hypot(p.fx-m.x,p.fy-m.y)<2){found.add(m.id);localStorage.setItem('lifeinc.aburra.memories.v1',JSON.stringify([...found]));document.querySelector('#book').style.outline='2px solid #edc76b';}}

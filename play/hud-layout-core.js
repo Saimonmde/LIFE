@@ -84,6 +84,51 @@
     return map.weekday + ' ' + map.day + ' ' + map.month + ' ' + map.year + ' · ' + map.hour + ':' + map.minute + ' ' + period;
   }
 
+  function minimapTile(px, py, view, size) {
+    const span = Number(view && view.span);
+    const x0 = Number(view && view.x0);
+    const y0 = Number(view && view.y0);
+    const pxN = Number(px);
+    const pyN = Number(py);
+    const sizeN = Number(size);
+    if (![span, x0, y0, pxN, pyN, sizeN].every(Number.isFinite) || span <= 0 || sizeN <= 0) return null;
+    const k = sizeN / span;
+    return { x: Math.floor(x0 + pxN / k), y: Math.floor(y0 + pyN / k) };
+  }
+
+  function rectsOverlap(a, b) {
+    if (!a || !b) return false;
+    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  }
+
+  function staminaStep(energy, locked, wantSprint, moving, dt) {
+    let e = Number.isFinite(Number(energy)) ? Number(energy) : 100;
+    let lock = !!locked;
+    const step = Number.isFinite(Number(dt)) ? Math.max(0, Number(dt)) : 0;
+    const sprint = !!wantSprint && !lock && e > 0;
+    if (sprint) {
+      e = Math.max(0, e - step * 14);
+      if (e <= 0) lock = true;
+    } else if (e < 100) {
+      e = Math.min(100, e + step * (moving ? 5 : 9));
+      if (lock && e >= 30) lock = false;
+    }
+    return { energy: e, locked: lock, sprint: sprint };
+  }
+
+  function healthStep(hp, hurtUntil, nowMs, dt) {
+    let h = Number.isFinite(Number(hp)) ? Number(hp) : 100;
+    const step = Number.isFinite(Number(dt)) ? Math.max(0, Number(dt)) : 0;
+    if ((Number(nowMs) || 0) >= (Number(hurtUntil) || 0) && h < 100) h = Math.min(100, h + step * 4);
+    return Math.max(0, Math.min(100, h));
+  }
+
+  function applyDamage(hp, amount) {
+    const h = Number.isFinite(Number(hp)) ? Number(hp) : 100;
+    const n = Math.max(0, Number(amount) || 0);
+    return Math.max(0, Math.min(100, h - n));
+  }
+
   function fitScale(scale, width, height, vw, vh, margin) {
     const m = Number.isFinite(margin) ? margin : 8;
     let next = clampScale(scale);
@@ -105,5 +150,10 @@
     loadLayout: loadLayout,
     fitScale: fitScale,
     formatClock: formatClock,
+    minimapTile: minimapTile,
+    rectsOverlap: rectsOverlap,
+    staminaStep: staminaStep,
+    healthStep: healthStep,
+    applyDamage: applyDamage,
   };
 })(typeof window === 'undefined' ? globalThis : window);

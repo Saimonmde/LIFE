@@ -5,7 +5,6 @@
   const Core = window.HudLayoutCore;
   const PIECES = [
     ['hud-perfil', 'Perfil y tiempo', 'hud'],
-    ['hud-reloj', 'Reloj', 'hud'],
     ['hud-top', 'Botones', 'hud'],
     ['hud-mapa', 'Minimapa', 'hud'],
     ['p-misiones', 'Misiones', 'hud'],
@@ -89,7 +88,6 @@
     const portrait = view.portrait;
     const table = {
       'hud-perfil': { x: edge, y: edge, scale: phone ? 0.62 : (portrait ? 0.78 : 1) },
-      'hud-reloj': { x: edge, y: phone ? (portrait ? bottom(130) : 70) : 8, scale: phone ? 0.92 : 1 },
       'hud-mapa': { x: right(phone ? 130 : 188), y: edge, scale: phone ? 0.55 : (portrait ? 0.7 : 1) },
       'hud-top': { x: edge, y: phone ? (portrait ? 132 : 86) : (portrait ? 210 : 8), scale: phone ? 0.82 : 1 },
       'hud-recursos': { x: right(phone ? 150 : 210), y: bottom(phone ? 58 : 52), scale: phone ? 0.85 : 1 },
@@ -295,7 +293,7 @@
   }
   function register(id, title, kind) {
     const raw = findRaw(id);
-    if (!raw) return;
+    if (!raw || raw.classList.contains('hud-fijo')) return;
     let el = managed.get(id);
     if (!el) {
       el = raw.tagName === 'BUTTON' || BUTTONS.has(id) ? wrapButton(raw, id) : raw;
@@ -520,7 +518,31 @@
     paintClock();
     setInterval(paintClock, 1000);
   }
-  function start() { startClock(); boot(); }
+  const CLEAN_KEY = 'lifeinc.pantalla.v1';
+  function setClean(on) {
+    document.body.classList.toggle('pantalla-limpia', !!on);
+    try { localStorage.setItem(CLEAN_KEY, on ? '1' : '0'); } catch (e) {}
+    const btn = document.getElementById('b-limpio');
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.title = on ? 'Mostrar la interfaz' : 'Pantalla limpia';
+      btn.setAttribute('aria-label', on ? 'Mostrar la interfaz' : 'Ocultar textos y paneles');
+    }
+  }
+  function mountClean() {
+    let on = false;
+    try { on = localStorage.getItem(CLEAN_KEY) === '1'; } catch (e) {}
+    setClean(on);
+    const btn = document.getElementById('b-limpio');
+    if (!btn || btn.dataset.ready) return;
+    btn.dataset.ready = '1';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (editing()) setEditing(false);
+      setClean(!document.body.classList.contains('pantalla-limpia'));
+    });
+  }
+  function start() { startClock(); boot(); mountClean(); }
   if (document.body) start();
   else addEventListener('DOMContentLoaded', start);
 

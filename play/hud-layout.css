@@ -210,6 +210,55 @@ html.movil #mine-enter.hud-in-shell,
 html.movil #sai-legal.hud-in-shell,
 html.movil #movil-menu.hud-in-shell,
 html.movil #b-bajar.hud-in-shell,
+#hud-reloj.hud-fijo,
+body.hud-editando #hud-reloj.hud-fijo {
+  outline: none !important;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  pointer-events: none !important;
+}
+#hud-reloj.hud-fijo > header,
+#hud-reloj.hud-fijo > .hud-asa { display: none !important; }
+body.pantalla-limpia .hud,
+body.pantalla-limpia .ventana,
+body.pantalla-limpia .panel,
+body.pantalla-limpia #world-tools,
+body.pantalla-limpia #world-note,
+body.pantalla-limpia #movil-menu,
+body.pantalla-limpia #b-descansar,
+body.pantalla-limpia #b-bajar,
+body.pantalla-limpia #b-casa,
+body.pantalla-limpia #b-editar-casa,
+body.pantalla-limpia #b-salir-parque,
+body.pantalla-limpia #hud-gear,
+body.pantalla-limpia #hud-gear-menu,
+body.pantalla-limpia #hud-edit-bar,
+body.pantalla-limpia #touch-extra,
+body.pantalla-limpia #mine-route,
+body.pantalla-limpia #mine-exit-route,
+body.pantalla-limpia #mine-enter,
+body.pantalla-limpia #city-joystick { display: none !important; }
+body.pantalla-limpia #hud-mapa { display: block !important; }
+body.pantalla-limpia #b-limpio,
+body.pantalla-limpia #hud-anillos,
+body.pantalla-limpia #hud-recursos { display: flex !important; }
+body.pantalla-limpia #hud-recursos > span:not(#sai-chip) { display: none !important; }
+body.pantalla-limpia #hud-mapa > header,
+body.pantalla-limpia #hud-recursos > header,
+body.pantalla-limpia #hud-mapa > .hud-asa,
+body.pantalla-limpia #hud-recursos > .hud-asa { display: none !important; }
+body.pantalla-limpia #hud-recursos,
+body.pantalla-limpia #hud-recursos.hud-puesto {
+  top: auto !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: max(10px, env(safe-area-inset-bottom)) !important;
+  transform: translateX(-50%) !important;
+  width: auto !important;
+  max-width: none !important;
+}
 html.movil #b-casa.hud-in-shell,
 html.movil #b-editar-casa.hud-in-shell,
 html.movil #b-salir-parque.hud-in-shell {

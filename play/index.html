@@ -8,9 +8,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=plata-r1">
-<link rel="stylesheet" href="movil.css?v=plata-r1">
-<link rel="stylesheet" href="hud-layout.css?v=valle-hud-r5">
+<link rel="stylesheet" href="style.css?v=mapa-fijo-r6">
+<link rel="stylesheet" href="movil.css?v=mapa-fijo-r6">
+<link rel="stylesheet" href="hud-layout.css?v=mapa-fijo-r6">
 <script src="movil.js?v=valle-hud-r5"></script>
 </head>
 <body>
@@ -33,7 +33,7 @@
   </div>
   <div id="zona-nombre">El Jardín</div>
 </div>
-<div id="hud-reloj" class="hud" aria-label="Hora y fecha reales"><time id="reloj-ahora"></time></div>
+<div id="hud-reloj" class="hud hud-fijo" aria-label="Hora y fecha reales"><time id="reloj-ahora"></time></div>
 
 <!-- ===== Botones + minimapa (arriba derecha) ===== -->
 <div id="hud-top" class="hud">
@@ -48,7 +48,9 @@
   <button class="ico" id="b-libro-madre" title="Libro madre">LM</button>
   <div id="ping"><i></i><span>sin conexión</span></div>
 </div>
-<div id="hud-mapa" class="hud" role="button" tabindex="0" aria-label="Abrir mapa de SaimonCity" aria-haspopup="dialog" aria-expanded="false"><canvas id="minimapa" width="168" height="168"></canvas><span class="norte">N</span><span class="map-sur">S</span><span class="map-or">OR</span><span class="map-oc">OC</span><button id="mm-zoom" title="Zoom del minimapa">+</button></div>
+<div id="hud-mapa" class="hud" aria-label="Minimapa"><canvas id="minimapa" width="168" height="168" aria-label="Minimapa. Toca para caminar hasta ese punto."></canvas><span class="norte">N</span><span class="map-sur">S</span><span class="map-or">OR</span><span class="map-oc">OC</span><button type="button" id="b-globo" aria-label="Abrir mapa del Valle de Aburrá" aria-haspopup="dialog" aria-controls="city-map" aria-expanded="false" title="Abrir mapa"><svg class="globo" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11.5" fill="#1a4c45" stroke="#f3e6c0" stroke-width="1.6"/><ellipse cx="16" cy="16" rx="5.2" ry="11.5" fill="none" stroke="#c6eadb" stroke-width="1.15"/><path d="M4.6 16h22.8" stroke="#c6eadb" stroke-width="1.15"/><path d="M6.2 11c3.2 1.5 6.4 2 9.8 1.6 3.4-.4 6.6-.8 9.8-2" fill="none" stroke="#e7f6ef" stroke-width="1"/><path d="M6.4 21c3.1-1.4 6.2-1.7 9.6-.9 3.3.8 6.3.6 9.6-1.1" fill="none" stroke="#e7f6ef" stroke-width="1"/><path d="M11.2 6.2c.9 2.4 1.1 4.6.2 7.4-1.1 3.2-.3 5.6 1.4 9.2" fill="none" stroke="#8fd0b4" stroke-width="1.2"/></svg></button><button id="mm-zoom" type="button" title="Zoom del minimapa">+</button></div>
+<div id="hud-anillos" class="hud" aria-label="Vida y energía"><div class="anillo" id="anillo-vida" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-label="Vida"><svg class="aro" viewBox="0 0 64 64" aria-hidden="true"><circle class="anillo-fondo" cx="32" cy="32" r="26"/><circle id="vida-arco" cx="32" cy="32" r="26"/></svg><span id="vida-pct">100%</span></div><div class="anillo" id="anillo-energia" aria-label="Energía"><svg class="aro" viewBox="0 0 64 64" aria-hidden="true"><circle class="anillo-fondo" cx="32" cy="32" r="26"/><circle id="energia-arco" cx="32" cy="32" r="26"/></svg><svg class="corredor" viewBox="0 0 32 32" aria-hidden="true"><circle cx="20.5" cy="5.2" r="3.1"/><path d="M18 9.2 L12.5 16.2 M14.2 12.4 L7.2 10.2 M15 13.6 L23.5 12.2 M12.6 16.4 L6.5 25.5 M13.2 16.8 L21.8 24.8"/></svg></div></div>
+<button type="button" id="b-limpio" class="hud" aria-pressed="false" title="Pantalla limpia" aria-label="Ocultar textos y paneles"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M2.5 16C6.5 9 11 6.5 16 6.5S25.5 9 29.5 16C25.5 23 21 25.5 16 25.5S6.5 23 2.5 16z"/><circle cx="16" cy="16" r="4.2"/><path class="ojo-corte" d="M6 26 L26 6"/></svg></button>
 
 <!-- ===== Paneles derecha ===== -->
 <div id="hud-derecha" class="hud">
@@ -167,13 +169,13 @@
   <header>Cómo jugar en El Jardín <button type="button" class="x" id="btn-cerrar-ayuda" data-cierra="ayuda">✕</button></header>
   <ul>
     <li><b>Casa:</b> entras en tu casa colonial. La puerta (clic, toque o caminar hasta ella) sale al Parque de Envigado. El botón <b>Casa</b> vuelve. <b>Editar casa</b> mueve, rota, quita y coloca muebles; el plano queda guardado en este navegador.</li>
-    <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr. Clic en algo para ir e interactuar.</li>
+    <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr: gasta energía y, si se vacía, hay que recuperar un poco para volver a correr. Toca el minimapa para caminar hasta ese punto. El globo abre el mapa del valle.</li>
     <li><b>Capataz</b> (plaza, con <b>!</b>): háblale para empezar los <b>Primeros Pasos</b>.</li>
     <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
     <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas al cuádruple de la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua.</li>
-    <li><b>Interfaz:</b> la rueda ⚙ abre el modo edición. Ahí se mueve cada barra, se agranda o se achica, y se minimiza. − deja una pestaña y × cierra; se vuelven a abrir desde la rueda o su botón. El diseño se guarda en este aparato, aparte en el celular y en el escritorio, y también al girar la pantalla. Se puede jugar vertical y horizontal.</li>
+    <li><b>Interfaz:</b> la rueda ⚙ abre el modo edición. Ahí se mueve cada barra, se agranda o se achica, y se minimiza. − deja una pestaña y × cierra; se vuelven a abrir desde la rueda o su botón. El reloj queda fijo, sin caja, y no entra en ese modo. El ojo grande deja la pantalla limpia: sólo el saldo SMC, el minimapa, el globo y los anillos. Se recuerda en este aparato. El diseño se guarda aparte en el celular y en el escritorio, y también al girar la pantalla. Se puede jugar vertical y horizontal.</li>
     <li><b>SaiMonCoins (SMC):</b> cada moneda nueva pide una prueba de trabajo, una cuenta y juego real. Tope 21.000.000. El premio de la era empieza en 1 SMC y se parte a la mitad cada 10,5 millones. Cada cuenta tiene un tope diario. 1 SMC = 100.000.000 Simonchis (SMH). El Libro madre guarda cada acuñación con un código que no se repite. Es una simulación: no es dinero real.</li>
     <li><b>Plata (SMP):</b> se mina con la misma prueba, también después del tope de SMC del día. Tope 84.000.000 SMP, sin reserva inicial. 1 SMP = 100.000.000 platicas (SPH). El premio empieza en 5 SMP y se parte a la mitad cada 42 millones. 100 SMP = 1 SMC: la Plata se quema y el oro sale de un fondo que aparta un quinto de cada SMC ya emitida. No se crean SMC nuevas. El panel se mueve con la rueda ⚙.</li>
     <li><b>Horno:</b> en la mina convierte mineral en lingotes o en monedas de cobre, plata y oro. Esas monedas son objetos de la mochila y no crean SMC. Acreditar SMC pasa por la prueba de trabajo y el tope del día; no se inventa saldo sin el servidor.</li>
@@ -192,15 +194,16 @@
 </div>
 <div id="viaje-vuelo" aria-hidden="true"></div>
 <section id="city-map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
-  <div class="city-map-panel"><header><span id="city-map-title">Valle de Aburrá</span><button id="city-map-close" aria-label="Cerrar mapa">✕</button></header>
+  <div class="city-map-panel"><header><span id="city-map-title">Valle de Aburrá</span><button id="city-map-close" type="button" aria-label="Cerrar mapa">×</button></header>
   <div id="city-map-view">
     <div id="city-map-stage"></div>
     <div id="city-map-labels"></div>
-    <div id="city-map-zoom"></div>
-    <canvas id="city-map-canvas" width="800" height="800" role="img" aria-label="Mapa del Valle de Aburrá. Tu posición está marcada con una estrella amarilla."></canvas>
+    <div id="city-map-zoom"><button type="button" id="city-map-in" aria-label="Acercar">+</button><button type="button" id="city-map-out" aria-label="Alejar">−</button></div>
+    <canvas id="city-map-canvas" width="800" height="800" aria-label="Mapa del Valle de Aburrá. Tu posición está marcada con una estrella amarilla."></canvas>
   </div>
-  <div id="city-map-muni" aria-label="Municipios de norte a sur"></div>
-  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Arrastra para girar y pellizca para acercar. Toca un municipio para ir.</p></div>
+  <div id="city-map-go" hidden><span id="city-map-go-label">Destino marcado</span><button type="button" id="city-map-walk">Ir aquí</button><button type="button" id="city-map-clear">Quitar marca</button></div>
+  <div id="city-map-muni" aria-label="Municipios de norte a sur. Teletransporte al parque."></div>
+  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Arrastra para mover el mapa. Pellizca o usa + y − para el zoom. Toca el terreno y pulsa Ir aquí para caminar. Toca un municipio para ir a su parque.</p></div>
 </section>
 <section id="banquito" class="ventana" hidden>
   <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
@@ -222,10 +225,10 @@
 <script src="tutorial.js?v=valle-hud-r5"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
-<script src="game.js?v=valle-hud-r5"></script>
-<script type="module" src="unified3d.js?v=valle-hud-r5"></script>
+<script src="game.js?v=mapa-fijo-r6"></script>
+<script type="module" src="unified3d.js?v=mapa-fijo-r6"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
-<script src="hud-layout-core.js?v=valle-hud-r5"></script>
-<script src="hud-layout.js?v=plata-r1"></script>
+<script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
+<script src="hud-layout.js?v=mapa-fijo-r6"></script>
 </body>
 </html>
