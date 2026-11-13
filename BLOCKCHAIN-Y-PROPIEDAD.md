@@ -27,4 +27,4 @@ Antes de emitirlos, definir por escrito qué recibe el usuario, si hay licencia 
 
 ## Estado del proyecto
 
-El juego local utiliza un servidor para su presencia, el chat y una simulación educativa del Libro Mayor (bloques encadenados con SHA-256 y Saimon Coins dentro de la partida). Esa simulación no es una criptomoneda, no tiene valor ni canje, y no transfiere copyright, marca ni bienes. No hay contratos inteligentes, NFT, DAO, custodia de bienes ni una red descentralizada. La licencia no convierte por sí sola esa arquitectura en blockchain.
+El juego local utiliza un servidor para su presencia, el chat y una simulación educativa del Libro Mayor (bloques encadenados con SHA-256 y SaiMonCoins, SMC, dentro de la partida). Esa simulación no es una criptomoneda, no tiene valor ni canje, y no transfiere copyright, marca ni bienes. No hay contratos inteligentes, NFT, DAO, custodia de bienes ni una red descentralizada. La licencia no convierte por sí sola esa arquitectura en blockchain.

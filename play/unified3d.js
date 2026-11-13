@@ -3,8 +3,9 @@ import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=saimon-door-r3';
 import {enrichWorld} from './park3d.js?v=saimon-door-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-door-r3';
+import {placeEnvigadoProps} from './envigado-props.js?v=envigado-r1';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
-const BUILD='valle-diez-parques-logo-r3';
+const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
 const wait=setInterval(()=>{if(window.LiveInk?.world?.clientReady){clearInterval(wait);try{boot(window.LiveInk);}catch(e){console.error(e);status.error=String(e);document.querySelector('#zona-nombre').textContent='No se pudo iniciar 3D · recarga o activa WebGL';}}},100);
 function boot(api){
@@ -57,12 +58,29 @@ function boot(api){
   if(kind!=='asphalt'){c.strokeStyle='#b5b09840';c.lineWidth=1;for(let row=0;row<128;row+=19){c.beginPath();for(let x=0;x<=128;x+=4)c.lineTo(x,row+Math.sin(x*.09+row)*7);c.stroke();}}
   const tex=new T.CanvasTexture(canvas);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=4;const m=material(palette[kind]);m.color.set('#ffffff');m.map=tex;m.needsUpdate=true;
  }
- const groups={};for(let y=0;y<W.height;y++)for(let x=0;x<W.width;x++){let k=W.tiles[W.ground[y][x]].kind;const surface=(W.surfaceZones||[]).find(s=>x>=s.x&&x<s.x+s.w&&y>=s.y&&y<s.y+s.h);if(surface)k=surface.kind;if(k==='water'&&(W.riverLayouts||[]).some(r=>r.axis==='y'&&x>=r.x&&x<r.x+r.w)&&!(W.riverLayouts||[]).some(r=>r.axis==='x'&&y>=r.y&&y<r.y+r.h))k='creek';(groups[k]??=[]).push([x,y]);}
  // Shared corner heights form a continuous surface with no tile-box seams.
  function corner(x,y){let sum=0,n=0;for(const dx of [-1,0])for(const dy of [-1,0]){if(x+dx>=0&&x+dx<W.width&&y+dy>=0&&y+dy<W.height){sum+=W.elevation[y+dy][x+dx];n++;}}return n?sum/n:0;}
- for(const [k,cells] of Object.entries(groups)){const positions=[],uv=[];for(const [x,y] of cells){const v=[[x*2,corner(x,y),y*2],[x*2,corner(x,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y),y*2]];for(const i of [0,1,2,0,2,3]){positions.push(...v[i]);uv.push(v[i][0]/4,v[i][2]/4);}}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.computeVertexNormals();const mesh=new T.Mesh(geo,material(palette[k]||'#7b9253'));mesh.receiveShadow=true;scene.add(mesh);mesh.userData.terrain=true;pick.push(mesh);}
- // Low polygon mountains frame the compact, deliberately non-geographic map.
- for(let i=0;i<Math.ceil(W.width*2/9)+6;i++){const x=i*9-25;for(const z of [-17,W.height*2+20]){const m=new T.Mesh(new T.ConeGeometry(13+(i%3)*3,18+(i%5)*5,5),material(i%2?'#62765a':'#738264'));m.position.set(x,8,z);scene.add(m);}}
+ const surfaces=W.surfaceZones||[],rivers=W.riverLayouts||[];
+ function terrainKind(x,y){let k=W.tiles[W.ground[y][x]].kind;for(const s of surfaces){if(x>=s.x&&x<s.x+s.w&&y>=s.y&&y<s.y+s.h){k=s.kind;break;}}if(k==='water'&&rivers.some(r=>r.axis==='y'&&x>=r.x&&x<r.x+r.w)&&!rivers.some(r=>r.axis==='x'&&y>=r.y&&y<r.y+r.h))k='creek';return k;}
+ const CHUNK=W.valle?.chunkSize||32,chunkRadius=W.valle?.chunkRadius||3,chunkMeshes=new Map();
+ function buildChunk(cx,cy){
+  const key=cx+','+cy;if(chunkMeshes.has(key))return;
+  const x0=cx*CHUNK,y0=cy*CHUNK,x1=Math.min(W.width,(cx+1)*CHUNK),y1=Math.min(W.height,(cy+1)*CHUNK);
+  const groups={};
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){(groups[terrainKind(x,y)]??=[]).push([x,y]);}
+  const holder=new T.Group();holder.userData.chunk=key;
+  for(const [k,cells] of Object.entries(groups)){const positions=[],uv=[];for(const [x,y] of cells){const v=[[x*2,corner(x,y),y*2],[x*2,corner(x,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y),y*2]];for(const i of [0,1,2,0,2,3]){positions.push(...v[i]);uv.push(v[i][0]/4,v[i][2]/4);}}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.computeVertexNormals();const mesh=new T.Mesh(geo,material(palette[k]||'#7b9253'));mesh.receiveShadow=true;mesh.userData.terrain=true;holder.add(mesh);pick.push(mesh);}
+  scene.add(holder);chunkMeshes.set(key,holder);
+ }
+ function dropChunk(key){const holder=chunkMeshes.get(key);if(!holder)return;scene.remove(holder);holder.traverse(m=>{if(!m.isMesh)return;const i=pick.indexOf(m);if(i>=0)pick.splice(i,1);});chunkMeshes.delete(key);}
+ function updateTerrainChunks(px,py){
+  const cx=Math.floor(px/CHUNK),cy=Math.floor(py/CHUNK),need=new Set();
+  for(let iy=-chunkRadius;iy<=chunkRadius;iy++)for(let ix=-chunkRadius;ix<=chunkRadius;ix++){const x=cx+ix,y=cy+iy;if(x<0||y<0||x*CHUNK>=W.width||y*CHUNK>=W.height)continue;need.add(x+','+y);buildChunk(x,y);}
+  for(const key of [...chunkMeshes.keys()])if(!need.has(key))dropChunk(key);
+ }
+ status.updateTerrainChunks=updateTerrainChunks;
+ const bootSpots=[[W.spawn.x,W.spawn.y]];if(window.Casa)bootSpots.push([Casa.PARK_STAND.x,Casa.PARK_STAND.y]);
+ for(const spot of bootSpots)updateTerrainChunks(spot[0],spot[1]);
  // All world props are meshes. Inventory portraits/icons remain ordinary UI images.
  function part(g,shape,pos,scale,c){const mesh=new T.Mesh(shape,material(c));mesh.position.set(...pos);mesh.scale.set(...scale);mesh.castShadow=true;mesh.receiveShadow=true;g.add(mesh);return mesh;}
  const unit=geometry('unit',()=>new T.BoxGeometry(1,1,1)),orb=geometry('orb',()=>new T.IcosahedronGeometry(1,1)),cone=geometry('cone',()=>new T.ConeGeometry(1,1,10)),cylinder=geometry('cylinder',()=>new T.CylinderGeometry(1,1,1,12));
@@ -148,8 +166,38 @@ function boot(api){
   for(let i=0;i<3;i++)box(cx,y+.15+i*.15,front+1.5-i*.35,13,.25,2-i*.3,trim);
  }
 
- // Church landmark remains beside the original plaza and capataz house.
- church(102,12,3,3,'#ba805c');
+ // Templos originales del valle. Santa Gertrudis y Santa Ana siguen en sus funciones.
+ function civicChurch(d){
+  const y=height(d.x,d.y),cx=(d.x+d.w/2)*2,cz=(d.y+d.h/2)*2,front=(d.y+d.h)*2;
+  const wall=d.color||'#f4f1e8',roof=d.roof||'#a86448';
+  if(d.kind==='torre_unica'){
+   house(d.x,d.y,d.w,d.h,5,wall);box(cx,y+6.2,front-1.6,3.4,11,3.4,wall);
+   const cap=new T.Mesh(new T.ConeGeometry(2.3,3.4,4),material(roof));cap.rotation.y=Math.PI/4;cap.position.set(cx,y+13.2,front-1.6);scene.add(cap);
+   box(cx,y+15.2,front-1.6,.12,1.8,.12,'#efe6c8');box(cx,y+15.6,front-1.6,1.1,.12,.12,'#efe6c8');
+  }else if(d.kind==='capilla'){
+   house(d.x,d.y,d.w,d.h,4.2,wall);box(cx-d.w*.5,y+4.5,front-1.2,2.4,7,2.4,wall);
+   const cap=new T.Mesh(new T.ConeGeometry(1.7,2.4,4),material(roof));cap.rotation.y=Math.PI/4;cap.position.set(cx-d.w*.5,y+9.2,front-1.2);scene.add(cap);
+  }else if(d.kind==='torres_bajas'){
+   house(d.x,d.y,d.w,d.h,5,wall);
+   for(const side of [-1,1]){box(cx+side*3.2,y+5.5,front-1.4,2.6,8,2.6,wall);box(cx+side*3.2,y+9.7,front-1.4,2.9,.35,2.9,'#efe6c8');}
+   box(cx,y+6.2,front-.2,3.2,.4,.3,'#efe6c8');
+  }else if(d.kind==='catedral'){
+   house(d.x,d.y,d.w,d.h,6.5,wall);
+   for(const side of [-1,1]){box(cx+side*4.2,y+7,front-1.5,2.8,12,2.8,wall);const cap=new T.Mesh(new T.ConeGeometry(1.8,3,4),material(roof));cap.rotation.y=Math.PI/4;cap.position.set(cx+side*4.2,y+14.5,front-1.5);scene.add(cap);}
+   const dome=new T.Mesh(new T.SphereGeometry(2.2,16,12,0,Math.PI*2,0,Math.PI/2),material(roof));dome.position.set(cx,y+8.2,cz);scene.add(dome);
+  }else if(d.kind==='nave_larga'){
+   box(cx,y+3.2,cz,d.w*2,6.4,d.h*2.4,wall);gableRoof(cx,y+6.5,cz,d.w*2,d.h*2.4,wall);
+   box(cx,y+7,front-1.2,3.2,14,3.2,wall);const cap=new T.Mesh(new T.ConeGeometry(2.1,4,4),material(roof));cap.rotation.y=Math.PI/4;cap.position.set(cx,y+16,front-1.2);scene.add(cap);
+  }else if(d.kind==='fronton'){
+   house(d.x,d.y,d.w,d.h,5,wall);box(cx+3.4,y+5.4,front-1.2,2.6,9,2.6,wall);
+   const shape=new T.Shape();shape.moveTo(-d.w,0);shape.lineTo(d.w,0);shape.lineTo(0,2.4);shape.closePath();
+   const ped=new T.Mesh(new T.ExtrudeGeometry(shape,{depth:.5,bevelEnabled:false}),material(wall));ped.position.set(cx,y+5.2,front+.2);scene.add(ped);
+  }else if(d.kind==='aguja'){
+   house(d.x,d.y,d.w,d.h,5,wall);box(cx,y+6,front-1.4,3,10,3,wall);
+   const cap=new T.Mesh(new T.ConeGeometry(1.7,6,8),material(roof));cap.position.set(cx,y+14,front-1.4);scene.add(cap);
+   box(cx,y+17.4,front-1.4,.1,1.6,.1,'#efe6c8');
+  }else house(d.x,d.y,d.w,d.h,d.height||5,wall);
+ }
  function santaAna(d){
   const y=height(d.x,d.y),cx=(d.x+d.w/2)*2,front=(d.y+d.h)*2,cz=(d.y+d.h/2)*2;
   const cream='#f0eadc',trim='#cdb68f';
@@ -164,20 +212,16 @@ function boot(api){
   box(cx,y+23,front-2,.18,2.4,.18,'#f1dfab');box(cx,y+23.4,front-2,1.4,.18,.18,'#f1dfab');
   for(let i=0;i<4;i++)box(cx,y+.08+i*.13,front+1.8-i*.35,d.w*2+2-i*.6,.17,3.2-i*.4,'#b9b3a0');
  }
- for(const d of W.landmarks){if(d.kind==='santa_gertrudis')santaGertrudis(d);else if(d.kind==='santa_ana')santaAna(d);else if(d.kind==='basilica')church(d.x,d.y,d.w,d.h,d.color);else house(d.x,d.y,d.w,d.h,d.height,d.color);}
- // Bronze head inspired by the supplied sculpture reference.
- {const park=(W.parkDetails||[]).find(p=>p.id==='poblado');const x=park?park.x:2+(W.expansion?.offsetX||0),z=park?park.y:14+(W.expansion?.offsetY||0),y=height(x,z);const g=new T.Group();g.position.set(x*2+1,y,z*2+1);scene.add(g);
- const bronze=new T.MeshStandardMaterial({color:'#9b6136',metalness:.65,roughness:.32});
- const part=(geo,px,py,pz,scale=[1,1,1],mat=bronze)=>{const m=new T.Mesh(geo,mat);m.position.set(px,py,pz);m.scale.set(...scale);m.castShadow=true;g.add(m);return m;};
- part(new T.BoxGeometry(3.4,1.2,2.8),0,.6,0,[1,1,1],material('#c5ac83'));part(new T.SphereGeometry(1.5,32,24),0,2.65,0,[1,1.08,.8]);
- for(const side of [-1,1]){part(new T.SphereGeometry(.4,16,8),side*.64,2.95,1.03,[1,.23,.35]);part(new T.SphereGeometry(.26,16,8),side*.6,2.8,1.12,[1,.3,.2],material('#291a12'));}
- part(new T.CylinderGeometry(.13,.18,.85,12),0,2.85,1.2);part(new T.SphereGeometry(.28,16,12),0,2.48,1.37,[1,.85,.8]);
- part(new T.TorusGeometry(.42,.1,8,28,Math.PI),0,2.04,1.06,[1,.5,1]);const lip=part(new T.TorusGeometry(.4,.1,8,28,Math.PI),0,1.93,1.07,[1,.65,1]);lip.rotation.z=Math.PI;
- }
+ // Iglesia que estaba fija en (102, 12), ahora con el mismo VALLE_OFFSET. Si la x sale del mapa, se recorta al borde de esa fila.
+ const offChurch=window.Casa?.VALLE_OFFSET||{x:0,y:0};
+ church(Math.max(1,Math.min(W.width-4,102+offChurch.x)),Math.max(1,Math.min(W.height-4,12+offChurch.y)),3,3,'#ba805c');
+ // La cabeza de bronce de parkDetails 'poblado' no vuelve: es el monumento del Primer Poblado.
+ for(const d of W.landmarks){if(d.kind==='santa_gertrudis')santaGertrudis(d);else if(d.kind==='santa_ana')santaAna(d);else if(d.kind==='basilica')church(d.x,d.y,d.w,d.h,d.color);else civicChurch(d);}
  for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type==='home_door')continue;const sp=sprite(api.spriteKeyFor(n),n.def.x,n.def.y,n.def.id);if(sp)dynamic.push({sp,n});}
  for(const a of (initialZone?api.cityAnimals:S.animals)){const sp=sprite(a.def.sprites.alive[0],a.fx,a.fy,a.def.id);if(sp)dynamic.push({sp,a});}
  for(const d of W.doors){const m=box(d.x*2+1,height(d.x,d.y)+1,d.y*2+1,1.4,2,.3,'#684b2e');m.userData.id=d.id;pick.push(m);}
  const cityLighting=enrichWorld(T,scene,W,pick,height,material);status.lamps=cityLighting.count;
+ placeEnvigadoProps(T,scene,height);
  for(const road of W.roads3d||[]){
   for(let i=0;i<road.points.length-1;i++){
    const a=road.points[i],b=road.points[i+1],dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length;
@@ -263,6 +307,7 @@ function boot(api){
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  if(S.mounted)me.position.y+=.95;
+ if(!indoors())updateTerrainChunks(S.player.fx,S.player.fy);
  const away=indoors();
  for(const m of S.mounts||[]){const g=ensureHorse(m);g.visible=!away;const x=m.ridden?p.fx:m.fx,y=m.ridden?p.fy:m.fy;g.position.set(x*2+1,height(x,y),y*2+1);g.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[m.ridden?p.dir:'right']||0;}
  const live=new Set(['self',...(away?[]:W.npcs.map(n=>n.id))]);if(!away)for(const [id,o] of S.others){if(o.zone==='casa')continue;live.add('peer'+id);const peer=actor('peer'+id,o.fx,o.fy,colors[o.color]);peer.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[o.dir]||0;}for(const [id,a] of actorMap)if(!live.has(id)){if(away&&!String(id).startsWith('peer'))continue;(a.parent||scene).remove(a);actorMap.delete(id);}

@@ -1153,6 +1153,16 @@
       "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
     },
     {
+      "path": "graphics/models/caneca_envigado.glb",
+      "sha256": "eb0271e8d7eea0a5630ff6c148afe41d3ba6b64574b52f4112b7c81f3e21b595",
+      "author": "Simón / @Saimon888",
+      "source": "https://scaniverse.com/scan/duzirnpnsmy2egz7 — photogrammetry, ground patch removed",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Simón / @Saimon888 — caneca del Parque de Envigado"
+    },
+    {
       "path": "graphics/objects/antorcha_0.png",
       "sha256": "0920b3c0afaf9f7480b9a534359355a051c0563ffb7310752c57de05410b5934",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
@@ -3366,8 +3376,21 @@
     "BLOCKCHAIN-Y-PROPIEDAD.md",
     "CREDITOS-RECURSOS.md",
     "data/el-jardin.json",
-    "data/el-jardin.js"
+    "data/el-jardin.js",
+    "data/relieve-aburra.json",
+    "data/valle-offset.json",
+    "data/parque-envigado-bloque.json"
   ],
+  "elevation": {
+    "path": "data/relieve-aburra.json",
+    "source": "NASA SRTM GL1 (Shuttle Radar Topography Mission), tile N06W076",
+    "license": "Public domain (U.S. Government work)",
+    "url": "https://www.usgs.gov/centers/eros/science/usgs-eros-archive-digital-elevation-shuttle-radar-topography-mission-srtm-1",
+    "mirror": "https://elevation-tiles-prod.s3.amazonaws.com/skadi/N06/N06W076.hgt.gz",
+    "derived_by": "tools/relieve_aburra.py",
+    "scaled_by": "tools/valle_aburra.py",
+    "note": "Remuestreo simplificado y escala vertical del juego. No es el modelo original ni un mapa oficial. La disposición se comparte CC-BY-SA-4.0 conservando esta atribución."
+  },
   "repository": "https://github.com/Saimonmde/LIFE",
   "last_inventory_update": "2026-11-13"
 }

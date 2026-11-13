@@ -2,9 +2,7 @@
 
 Creación y dirección original: **Simón**. Mundo 3D en desarrollo, con mapa del Valle de Aburrá, minería y fundición, inventario, chat y cámara orbital.
 
-## Diez parques del Valle de Aburrá
-
-Mapa ampliado de 352×176 a 352×448 casillas, con diez municipios y parques conectados. Es una interpretación jugable del valle, sin precisión topográfica. El logo dorado vuelve al inicio junto al título gótico. Se conservan el establo, los caballos, Saimon Coins y el Libro Mayor de la versión reciente.
+Saimon City es el mapa del Valle de Aburrá en construcción: diez municipios con sus parques principales conectados. El trazado jugable es interpretativo; no representa una topografía urbana ya terminada.
 
 ## Licencias y contribución
 
@@ -18,18 +16,24 @@ Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-S
 
 Cada persona conserva sus derechos sobre sus aportaciones. No se transfiere automáticamente copyright, marca ni un bien físico mediante un NFT. La licencia no registra la marca ni convierte el servidor actual en una red descentralizada.
 
-La simulación de **Saimon Coins (SAI, alias Saimony)** y del **Libro Mayor** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SAI; 1 SAI = 100.000.000 saimonitos. Sólo el oro del río emite SAI nuevas. El servidor guarda el libro en `state/economy.json` (no se versiona; en el plan gratuito de Render el disco se borra al reciclar la instancia).
+La simulación de **SaiMonCoins (SMC)** y del **Libro Mayor** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SMC; 1 SMC = 100.000.000 saimonitos. Sólo el oro del río emite SMC nuevas. El nombre anterior, Saimon Coins (SAI) con alias Saimony, ya no se usa. El servidor guarda el libro en `state/economy.json` (no se versiona; en el plan gratuito de Render el disco se borra al reciclar la instancia) y sigue leyendo un archivo guardado con el símbolo viejo.
 
 ## Mapa del repositorio
 
 Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del mapa.
 
-- `server.py` — HTTP, WebSocket, `/healthz` y la autoridad de las SAI.
-- `play/` — vista de escritorio: mundo, casa colonial, Parque de Envigado, chat y `simulacion.js` (caballos, SAI, Libro Mayor, lecciones).
+- `server.py` — HTTP, WebSocket, `/healthz` y la autoridad de las SMC.
+- `play/` — vista de escritorio: mundo, casa colonial, Parque de Envigado, chat y `simulacion.js` (caballos, SMC, Libro Mayor, lecciones).
 - `movil/` — entrada del teléfono; usa la misma vista con botones táctiles.
-- `data/el-jardin.json` — el mapa. `data/el-jardin.js` es la misma carga para abrir sin `fetch`. `data/simulacion.json` — establo, profesora, economía y lecciones, fuera de la casa.
+- `data/el-jardin.json` — el mapa del Valle de Aburrá (10 municipios). `data/el-jardin.js` es la misma carga para abrir sin `fetch`. `data/simulacion.json` — establo, profesora, economía y lecciones, fuera de la casa. `data/valle-offset.json` — el único desplazamiento del Parque de Envigado. `data/relieve-aburra.json` — alturas simplificadas. `data/parque-envigado-bloque.json` — teselas del parque, celda por celda, antes y después de moverlas.
 - `graphics/` — arte original: teselas, objetos, personajes e interfaz.
-- `tools/` — generadores, `economy.py` y `test_economy.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `test_economy.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+
+## Valle de Aburrá
+
+El mapa va de Caldas, al sur, hasta Barbosa, al norte. El río Medellín corre por el fondo del valle y las laderas suben al oriente y al occidente. El Parque de Envigado, la quebrada y El Jardín tutorial se copiaron sin redibujar sus teselas. El único desplazamiento es `VALLE_OFFSET` `{ x: -133, y: 203 }`. `play/casa.js` lo suma a la puerta (226, 64) → (93, 267) y a la llegada (227, 64) → (94, 267). `play/envigado-park.js` lo suma al origen de Sara (214, 52) → (81, 255), así las canecas y el skate del PR #5 siguen dentro del bloque. El mismo número mueve el oro, el establo y la Profesora.
+
+El relieve sale de NASA SRTM GL1 (dominio público), tesela N06W076, remuestreada por `tools/relieve_aburra.py`. En 3D es la malla del terreno, cargada por trozos de 32×32 casillas. En 2D el mapa y el suelo llevan sombreado y curvas de nivel. Para regenerar: `python3 tools/relieve_aburra.py` y después `python3 tools/valle_aburra.py` (sólo desde el mapa original de 352×176).
 
 ## Jugar en local
 

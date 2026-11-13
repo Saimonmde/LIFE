@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=saimon-door-r3">
+<link rel="stylesheet" href="style.css?v=envigado-r1">
 <link rel="stylesheet" href="movil.css?v=saimon-door-r3">
 <script src="movil.js?v=saimon-door-r3"></script>
 </head>
@@ -65,8 +65,8 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span><img src="../graphics/ui/moneda.png" alt=""><b id="monedas">0</b></span><span id="sai-chip" title="Saimon Coins: simulación educativa, sin valor real"><b id="sai-saldo">0 SAI</b></span></div>
-<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SAI · simulación, el libro se reinicia</span><span class="sai-full">Simulación educativa: las SAI (Saimony) no son dinero real, no tienen valor ni se canjean. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.</span></button>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span><img src="../graphics/ui/moneda.png" alt=""><b id="monedas">0</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo">0 SMC</b></span></div>
+<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, el libro se reinicia</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.</span></button>
 <div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button></div>
 
 <!-- ===== Ventanas ===== -->
@@ -83,6 +83,7 @@
   <form id="login-form" autocomplete="off">
     <div class="simoncity-lockup">
       <img class="saimon-entry-logo" src="../graphics/brand/saimon-gold-v1.png" alt="Saimon"><div class="simoncity-title">Saimon City</div>
+      <div class="simoncity-rule" aria-hidden="true"></div>
       <div class="simoncity-place">Medellín</div>
       <p class="simoncity-welcome">Bienvenido a Medellín</p>
     </div>
@@ -104,7 +105,7 @@
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
     <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). Vas al doble de prisa. No entran a edificios ni al agua.</li>
-    <li><b>Saimon Coins (SAI):</b> sólo se emiten al lavar oro en el río. Tope 21.000.000. El puesto de frutas vende un mango por 5 SAI. Es una simulación: no es dinero real.</li>
+    <li><b>SaiMonCoins (SMC):</b> sólo se emiten al lavar oro en el río. Tope 21.000.000. El puesto de frutas vende un mango por 5 SMC. Es una simulación: no es dinero real.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
   </ul>
@@ -120,8 +121,9 @@
 <script src="../data/el-jardin.js?v=saimon-door-r3"></script>
 <script src="mining-rules.js?v=saimon-door-r3"></script>
 <script src="casa.js?v=saimon-door-r3"></script>
-<script src="game.js?v=simulacion-1"></script>
-<script type="module" src="unified3d.js?v=simulacion-1"></script>
+<script src="envigado-park.js?v=envigado-r1"></script>
+<script src="game.js?v=envigado-r1"></script>
+<script type="module" src="unified3d.js?v=envigado-r1"></script>
 <script src="interface.js?v=saimon-door-r3"></script>
 </body>
 </html>
