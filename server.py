@@ -12,6 +12,7 @@ import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, sock
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
 import economy as ECO
 import ed25519
+import libro as LIBRO
 import nft as NFT
 import payout as PAYOUT
 import playtime as PLAY
@@ -50,6 +51,8 @@ NFT_SEED = NFT.load_seed(NFT_KEY_PATH)
 NFT_PUB = ed25519.publickey(NFT_SEED)
 NFT_CHAIN = NFT.load_chain(NFT_PATH, NFT_PUB.hex())
 VAULT_STATE = VAULT.load(VAULT_PATH)
+LIBRO_PATH = os.path.join(ROOT, 'state', 'libro-madre.json')
+LIBRO_CHAIN = LIBRO.load(LIBRO_PATH, NFT_PUB.hex())
 FOUNDRY = {
     'mineral_cobre': (3, 4),
     'mineral_plata': (4, 12),
@@ -75,13 +78,53 @@ def save_play():
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
 
+def save_libro(records):
+    if not records:
+        return
+    try:
+        LIBRO.save(LIBRO_PATH, LIBRO_CHAIN, [r['id'] for r in records])
+    except persist_duplicate:
+        for record in records:
+            LIBRO.revertir(LIBRO_CHAIN, record)
+        raise
+
+def persist_duplicate_type():
+    import persist
+    return persist.DuplicateId
+
+persist_duplicate = persist_duplicate_type()
+
+def anotar_emision(owner, smh, location, kind='acuñacion'):
+    smh = int(smh or 0)
+    if smh <= 0:
+        return None
+    record = LIBRO.acuñar(LIBRO_CHAIN, NFT_SEED, owner, smh, location, kind=kind)
+    if record is None:
+        return None
+    save_libro([record])
+    return LIBRO.publico(record)
+
+def anotar_pase(origen, destino, smh, note):
+    record = LIBRO.transferir(LIBRO_CHAIN, NFT_SEED, origen, destino, int(smh), note)
+    save_libro([record])
+    return LIBRO.publico(record)
+
+def river_label(node):
+    key = node.get('waterBody') or ''
+    body = (WORLD.get('waterBodies') or {}).get(key) or {}
+    name = body.get('name') or 'Río'
+    return f"{name} · {node.get('x')},{node.get('y')}"
+
+_migrados = LIBRO.migrar(LIBRO_CHAIN, NFT_SEED, ECON.get('wallets') or {}, VAULT_STATE.get('accounts') or {})
+save_libro(_migrados)
+
 def play_for(name, active=True):
     info = PLAY.beat(PLAYERS, name, active=active)
     save_play()
     return info
 
-def certify(owner, amount, foundry, tile):
-    token = NFT.issue(NFT_CHAIN, NFT_SEED, owner, amount, foundry, tile)
+def certify(owner, amount_smh, foundry, tile):
+    token = NFT.issue(NFT_CHAIN, NFT_SEED, owner, int(amount_smh or 0), foundry, tile)
     if token:
         save_nft()
     return token
@@ -101,10 +144,11 @@ def block_page(before=None):
 def econ_msg(who=None, before=None, reveal_token=None, locked=False):
     page = block_page(before)
     m = {'t': 'economy', 'state': {
-        'mined': ECON.get('mined', 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
+        'minedSmh': int(ECON.get('minedSmh') or 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
         'mempool': ECON.get('mempool', []), 'disclaimer': (ECON.get('disclaimer') or '') + RESET_NOTE,
-        'ledgerResets': True, 'symbol': 'SMC', 'unit': 'SaiMonCoin',
-        'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
+        'ledgerResets': True, 'symbol': 'SMC', 'symbolBase': 'SMH', 'unit': 'SaiMonCoin',
+        'smallestName': 'Simonchi', 'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
+        'maxSupplySmh': ECO.MAX_SMH,
     }}
     if who:
         m['balanceSubs'] = 0 if locked else int((ECON.get('wallets') or {}).get(who) or 0)
@@ -141,7 +185,22 @@ def gold_node_for(x, y, node_id):
         return None
     return node
 
-def pagar(sender, dest, monto, note='Transferencia /pagar'):
+def leer_smh(message):
+    """Lee un monto en SMH. amountSmh es entero; sin eso, el número va en SMC."""
+    if not isinstance(message, dict):
+        return ECO.smc_to_smh(message)
+    if message.get('amountSmh') is not None:
+        return int(message.get('amountSmh'))
+    unit = str(message.get('unit') or '').strip()
+    if unit:
+        return ECO.parse_amount(f"{message.get('amount')} {unit}")
+    if isinstance(message.get('amount'), str):
+        return ECO.parse_amount(message.get('amount'))
+    raw = message.get('amountSai') if message.get('amountSai') is not None else message.get('amount')
+    return ECO.smc_to_smh(raw or 0)
+
+
+def pagar(sender, dest, smh, note='Transferencia /pagar'):
     if not getattr(sender, 'wallet_ok', False):
         send(sender, {'t': 'pay_result', 'ok': False, 'to': dest})
         return send(sender, {'t': 'system', 'text': 'Esta billetera SMC se creó en otro aparato. Puedes jugar con este nombre, pero no gastar esas monedas.'})
@@ -153,21 +212,30 @@ def pagar(sender, dest, monto, note='Transferencia /pagar'):
         send(sender, {'t': 'pay_result', 'ok': False, 'to': dest})
         return send(sender, {'t': 'system', 'text': f'No encuentro a «{dest}». Usa un jugador conectado o puesto_frutas.'})
     try:
-        subs = ECO.subunits(monto)
+        smh = int(smh)
     except (TypeError, ValueError):
         return send(sender, {'t': 'system', 'text': 'El monto no es válido.'})
-    if subs <= 0:
+    if smh <= 0:
         send(sender, {'t': 'pay_result', 'ok': False, 'to': hit})
         return send(sender, {'t': 'system', 'text': 'El monto debe ser mayor que cero.'})
-    if not ECO.debit(ECON, sender.name, subs):
+    if not ECO.debit(ECON, sender.name, smh):
         send(sender, {'t': 'pay_result', 'ok': False, 'to': hit})
         return send(sender, {'t': 'system', 'text': 'No tienes saldo suficiente en SMC.'})
-    ECO.credit(ECON, hit, subs)
-    ECO.append_tx(ECON, {'type': 'pay', 'from': sender.name, 'to': hit, 'amountSubs': subs, 'note': note})
+    ECO.credit(ECON, hit, smh)
+    ECO.append_tx(ECON, {'type': 'pay', 'from': sender.name, 'to': hit, 'amountSubs': smh, 'note': note})
+    try:
+        anotar_pase(sender.name, hit, smh, note)
+    except (LIBRO.LibroError, persist_duplicate):
+        ECO.credit(ECON, sender.name, smh)
+        ECO.debit(ECON, hit, smh)
+        mem = ECON.get('mempool') or []
+        if mem and mem[-1].get('from') == sender.name and int(mem[-1].get('amountSubs') or 0) == smh:
+            mem.pop()
+        return send(sender, {'t': 'system', 'text': 'El libro madre no pudo anotar ese pago.'})
     save_econ()
     broadcast_econ()
-    send(sender, {'t': 'pay_result', 'ok': True, 'to': hit, 'note': note, 'amountSai': ECO.sai_of(subs)})
-    broadcast({'t': 'system', 'text': f'{sender.name} pagó {ECO.format_sai(subs)} a {hit}. Sólo es una simulación, sin valor real.'})
+    send(sender, {'t': 'pay_result', 'ok': True, 'to': hit, 'note': note, 'amountSmh': smh, 'amountText': ECO.format_pair(smh)})
+    broadcast({'t': 'system', 'text': f'{sender.name} pagó {ECO.format_pair(smh)} a {hit}. Sólo es una simulación, sin valor real.'})
 
 def mint_for(sender, node_id):
     if not getattr(sender, 'wallet_ok', False):
@@ -184,18 +252,27 @@ def mint_for(sender, node_id):
         return send(sender, {'t': 'system', 'text': 'Espera un momento para volver a batear.'})
     sender.last_mint = now
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
-    reward = ECO.reward_sai(ECON.get('mined') or 0)
+    reward = min(ECO.reward_smh(ECON.get('minedSmh') or 0), LIBRO.cupo_subs(LIBRO_CHAIN))
     if reward <= 0:
         return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
     NODE_READY[node['id']] = now + (float(node.get('respawnMs') or 30000) / 1000.0)
     granted = ECO.issue(ECON, sender.name, reward, 'Emisión por bateada de oro fluvial', 'mint')
     if granted <= 0:
         return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
+    lugar = river_label(node)
+    libro_pub = anotar_emision(sender.name, granted, lugar)
+    if not libro_pub:
+        ECO.debit(ECON, sender.name, granted)
+        ECON['minedSmh'] = int(ECON.get('minedSmh') or 0) - granted
+        mem = ECON.get('mempool') or []
+        if mem and int(mem[-1].get('amountSubs') or 0) == granted:
+            mem.pop()
+        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
     save_econ()
     token = certify(sender.name, granted, 'rio', f"{node['x']},{node['y']}")
     broadcast_econ()
-    send(sender, {'t': 'system', 'text': f'Se emitieron {ECO.format_sai(ECO.subunits(granted))} (SaiMonCoins, sólo en el juego; no es dinero real).'})
-    send(sender, {'t': 'issued', 'amount': granted, 'kind': 'mint', 'certificate': token})
+    send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)}. Es una simulación: no es dinero real.'})
+    send(sender, {'t': 'issued', 'amountSmh': granted, 'amountText': ECO.format_pair(granted), 'kind': 'mint', 'certificate': token, 'libro': libro_pub})
 
 def wallet_ready(sender):
     if not getattr(sender, 'wallet_ok', False):
@@ -221,14 +298,15 @@ def smelt_for(sender, ore, batches):
         return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Espera un momento para volver a fundir.'})
     sender.last_smelt = now
     _ore, coins = recipe
-    granted = ECO.issue(ECON, sender.name, coins * batches, f'Fundición de {ore} en la cantera', 'fundicion')
+    granted = ECO.issue(ECON, sender.name, ECO.smc_to_smh(coins * batches), f'Fundición de {ore} en la cantera', 'fundicion')
+    libro_pub = anotar_emision(sender.name, granted, 'Fundidora de la cantera') if granted else None
     save_econ()
     token = certify(sender.name, granted, 'fundidora', 'horno_cantera') if granted else None
     broadcast_econ()
     if granted <= 0:
-        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Se alcanzó el tope de 21.000.000 SMC.', 'granted': 0})
-    send(sender, {'t': 'smelt_result', 'ok': True, 'granted': granted, 'ore': ore, 'batches': batches, 'certificate': token})
-    send(sender, {'t': 'system', 'text': f'La fundidora acreditó {ECO.format_sai(ECO.subunits(granted))} a tu billetera. No hace falta reclamarlas.'})
+        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Se alcanzó el tope de 21.000.000 SMC.', 'grantedSmh': 0})
+    send(sender, {'t': 'smelt_result', 'ok': True, 'grantedSmh': granted, 'amountText': ECO.format_pair(granted), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub})
+    send(sender, {'t': 'system', 'text': f'La fundidora acreditó {ECO.format_pair(granted)} a tu billetera. No hace falta reclamarlas.'})
 
 def swing_for(sender, mineral):
     mineral = str(mineral or '')
@@ -245,7 +323,9 @@ def swing_for(sender, mineral):
     if sender.swings < SHIFT_SWINGS:
         return send(sender, {'t': 'shift', 'swings': sender.swings, 'need': SHIFT_SWINGS, 'left': left})
     sender.swings = 0
-    granted = ECO.issue(ECON, sender.name, SHIFT_PAY, 'Turno del capataz en la cantera (cobre o plata)', 'mina')
+    granted = ECO.issue(ECON, sender.name, ECO.smc_to_smh(SHIFT_PAY), 'Turno del capataz en la cantera (cobre o plata)', 'mina')
+    if granted:
+        anotar_emision(sender.name, granted, 'Cantera · turno')
     save_econ()
     token = certify(sender.name, granted, 'mina', 'cantera') if granted else None
     broadcast_econ()
@@ -253,17 +333,20 @@ def swing_for(sender, mineral):
         PAYOUT.ADAPTER.payout(sender.name, granted, 'USDT')
     except RuntimeError:
         pass
-    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paid': granted, 'certificate': token,
+    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': granted, 'amountText': ECO.format_pair(granted), 'certificate': token,
                   'note': 'El turno paga SMC del juego. No hay retiro a OnePay ni a USDT. SMC no tiene valor real.'})
 
 def migrate_for(sender, amount):
     if not wallet_ready(sender):
         return send(sender, {'t': 'migrate_result', 'ok': False})
     try:
-        amount = float(amount or 0)
-    except (TypeError, ValueError):
+        if isinstance(amount, str):
+            amount = ECO.parse_amount(amount) // ECO.SUBS
+    except (TypeError, ValueError, ECO.AmountError):
         amount = 0
-    result = ECO.migrate_monedas(ECON, sender.name, amount)
+    result = ECO.migrate_monedas(ECON, sender.name, amount or 0)
+    if result['credited']:
+        anotar_emision(sender.name, result['credited'], 'Conversión de monedas antiguas')
     save_econ()
     token = certify(sender.name, result['credited'], 'migracion', 'jardin') if result['credited'] else None
     broadcast_econ()
@@ -278,11 +361,15 @@ def quest_for(sender, quest_id):
     done = ECON.setdefault('questGrants', {})
     if sender.name in done:
         return send(sender, {'t': 'quest_result', 'ok': True, 'already': True, 'amount': 0})
-    subs = ECO.subunits(amount)
-    if not ECO.debit(ECON, 'tesoro_genesis', subs):
+    smh = ECO.smc_to_smh(amount)
+    if not ECO.debit(ECON, 'tesoro_genesis', smh):
         return send(sender, {'t': 'quest_result', 'ok': False, 'reason': 'La reserva de misiones no alcanza.'})
-    ECO.credit(ECON, sender.name, subs)
-    ECO.append_tx(ECON, {'type': 'grant', 'from': 'tesoro_genesis', 'to': sender.name, 'amountSubs': subs, 'note': 'Primeros Pasos'})
+    ECO.credit(ECON, sender.name, smh)
+    ECO.append_tx(ECON, {'type': 'grant', 'from': 'tesoro_genesis', 'to': sender.name, 'amountSubs': smh, 'note': 'Primeros Pasos'})
+    try:
+        anotar_pase('tesoro_genesis', sender.name, smh, 'Primeros Pasos')
+    except (LIBRO.LibroError, persist_duplicate):
+        pass
     done[sender.name] = str(quest_id)
     save_econ()
     broadcast_econ()
@@ -299,27 +386,35 @@ def deposit_smc(sender, amount):
     if not wallet_ready(sender):
         return
     try:
-        subs = ECO.subunits(amount)
+        smh = int(amount)
     except (TypeError, ValueError):
         return
-    if subs <= 0 or not ECO.debit(ECON, sender.name, subs):
+    if smh <= 0 or not ECO.debit(ECON, sender.name, smh):
         return send(sender, {'t': 'system', 'text': 'No hay SMC suficientes en la billetera para depositar.'})
-    VAULT.add_smc(VAULT.account(VAULT_STATE, sender.name), subs)
-    ECO.append_tx(ECON, {'type': 'bank', 'from': sender.name, 'to': 'deposito', 'amountSubs': subs, 'note': 'Depósito en el banquito'})
+    VAULT.add_smc(VAULT.account(VAULT_STATE, sender.name), smh)
+    ECO.append_tx(ECON, {'type': 'bank', 'from': sender.name, 'to': 'deposito', 'amountSubs': smh, 'note': 'Depósito en el banquito'})
+    try:
+        anotar_pase(sender.name, 'deposito:' + sender.name, smh, 'Depósito en el banquito')
+    except (LIBRO.LibroError, persist_duplicate):
+        pass
     save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
 
 def withdraw_smc(sender, amount):
     if not wallet_ready(sender):
         return
     try:
-        subs = ECO.subunits(amount)
+        smh = int(amount)
     except (TypeError, ValueError):
         return
     box = VAULT.account(VAULT_STATE, sender.name)
-    if subs <= 0 or not VAULT.take_smc(box, subs):
+    if smh <= 0 or not VAULT.take_smc(box, smh):
         return send(sender, {'t': 'system', 'text': 'El depósito no tiene tantas SMC.'})
-    ECO.credit(ECON, sender.name, subs)
-    ECO.append_tx(ECON, {'type': 'bank', 'from': 'deposito', 'to': sender.name, 'amountSubs': subs, 'note': 'Retiro del banquito'})
+    ECO.credit(ECON, sender.name, smh)
+    ECO.append_tx(ECON, {'type': 'bank', 'from': 'deposito', 'to': sender.name, 'amountSubs': smh, 'note': 'Retiro del banquito'})
+    try:
+        anotar_pase('deposito:' + sender.name, sender.name, smh, 'Retiro del banquito')
+    except (LIBRO.LibroError, persist_duplicate):
+        pass
     save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
 
 def deposit_item(sender, item, qty):
@@ -428,15 +523,20 @@ def chat(sender, channel, text):
         cmd, _, rest = raw.partition(' ')
         cmd = cmd.lower()
         if cmd == 'pagar':
-            bits = rest.rsplit(None, 1)
-            if len(bits) != 2:
-                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto>  (SaiMonCoins, sólo en el juego)'})
-            dest, monto_s = bits[0], bits[1].replace(',', '.')
+            parts = rest.split()
+            if len(parts) < 2:
+                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto>  (SMC o SMH, sólo en el juego)'})
+            if parts[-1].lower() in ('smc', 'smh', 'simonchi', 'simonchis'):
+                if len(parts) < 3:
+                    return send(sender, {'t': 'system', 'text': 'El monto no es válido.'})
+                dest, monto_s = ' '.join(parts[:-2]), parts[-2] + ' ' + parts[-1]
+            else:
+                dest, monto_s = ' '.join(parts[:-1]), parts[-1]
             try:
-                monto = float(monto_s)
-            except ValueError:
-                return send(sender, {'t': 'system', 'text': 'El monto no es válido.'})
-            return pagar(sender, dest, monto)
+                smh = ECO.parse_amount(monto_s)
+            except ECO.AmountError:
+                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC (hasta 8 decimales) o SMH enteros.'})
+            return pagar(sender, dest, smh)
         arg = clean(rest, 24)
         if cmd == 'grupo':
             sender.group = arg
@@ -544,10 +644,10 @@ async def handle_ws(reader, writer, cookie=''):
                 send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok))
             elif t == 'pay' and c.hello:
                 try:
-                    monto = float(m.get('amountSai'))
-                except (TypeError, ValueError):
+                    smh = leer_smh(m)
+                except (TypeError, ValueError, ECO.AmountError):
                     continue
-                pagar(c, m.get('to'), monto, clean(m.get('note') or 'Pago', 80) or 'Pago')
+                pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
             elif t == 'smelt' and c.hello:
                 smelt_for(c, m.get('ore'), m.get('batches'))
             elif t == 'swing' and c.hello:
@@ -561,9 +661,15 @@ async def handle_ws(reader, writer, cookie=''):
             elif t == 'vault' and c.hello:
                 vault_for(c)
             elif t == 'deposit_smc' and c.hello:
-                deposit_smc(c, m.get('amount'))
+                try:
+                    deposit_smc(c, leer_smh(m))
+                except (TypeError, ValueError, ECO.AmountError):
+                    pass
             elif t == 'withdraw_smc' and c.hello:
-                withdraw_smc(c, m.get('amount'))
+                try:
+                    withdraw_smc(c, leer_smh(m))
+                except (TypeError, ValueError, ECO.AmountError):
+                    pass
             elif t == 'deposit_item' and c.hello:
                 deposit_item(c, m.get('item'), m.get('qty'))
             elif t == 'withdraw_item' and c.hello:
@@ -745,6 +851,15 @@ async def handle(reader, writer):
                            'playersOnline': sum(c.hello and not c.bot for c in clients.values())}).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
+    if path.startswith('/api/libro') and method in ('GET', 'HEAD'):
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
+        status, payload = LIBRO.api_get(path, query, LIBRO_CHAIN)
+        body = json.dumps(payload, ensure_ascii=False).encode()
+        code = '200 OK' if status == 200 else '404 Not Found'
+        writer.write(f'HTTP/1.1 {code}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET':
+            writer.write(body)
         await writer.drain(); writer.close(); return
     if path.startswith('/api/jugador') and method in ('GET', 'HEAD'):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)

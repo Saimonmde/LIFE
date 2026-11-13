@@ -28,26 +28,41 @@ def save(path, state):
     persist.save_named('vault', path, state)
 
 
+def smh_of(box):
+    if not isinstance(box, dict):
+        return 0
+    if box.get('smh') is not None:
+        return int(box.get('smh') or 0)
+    return int(box.get('smcSubs') or 0)
+
+
+def _sync(box, smh):
+    box['smh'] = int(smh)
+    box['smcSubs'] = int(smh)
+    return box
+
+
 def account(state, name):
-    box = state.setdefault('accounts', {}).setdefault(name, {'smcSubs': 0, 'items': {}})
-    box.setdefault('smcSubs', 0)
+    box = state.setdefault('accounts', {}).setdefault(name, {'smh': 0, 'smcSubs': 0, 'items': {}})
     box.setdefault('items', {})
+    _sync(box, smh_of(box))
     return box
 
 
 def public_account(box):
-    return {'smcSubs': int(box.get('smcSubs') or 0), 'items': dict(box.get('items') or {})}
+    smh = smh_of(box)
+    return {'smh': smh, 'smcSubs': smh, 'items': dict(box.get('items') or {})}
 
 
-def add_smc(box, subs):
-    box['smcSubs'] = int(box.get('smcSubs') or 0) + int(subs)
+def add_smc(box, smh):
+    _sync(box, smh_of(box) + int(smh))
 
 
-def take_smc(box, subs):
-    have = int(box.get('smcSubs') or 0)
-    if have < int(subs):
+def take_smc(box, smh):
+    have = smh_of(box)
+    if have < int(smh):
         return False
-    box['smcSubs'] = have - int(subs)
+    _sync(box, have - int(smh))
     return True
 
 

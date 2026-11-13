@@ -75,11 +75,15 @@ def load_seed(path):
 
 
 def canonical(token):
+    if token.get('amountSmh') is not None and 'amount' not in token:
+        amount_key, amount_val = 'amountSmh', int(token['amountSmh'])
+    else:
+        amount_key, amount_val = 'amount', token['amount']
     body = {
         'id': token['id'],
         'code': token['code'],
         'owner': token['owner'],
-        'amount': token['amount'],
+        amount_key: amount_val,
         'ts': token['ts'],
         'tile': token['tile'],
         'foundry': token['foundry'],
@@ -93,19 +97,19 @@ def _code_for(owner, amount, prev, ts):
     return 'SMC-' + digest[:10].upper()
 
 
-def issue(chain, seed, owner, amount, foundry, tile, now=None):
-    """Añade un certificado. amount es SMC (número). Devuelve el registro público."""
-    amount = float(amount)
-    if amount <= 0:
+def issue(chain, seed, owner, amount_smh, foundry, tile, now=None):
+    """Añade un certificado. amount_smh es un entero de Simonchis."""
+    amount_smh = int(amount_smh)
+    if amount_smh <= 0:
         return None
     tokens = chain.setdefault('tokens', [])
     prev = tokens[-1]['hash'] if tokens else GENESIS
     ts = int(now if now is not None else time.time())
     token = {
         'id': len(tokens) + 1,
-        'code': _code_for(owner, amount, prev, ts),
+        'code': _code_for(owner, amount_smh, prev, ts),
         'owner': owner,
-        'amount': amount,
+        'amountSmh': amount_smh,
         'ts': ts,
         'tile': tile,
         'foundry': foundry,
@@ -123,7 +127,7 @@ def public_token(token):
         'id': token['id'],
         'code': token['code'],
         'owner': token['owner'],
-        'amount': token['amount'],
+        'amountSmh': token.get('amountSmh', token.get('amount')),
         'ts': token['ts'],
         'tile': token['tile'],
         'foundry': token['foundry'],
@@ -146,7 +150,7 @@ def metadata(token):
         'external_url': None,
         'attributes': [
             {'trait_type': 'code', 'value': pub['code']},
-            {'trait_type': 'amount_smc', 'value': pub['amount']},
+            {'trait_type': 'amount_smh', 'value': pub.get('amountSmh')},
             {'trait_type': 'owner', 'value': pub['owner']},
             {'trait_type': 'foundry', 'value': pub['foundry']},
             {'trait_type': 'tile', 'value': pub['tile']},
@@ -184,6 +188,6 @@ def verify_chain(chain, pubkey_hex=None):
             return False, f"firma ilegible en #{token.get('id')}"
         if not ed25519.verify(sig, payload, pubkey):
             return False, f"firma inválida en #{token.get('id')}"
-        total += float(token.get('amount') or 0)
+        total += int(token.get('amountSmh') or 0)
         prev = token['hash']
     return True, f'{len(seen)} certificados, {total} SMC'
