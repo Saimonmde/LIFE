@@ -5,6 +5,7 @@
   const Core = window.HudLayoutCore;
   const PIECES = [
     ['hud-perfil', 'Perfil y tiempo', 'hud'],
+    ['hud-reloj', 'Reloj', 'hud'],
     ['hud-top', 'Botones', 'hud'],
     ['hud-mapa', 'Minimapa', 'hud'],
     ['p-misiones', 'Misiones', 'hud'],
@@ -87,6 +88,7 @@
     const portrait = view.portrait;
     const table = {
       'hud-perfil': { x: edge, y: edge, scale: phone ? 0.62 : (portrait ? 0.78 : 1) },
+      'hud-reloj': { x: edge, y: phone ? (portrait ? bottom(130) : 70) : 8, scale: phone ? 0.92 : 1 },
       'hud-mapa': { x: right(phone ? 130 : 188), y: edge, scale: phone ? 0.55 : (portrait ? 0.7 : 1) },
       'hud-top': { x: edge, y: phone ? (portrait ? 132 : 86) : (portrait ? 210 : 8), scale: phone ? 0.82 : 1 },
       'hud-recursos': { x: right(phone ? 150 : 210), y: bottom(phone ? 58 : 52), scale: phone ? 0.85 : 1 },
@@ -497,8 +499,28 @@
       for (const el of managed.values()) { syncShell(el); noteIfShown(el); }
     }, 700);
   }
-  if (document.body) boot();
-  else addEventListener('DOMContentLoaded', boot);
+  function clockZone() {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) { new Intl.DateTimeFormat('es-CO', { timeZone: tz }).format(); return tz; }
+    } catch (e) {}
+    return 'America/Bogota';
+  }
+  function paintClock() {
+    const el = document.getElementById('reloj-ahora');
+    if (!el || !window.HudLayoutCore) return;
+    const now = new Date();
+    const zone = clockZone();
+    el.dateTime = now.toISOString();
+    el.textContent = window.HudLayoutCore.formatClock(now, zone);
+  }
+  function startClock() {
+    paintClock();
+    setInterval(paintClock, 1000);
+  }
+  function start() { startClock(); boot(); }
+  if (document.body) start();
+  else addEventListener('DOMContentLoaded', start);
 
   const reopenButtons = { 'w-inv': 'b-inv', 'w-hab': 'b-hab', 'p-misiones': 'b-mis', 'p-cercanos': 'b-soc', 'ayuda': 'b-ayuda', 'w-libro': 'b-libro', 'hud-chat': 'chat-toggle' };
   function clearClosed(id) {

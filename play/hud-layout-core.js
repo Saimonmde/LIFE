@@ -66,6 +66,24 @@
     return unpack(store.getItem(key));
   }
 
+  function formatClock(date, timeZone) {
+    const zone = timeZone || 'America/Bogota';
+    const dtf = new Intl.DateTimeFormat('es-CO', {
+      timeZone: zone,
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    const map = {};
+    for (const part of dtf.formatToParts(date)) if (part.type !== 'literal') map[part.type] = part.value;
+    const period = String(map.dayPeriod || '').replace(/\u202f/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    return map.weekday + ' ' + map.day + ' ' + map.month + ' ' + map.year + ' · ' + map.hour + ':' + map.minute + ' ' + period;
+  }
+
   function fitScale(scale, width, height, vw, vh, margin) {
     const m = Number.isFinite(margin) ? margin : 8;
     let next = clampScale(scale);
@@ -86,5 +104,6 @@
     saveLayout: saveLayout,
     loadLayout: loadLayout,
     fitScale: fitScale,
+    formatClock: formatClock,
   };
 })(typeof window === 'undefined' ? globalThis : window);

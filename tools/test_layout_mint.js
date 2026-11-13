@@ -70,4 +70,6 @@ assert.ok(rules.smelt(inv, items, 'mineral_plata', 1, 'coin', 60).error);
 assert.strictEqual(rules.recipes.mineral_plata.coinQty, 3);
 assert.strictEqual(rules.recipes.mineral_cobre.ore, 3);
 assert.strictEqual(rules.recipes.pepita_oro.coinItem, 'moneda_oro');
+assert.strictEqual(layout.formatClock(new Date('2026-11-13T18:04:00Z'), 'America/Bogota'), 'vie 13 nov 2026 · 1:04 p. m.');
+assert.strictEqual(layout.formatClock(new Date('2026-11-13T05:04:00Z'), 'America/Bogota'), 'vie 13 nov 2026 · 12:04 a. m.');
 console.log('layout y recetas del horno: ok');

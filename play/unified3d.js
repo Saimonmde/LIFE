@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 import * as T from './three.module.js';
-import {buildMine} from './mine3d.js?v=valle-hud-r4';
-import {enrichWorld} from './park3d.js?v=valle-hud-r4';
-import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r4';
-import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r4';
-import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r4';
-import {createValleyView} from './valle-vista.js?v=valle-hud-r4';
+import {buildMine} from './mine3d.js?v=valle-hud-r5';
+import {enrichWorld} from './park3d.js?v=valle-hud-r5';
+import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
+import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
+import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
+import {createValleyView} from './valle-vista.js?v=valle-hud-r5';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
