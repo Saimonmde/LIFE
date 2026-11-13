@@ -92,6 +92,20 @@ export function createValleyView(T, opts) {
   beacon.add(pole, gem);
   beacon.visible = false;
   scene.add(beacon);
+  const pinGroup = new T.Group();
+  const pinGem = new T.Mesh(new T.OctahedronGeometry(1.2), new T.MeshBasicMaterial({ color: '#ff7a2a' }));
+  pinGem.position.y = 10;
+  const pinPole = new T.Mesh(new T.CylinderGeometry(0.1, 0.1, 10, 6), new T.MeshBasicMaterial({ color: '#ff7a2a' }));
+  pinPole.position.y = 5;
+  const pinRing = new T.Mesh(new T.RingGeometry(1.15, 1.7, 24), new T.MeshBasicMaterial({ color: '#ffb15a', side: T.DoubleSide }));
+  pinRing.rotation.x = -Math.PI / 2;
+  pinRing.position.y = 0.35;
+  pinGroup.add(pinPole, pinGem, pinRing);
+  pinGroup.visible = false;
+  scene.add(pinGroup);
+  const raycaster = new T.Raycaster();
+  const ndc = new T.Vector2();
+  let pin = null;
 
   const focus = new T.Vector3(mapW, 16, mapH);
   const posedTarget = new T.Vector3();
@@ -317,9 +331,12 @@ export function createValleyView(T, opts) {
     canvas.style.zIndex = '1';
     canvas.style.touchAction = 'none';
     stage.append(canvas);
+    focus.set(mapW, 16, mapH);
     mapYaw = 0;
     mapPitch = 1.02;
     mapDist = fitDist();
+    pin = null;
+    pinGroup.visible = false;
     buildChips();
     wireZoom();
     resize();
@@ -343,6 +360,8 @@ export function createValleyView(T, opts) {
     pointers.clear();
     pinch = 0;
     dragged = false;
+    pinGroup.visible = false;
+    focus.set(mapW, 16, mapH);
   }
 
   function pose() {
@@ -380,6 +399,8 @@ export function createValleyView(T, opts) {
     applyMask(show);
     beacon.visible = show;
     beacon.position.set(here.x * 2 + 1, lift(here.x, here.y), here.y * 2 + 1);
+    pinGroup.visible = show && !!pin;
+    if (pin) pinGroup.position.set(pin.x * 2 + 1, lift(pin.x, pin.y), pin.y * 2 + 1);
     if (open) {
       resize();
       const stage = document.getElementById('city-map-stage');
@@ -419,14 +440,61 @@ export function createValleyView(T, opts) {
       return;
     }
     if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) dragged = true;
-    if (dragged && prev) {
-      mapYaw = clampYaw(mapYaw - (e.clientX - prev[0]) * 0.008);
-      mapPitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, mapPitch + (e.clientY - prev[1]) * 0.005));
+    if (dragged && prev && pointers.size === 1) {
+      const dx = e.clientX - prev[0], dy = e.clientY - prev[1];
+      if (e.altKey || e.shiftKey || (e.buttons & 2)) {
+        mapYaw = clampYaw(mapYaw - dx * 0.008);
+        mapPitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, mapPitch + dy * 0.005));
+      } else panPixels(dx, dy);
     }
   }
-  function pointerUp(e) { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = 0; }
+  function pointerUp(e) {
+    const wasDrag = dragged;
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = 0;
+    if (pointers.size > 0) return;
+    down = null;
+    dragged = false;
+    if (!wasDrag && open) {
+      const tile = pickTile(e.clientX, e.clientY);
+      if (tile && window.LiveInk && LiveInk.markMap) LiveInk.markMap(tile.x, tile.y);
+    }
+  }
+  function zoomBy(dir) {
+    mapDist = clampDist(mapDist * (dir < 0 ? 0.82 : 1.22));
+  }
+  function setPin(tile) {
+    if (!tile || !Number.isFinite(tile.x) || !Number.isFinite(tile.y)) {
+      pin = null;
+      pinGroup.visible = false;
+      return;
+    }
+    pin = { x: tile.x, y: tile.y };
+    pinGroup.position.set(tile.x * 2 + 1, lift(tile.x, tile.y), tile.y * 2 + 1);
+    pinGroup.visible = open;
+  }
+  function panPixels(dx, dy) {
+    const span = mapDist / 700;
+    const rightX = Math.cos(mapYaw), rightZ = -Math.sin(mapYaw);
+    const upX = -Math.sin(mapYaw), upZ = -Math.cos(mapYaw);
+    focus.x = Math.max(0, Math.min(mapW * 2, focus.x + (-dx * rightX + dy * upX) * span));
+    focus.z = Math.max(0, Math.min(mapH * 2, focus.z + (-dx * rightZ + dy * upZ) * span));
+  }
+  function pickTile(clientX, clientY) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (rect.width < 2 || rect.height < 2) return null;
+    ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    const hit = raycaster.intersectObject(relief, false)[0];
+    if (!hit) return null;
+    return {
+      x: Math.max(0, Math.min(mapW - 1, Math.floor(hit.point.x / 2))),
+      y: Math.max(0, Math.min(mapH - 1, Math.floor(hit.point.z / 2))),
+    };
+  }
   function wheel(e) {
     e.preventDefault();
+    e.stopPropagation();
     mapDist = clampDist(mapDist * (e.deltaY > 0 ? 1.08 : 0.92));
   }
 
@@ -443,6 +511,8 @@ export function createValleyView(T, opts) {
     pointerMove,
     pointerUp,
     wheel,
+    zoomBy,
+    setPin,
     fitDistance: fitDist,
   };
 }
