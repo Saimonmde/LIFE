@@ -228,7 +228,9 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-sal
 /* Simulación educativa: SAI, Libro Mayor y caballos. No altera el título gótico ni la casa. */
 #b-libro{font:700 16px system-ui,sans-serif;color:#f6e7c2}
 #sai-chip{color:#ffe14d}
-#sai-legal{left:50%;bottom:64px;transform:translateX(-50%);max-width:min(560px,92vw);margin:0;padding:4px 10px;background:#24180ee6;border:1px solid #b48a46;border-radius:6px;color:#ffe7b0;font:12px/1.35 system-ui,sans-serif;text-align:center;pointer-events:none;z-index:4}
+#sai-legal{left:50%;bottom:64px;transform:translateX(-50%);max-width:min(420px,70vw);margin:0;padding:4px 10px;background:#24180ee6;border:1px solid #b48a46;border-radius:6px;color:#ffe7b0;font:12px/1.35 system-ui,sans-serif;text-align:center;z-index:4;cursor:pointer}
+#sai-legal .sai-full{display:none}#sai-legal.open .sai-short{display:none}#sai-legal.open .sai-full{display:inline}
+body.in-game:not(.in-casa) #dialogo{top:68px}
 #w-libro{width:min(460px,94vw);max-height:72vh;overflow:auto;z-index:30}
 #libro-cuerpo{padding:8px 10px;font:13px/1.4 system-ui,sans-serif}
 #libro-cuerpo .aviso-legal{color:#ffd27a}

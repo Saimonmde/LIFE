@@ -7,7 +7,7 @@
         python3 server.py --port 8765 --host 0.0.0.0 --sin-bots
 - Canales de chat: Global, Proximidad (≤ 30 m = 15 casillas), Clan, Grupo.
 """
-import sys, uuid
+import secrets, sys, uuid
 import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, socket, struct, time, urllib.parse
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
 import economy as ECO
@@ -33,24 +33,66 @@ ECON = ECO.load_state(ECON_PATH)
 def save_econ():
     ECO.save_state(ECON_PATH, ECON)
 
-def econ_msg(who=None):
+LEDGER_PAGE = 20
+GOLD_NODES = [n for n in WORLD.get('nodes', []) if n.get('type') == 'nodo_oro_fluvial']
+NODE_READY = {}
+RESET_NOTE = ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.'
+
+def block_page(before=None):
+    blocks = ECON.get('blocks') or []
+    if before is None:
+        return blocks[-LEDGER_PAGE:]
+    older = [b for b in blocks if int(b.get('height') or 0) < int(before)]
+    return older[-LEDGER_PAGE:]
+
+def econ_msg(who=None, before=None, reveal_token=None, locked=False):
+    page = block_page(before)
     m = {'t': 'economy', 'state': {
-        'mined': ECON.get('mined', 0), 'blocks': ECON.get('blocks', []), 'mempool': ECON.get('mempool', []),
-        'wallets': ECON.get('wallets', {}), 'disclaimer': ECON.get('disclaimer'),
-        'symbol': 'SAI', 'alias': ['Saimony'], 'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
+        'mined': ECON.get('mined', 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
+        'mempool': ECON.get('mempool', []), 'disclaimer': (ECON.get('disclaimer') or '') + RESET_NOTE,
+        'ledgerResets': True, 'symbol': 'SAI', 'alias': ['Saimony'],
+        'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
     }}
     if who:
-        m['balanceSubs'] = int((ECON.get('wallets') or {}).get(who) or 0)
+        m['balanceSubs'] = 0 if locked else int((ECON.get('wallets') or {}).get(who) or 0)
+        m['walletLocked'] = bool(locked)
+    if reveal_token:
+        m['walletToken'] = reveal_token
     return m
 
-def ensure_wallet(name):
-    w = ECON.setdefault('wallets', {})
-    if name not in w:
-        w[name] = 0
+def token_matches(stored, presented):
+    if not stored or not presented or len(stored) != len(str(presented)):
+        return False
+    return secrets.compare_digest(stored, str(presented))
+
+def bind_wallet(name, presented):
+    """Crea la billetera o reconoce a quien guarda el token. No revela el secreto ajeno."""
+    wallets = ECON.setdefault('wallets', {})
+    tokens = ECON.setdefault('walletTokens', {})
+    if name not in wallets:
+        wallets[name] = 0
+    if name not in tokens:
+        token = secrets.token_hex(16)
+        tokens[name] = token
         save_econ()
+        return token
+    if token_matches(tokens[name], presented):
+        return tokens[name]
+    return None
+
+def gold_node_for(x, y, node_id):
+    node = next((n for n in GOLD_NODES if n.get('id') == node_id), None)
+    if not node:
+        return None
+    if max(abs(float(x) - node['x']), abs(float(y) - node['y'])) > 1.25:
+        return None
+    return node
 
 def pagar(sender, dest, monto, note='Transferencia /pagar'):
-    ensure_wallet(sender.name)
+    if not getattr(sender, 'wallet_ok', False):
+        send(sender, {'t': 'pay_result', 'ok': False, 'to': dest})
+        return send(sender, {'t': 'system', 'text': 'Esta billetera SAI se creó en otro aparato. Puedes jugar con este nombre, pero no gastar esas monedas.'})
+    bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     dests = {c.name: c.name for c in clients.values() if c.hello}
     dests['puesto_frutas'] = 'puesto_frutas'
     hit = next((dests[n] for n in dests if n.lower() == str(dest or '').strip().lower()), None)
@@ -70,27 +112,35 @@ def pagar(sender, dest, monto, note='Transferencia /pagar'):
     ECO.credit(ECON, hit, subs)
     ECO.append_tx(ECON, {'type': 'pay', 'from': sender.name, 'to': hit, 'amountSubs': subs, 'note': note})
     save_econ()
-    broadcast(econ_msg())
+    broadcast_econ()
     send(sender, {'t': 'pay_result', 'ok': True, 'to': hit, 'note': note, 'amountSai': ECO.sai_of(subs)})
     broadcast({'t': 'system', 'text': f'{sender.name} pagó {ECO.format_sai(subs)} a {hit}. Sólo es una simulación, sin valor real.'})
 
-def mint_for(sender):
+def mint_for(sender, node_id):
+    if not getattr(sender, 'wallet_ok', False):
+        return send(sender, {'t': 'system', 'text': 'Esta billetera SAI se creó en otro aparato. Puedes jugar, pero no emitir monedas con ese nombre.'})
     if getattr(sender, 'zone', 'city') != 'city':
         return send(sender, {'t': 'system', 'text': 'Las SAI sólo se emiten al lavar oro en el río, fuera de la casa.'})
-    ensure_wallet(sender.name)
+    node = gold_node_for(sender.x, sender.y, node_id)
+    if not node:
+        return send(sender, {'t': 'system', 'text': 'Hay que estar junto a la arena de oro del río para emitir SAI.'})
     now = time.time()
-    if now - getattr(sender, 'last_mint', 0) < 1.5:
+    if now < NODE_READY.get(node['id'], 0):
+        return send(sender, {'t': 'system', 'text': 'Esa arena ya se lavó. El río trae más dentro de un rato.'})
+    if now - getattr(sender, 'last_mint', 0) < 1:
         return send(sender, {'t': 'system', 'text': 'Espera un momento para volver a batear.'})
     sender.last_mint = now
+    bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     reward = ECO.reward_sai(ECON.get('mined') or 0)
     if reward <= 0:
         return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SAI.'})
+    NODE_READY[node['id']] = now + (float(node.get('respawnMs') or 30000) / 1000.0)
     subs = ECO.subunits(reward)
     ECON['mined'] = float(ECON.get('mined') or 0) + float(reward)
     ECO.credit(ECON, sender.name, subs)
     ECO.append_tx(ECON, {'type': 'mint', 'to': sender.name, 'amountSubs': subs, 'note': 'Emisión por bateada de oro fluvial'})
     save_econ()
-    broadcast(econ_msg())
+    broadcast_econ()
     send(sender, {'t': 'system', 'text': f'Se emitieron {ECO.format_sai(subs)} (Saimon Coins, sólo en el juego; no es dinero real).'})
 
 clients = {}      # id -> Client
@@ -140,6 +190,11 @@ def broadcast(obj, who=None, exclude=None):
     for c in list(clients.values()):
         if c is exclude or not c.hello: continue
         if who is None or who(c): send(c, obj)
+
+def broadcast_econ():
+    for c in list(clients.values()):
+        if c.hello and not c.bot:
+            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False)))
 
 def dist(a, b):
     if a is b: return 0
@@ -232,14 +287,19 @@ async def handle_ws(reader, writer):
                 c.name = unique_name(clean(m.get('name'), 16), c)
                 c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
                 c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
-                c.level = int(m.get('level') or 1); c.hello = True
+                c.level = int(m.get('level') or 1);                 c.hello = True
+                presented = clean(m.get('walletToken'), 64)
+                owned = bind_wallet(c.name, presented)
+                c.wallet_ok = bool(owned)
+                c.wallet_token = owned or ''
                 send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
                          'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
                 if c.zone != 'casa':
                     broadcast({'t': 'join', 'player': c.public()}, exclude=c)
                     broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
-                ensure_wallet(c.name)
-                send(c, econ_msg(c.name))
+                send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok))
+                if not c.wallet_ok:
+                    send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SAI en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
             elif t == 'move' and c.hello:
                 if m.get('zone') == 'casa':
                     if c.zone != 'casa':
@@ -260,7 +320,13 @@ async def handle_ws(reader, writer):
             elif t == 'chat' and c.hello:
                 chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
             elif t == 'mint' and c.hello:
-                mint_for(c)
+                mint_for(c, clean(m.get('node'), 40))
+            elif t == 'ledger' and c.hello:
+                try:
+                    before = int(m.get('before'))
+                except (TypeError, ValueError):
+                    before = None
+                send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok))
             elif t == 'pay' and c.hello:
                 try:
                     monto = float(m.get('amountSai'))

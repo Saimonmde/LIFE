@@ -177,25 +177,47 @@ function grantTreasury(sai, note) {
   pushTx({ type: 'grant', from: 'tesoro_genesis', to: walletName(), amountSubs: subs, note: note || 'Recompensa' });
   return true;
 }
+function tokenKey(name) { return 'lifeinc.sai.token.' + (name || ''); }
+function walletToken(name) { try { return localStorage.getItem(tokenKey(name || walletName())) || ''; } catch (e) { return ''; } }
+function saveToken(name, token) { if (!token) return; try { localStorage.setItem(tokenKey(name), token); } catch (e) {} }
 function applyServer(m) {
   if (!m || !m.state) return;
   const prev = api.S.econ ? api.S.econ.mined : 0;
-  api.S.econ = m.state;
-  if (!api.S.econ.wallets) api.S.econ.wallets = {};
-  if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.balanceSubs;
+  const st = m.state;
+  if (!api.S.econ) api.S.econ = emptyEcon(st.disclaimer);
+  api.S.econ.mined = st.mined || 0;
+  api.S.econ.disclaimer = st.disclaimer || api.S.econ.disclaimer;
+  api.S.econ.ledgerResets = !!st.ledgerResets;
+  api.S.econ.blockCount = st.blockCount || (st.blocks || []).length;
+  api.S.econ.mempool = st.mempool || [];
+  const byH = new Map((api.S.econ.blocks || []).map(b => [b.height, b]));
+  for (const b of st.blocks || []) byH.set(b.height, b);
+  api.S.econ.blocks = [...byH.values()].sort((a, b) => a.height - b.height);
+  if (m.walletToken) saveToken(walletName(), m.walletToken);
+  api.S.walletLocked = !!m.walletLocked;
+  if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
   if ((api.S.econ.mined || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
+}
+function blockOk(blocks, b) {
+  if (!b) return false;
+  if (!b.height) return b.prev === GENESIS_PREV && verifyBlock(b, GENESIS_PREV);
+  const prev = blocks.find(x => x.height === b.height - 1);
+  if (prev && prev.hash !== b.prev) return false;
+  return verifyBlock(b, b.prev);
 }
 function renderLibro() {
   const el = $('#libro-cuerpo');
   if (!el || !api || !api.S.econ) return;
   const blocks = api.S.econ.blocks || [];
-  const disc = api.S.econ.disclaimer || (F && F.economy && F.economy.disclaimer) || '';
+  const disc = (api.S.econ.disclaimer || (F && F.economy && F.economy.disclaimer) || '') + ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.';
+  const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
+  const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} 1 SAI = 100.000.000 saimonitos.</p>
     <p>Minadas: <b>${(api.S.econ.mined || 0).toLocaleString('es-CO')}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SAI · Premio actual: <b>${rewardSai(api.S.econ.mined)} SAI</b> · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+    ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
-      const prev = b.height ? blocks[b.height - 1].hash : GENESIS_PREV;
-      const ok = verifyBlock(b, prev);
+      const ok = blockOk(blocks, b);
       const txs = b.txs || [];
       return `<article class="bloque"><header>Bloque #${b.height} · ${ok ? 'hash válido' : 'NO COINCIDE'}</header>
         <div class="hash"><small>prev</small> ${api.esc(b.prev)}</div>
@@ -203,11 +225,12 @@ function renderLibro() {
         <ul>${txs.map(tx => `<li>${api.esc(tx.type)} ${tx.from ? api.esc(tx.from) + ' → ' : ''}${api.esc(tx.to || '')} ${formatSai(tx.amountSubs || 0)}${tx.note ? ' · ' + api.esc(tx.note) : ''}</li>`).join('')}</ul>
         <button type="button" class="ver-hash" data-h="${b.height}">Verificar hash</button></article>`;
     }).join('')}</div>`;
+  const older = $('#libro-mas');
+  if (older) older.onclick = () => { if (api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'ledger', before: oldest })); };
   el.querySelectorAll('.ver-hash').forEach(btn => btn.onclick = () => {
     const h = +btn.dataset.h;
     const b = api.S.econ.blocks.find(x => x.height === h);
-    const prev = h ? api.S.econ.blocks[h - 1].hash : GENESIS_PREV;
-    const ok = verifyBlock(b, prev);
+    const ok = blockOk(api.S.econ.blocks, b);
     api.game(ok ? `Bloque #${h}: hash verificado (SHA-256).` : `Bloque #${h}: el hash no coincide.`, ok ? 'oro' : 'aviso');
     if (ok) libroProgress('verificar_hash');
   });
@@ -361,6 +384,7 @@ function buyStand() {
   const price = (F.stand && F.stand.priceSai) || 5;
   const sku = (F.stand && F.stand.sku) || 'mango';
   if (api.S.net.ok) {
+    if (api.S.walletLocked) { api.game('Esta billetera SAI se creó en otro aparato. Puedes jugar, pero no gastar esas monedas.', 'aviso'); return; }
     api.S.pendingBuy = true;
     api.S.net.ws.send(JSON.stringify({ t: 'pay', to: 'puesto_frutas', amountSai: price, note: 'Compra en el puesto de frutas' }));
     return;
@@ -369,10 +393,11 @@ function buyStand() {
   api.invAdd(sku, 1);
   api.game(`Compras 1 × <b>${api.esc(api.W().items[sku].name)}</b> por ${price} SAI.`);
 }
-function onRiverGold() {
+function onRiverGold(nodeId) {
   if ((api.W().mapId || 'city') !== 'city') return 0;
   if (api.S.net.ok) {
-    api.S.net.ws.send(JSON.stringify({ t: 'mint' }));
+    if (api.S.walletLocked) { api.game('Esta billetera SAI se creó en otro aparato. Puedes jugar, pero no emitir con ese nombre.', 'aviso'); return 0; }
+    api.S.net.ws.send(JSON.stringify({ t: 'mint', node: nodeId || '' }));
     return 0;
   }
   return localMint();
@@ -464,14 +489,24 @@ function autotest(ok) {
   ok(!!api.W().npcs.find(n => n.id === 'profesora_cadena' && n.name === 'Profesora de la Cadena' && !/Satoshi/i.test(n.name)), 'Profesora de la Cadena');
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
-  ok(/no son dinero real/i.test($('#sai-legal').textContent) && /no tienen valor/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real');
-  ok(F.stable.x !== 226 && F.stable.y !== 64 && F.npc.x !== 227, 'establo y profesora fuera de la puerta del parque');
+  ok(/no son dinero real/i.test($('#sai-legal').textContent) && /no tienen valor/i.test($('#sai-legal').textContent) && /se reinicia/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real y el libro se reinicia');
+  ok(F.stable.y >= 62 && F.stable.x + F.stable.w - 1 < 234 && F.stable.x <= 234, 'establo en la plaza, fuera de la iglesia');
+  ok(F.stable.x !== 226 && F.npc.x !== 227, 'establo y profesora fuera de la puerta del parque');
   const horse = api.S.mounts[0];
   ok(!!horse, 'hay un caballo en el establo');
   api.S.player.x = api.S.player.fx = horse.x;
   api.S.player.y = api.S.player.fy = horse.y + 1;
   mountHorse(horse);
   ok(!!api.S.mounted && speedMul() === 2, 'montar: velocidad ×2');
+  if (api.update) {
+    const rider = api.S.player;
+    rider.path = []; rider.x = rider.fx = 220; rider.y = rider.fy = 70;
+    for (let i = 1; i <= 8; i++) rider.path.push([220 + i, 70]);
+    api.S.keys.clear();
+    api.update(0.5);
+    const travelled = rider.fx - 220;
+    ok(travelled > 3.8 && travelled < 4.6, 'a caballo se recorren unas 4,2 casillas en medio segundo (' + travelled.toFixed(2) + ')');
+  }
   const water = (api.W().waterBodies.rio_claro.tiles || [])[0];
   ok(blocksTile(api.W(), water[0], water[1]) || api.W().collision[water[1]][water[0]] !== 0, 'el caballo no entra al agua');
   const home = api.S.nodes.get('puerta_casa');
@@ -504,6 +539,8 @@ window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
-  hashBlock, verifyBlock, emptyEcon, rewardSai, formatSai, SUBS, GENESIS_PREV,
+  hashBlock, verifyBlock, emptyEcon, rewardSai, formatSai, walletToken, SUBS, GENESIS_PREV,
 };
+const legal = document.getElementById('sai-legal');
+if (legal) legal.onclick = () => { const open = legal.classList.toggle('open'); legal.setAttribute('aria-expanded', open ? 'true' : 'false'); };
 })();

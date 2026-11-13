@@ -44,7 +44,7 @@ async function init() {
   prepareMining();
   await Simulacion.installWorld(W, S);
   Simulacion.bind({
-    S, game, sys, esc, invAdd, save, addXp, renderAll, renderQuest, renderSkills, showDialog, act,
+    S, game, sys, esc, invAdd, save, addXp, renderAll, renderQuest, renderSkills, showDialog, act, update,
     W: () => W, imgs, capataz: () => capatazImg,
   });
   const bLibro = $('#b-libro'), bLibroMovil = $('#b-libro-movil'), bMontar = $('#b-montar');
@@ -544,7 +544,7 @@ function connect() {
   let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { return; }
   S.net.ws = ws;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined) beginAtHome(); const atHome = W.mapId==='casa'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: atHome ? 'casa' : 'city', resume: atHome ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined) beginAtHome(); const atHome = W.mapId==='casa'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone: atHome ? 'casa' : 'city', walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: atHome ? null : (S.net.hasJoined ? (W.mapId==='mine'?cityReturn:{x:S.player.fx,y:S.player.fy}) : null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     const m = JSON.parse(ev.data);
@@ -754,7 +754,7 @@ function act(t) {
     if (n.state !== 'active') return game(`Ya lavaste esta arena. El río trae más oro en ${secs()} s.`, 'aviso');
     if (Math.random() > d.successChance) { floatText(d.x, d.y, 'Sólo arena…', '#e8d9b0'); return game('Mueves la batea en la corriente… sólo arena. Intenta otra vez.', 'aviso'); }
     give(d.yield.item, 1, d.x, d.y); game('¡Brilla en la batea! Una <b>pepita de oro</b> del río.', 'oro');
-    if (window.Simulacion) Simulacion.onRiverGold();
+    if (window.Simulacion) Simulacion.onRiverGold(d.id);
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;
@@ -901,10 +901,13 @@ function update(dt) {
     else if (dx || dy) p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
   }
   if (p.path.length) {
-    const [nx, ny] = p.path[0]; const ddx = nx - p.fx, ddy = ny - p.fy, d = Math.hypot(ddx, ddy);
-    if (Math.abs(ddx) > 0.01 || Math.abs(ddy) > 0.01) p.dir = Math.abs(ddx) > Math.abs(ddy) ? (ddx > 0 ? 'right' : 'left') : (ddy > 0 ? 'down' : 'up');
-    const step = SPEED * (S.mounted ? Simulacion.speedMul() : (running ? 2 : 1)) * dt;
-    if (d <= step) {
+    let budget = SPEED * (S.mounted ? Simulacion.speedMul() : (running ? 2 : 1)) * dt;
+    let guard = 0;
+    while (p.path.length && budget > 1e-4 && guard++ < 12) {
+      const [nx, ny] = p.path[0]; const ddx = nx - p.fx, ddy = ny - p.fy, d = Math.hypot(ddx, ddy);
+      if (Math.abs(ddx) > 0.01 || Math.abs(ddy) > 0.01) p.dir = Math.abs(ddx) > Math.abs(ddy) ? (ddx > 0 ? 'right' : 'left') : (ddy > 0 ? 'down' : 'up');
+      if (d > budget) { p.fx += ddx / d * budget; p.fy += ddy / d * budget; budget = 0; break; }
+      budget -= d;
       p.fx = nx; p.fy = ny; p.x = nx; p.y = ny; p.path.shift(); updateTutorial();
       if (!p.path.length) {
         S.dest = null;
@@ -913,9 +916,19 @@ function update(dt) {
           if (tg.kind === 'door' ? (p.x === tg.d.approach.x && p.y === tg.d.approach.y) : cheb(p.x, p.y, tt.x, tt.y) <= 1) act(tg);
           else if (tg.kind === 'animal' && tg.a.state === 'alive' && p.repaths++ < 4) approach(tg);
           else if (tg.kind === 'animal') game('El animal se alejó.', 'aviso');
+          budget = 0;
+        } else if (S.mounted && budget > 1e-4 && !S.dialog && !S.houseEdit) {
+          let mx = 0, my = 0; const K = S.keys;
+          if (K.has('w') || K.has('arrowup')) my = -1; if (K.has('s') || K.has('arrowdown')) my = 1;
+          if (K.has('a') || K.has('arrowleft')) mx = -1; if (K.has('d') || K.has('arrowright')) mx = 1;
+          if (window.LiveInk?.keyboardDirection) [mx, my] = window.LiveInk.keyboardDirection(mx, my);
+          let tx = p.x + mx, ty = p.y + my;
+          if (mx && my && (!walkable(p.x + mx, p.y) || !walkable(p.x, p.y + my))) { if (walkable(p.x + mx, p.y)) ty = p.y; else if (walkable(p.x, p.y + my)) tx = p.x; }
+          if ((mx || my) && walkable(tx, ty)) p.path = [[tx, ty]];
+          else budget = 0;
         }
       }
-    } else { p.fx += ddx / d * step; p.fy += ddy / d * step; }
+    }
     p.animT += dt * (S.mounted || running ? 2 : 1);
   } else p.animT = 0;
   if (window.Simulacion) Simulacion.syncHorse();
@@ -1221,8 +1234,8 @@ function autotest() {
   const unreach = W.nodes.filter(n => !bfs(W.spawn.x, W.spawn.y, (a, b) => cheb(a, b, n.x, n.y) === 1)); ok(!unreach.length, 'todos los nodos alcanzables' + (unreach.length ? ': ' + unreach.map(n => n.id).join(',') : ''));
   ok(['astrologia', 'combate', 'religion', 'artesania'].every(k => W.skills[k] && W.skills[k].stub) && /Astrología/.test($('#habilidades').textContent), 'habilidades educativas (stubs) en el panel');
   for (const m of W.memories) ok(!!bfs(W.spawn.x,W.spawn.y,(x,y)=>x===m.x&&y===m.y),'memoria y región alcanzable: '+m.id);
-  ok(W.width===80 && W.height===64,'mundo compartido 80x64');
-  ok(!walkable(49,20)&&walkable(49,30),'río bloqueado y puente caminable');
+  ok(W.width===352 && W.height===176,'mundo compartido 352×176');
+  ok(!walkable(214,44) && walkable(214,68) && W.tiles[W.ground[44][214]].kind==='water' && W.tiles[W.ground[68][214]].kind==='bridge','río bloqueado y puente caminable');
   p.x = p.fx = W.spawn.x; p.y = p.fy = W.spawn.y;
   if (window.Simulacion) Simulacion.autotest(ok);
   const fails = out.filter(l => l.startsWith('FALLO')).length;

@@ -44,5 +44,47 @@ class EconomyTests(unittest.TestCase):
         self.assertIn('Peer-to-Peer Electronic Cash System', features['skill']['citation']['title'])
 
 
+class ServerGuardTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, ROOT)
+        import server
+        cls.server = server
+
+    def test_mint_requires_the_river_and_a_real_pan(self):
+        s = self.server
+        self.assertIsNone(s.gold_node_for(227, 64, 'oro_fluvial_1'))
+        self.assertIsNotNone(s.gold_node_for(215, 54, 'oro_fluvial_1'))
+        name = 'BateaPrueba'
+        token = s.bind_wallet(name, '')
+        before = float(s.ECON.get('mined') or 0)
+
+        class Who:
+            bot = True
+            zone = 'city'
+            x, y = 227, 64
+            wallet_ok = True
+            wallet_token = token
+            name = 'BateaPrueba'
+            last_mint = 0
+        who = Who()
+        s.mint_for(who, 'oro_fluvial_1')
+        self.assertEqual(float(s.ECON.get('mined') or 0), before)
+        who.x, who.y = 215, 54
+        s.mint_for(who, 'oro_fluvial_1')
+        self.assertGreater(float(s.ECON.get('mined') or 0), before)
+        mid = float(s.ECON.get('mined') or 0)
+        who.last_mint = 0
+        s.mint_for(who, 'oro_fluvial_1')
+        self.assertEqual(float(s.ECON.get('mined') or 0), mid)
+
+    def test_wallet_token_blocks_a_stranger(self):
+        s = self.server
+        token = s.bind_wallet('Duena', '')
+        self.assertEqual(s.bind_wallet('Duena', token), token)
+        self.assertIsNone(s.bind_wallet('Duena', '0' * len(token)))
+        self.assertLessEqual(len(s.block_page()), s.LEDGER_PAGE)
+
+
 if __name__ == '__main__':
     unittest.main()
