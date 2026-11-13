@@ -5,9 +5,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=valle-auth-r2">
-<link rel="stylesheet" href="movil.css?v=valle-auth-r2">
-<script src="movil.js?v=saimon-door-r3"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=valle-hud-r5">
+<link rel="stylesheet" href="movil.css?v=valle-hud-r5">
+<link rel="stylesheet" href="hud-layout.css?v=valle-hud-r5">
+<script src="movil.js?v=valle-hud-r5"></script>
 </head>
 <body>
 <canvas id="juego"></canvas>
@@ -29,6 +33,7 @@
   </div>
   <div id="zona-nombre">El Jardín</div>
 </div>
+<div id="hud-reloj" class="hud" aria-label="Hora y fecha reales"><time id="reloj-ahora"></time></div>
 
 <!-- ===== Botones + minimapa (arriba derecha) ===== -->
 <div id="hud-top" class="hud">
@@ -150,7 +155,9 @@
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
     <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas al cuádruple de la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua.</li>
+    <li><b>Interfaz:</b> la rueda ⚙ abre el modo edición. Ahí se mueve cada barra, se agranda o se achica, y se minimiza. − deja una pestaña y × cierra; se vuelven a abrir desde la rueda o su botón. El diseño se guarda en este aparato, aparte en el celular y en el escritorio, y también al girar la pantalla. Se puede jugar vertical y horizontal.</li>
     <li><b>SaiMonCoins (SMC):</b> cada moneda nueva pide una prueba de trabajo, una cuenta y juego real. Tope 21.000.000. El premio de la era empieza en 1 SMC y se parte a la mitad cada 10,5 millones. Cada cuenta tiene un tope diario. 1 SMC = 100.000.000 Simonchis (SMH). El Libro madre guarda cada acuñación con un código que no se repite. Es una simulación: no es dinero real.</li>
+    <li><b>Horno:</b> en la mina convierte mineral en lingotes o en monedas de cobre, plata y oro. Esas monedas son objetos de la mochila y no crean SMC. Acreditar SMC pasa por la prueba de trabajo y el tope del día; no se inventa saldo sin el servidor.</li>
     <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
@@ -186,18 +193,20 @@
   <p class="bag-note">SMC no es dinero real. El turno de la cantera tampoco se paga por OnePay ni por USDT.</p>
 </section>
 <div id="autotest" hidden></div>
-<script src="simulacion.js?v=valle-auth-r2"></script>
-<script src="pow.js?v=pow-r1"></script>
-<script src="../data/el-jardin.js?v=saimon-door-r3"></script>
-<script src="mining-rules.js?v=saimon-door-r3"></script>
-<script src="casa.js?v=saimon-door-r3"></script>
-<script src="envigado-park.js?v=smc-r2"></script>
-<script src="banco.js?v=valle-auth-r2"></script>
-<script src="tutorial.js?v=brujula-r1"></script>
-<script src="libro-madre.js?v=valle-auth-r2"></script>
-<script src="paneles.js?v=brujula-r1"></script>
-<script src="game.js?v=valle-auth-r2"></script>
-<script type="module" src="unified3d.js?v=valle-auth-r2"></script>
-<script src="interface.js?v=saimon-door-r3"></script>
+<script src="simulacion.js?v=valle-hud-r5"></script>
+<script src="pow.js?v=valle-hud-r5"></script>
+<script src="../data/el-jardin.js?v=valle-hud-r5"></script>
+<script src="mining-rules.js?v=valle-hud-r5"></script>
+<script src="casa.js?v=valle-hud-r5"></script>
+<script src="envigado-park.js?v=valle-hud-r5"></script>
+<script src="banco.js?v=valle-hud-r5"></script>
+<script src="tutorial.js?v=valle-hud-r5"></script>
+<script src="libro-madre.js?v=valle-hud-r5"></script>
+<script src="paneles.js?v=valle-hud-r5"></script>
+<script src="game.js?v=valle-hud-r5"></script>
+<script type="module" src="unified3d.js?v=valle-hud-r5"></script>
+<script src="interface.js?v=valle-hud-r5"></script>
+<script src="hud-layout-core.js?v=valle-hud-r5"></script>
+<script src="hud-layout.js?v=valle-hud-r5"></script>
 </body>
 </html>

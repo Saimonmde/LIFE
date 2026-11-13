@@ -1,6 +1,4 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-@font-face { font-family: "Cinzel"; src: url("/play/fonts/Cinzel-wght.ttf") format("truetype"); font-weight: 400 900; font-display: swap; }
-@font-face { font-family: "Atkinson"; src: url("/play/fonts/AtkinsonHyperlegible-Regular.ttf") format("truetype"); font-display: swap; }
 * { box-sizing: border-box; }
 html { background: #0c0a07; }
 body {
@@ -9,7 +7,7 @@ body {
     radial-gradient(ellipse at top, rgba(72, 48, 18, .55), transparent 58%),
     #0c0a07;
   color: #f3e6c4;
-  font: 17px/1.65 "Atkinson", "Segoe UI", sans-serif;
+  font: 17px/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
 }
 main {
   width: min(740px, calc(100% - 28px));
@@ -22,15 +20,16 @@ main {
 }
 .marca {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
   letter-spacing: .28em;
   text-transform: uppercase;
   font-size: 13px;
   color: #fff6e4;
 }
 h1 {
-  font-family: "Cinzel", Palatino, Georgia, serif;
-  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
   font-size: clamp(28px, 7vw, 40px);
   line-height: 1.15;
   margin: 8px 0 4px;
@@ -43,10 +42,10 @@ h1 {
   h1 { color: transparent; }
 }
 h2 {
-  font-family: "Cinzel", Palatino, Georgia, serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
   color: #f5d27a;
   font-size: 1.15rem;
-  font-weight: 700;
   margin: 1.45em 0 .35em;
 }
 p { margin: .55em 0; }

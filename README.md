@@ -27,7 +27,7 @@ Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del
 - `graphics/` — arte original: teselas, objetos, personajes e interfaz.
 - `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `libro.py` (libro madre), `nft.py`, `ed25519.py`, `vault.py`, `payout.py`, `verify_nft.py`, `test_economy.py`, `test_libro.py`, `test_nft.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
 - `docs/CERTIFICADOS-SMC.md` — tope de 21 millones, conversión 1:1, certificados, banco y esculturas de reemplazo.
-- `graphics/ui/saimon-logo.png` — wordmark de Simón (CC-BY-SA-4.0). El título usa el derivado en oro `saimon-logo-gold.png` junto a la palabra City en UnifrakturMaguntia (OFL).
+- `graphics/ui/saimon-logo.png` — wordmark de Simón (CC-BY-SA-4.0). El título usa el derivado en oro `saimon-logo-gold.png` junto a la palabra City en una sans seminegra.
 
 ## Valle de Aburrá
 

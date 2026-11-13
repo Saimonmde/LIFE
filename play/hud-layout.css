@@ -1,0 +1,222 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Diseño movible de la interfaz. No cambia las fuentes del juego. */
+
+#hud-gear {
+  position: fixed;
+  z-index: 80;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #b48a46;
+  background: #2a1d12;
+  color: #f5d27a;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 3px 10px #0008;
+}
+#hud-gear-menu, #hud-edit-bar {
+  position: fixed;
+  z-index: 81;
+  background: #241c14f5;
+  color: #f6e7c4;
+  border: 2px solid #b48a46;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px #000a;
+}
+#hud-gear-menu {
+  top: calc(max(8px, env(safe-area-inset-top)) + 56px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, calc(100vw - 16px));
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#hud-gear-menu button, #hud-edit-bar button, #hud-reopen button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #b48a46;
+  background: #5c4124;
+  color: #fff1c9;
+  cursor: pointer;
+}
+#hud-edit-bar {
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(520px, calc(100vw - 16px));
+  padding: 8px;
+}
+#hud-edit-bar strong { padding: 0 6px; }
+#hud-reopen { display: flex; flex-direction: column; gap: 6px; }
+.solo-mundo #hud-gear,
+.solo-mundo #hud-gear-menu,
+.solo-mundo #hud-edit-bar { display: block !important; }
+#hud-gear-menu[hidden], #hud-edit-bar[hidden] { display: none !important; }
+body:not(.in-game) #hud-gear,
+body:not(.in-game) #hud-gear-menu,
+body:not(.in-game) #hud-edit-bar { display: none !important; }
+
+.hud-pieza { box-sizing: border-box; }
+.hud-pieza > header, .hud-chrome {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 2px 4px 2px 8px;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.hud-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud-min, .hud-x, .hud-escala, header .x, header .plegar, .info-fold, .info-close {
+  flex: none;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid #b48a46;
+  background: #3a2a1c;
+  color: #ffe7c2;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.hud-escala { display: none; font-size: 20px; }
+body.hud-editando .hud-escala { display: inline-flex; align-items: center; justify-content: center; }
+.hud-asa {
+  display: none;
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid #f5d27a;
+  background: #6b4a26;
+  z-index: 5;
+  touch-action: none;
+  cursor: nwse-resize;
+}
+.hud-asa:before {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 16px;
+  height: 16px;
+  border-right: 3px solid #fff1c9;
+  border-bottom: 3px solid #fff1c9;
+}
+body.hud-editando .hud-asa { display: block; }
+body.hud-editando .hud-pieza {
+  outline: 2px dashed #f5d27a;
+  outline-offset: 3px;
+  pointer-events: auto !important;
+  touch-action: none;
+  z-index: 30;
+}
+body:not(.hud-editando) .hud-pieza > header { cursor: default; }
+body.hud-editando .hud-pieza > header { cursor: grab; }
+.hud-pieza.hud-minimo { width: auto !important; max-width: 220px; min-height: 48px; overflow: hidden; }
+.hud-minimo .hud-escala, .hud-minimo .hud-asa { display: none !important; }
+@media (min-width: 701px) {
+  body.in-casa #b-casa, body.in-casa #b-editar-casa { top: 64px; }
+}
+.hud-pieza.hud-minimo > :not(header) { display: none !important; }
+.hud-pieza.hud-cerrado { display: none !important; }
+.hud-shell { position: fixed; z-index: 24; margin: 0; }
+.hud-shell-off { display: none !important; }
+.hud-in-shell { position: relative !important; inset: auto !important; transform: none !important; }
+
+#hud-perfil > header { margin-bottom: 4px; background: #24180ee6; border: 1px solid #b48a46; border-radius: 8px; }
+#hud-mapa > header, #hotbar > header, #hud-recursos > header, #hud-top > header {
+  background: #24180ee6;
+  border: 1px solid #b48a46;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+#hotbar { flex-wrap: wrap; justify-content: center; }
+#hud-top { flex-wrap: wrap; }
+#forge-progress { margin: 8px 0; }
+#forge-progress[hidden] { display: none !important; }
+#forge-progress-bar { height: 14px; background: #2a1c12; border: 1px solid #8d6d40; border-radius: 8px; overflow: hidden; }
+#forge-progress-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #a56b22, #f6d98a); animation: forge-pour 1.1s linear forwards; }
+@keyframes forge-pour { to { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { #forge-progress-bar i { animation-duration: .16s; } }
+#forge-recipes { margin: 6px 0; padding-left: 18px; }
+#forge-recipes li { margin: 3px 0; }
+#forge-made { color: #d6ffd1; min-height: 1.2em; }
+#city-map:has(.hud-minimo) { background: transparent; display: block; pointer-events: none; }
+#city-map:has(.hud-minimo) .city-map-panel { pointer-events: auto; width: min(280px, calc(100vw - 16px)); }
+body.hud-editando #mundo3d, body.hud-editando #city-joystick { pointer-events: none; }
+
+html.movil #hud-perfil.hud-puesto,
+html.movil #hud-top.hud-puesto,
+html.movil #hud-mapa.hud-puesto,
+html.movil #objetivo.hud-puesto,
+html.movil #hud-derecha.hud-puesto,
+html.movil #hotbar.hud-puesto,
+html.movil #hud-recursos.hud-puesto,
+html.movil #b-descansar.hud-puesto,
+html.movil #chat-toggle.hud-puesto,
+html.movil #hud-toggle.hud-puesto,
+html.movil #mine-route.hud-puesto,
+html.movil #mine-exit-route.hud-puesto,
+html.movil #mine-enter.hud-puesto,
+html.movil #sai-legal.hud-puesto,
+html.movil #p-misiones.hud-puesto,
+html.movil #p-cercanos.hud-puesto,
+html.movil #hud-chat.hud-puesto,
+html.movil #world-tools.hud-puesto,
+html.movil #touch-extra.hud-puesto,
+html.movil #aviso.hud-puesto,
+html.movil #dialogo.hud-puesto,
+html.movil .hud-shell.hud-puesto,
+#hotbar.hud-puesto,
+#furnace-panel.hud-puesto,
+#banquito.hud-puesto,
+#ayuda.hud-puesto,
+#b-casa.hud-puesto,
+#b-editar-casa.hud-puesto,
+#b-salir-parque.hud-puesto,
+.hud-puesto {
+  top: 0 !important;
+  left: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform-origin: top left !important;
+  transform: var(--hud-tf) !important;
+  max-width: none !important;
+}
+#hud-top > header, #hotbar > header, #hud-recursos > header { flex: 1 0 100%; }
+html.movil #b-descansar.hud-in-shell,
+html.movil #chat-toggle.hud-in-shell,
+html.movil #hud-toggle.hud-in-shell,
+html.movil #mine-route.hud-in-shell,
+html.movil #mine-exit-route.hud-in-shell,
+html.movil #mine-enter.hud-in-shell,
+html.movil #sai-legal.hud-in-shell,
+html.movil #movil-menu.hud-in-shell,
+html.movil #b-bajar.hud-in-shell,
+html.movil #b-casa.hud-in-shell,
+html.movil #b-editar-casa.hud-in-shell,
+html.movil #b-salir-parque.hud-in-shell {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+}
