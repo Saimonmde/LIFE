@@ -421,6 +421,15 @@ async function installWorld(W, S) {
   const r = await fetch('../data/simulacion.json');
   if (!r.ok) throw new Error('No se pudo cargar data/simulacion.json');
   F = await r.json();
+  const off = (window.Casa && window.Casa.VALLE_OFFSET) || { x: 0, y: 0 };
+  if (!F._valleShifted && (off.x || off.y)) {
+    const shift = (o) => { if (o && typeof o.x === 'number') { o.x += off.x; o.y += off.y; } };
+    shift(F.stable); shift(F.npc); shift(F.stand);
+    (F.signs || []).forEach(shift);
+    (F.waypoints || []).forEach(shift);
+    (F.mounts || []).forEach((m) => (m.spawn || []).forEach(shift));
+    F._valleShifted = true;
+  }
   Object.assign(W.sprites, F.sprites);
   const st = F.stable;
   W.decorations.push({ id: st.id, type: st.type, name: st.name, x: st.x, y: st.y, w: st.w, h: st.h, sprite: st.sprite, solid: true });
@@ -490,8 +499,9 @@ function autotest(ok) {
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
   ok(/no son dinero real/i.test($('#sai-legal').textContent) && /no tienen valor/i.test($('#sai-legal').textContent) && /se reinicia/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real y el libro se reinicia');
-  ok(F.stable.y >= 62 && F.stable.x + F.stable.w - 1 < 234 && F.stable.x <= 234, 'establo en la plaza, fuera de la iglesia');
-  ok(F.stable.x !== 226 && F.npc.x !== 227, 'establo y profesora fuera de la puerta del parque');
+  const off = (window.Casa && window.Casa.VALLE_OFFSET) || { x: 0, y: 0 };
+  ok(F.stable.y - off.y >= 62 && (F.stable.x - off.x) + F.stable.w - 1 < 234 && F.stable.x - off.x <= 234, 'establo en la plaza, fuera de la iglesia');
+  ok(F.stable.x - off.x !== 226 && F.npc.x - off.x !== 227, 'establo y profesora fuera de la puerta del parque');
   const horse = api.S.mounts[0];
   ok(!!horse, 'hay un caballo en el establo');
   api.S.player.x = api.S.player.fx = horse.x;
@@ -500,11 +510,11 @@ function autotest(ok) {
   ok(!!api.S.mounted && speedMul() === 2, 'montar: velocidad ×2');
   if (api.update) {
     const rider = api.S.player;
-    rider.path = []; rider.x = rider.fx = 220; rider.y = rider.fy = 70;
-    for (let i = 1; i <= 8; i++) rider.path.push([220 + i, 70]);
+    rider.path = []; rider.x = rider.fx = 220 + off.x; rider.y = rider.fy = 70 + off.y;
+    for (let i = 1; i <= 8; i++) rider.path.push([220 + off.x + i, 70 + off.y]);
     api.S.keys.clear();
     api.update(0.5);
-    const travelled = rider.fx - 220;
+    const travelled = rider.fx - (220 + off.x);
     ok(travelled > 3.8 && travelled < 4.6, 'a caballo se recorren unas 4,2 casillas en medio segundo (' + travelled.toFixed(2) + ')');
   }
   const water = (api.W().waterBodies.rio_claro.tiles || [])[0];

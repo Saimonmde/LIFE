@@ -38,6 +38,7 @@ export function enrichWorld(T,scene,W,pick,height,material){
    for(const dx of [-spread,spread])for(const dz of [-8,8]){planter(cx+dx,cz+dz,true);bench(cx+dx+(dx<0?3:-3),cz+dz,dx<0?Math.PI/2:-Math.PI/2);lamp(cx+dx,cz+dz+3);}
    if(park.id==='sabaneta'){box(cx,cy+.65,cz+5,1.7,1.3,1.7,'#b3ae9b');box(cx,cy+1.9,cz+5,.65,1.2,.4,'#595f4f');mesh(new T.SphereGeometry(.3,10,8),'#595f4f',cx,cy+2.7,cz+5);for(const dx of [-14,14])for(const dz of [-13,12])bench(cx+dx,cz+dz,dx<0?Math.PI/2:-Math.PI/2);}
    if(park.id==='envigado'){disc(cx,cy+.3,cz+6,2.2,.6,'#bfb8a6');disc(cx,cy+.64,cz+6,1.9,.07,'#78b3ba');disc(cx,cy+1.2,cz+6,.22,1.1,'#d7d0bc');}
+   if(park.id==='la_estrella'){for(let i=0;i<5;i++){const a=-Math.PI/2+i*Math.PI*2/5;tree(cx+Math.cos(a)*5.5,cz+Math.sin(a)*5.5);}}
   }
  }
  const bridges=W.bridges||[];
@@ -50,7 +51,7 @@ export function enrichWorld(T,scene,W,pick,height,material){
  for(const d of W.scenery3d||[])if(d.kind==='tree')tree(d.x*2+1,d.y*2+1);else lamp(d.x*2+1,d.y*2+1);
  for(const d of W.signs3d||[]){const c=document.createElement('canvas');c.width=640;c.height=96;const ctx=c.getContext('2d');ctx.fillStyle='#354b45';ctx.fillRect(0,0,640,96);ctx.strokeStyle='#c4b081';ctx.lineWidth=5;ctx.strokeRect(4,4,632,88);ctx.fillStyle='#f0e7cf';ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(d.text,320,48,615);const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;const m=new T.Mesh(new T.BoxGeometry(5.8,.9,.12),[material('#354b45'),material('#354b45'),material('#354b45'),material('#354b45'),new T.MeshBasicMaterial({map:tex}),material('#354b45')]);m.position.set(d.x*2+1,height(d.x,d.y)+2.8,d.y*2+1);scene.add(m);box(d.x*2+1,height(d.x,d.y)+1.3,d.y*2+1,.12,2.6,.12,'#354b45');}
  // Repeat lamps along walkable streets and paths, keeping water and buildings clear.
- for(let y=2;y<W.height-2;y+=6)for(let x=2;x<W.width-2;x+=6){const kind=W.tiles[W.ground[y][x]].kind;if(!W.collision[y][x]&&['path','cobble','pavement','asphalt','bridge'].includes(kind))lamp(x*2+1,y*2+1);}
+ if(!W.valle?.chunked)for(let y=2;y<W.height-2;y+=6)for(let x=2;x<W.width-2;x+=6){const kind=W.tiles[W.ground[y][x]].kind;if(!W.collision[y][x]&&['path','cobble','pavement','asphalt','bridge'].includes(kind))lamp(x*2+1,y*2+1);}
  const nearbyLights=Array.from({length:8},()=>{const light=new T.PointLight(0xffd077,0,18,2);scene.add(light);return light;});
  return {count:lamps.length,update(night,player){const closest=night?[...lamps].sort((a,b)=>Math.hypot(a.x-player.x,a.z-player.z)-Math.hypot(b.x-player.x,b.z-player.z)).slice(0,8):[];for(const l of lamps)l.glow.visible=night;for(let i=0;i<nearbyLights.length;i++){const l=closest[i],light=nearbyLights[i];light.intensity=l?28:0;if(l)light.position.set(l.x,l.y+4.1,l.z);}}};
 

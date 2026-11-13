@@ -44,14 +44,20 @@ class EconomyTests(unittest.TestCase):
         self.assertFalse(eco.debit(st, 'Ana', eco.subunits(999)))
 
     def test_features_stay_off_the_house_door(self):
+        import re
         features = json.load(open(os.path.join(ROOT, 'data', 'simulacion.json'), encoding='utf-8'))
+        offset = json.load(open(os.path.join(ROOT, 'data', 'valle-offset.json'), encoding='utf-8'))
         casa = open(os.path.join(ROOT, 'play', 'casa.js'), encoding='utf-8').read()
-        self.assertIn('PARK_DOOR = { x: 226, y: 64 }', casa)
-        self.assertIn('PARK_STAND = { x: 227, y: 64 }', casa)
+        found = re.search(r'VALLE_OFFSET = \{ x: (-?\d+), y: (-?\d+) \}', casa)
+        self.assertIsNotNone(found)
+        self.assertEqual((int(found.group(1)), int(found.group(2))), (offset['x'], offset['y']))
+        self.assertIn('PARK_DOOR = { x: 226 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y }', casa)
+        self.assertIn('PARK_STAND = { x: 227 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y }', casa)
         self.assertIn('SPAWN = { x: 4, y: 6, dir: \'down\' }', casa)
-        door = {(226, 64), (227, 64)}
-        spots = [(features['stable']['x'], features['stable']['y']), (features['npc']['x'], features['npc']['y']), (features['stand']['x'], features['stand']['y'])]
-        spots += [(s['x'], s['y']) for s in features['mounts'][0]['spawn']]
+        dx, dy = offset['x'], offset['y']
+        door = {(226 + dx, 64 + dy), (227 + dx, 64 + dy)}
+        spots = [(features['stable']['x'] + dx, features['stable']['y'] + dy), (features['npc']['x'] + dx, features['npc']['y'] + dy), (features['stand']['x'] + dx, features['stand']['y'] + dy)]
+        spots += [(s['x'] + dx, s['y'] + dy) for s in features['mounts'][0]['spawn']]
         self.assertTrue(door.isdisjoint(spots))
         self.assertGreaterEqual(len(features['skill']['lessons']), 8)
         self.assertNotIn('Satoshi', features['npc']['name'])
@@ -67,8 +73,12 @@ class ServerGuardTests(unittest.TestCase):
 
     def test_mint_requires_the_river_and_a_real_pan(self):
         s = self.server
-        self.assertIsNone(s.gold_node_for(227, 64, 'oro_fluvial_1'))
-        self.assertIsNotNone(s.gold_node_for(215, 54, 'oro_fluvial_1'))
+        offset = json.load(open(os.path.join(ROOT, 'data', 'valle-offset.json'), encoding='utf-8'))
+        dx, dy = offset['x'], offset['y']
+        node = next(n for n in s.GOLD_NODES if n['id'] == 'oro_fluvial_1')
+        self.assertEqual((node['x'], node['y']), (214 + dx, 54 + dy))
+        self.assertIsNone(s.gold_node_for(227 + dx, 64 + dy, 'oro_fluvial_1'))
+        self.assertIsNotNone(s.gold_node_for(node['x'] + 1, node['y'], 'oro_fluvial_1'))
         name = 'BateaPrueba'
         token = s.bind_wallet(name, '')
         before = float(s.ECON.get('mined') or 0)
@@ -76,7 +86,7 @@ class ServerGuardTests(unittest.TestCase):
         class Who:
             bot = True
             zone = 'city'
-            x, y = 227, 64
+            x, y = 227 + dx, 64 + dy
             wallet_ok = True
             wallet_token = token
             name = 'BateaPrueba'
@@ -84,7 +94,7 @@ class ServerGuardTests(unittest.TestCase):
         who = Who()
         s.mint_for(who, 'oro_fluvial_1')
         self.assertEqual(float(s.ECON.get('mined') or 0), before)
-        who.x, who.y = 215, 54
+        who.x, who.y = node['x'] + 1, node['y']
         s.mint_for(who, 'oro_fluvial_1')
         self.assertGreater(float(s.ECON.get('mined') or 0), before)
         mid = float(s.ECON.get('mined') or 0)
