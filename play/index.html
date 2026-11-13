@@ -16,7 +16,7 @@
 </head>
 <body>
 <canvas id="juego"></canvas>
-<button id="b-descansar" hidden>Descansar</button><div id="rest-status" role="alert"></div>
+<button id="b-descansar" hidden>Descansar</button><button type="button" id="b-skate" hidden aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><div id="rest-status" role="alert"></div>
 
 <!-- ===== Marca + perfil (arriba izquierda) ===== -->
 <div id="hud-perfil" class="hud">
@@ -107,7 +107,7 @@
   <button type="button" id="pow-plata">Minar Plata</button>
   <p id="plata-hint">Hace falta una cuenta, caminar y el tope del día. Un invitado no recibe Plata.</p>
 </aside>
-<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
+<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-skate-movil" aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
 <section id="w-inv" class="ventana" hidden><header>Inventario <button class="x" data-cierra="w-inv">✕</button></header><div id="inventario"></div><div id="seleccion">Seleccionado: —</div></section>
@@ -180,7 +180,8 @@
   <ul>
     <li><b>Casa:</b> entras en tu casa colonial. La puerta (clic, toque o caminar hasta ella) sale al Parque de Envigado. El botón <b>Casa</b> vuelve. <b>Editar casa</b> mueve, rota, quita y coloca muebles; el plano queda guardado en este navegador.</li>
     <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr: gasta energía y, si se vacía, hay que recuperar un poco para volver a correr. Toca el minimapa para caminar hasta ese punto. El globo abre el mapa del valle.</li>
-    <li><b>Capataz</b> (plaza, con <b>!</b>): háblale para empezar los <b>Primeros Pasos</b>.</li>
+    <li><b>Capataz</b> (Parque de El Poblado, con <b>!</b>): desde el Parque de Envigado se llega al occidente por el camino. Háblale para los <b>Primeros Pasos</b>.</li>
+    <li><b>Patinaje:</b> en el Skate Park de la 4 Sur, al norte por el camino del valle, el botón <b>Patinar</b> (o la tecla <b>G</b>) entrega la tabla y la monta. Sobre la pista se gana experiencia. No hay trucos.</li>
     <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
@@ -260,13 +261,14 @@
 <script src="../data/el-jardin.js?v=fusion-r1"></script>
 <script src="mining-rules.js?v=valle-hud-r5"></script>
 <script src="casa.js?v=valle-hud-r5"></script>
-<script src="envigado-park.js?v=fusion-r1"></script>
+<script src="envigado-park.js?v=props-r4"></script>
 <script src="banco.js?v=vidrio-r1"></script>
 <script src="tutorial.js?v=valle-hud-r5"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
-<script src="game.js?v=vidrio-r1"></script>
-<script type="module" src="unified3d.js?v=vidrio-r1"></script>
+<script src="../data/skate-4-sur.js?v=skate-r1"></script>
+<script src="game.js?v=skate-r1"></script>
+<script type="module" src="unified3d.js?v=skate-r2"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
 <script src="hud-layout.js?v=vidrio-r1"></script>

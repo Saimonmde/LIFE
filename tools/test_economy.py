@@ -55,7 +55,7 @@ class EconomyTests(unittest.TestCase):
         self.assertIsNotNone(found)
         self.assertEqual((int(found.group(1)), int(found.group(2))), (offset['x'], offset['y']))
         self.assertIn('PARK_DOOR = { x: 226 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y }', casa)
-        self.assertIn('PARK_STAND = { x: 227 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y }', casa)
+        self.assertIn('PARK_STAND = { x: 231 + VALLE_OFFSET.x, y: 61 + VALLE_OFFSET.y }', casa)
         self.assertIn('SPAWN = { x: 4, y: 6, dir: \'down\' }', casa)
         dx, dy = offset['x'], offset['y']
         door = {(226 + dx, 64 + dy), (227 + dx, 64 + dy)}
