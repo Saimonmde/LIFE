@@ -40,7 +40,8 @@ html.movil #sai-legal{left:max(8px,env(safe-area-inset-left));right:auto;top:aut
 html.movil #pow-panel{top:148px;left:max(6px,env(safe-area-inset-left));width:min(210px,68vw);font-size:11px}
 body:not(.in-game) #touch-extra{display:none!important}
 html.movil header, html.movil #zona-nombre, html.movil .simoncity-place, html.movil .simoncity-welcome, html.movil #aviso .titulo, html.movil #misiones .seccion, html.movil #objetivo {
-  font-family: "Carolingian", Palatino, Georgia, serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
   text-transform: none;
 }
 html.movil #sai-saldo { font-size: 18px; }

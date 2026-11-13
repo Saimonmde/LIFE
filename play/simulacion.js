@@ -563,8 +563,13 @@ function onNet(m) {
     }
     const pending = api.S.pendingSmelt;
     api.S.pendingSmelt = null;
-    if (m.ok && pending && api.applySmelt) api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
-    else api.game(m.reason || 'La fundidora no acreditó las SMC.', 'aviso');
+    if (m.ok && pending && api.applySmelt) {
+      api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
+      if (m.amountText) {
+        const done = document.getElementById('forge-result');
+        if (done) done.textContent = `La fundidora acreditó ${m.amountText} tras la prueba de trabajo. No sale de las monedas de la mochila.`;
+      }
+    } else api.game(m.reason || 'La fundidora no acreditó las SMC.', 'aviso');
     return true;
   }
   if (m.t === 'migrate_result') {

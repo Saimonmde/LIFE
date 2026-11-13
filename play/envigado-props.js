@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Canecas from Simón's scan, and a low-poly Zona skate modelled after his concrete ledges.
-import { GLTFLoader } from './glb-loader.js?v=envigado-r1';
+import { GLTFLoader } from './glb-loader.js?v=valle-hud-r4';
 
 export function placeEnvigadoProps(T, scene, height) {
   const park = window.EnvigadoPark;
