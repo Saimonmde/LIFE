@@ -211,7 +211,17 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 #city-map[hidden]{display:none!important}.city-map-panel{width:min(780px,calc(100vw - 24px),calc(100dvh - 160px));background:#1e3028;border:2px solid #b6a477;border-radius:12px;overflow:hidden;box-shadow:0 16px 70px #0009}
 .city-map-panel header{padding:12px 16px;font:600 18px system-ui;color:#f9e9b6;justify-content:space-between}
 #city-map-close{color:#f9e9b6;background:#33483c;border:1px solid #8c9474;border-radius:5px;min-width:36px;min-height:36px;cursor:pointer}
-#city-map-canvas{display:block;width:100%;aspect-ratio:1;touch-action:none}.city-map-panel p{font:13px system-ui;text-align:center;margin:7px 4px;color:#ffe59b}.city-map-panel .map-note{color:#b9c9b9;font-size:11px;margin-bottom:12px}
+#city-map-canvas{display:block;width:100%;aspect-ratio:1;touch-action:none;cursor:pointer}.city-map-panel p{font:13px system-ui;text-align:center;margin:7px 4px;color:#ffe59b}.city-map-panel .map-note{color:#b9c9b9;font-size:11px;margin-bottom:12px}
+#viaje-dialogo{position:fixed;z-index:60;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:18px 18px 14px;background:#24180ee6;border:2px solid #e2b23c;border-radius:12px;box-shadow:0 16px 50px #000a}
+#viaje-dialogo[hidden]{display:none!important}
+#viaje-pregunta{margin:0 0 14px;text-align:center;font:600 22px/1.35 "Cinzel",Palatino,serif;color:#fff1c9}
+.viaje-botones{display:flex;gap:10px;justify-content:center}
+.viaje-botones button{min-height:44px;padding:8px 16px;border-radius:8px;cursor:pointer;font:16px/1.2 "Atkinson","Segoe UI",sans-serif}
+#viaje-si{background:#e2b23c;color:#2a1c0c;border:2px solid #8a6a22}
+#viaje-no{background:#3a2b1b;color:#f6e7c2;border:2px solid #b48a46}
+#viaje-vuelo{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;background:#0c1008;color:#f6e7c2;font:600 28px "Cinzel",Palatino,serif;opacity:0;pointer-events:none;transition:opacity .45s ease}
+#viaje-vuelo.activo{opacity:1;pointer-events:auto}
+#minimapa{cursor:pointer}
 
 /* Expanded mining bag and furnace */
 #w-inv{width:min(620px,94vw);right:12px;top:150px;max-height:72vh;overflow:auto;z-index:25;background:#241b13f5;border:1px solid #96774a;border-radius:10px;box-shadow:0 12px 40px #0008}

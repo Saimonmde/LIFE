@@ -629,6 +629,7 @@ function connect() {
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
     else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
+    else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
     else if (m.t === 'chat') {
       const mine = m.fromId === S.net.id;
       addLine(m.channel, chatLine(m, mine));
@@ -879,7 +880,102 @@ function openCityMap() {
   S.keys.clear(); $('#city-map').hidden=false; $('#hud-mapa').setAttribute('aria-expanded','true');
   drawCityMap(); $('#city-map-close').focus();
 }
-function closeCityMap() { $('#city-map').hidden=true; $('#hud-mapa').setAttribute('aria-expanded','false'); $('#hud-mapa').focus(); }
+function closeCityMap() { $('#city-map').hidden=true; $('#hud-mapa').setAttribute('aria-expanded','false'); $('#hud-mapa').focus(); closeTravelAsk(); }
+const TRAVEL_IDS=new Set(['barbosa','girardota','copacabana','bello','medellin','itagui','envigado','sabaneta','la_estrella','caldas','parque_bolivar','las_palmas']);
+let travelPick=null;
+function travelName(id){const label=(W.mapLabels||[]).find(item=>item.id===id);return label?label.name:id;}
+function closeTravelAsk(){const box=$('#viaje-dialogo'); if(box) box.hidden=true; travelPick=null;}
+function askTravel(id){
+  if(!started||!TRAVEL_IDS.has(id)) return;
+  travelPick=id;
+  const box=$('#viaje-dialogo');
+  $('#viaje-pregunta').textContent='¿Quieres ir a '+travelName(id)+'?';
+  box.hidden=false;
+  $('#viaje-si').focus();
+}
+function canvasPoint(canvas,event){
+  const rect=canvas.getBoundingClientRect();
+  return {x:(event.clientX-rect.left)*(canvas.width/rect.width), y:(event.clientY-rect.top)*(canvas.height/rect.height)};
+}
+function labelHit(px,py,toPixel,unit){
+  const cityScale=MAP_REF/Math.max(W.width,W.height);
+  const k=unit/cityScale;
+  const labels=[...(W.mapLabels||[])].filter(item=>TRAVEL_IDS.has(item.id)).sort((a,b)=>(a.kind==='municipio'?0:1)-(b.kind==='municipio'?0:1));
+  for(const label of labels){
+    const [ax,ay]=toPixel(label.x,label.y);
+    const box=mapLabelBox(label,k);
+    const x=ax+(label.dx||0)*k-box.w/2, y=ay+(label.dy||0)*k;
+    const onLabel=px>=x&&px<=x+box.w&&py>=y&&py<=y+box.h;
+    const onMark=Math.hypot(px-ax,py-ay)<=Math.max(8,10*k);
+    if(onLabel||onMark) return label.id;
+  }
+  return null;
+}
+function placeOnCity(x,y){
+  const prev=W.mapId||'city';
+  if(prev!=='city'&&cityMap){
+    if(prev==='mine') caveNodes=S.nodes;
+    if(prev==='casa') casaNodes=S.nodes;
+    if(prev==='city'){cityNodes=S.nodes;cityAnimals=S.animals;}
+    Object.assign(W,cityMap); W.mapId='city'; S.nodes=cityNodes; S.animals=cityAnimals;
+    document.body.classList.remove('in-mine','in-casa','in-banco');
+    document.body.dataset.zone='city';
+    if(window.Casa) Casa.setEditing(false);
+    drawMinimapBase();
+  }
+  const p=S.player;
+  p.x=p.fx=x; p.y=p.fy=y; p.path=[]; p.pending=null; p.busyUntil=0; S.dest=null; S.keys.clear();
+  if(window.Simulacion&&Simulacion.syncHorse) Simulacion.syncHorse();
+  save();
+  if(S.net.ok&&S.net.ws) S.net.ws.send(JSON.stringify({t:'move', zone:'city', x, y, dir:p.dir, moving:false, level:totalLevel()}));
+}
+function flyTo(x,y,name){
+  const veil=$('#viaje-vuelo');
+  if(!veil){placeOnCity(x,y); closeCityMap(); return;}
+  veil.textContent='Viajando a '+name+'…';
+  veil.classList.add('activo');
+  setTimeout(()=>{ placeOnCity(x,y); closeCityMap(); veil.classList.remove('activo'); }, 480);
+}
+function nearestSafe(tx,ty){
+  const kindAt=(x,y)=>W.tiles[W.ground[y][x]].kind;
+  const open=(x,y)=>inside(x,y)&&W.collision[y][x]===0&&kindAt(x,y)!=='water';
+  const good=(x,y)=>open(x,y)&&['cobble','path','grass','grass_worn','grass_flowers','bridge','asphalt','pavement'].includes(kindAt(x,y));
+  if(good(tx,ty)) return [tx,ty];
+  for(let r=1;r<=16;r++) for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) if(Math.max(Math.abs(dx),Math.abs(dy))===r&&good(tx+dx,ty+dy)) return [tx+dx,ty+dy];
+  if(open(tx,ty)) return [tx,ty];
+  for(let r=1;r<=16;r++) for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) if(Math.max(Math.abs(dx),Math.abs(dy))===r&&open(tx+dx,ty+dy)) return [tx+dx,ty+dy];
+  return null;
+}
+function confirmTravel(){
+  const id=travelPick; if(!id) return;
+  const name=travelName(id);
+  closeTravelAsk();
+  if(S.net.ok&&S.net.ws){ S.net.ws.send(JSON.stringify({t:'travel', id})); return; }
+  const wp=(W.waypoints||[]).find(item=>item.id===id);
+  const label=(W.mapLabels||[]).find(item=>item.id===id);
+  const src=wp||label; if(!src) return;
+  const spot=nearestSafe(src.x,src.y);
+  if(!spot){ game('No hay un sitio caminable en '+name+'.','aviso'); return; }
+  flyTo(spot[0],spot[1],name);
+}
+$('#viaje-si').onclick=confirmTravel;
+$('#viaje-no').onclick=closeTravelAsk;
+mm.addEventListener('click',e=>{
+  if(!started||(W.mapId||'city')!=='city') return;
+  const pt=canvasPoint(mm,e), v=mmView(), K=mm.width/v.span;
+  const id=labelHit(pt.x,pt.y,(x,y)=>[(x+.5-v.x0)*K,(y+.5-v.y0)*K], K);
+  if(!id) return;
+  e.stopPropagation();
+  askTravel(id);
+});
+$('#city-map-canvas').addEventListener('click',e=>{
+  if(!started) return;
+  const canvas=$('#city-map-canvas'), pt=canvasPoint(canvas,e), size=canvas.width, pad=42;
+  const scale=(size-pad*2)/Math.max(W.width,W.height);
+  const width=W.width*scale, height=W.height*scale, left=(size-width)/2, top=(size-height)/2;
+  const id=labelHit(pt.x,pt.y,(x,y)=>[left+(x+.5)*scale, top+(y+.5)*scale], scale);
+  if(id) askTravel(id);
+});
 $('#hud-mapa').addEventListener('click',openCityMap);
 $('#hud-mapa').addEventListener('keydown',e=>{if(e.target===$('#hud-mapa') && ['Enter',' '].includes(e.key)){e.preventDefault();openCityMap();}});
 $('#city-map-close').onclick=closeCityMap;
@@ -894,6 +990,7 @@ cv.addEventListener('pointerleave', () => { $('#tooltip').hidden = true; S.hover
 const typing = () => document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
 addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !$('#hud-chat').hidden) { window.ChatUI.setOpen(false); e.preventDefault(); return; }
+  if (e.key==='Escape' && $('#viaje-dialogo') && !$('#viaje-dialogo').hidden) { closeTravelAsk(); e.preventDefault(); return; }
   if (e.key==='Escape' && !$('#city-map').hidden) { closeCityMap(); e.preventDefault(); return; }
   if (typing()) { if (e.key === 'Escape') document.activeElement.blur(); return; }
   if (!started) return;
@@ -1325,7 +1422,7 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse,
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
