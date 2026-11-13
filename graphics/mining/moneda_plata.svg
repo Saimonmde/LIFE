@@ -1,5 +1,50 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="26" fill="#c5ced6"/>
-  <circle cx="32" cy="32" r="20" fill="none" stroke="#f7fbff" stroke-width="3"/>
-  <circle cx="32" cy="32" r="5" fill="#eef3f7"/>
+  <defs>
+    <radialGradient id="face-platas" cx="36%" cy="30%" r="72%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="46%" stop-color="#e4edf4"/>
+      <stop offset="78%" stop-color="#b7c5d2"/>
+      <stop offset="100%" stop-color="#7d8d9c"/>
+    </radialGradient>
+    <linearGradient id="rim-platas" x1="12%" y1="0%" x2="88%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="22%" stop-color="#f3f7fb"/>
+      <stop offset="52%" stop-color="#c5d0da"/>
+      <stop offset="100%" stop-color="#3e4a56"/>
+    </linearGradient>
+    <linearGradient id="groove-platas" x1="85%" y1="0%" x2="15%" y2="100%">
+      <stop offset="0%" stop-color="#3e4a56"/>
+      <stop offset="42%" stop-color="#c5d0da"/>
+      <stop offset="100%" stop-color="#ffffff"/>
+    </linearGradient>
+    <radialGradient id="letter-platas" cx="32%" cy="26%" r="80%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="48%" stop-color="#f3f7fb"/>
+      <stop offset="100%" stop-color="#c5d0da"/>
+    </radialGradient>
+    <radialGradient id="well-platas" cx="50%" cy="42%" r="62%">
+      <stop offset="62%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity=".28"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="33.2" cy="58.2" rx="18.5" ry="3.3" fill="#1a2228" opacity=".34"/>
+  <g>
+    <circle cx="32.70" cy="30.30" r="22.40" fill="#3e4a56"/>
+    <circle cx="32.00" cy="29.50" r="22.40" fill="url(#rim-platas)"/>
+    <circle cx="32.35" cy="29.95" r="18.82" fill="#6e7c8a" opacity=".55"/>
+    <circle cx="31.75" cy="29.15" r="18.47" fill="url(#groove-platas)"/>
+    <circle cx="32.00" cy="29.50" r="16.58" fill="url(#face-platas)"/>
+    <circle cx="32.00" cy="29.50" r="16.58" fill="url(#well-platas)"/>
+    <circle cx="32.00" cy="29.50" r="14.78" fill="none" stroke="#ffffff" stroke-width=".7" opacity=".55"/>
+    <circle cx="32.00" cy="29.50" r="15.68" fill="none" stroke="#4a5866" stroke-width=".55" opacity=".28"/>
+    
+    <g transform="translate(32.00 29.50) scale(0.920)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="#4a5866" stroke-width="5.6" transform="translate(.7 1.15)" opacity=".42"/>
+      <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="url(#letter-platas)" stroke-width="4.7"/>
+      <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="#fff" stroke-width="1.35" transform="translate(-.35 -.55)" opacity=".42"/>
+    </g>
+    <path d="M18.1 24.6c1.8-8.5 9.4-13.0 18.4-11.6" fill="none" stroke="#fff" stroke-width="2.91" stroke-linecap="round" opacity=".7"/>
+    <path d="M38.3 38.9c1.8 2.2 1.3 4.5 0 6.3" fill="none" stroke="#fff" stroke-width="1.12" stroke-linecap="round" opacity=".35"/>
+    <path d="M48.1 12.0l.55 1.55 1.55.5-1.55.55-.55 1.6-.55-1.6-1.55-.55 1.55-.5z" fill="#fff" opacity=".92"/>
+  </g>
 </svg>
