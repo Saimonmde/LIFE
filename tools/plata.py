@@ -67,7 +67,7 @@ REASONS = {
     'cooldown': 'Espera un momento para volver a intentarlo.',
     'rate': 'Demasiados intentos. Esta cuenta o esta red queda en pausa un rato.',
     'anomaly': 'Se detectó un ritmo anómalo. Esta cuenta o esta red queda en pausa un rato.',
-    'pool': 'El fondo de cambio no tiene SMC. Nadie crea oro nuevo al cambiar.',
+    'pool': 'El fondo de oro se está llenando; vuelve cuando se mine más SMC',
     'exchange_cap': 'Llegaste al tope de cambio de hoy.',
     'slice': 'Hoy ya tomaste tu parte del fondo. Mañana hay otro tramo.',
     'exchange_ceiling': 'Hoy el fondo ya soltó la mitad que puede soltar. El resto sigue guardado.',
@@ -588,6 +588,29 @@ def devolver(state, name, pooled, now=None):
     box['inflow'] = max(0, int(box.get('inflow') or 0) - take)
     if take:
         eco.credit(state, name, take)
+
+
+def parse_sph(value):
+    """Lee SPH enteros. Un entero ya está en platicas; «1 SMP» son 100.000.000 SPH."""
+    return _parse_sph(value)
+
+
+def park(state, name, sph):
+    """Saca Plata de la billetera para guardarla. No acuña ni cambia el tope."""
+    ensure(state)
+    sph = int(sph or 0)
+    if sph <= 0 or not name:
+        return False
+    return _debit(state['plata'], name, sph)
+
+
+def unpark(state, name, sph):
+    """Devuelve Plata del depósito a la billetera. No acuña."""
+    ensure(state)
+    sph = int(sph or 0)
+    if sph <= 0 or not name:
+        return False
+    return _credit(state['plata'], name, sph) == sph
 
 
 def _parse_sph(value):

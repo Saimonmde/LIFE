@@ -49,9 +49,28 @@ def account(state, name):
     return box
 
 
+def sph_of(box):
+    if not isinstance(box, dict):
+        return 0
+    return int(box.get('sph') or 0)
+
+
+def add_smp(box, sph):
+    box['sph'] = sph_of(box) + int(sph)
+    return box['sph']
+
+
+def take_smp(box, sph):
+    have = sph_of(box)
+    if have < int(sph):
+        return False
+    box['sph'] = have - int(sph)
+    return True
+
+
 def public_account(box):
     smh = smh_of(box)
-    return {'smh': smh, 'smcSubs': smh, 'items': dict(box.get('items') or {})}
+    return {'smh': smh, 'smcSubs': smh, 'sph': sph_of(box), 'items': dict(box.get('items') or {})}
 
 
 def add_smc(box, smh):

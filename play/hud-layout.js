@@ -87,14 +87,14 @@
     const phone = view.mobile;
     const portrait = view.portrait;
     const table = {
-      'hud-perfil': { x: edge, y: edge, scale: phone ? 0.62 : (portrait ? 0.78 : 1) },
-      'hud-mapa': { x: right(phone ? 130 : 188), y: edge, scale: phone ? 0.55 : (portrait ? 0.7 : 1) },
-      'hud-top': { x: edge, y: phone ? (portrait ? 132 : 86) : (portrait ? 210 : 8), scale: phone ? 0.82 : 1 },
-      'hud-recursos': { x: right(phone ? 150 : 210), y: bottom(phone ? 58 : 52), scale: phone ? 0.85 : 1 },
-      'plata-panel': { x: edge, y: phone ? (portrait ? 430 : 250) : 420, scale: phone ? 0.78 : 1 },
-      'hotbar': { x: Math.max(edge, (vw - (phone ? 280 : 420)) / 2), y: bottom(phone ? 64 : 62), scale: phone ? 0.8 : 1 },
-      'chat-toggle': { x: edge, y: bottom(portrait ? 128 : 96), scale: 1 },
-      'hud-toggle': { x: right(148), y: bottom(portrait ? 124 : 58), scale: 1 },
+      'hud-perfil': { x: edge, y: edge, scale: phone ? (portrait ? 0.55 : 0.42) : (portrait ? 0.78 : 1) },
+      'hud-mapa': { x: right(phone ? 100 : 188), y: edge, scale: phone ? 0.42 : (portrait ? 0.7 : 1) },
+      'hud-top': { x: edge, y: phone ? (portrait ? 270 : 176) : 8, scale: phone ? 0.7 : 1 },
+      'hud-recursos': { x: right(phone ? 150 : 280), y: bottom(phone ? 52 : 52), scale: phone ? 0.8 : 1 },
+      'plata-panel': { x: phone ? right(portrait ? 160 : 200) : 280, y: phone ? (portrait ? 390 : 188) : 420, scale: phone ? 0.64 : 1 },
+      'hotbar': { x: Math.max(edge, (vw - (phone ? 220 : 480)) / 2), y: bottom(phone ? 50 : 58), scale: phone ? 0.72 : 1 },
+      'chat-toggle': { x: edge, y: bottom(portrait ? 118 : 86), scale: 1 },
+      'hud-toggle': { x: right(130), y: bottom(portrait ? 168 : 78), scale: 0.9 },
       'hud-chat': { x: edge, y: bottom(portrait ? 280 : 230), scale: phone ? 0.9 : 1, minimized: portrait },
       'p-misiones': { x: right(230), y: portrait ? 168 : 200, scale: phone ? 0.85 : 1, minimized: true },
       'p-cercanos': { x: right(230), y: portrait ? 220 : 300, scale: phone ? 0.85 : 1, minimized: true },

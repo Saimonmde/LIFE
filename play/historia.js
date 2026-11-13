@@ -64,9 +64,31 @@
     });
     events.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
     const balances = {};
+    const plataBalances = {};
     const rows = [];
     events.forEach(([ts, , , tx]) => {
       const amount = Math.trunc(tx.amountSubs || 0);
+      const sph = Math.trunc(tx.amountSph || 0);
+      if (tx.coin === 'SMP' && sph > 0) {
+        const origin = tx.from || '';
+        const dest = tx.to || '';
+        if (origin) plataBalances[origin] = (plataBalances[origin] || 0) - sph;
+        if (dest) plataBalances[dest] = (plataBalances[dest] || 0) + sph;
+        const account = dest || origin;
+        rows.push({
+          ts: ts || 0,
+          type: 'otro',
+          label: 'Banquito Plata',
+          amountSubs: 0,
+          amountSph: sph,
+          coin: 'SMP',
+          account: origin && dest ? origin + ' → ' + dest : account,
+          balanceSubs: 0,
+          balanceSph: plataBalances[account] || 0,
+          note: tx.note || '',
+        });
+        return;
+      }
       if (!amount) return;
       const pair = labelOf(tx.type);
       const origin = tx.from || '';

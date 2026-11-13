@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import economy as eco
 import plata
 import supply as sup
+import vault
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -201,6 +202,40 @@ class PlataTests(unittest.TestCase):
         self.assertEqual(none['reason'], 'pool')
         self.assertEqual(empty.get('minedSmh') or 0, 0)
         self.assertEqual(eco.issuance_room(empty), eco.issuance_room(eco.empty_state()))
+        self.assertEqual(
+            plata.reason_text('pool'),
+            'El fondo de oro se está llenando; vuelve cuando se mine más SMC',
+        )
+
+    def test_vault_moves_plata_without_minting(self):
+        state = self.fresh()
+        now = 1_800_000_000
+        plata.ensure(state, now=now)
+        state['plata']['wallets']['Mina'] = 3 * plata.SUBS
+        state['plata']['minedSph'] = 3 * plata.SUBS
+        state['minedSmh'] = 9 * eco.SUBS
+        mined_smc = state['minedSmh']
+        mined_smp = state['plata']['minedSph']
+        room = plata.issuance_room(state)
+        box = vault.account(vault.empty(), 'Mina')
+        self.assertTrue(plata.park(state, 'Mina', plata.SUBS))
+        vault.add_smp(box, plata.SUBS)
+        self.assertEqual(plata.balance_of(state, 'Mina'), 2 * plata.SUBS)
+        self.assertEqual(vault.sph_of(box), plata.SUBS)
+        self.assertFalse(plata.park(state, 'Mina', 9 * plata.SUBS))
+        self.assertEqual(plata.balance_of(state, 'Mina'), 2 * plata.SUBS)
+        self.assertTrue(vault.take_smp(box, plata.SUBS))
+        self.assertTrue(plata.unpark(state, 'Mina', plata.SUBS))
+        self.assertEqual(plata.balance_of(state, 'Mina'), 3 * plata.SUBS)
+        self.assertEqual(vault.sph_of(box), 0)
+        self.assertFalse(vault.take_smp(box, 1))
+        self.assertEqual(state['minedSmh'], mined_smc)
+        self.assertEqual(state['plata']['minedSph'], mined_smp)
+        self.assertEqual(plata.issuance_room(state), room)
+        self.assertEqual(state['plata'].get('smcPoolSmh') or 0, 0)
+        public = vault.public_account(box)
+        self.assertEqual(public['sph'], 0)
+        self.assertEqual(public['smh'], 0)
 
     def test_one_account_cannot_drain_the_pool(self):
         state = self.fresh()

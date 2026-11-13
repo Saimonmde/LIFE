@@ -68,22 +68,55 @@
     else paint();
   }
 
+  function esc(text) {
+    return String(text == null ? '' : text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
   function paint(account) {
     const saldo = document.getElementById('banquito-saldo');
     const items = document.getElementById('banquito-items');
     if (!saldo) return;
-    const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {} };
+    const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {}, sph: 0 };
     const smh = box.smh != null ? box.smh : (box.smcSubs || 0);
-    const texto = window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(smh) : `${smh} SMH`;
-    saldo.innerHTML = 'En el depósito: <span class="smc">' + texto.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])) + '</span>';
+    const texto = window.Simulacion && Simulacion.formatSai ? Simulacion.formatSai(smh) : `${smh} SMH`;
+    saldo.innerHTML = 'En el depósito: <span class="smc">' + esc(texto) + '</span>';
+    const wallet = document.getElementById('banquito-billetera');
+    if (wallet && window.Simulacion && Simulacion.walletSubs && Simulacion.formatSai) {
+      const name = (window.LiveInk && LiveInk.state && LiveInk.state.me && LiveInk.state.me.name) || '';
+      wallet.innerHTML = 'En la billetera: <span class="smc">' + esc(Simulacion.formatSai(Simulacion.walletSubs(name))) + '</span>';
+    }
+    const sph = box.sph || 0;
+    const plataSaldo = document.getElementById('banquito-plata-saldo');
+    const plataWallet = document.getElementById('banquito-plata-billetera');
+    const plataText = window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(sph) : `${sph} SPH`;
+    if (plataSaldo) plataSaldo.innerHTML = 'En el depósito: <span class="smp">' + esc(plataText) + '</span>';
+    if (plataWallet && window.LiveInk && LiveInk.state) {
+      const carry = (LiveInk.state.plata && LiveInk.state.plata.balanceSph) || 0;
+      const carryText = window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(carry) : `${carry} SPH`;
+      plataWallet.innerHTML = 'En la billetera: <span class="smp">' + esc(carryText) + '</span>';
+    }
+    const oroBtn = document.getElementById('banquito-unidad');
+    const plataBtn = document.getElementById('banquito-unidad-plata');
+    if (oroBtn && Simulacion.unidadActiva) oroBtn.textContent = Simulacion.unidadActiva() === 'SMH' ? 'Ver en SMC' : 'Ver en SMH';
+    if (plataBtn && Simulacion.unidadPlata) plataBtn.textContent = Simulacion.unidadPlata() === 'SPH' ? 'Ver en SMP' : 'Ver en SPH';
+    if (!items) return;
     const rows = Object.entries(box.items || {});
     const carried = (window.LiveInk && LiveInk.state && LiveInk.state.inv || []).filter(Boolean);
-    const deposit = carried.map(slot => `<button type="button" data-dep="${slot.item}" data-qty="1">Depositar 1 ${slot.item}</button>`).join(' ');
-    const withdraw = rows.map(([id, qty]) => `<button type="button" data-ret="${id}" data-qty="1">Retirar 1 ${id} (${qty})</button>`).join(' ');
+    const deposit = carried.map(slot => `<button type="button" data-dep="${esc(slot.item)}" data-qty="1">Guardar 1 ${esc(slot.item)}</button>`).join(' ');
+    const withdraw = rows.map(([id, qty]) => `<button type="button" data-ret="${esc(id)}" data-qty="1">Retirar 1 ${esc(id)} (${qty})</button>`).join(' ');
     items.innerHTML = (rows.length ? '' : '<p>No hay objetos en el depósito.</p>') + deposit + withdraw;
     items.querySelectorAll('[data-dep]').forEach(b => b.onclick = () => Simulacion.bankItem('in', b.dataset.dep, 1));
     items.querySelectorAll('[data-ret]').forEach(b => b.onclick = () => Simulacion.bankItem('out', b.dataset.ret, 1));
+    if (window.PowMint && PowMint.paintPlata && window.LiveInk && LiveInk.state && LiveInk.state.plata) PowMint.paintPlata(LiveInk.state.plata);
   }
+  function flipUnit(key, a, b) {
+    try {
+      const now = localStorage.getItem(key);
+      localStorage.setItem(key, now === b ? a : b);
+    } catch (e) {}
+    paint();
+  }
+  document.getElementById('banquito-unidad')?.addEventListener('click', () => flipUnit('lifeinc.unidad', 'SMC', 'SMH'));
+  document.getElementById('banquito-unidad-plata')?.addEventListener('click', () => flipUnit('lifeinc.unidad.plata', 'SMP', 'SPH'));
   document.getElementById('banquito-depositar')?.addEventListener('click', () => {
     const amount = document.getElementById('banquito-monto').value;
     if (window.Simulacion) Simulacion.bankSmc('in', amount);
@@ -92,6 +125,44 @@
     const amount = document.getElementById('banquito-monto').value;
     if (window.Simulacion) Simulacion.bankSmc('out', amount);
   });
+  document.getElementById('banquito-depositar-plata')?.addEventListener('click', () => {
+    const amount = document.getElementById('banquito-plata-monto').value;
+    if (window.Simulacion) Simulacion.bankSmp('in', amount);
+  });
+  document.getElementById('banquito-retirar-plata')?.addEventListener('click', () => {
+    const amount = document.getElementById('banquito-plata-monto').value;
+    if (window.Simulacion) Simulacion.bankSmp('out', amount);
+  });
+
+  function armLongPress() {
+    const canvas = document.getElementById('mundo3d');
+    if (!canvas || canvas.dataset.bankHold) return !!canvas;
+    canvas.dataset.bankHold = '1';
+    let timer = 0;
+    let x = 0;
+    let y = 0;
+    const mobile = () => document.documentElement.classList.contains('movil') || window.innerWidth < 820;
+    canvas.addEventListener('pointerdown', (e) => {
+      if (!mobile() || e.button) return;
+      x = e.clientX;
+      y = e.clientY;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const id = window.LIVE3D && LIVE3D.pickId && LIVE3D.pickId(x, y);
+        if (id === 'banquero') openPanel();
+      }, 480);
+    });
+    const cancel = () => window.clearTimeout(timer);
+    canvas.addEventListener('pointerup', cancel);
+    canvas.addEventListener('pointercancel', cancel);
+    canvas.addEventListener('pointermove', (e) => {
+      if (Math.hypot(e.clientX - x, e.clientY - y) > 14) cancel();
+    });
+    return true;
+  }
+  if (!armLongPress()) {
+    const wait = window.setInterval(() => { if (armLongPress()) window.clearInterval(wait); }, 400);
+  }
 
   window.Banco = {
     DOOR, OUTSIDE, SPAWN, SOLIDS, stamp, buildMap, openPanel, paint,

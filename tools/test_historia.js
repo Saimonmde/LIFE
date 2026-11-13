@@ -35,4 +35,24 @@ assert.ok(game.includes('¿Teletransportarte a '));
 assert.ok(game.includes('askMapSpot'));
 assert.ok(page.includes('>Confirmar<'));
 assert.ok(page.includes('>Ir aquí<'));
+assert.ok(page.includes('id="banco-cambiar"'));
+assert.ok(page.includes('Guardar SMP'));
+assert.ok(page.includes('Retirar SMP'));
+assert.ok(game.includes('Acuñar SMC'));
+assert.ok(game.includes('Acuñar SMP'));
+assert.ok(game.includes('Faltan minerales'));
+const pow = fs.readFileSync(path.join(__dirname, '..', 'play', 'pow.js'), 'utf8');
+assert.ok(pow.includes('El fondo de oro se está llenando; vuelve cuando se mine más SMC'));
+const theme = fs.readFileSync(path.join(__dirname, '..', 'play', 'theme.css'), 'utf8');
+assert.ok(theme.includes('--glass-deep: rgba(12, 14, 20, 0.72)'));
+assert.ok(theme.includes('backdrop-filter'));
+assert.ok(!/Cinzel|Unifraktur|blackletter|Caroling/i.test(theme + css + page));
+const smpRows = context.Historia.filas({
+  blocks: [{ height: 0, ts: 0, txs: [{ type: 'genesis', to: 'tesoro_genesis', amountSubs: 50 }] }],
+  mempool: [{ type: 'bank', coin: 'SMP', from: 'Ana', to: 'deposito', amountSubs: 0, amountSph: 100, note: 'Depósito de Plata en el banquito' }],
+});
+assert.strictEqual(smpRows[0].balanceSubs, 50);
+assert.strictEqual(smpRows[1].coin, 'SMP');
+assert.strictEqual(smpRows[1].amountSph, 100);
+assert.strictEqual(smpRows[1].label, 'Banquito Plata');
 console.log('historia y pastilla: ok');
