@@ -339,16 +339,50 @@ function flushMigration() {
 }
 function onWelcome() { flushMigration(); }
 function localVault() {
-  if (!api.S.vault) api.S.vault = { smcSubs: 0, items: {} };
+  if (!api.S.vault) api.S.vault = { smcSubs: 0, items: {}, sph: 0 };
+  if (api.S.vault.sph == null) api.S.vault.sph = 0;
   return api.S.vault;
+}
+function withUnit(raw, unit) {
+  const text = String(raw == null ? '' : raw).trim();
+  if (!text) return '';
+  if (/smc|smh|smp|sph|simonchi|platica|plata/i.test(text)) return text;
+  return text + ' ' + unit;
 }
 function requestVault() {
   if (api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'vault' }));
   else if (window.Banco) Banco.paint(localVault());
 }
+function bankSmp(dir, amount) {
+  let sph;
+  try { sph = parsePlata(withUnit(amount, unidadPlata())); }
+  catch (e) { api.game('Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.', 'aviso'); return; }
+  if (!(sph > 0)) return;
+  if (api.S.net.ok) {
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_smp' : 'withdraw_smp', sph: sph }));
+    return;
+  }
+  if (!api.S.plata) api.S.plata = { balanceSph: 0 };
+  const box = localVault();
+  const haveWallet = Number(api.S.plata.balanceSph) || 0;
+  if (dir === 'in') {
+    if (haveWallet < sph) { api.game('No hay Plata suficiente en la billetera.', 'aviso'); return; }
+    api.S.plata.balanceSph = haveWallet - sph;
+    box.sph = (box.sph || 0) + sph;
+    pushTx({ type: 'bank', coin: 'SMP', from: walletName(), to: 'deposito', amountSubs: 0, amountSph: sph, note: 'Depósito de Plata en el banquito' });
+  } else {
+    if ((box.sph || 0) < sph) { api.game('El depósito no tiene tanta Plata.', 'aviso'); return; }
+    box.sph -= sph;
+    api.S.plata.balanceSph = haveWallet + sph;
+    pushTx({ type: 'bank', coin: 'SMP', from: 'deposito', to: walletName(), amountSubs: 0, amountSph: sph, note: 'Retiro de Plata del banquito' });
+  }
+  api.save();
+  paintHud();
+  if (window.Banco) Banco.paint(box);
+}
 function bankSmc(dir, amount) {
   let subs;
-  try { subs = parseAmount(String(amount)); }
+  try { subs = parseAmount(withUnit(amount, unidadActiva())); }
   catch (e) { api.game('Monto no válido. Ejemplo: 1 SMC o 12.345 SMH.', 'aviso'); return; }
   if (!(subs > 0)) return;
   if (api.S.net.ok) {
@@ -458,12 +492,14 @@ function renderLibro() {
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   const filtro = el.dataset.filtro || 'todo';
   const rows = historiaRows().filter(row => filtro === 'todo' || row.type === filtro);
+  const monto = (row) => row.coin === 'SMP' ? formatPlata(row.amountSph || 0) : formatSai(row.amountSubs || 0);
+  const saldo = (row) => row.coin === 'SMP' ? formatPlata(row.balanceSph || 0) : formatSai(row.balanceSubs || 0);
   const body = rows.length ? rows.slice().reverse().map(row => `<tr title="${api.esc(row.note || '')}">
       <td>${api.esc(libroWhen(row.ts))}</td>
       <td>${api.esc(row.label || row.type || '')}</td>
-      <td class="num">${moneyHtml(formatSai(row.amountSubs || 0))}</td>
+      <td class="num">${row.coin === 'SMP' ? api.esc(monto(row)) : moneyHtml(monto(row))}</td>
       <td>${api.esc(row.account || '')}</td>
-      <td class="num">${moneyHtml(formatSai(row.balanceSubs || 0))}</td>
+      <td class="num">${row.coin === 'SMP' ? api.esc(saldo(row)) : moneyHtml(saldo(row))}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="libro-vacio">Todavía no hay movimientos de este tipo.</td></tr>';
   el.innerHTML = `<aside class="libro-guia" aria-label="Cómo funcionan las monedas">
       <div class="libro-par"><img src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><p><b>SMC</b> es la moneda de oro. Es escasa: habrá como máximo <b>21 millones</b> para siempre. Esa cantidad no crece, como el Bitcoin.</p></div>
@@ -692,7 +728,8 @@ function onNet(m) {
     return true;
   }
   if (m.t === 'vault') {
-    if (window.Banco) Banco.paint(m.account || { smcSubs: 0, items: {} });
+    if (m.plata) rememberPlata(m.plata);
+    if (window.Banco) Banco.paint(m.account || { smcSubs: 0, items: {}, sph: 0 });
     return true;
   }
   if (m.t === 'vault_item') {
@@ -898,10 +935,10 @@ function speedMul() { return api.S.mounted ? ((F.mounts[0] && F.mounts[0].speed)
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
-  grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankItem,
+  grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
   rememberSupply, rememberPlata, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
-  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, walletToken, SUBS, GENESIS_PREV,
+  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, unidadActiva, unidadPlata, walletToken, SUBS, GENESIS_PREV,
 };
 const legal = document.getElementById('sai-legal');
 if (legal) legal.onclick = () => { const open = legal.classList.toggle('open'); legal.setAttribute('aria-expanded', open ? 'true' : 'false'); };

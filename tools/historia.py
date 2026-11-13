@@ -83,9 +83,35 @@ def filas(state):
     events.extend(_extra(state or {}, seen_exchange, seen_pool))
     events.sort(key=lambda item: (item[0], item[1], item[2]))
     balances = {}
+    plata_balances = {}
     rows = []
     for ts, _height, _index, tx in events:
         amount = int(tx.get('amountSubs') or 0)
+        coin = str(tx.get('coin') or '')
+        sph = int(tx.get('amountSph') or 0)
+        if coin == 'SMP' and sph > 0:
+            kind, _label_text = _label('bank')
+            origin = str(tx.get('from') or '')
+            dest = str(tx.get('to') or '')
+            if origin:
+                plata_balances[origin] = int(plata_balances.get(origin) or 0) - sph
+            if dest:
+                plata_balances[dest] = int(plata_balances.get(dest) or 0) + sph
+            account = dest or origin
+            shown = origin + ' → ' + dest if origin and dest else account
+            rows.append({
+                'ts': int(ts),
+                'type': kind,
+                'label': 'Banquito Plata',
+                'amountSubs': 0,
+                'amountSph': sph,
+                'coin': 'SMP',
+                'account': shown,
+                'balanceSubs': 0,
+                'balanceSph': int(plata_balances.get(account) or 0),
+                'note': str(tx.get('note') or ''),
+            })
+            continue
         if amount == 0:
             continue
         kind, label = _label(tx.get('type'))

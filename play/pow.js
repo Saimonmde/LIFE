@@ -7,6 +7,13 @@
   let busy = false;
   let busyCoin = '';
   let plataView = null;
+  const POOL_MSG = 'El fondo de oro se está llenando; vuelve cuando se mine más SMC';
+  function exchangeState(view) {
+    if (!view || view.guest) return { disabled: true, code: 'guest' };
+    if (!(Number(view.poolSmh) > 0)) return { disabled: true, code: 'pool' };
+    if (!(Number(view.exchangeLeftSmh) > 0)) return { disabled: true, code: 'cap' };
+    return { disabled: false, code: '' };
+  }
   const money = (subs) => {
     if (window.Simulacion && Simulacion.formatPair) return Simulacion.formatPair(subs || 0);
     return String(subs || 0);
@@ -70,7 +77,12 @@
       if (left) left.textContent = `Te quedan: ${plataMoney(view.remainingSph)}.`;
       if (xcap) xcap.textContent = `Puedes cambiar hoy: ${money(view.exchangeLeftSmh)}.`;
     }
-    if (fondo) fondo.textContent = `Fondo: ${money(view.poolSmh)}. De ahí sale el SMC. Hoy no se crea oro.`;
+    const fondoSmh = Number(view.poolSmh) || 0;
+    if (fondo) {
+      fondo.textContent = fondoSmh > 0
+        ? `Fondo disponible: ${money(fondoSmh)}. De ahí sale el SMC. Hoy no se crea oro.`
+        : POOL_MSG;
+    }
     const max = Number(view.dailyCapSph) || 0;
     const earned = Number(view.earnedSph) || 0;
     const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((earned / max) * 100))) : 0;
@@ -80,7 +92,7 @@
       const bits = view.bits != null ? `Dificultad ${view.bits} bits. ` : '';
       const premio = view.eraRewardSph != null ? `Premio de la era: ${plataMoney(view.eraRewardSph)}. ` : '';
       const siguiente = view.nextSph != null && !view.guest ? `La próxima prueba paga como máximo ${plataMoney(view.nextSph)}.` : '';
-      status.textContent = `${bits}${premio}${siguiente}`.trim();
+      status.textContent = fondoSmh > 0 || view.guest ? `${bits}${premio}${siguiente}`.trim() : POOL_MSG;
     }
     preview();
   }
@@ -93,9 +105,26 @@
     const nominal = Math.floor((Number(sph) || 0) / 100);
     const left = plataView && plataView.exchangeLeftSmh != null ? Number(plataView.exchangeLeftSmh) : nominal;
     const capped = Math.max(0, Math.min(nominal, left));
-    if (nominal <= 0) box.textContent = 'Hacen falta 100 platicas (SPH) por cada Simonchi (SMH).';
-    else if (capped < nominal) box.textContent = `A 100 SMP = 1 SMC serían ${money(nominal)}. Hoy el fondo te deja ${money(capped)}. La Plata se quema.`;
-    else box.textContent = `Entregas ${plataMoney(nominal * 100)}. Recibes ${money(nominal)}. La Plata se quema.`;
+    const state = exchangeState(plataView);
+    const fund = plataView ? money(plataView.poolSmh || 0) : '—';
+    const daily = plataView && !plataView.guest ? money(plataView.exchangeLeftSmh || 0) : 'nada';
+    let line;
+    if (state.code === 'pool') line = POOL_MSG;
+    else if (nominal <= 0) line = 'Hacen falta 100 SMP (100.000.000 SPH) para recibir 0,00000001 SMC.';
+    else if (capped < nominal) line = `Pagas ${plataMoney(capped * 100)}. Recibes ${money(capped)}. A 100 SMP = 1 SMC serían ${money(nominal)}, pero hoy te quedan ${daily}.`;
+    else line = `Pagas ${plataMoney(nominal * 100)}. Recibes ${money(nominal)}.`;
+    box.textContent = `${line} Fondo: ${state.code === 'pool' ? 'vacío' : fund}. Tope de cambio que te queda hoy: ${daily}.`;
+    const buttons = ['#pow-cambiar', '#pow-cambiar-max', '#banco-cambiar'];
+    buttons.forEach((sel) => {
+      const button = $(sel);
+      if (!button) return;
+      button.disabled = state.disabled;
+      button.title = state.code === 'pool' ? POOL_MSG : '';
+    });
+    const bankNote = $('#banco-cambio-nota');
+    const bankDetail = $('#banco-cambio-detalle');
+    if (bankNote) bankNote.textContent = state.code === 'pool' ? POOL_MSG : '100 SMP = 1 SMC. La Plata se quema y el SMC sale del fondo ya emitido.';
+    if (bankDetail) bankDetail.textContent = box.textContent;
   }
   function setBusy(text, coin) {
     busy = true;
@@ -147,9 +176,22 @@
     };
     w.postMessage({ payload: challenge.payload, bits: challenge.bits, start: 0 });
   }
-  function sendExchange(max) {
+  function quotedPlata(raw) {
+    const text = String(raw == null ? '' : raw).trim();
+    if (!text) return '';
+    if (/sph|smp|platica|plata/i.test(text)) return text;
+    return text + ' SMP';
+  }
+  function sendExchange(max, raw) {
     const ws = window.Simulacion && Simulacion.net && Simulacion.net();
     const box = $('#cambio-result');
+    const state = exchangeState(plataView);
+    if (state.code === 'pool') {
+      if (box) box.textContent = POOL_MSG;
+      const bankNote = $('#banco-cambio-nota');
+      if (bankNote) bankNote.textContent = POOL_MSG;
+      return;
+    }
     if (!ws) {
       if (box) box.textContent = 'No hay conexión para cambiar.';
       return;
@@ -159,8 +201,12 @@
       return;
     }
     let sph = 0;
-    try { sph = Simulacion.parsePlata(($('#cambio-monto') || {}).value || ''); }
+    try { sph = Simulacion.parsePlata(quotedPlata(raw != null ? raw : ($('#cambio-monto') || {}).value || '')); }
     catch (e) { sph = 0; }
+    if (!(sph >= 100)) {
+      if (box) box.textContent = 'Hacen falta al menos 100 SPH (100 SMP = 1 SMC).';
+      return;
+    }
     ws.send(JSON.stringify({ t: 'exchange_plata', sph: sph }));
   }
   function observe(m) {
@@ -177,14 +223,19 @@
     if (m.t === 'pow_result' || m.t === 'plata_result') {
       stop();
       const status = m.coin === 'SMP' || m.t === 'plata_result' ? $('#plata-status') : $('#pow-status');
-      if (status) status.textContent = m.reason || (m.ok ? 'Prueba aceptada.' : 'La prueba no sirvió.');
+      if (status) status.textContent = m.code === 'pool' ? POOL_MSG : (m.reason || (m.ok ? 'Prueba aceptada.' : 'La prueba no sirvió.'));
+      if (m.t === 'plata_result' && ['pool', 'funds', 'dust', 'exchange_cap', 'slice', 'exchange_ceiling'].includes(m.code)) {
+        const box = $('#cambio-result');
+        if (box) box.textContent = m.code === 'pool' ? POOL_MSG : (m.reason || 'No se pudo cambiar.');
+      }
       if (m.supply) paint(m.supply);
       if (m.plata) paintPlata(m.plata);
       return true;
     }
     if (m.t === 'exchange_result') {
       const box = $('#cambio-result');
-      if (box) box.textContent = m.reason || (m.ok ? 'Cambio hecho.' : 'No se pudo cambiar.');
+      const text = m.code === 'pool' ? POOL_MSG : (m.reason || (m.ok ? 'Cambio hecho.' : 'No se pudo cambiar.'));
+      if (box) box.textContent = text;
       if (m.plata) paintPlata(m.plata);
       return true;
     }
@@ -214,10 +265,21 @@
     if (all) all.onclick = () => sendExchange(true);
     const input = $('#cambio-monto');
     if (input) input.addEventListener('input', preview);
+    const bankInput = $('#banco-cambio-monto');
+    if (bankInput) bankInput.addEventListener('input', () => {
+      const main = $('#cambio-monto');
+      if (main) main.value = bankInput.value;
+      preview();
+    });
+    const bankBtn = $('#banco-cambiar');
+    if (bankBtn) bankBtn.onclick = () => sendExchange(false, ($('#banco-cambio-monto') || {}).value);
     paint(null);
     preview();
   }
-  window.PowMint = { observe, paint, paintPlata, boot };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  root.PowMint = { observe, paint, paintPlata, boot, exchangeState, requestExchange: sendExchange, poolMessage: POOL_MSG };
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  }
 })();

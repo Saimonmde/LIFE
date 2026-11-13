@@ -347,12 +347,13 @@ function prepareMining(){
 }
 let furnaceNode=null;
 function setupMiningUI(){
- const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña lingotes y monedas de cobre, plata y oro. Esas monedas son objetos de la mochila: no crean <span class="smc">SMC</span>. Acreditar <span class="smc">SMC</span> usa el libro mayor (código único; 1 <span class="smc">SMC</span> = 100.000.000 <span class="smc">SMH</span>).</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-ingot" type="button">Crear lingotes</button><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" type="button">Acreditar <span class="smc">SMC</span></button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña lingotes y monedas de cobre, plata y oro. Esas monedas son objetos de la mochila: no crean <span class="smc">SMC</span>. Acreditar <span class="smc">SMC</span> usa el libro mayor (código único; 1 <span class="smc">SMC</span> = 100.000.000 <span class="smc">SMH</span>).</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-ingot" type="button">Crear lingotes</button><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
  for(const [id,r] of Object.entries(MiningRules.recipes)){const o=document.createElement('option');o.value=id;o.textContent=W.items[id].name;$('#forge-ore').append(o);}
  $('#furnace-close').onclick=()=>panel.hidden=true;
  $('#forge-ore').onchange=$('#forge-batches').oninput=renderForge;
  $('#forge-one').onclick=()=>{$('#forge-batches').value=1;renderForge();};$('#forge-all').onclick=()=>{const id=$('#forge-ore').value;$('#forge-batches').value=Math.max(1,Math.floor(invCount(id)/MiningRules.recipes[id].ore));renderForge();};
- $('#forge-ingot').onclick=()=>smelt('ingot');$('#forge-coin').onclick=()=>smelt('coin');$('#forge-coins').onclick=()=>smelt('coins');
+ $('#forge-ingot').onclick=()=>smelt('ingot');$('#forge-coin').onclick=()=>smelt('coin');$('#forge-coins').onclick=()=>smelt($('#forge-coins').dataset.mode||'coins');
+ const why=document.createElement('p');why.id='forge-mint-why';why.setAttribute('role','status');panel.querySelector('.forge-actions').before(why);
  for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.className='forge-recipe';li.innerHTML=`${itemImg(W.items[id],1,'ore-art')}${itemImg(W.items['lingote_'+r.metal],1,'ore-art')}${itemImg(W.items[r.coinItem],r.coinQty,'ore-art')}<span>${esc(r.name)}: ${r.ore} minerales → ${r.ingots} lingote, o ${r.coinQty} monedas (objeto). SMC del libro: ${r.coins}.</span>`;$('#forge-recipes').append(li);}
  const intro=document.createElement('p');intro.className='bag-note';intro.textContent='60 casillas · pilas de 999 · arrastra mineral al horno';$('#inventario').before(intro);
  const modes=document.createElement('div');modes.id='bag-modes';modes.innerHTML='<button id="bag-summary" type="button">Resumen 4×6</button><button id="bag-full" type="button">Completo</button>';$('#w-inv header').append(modes);$('#bag-summary').onclick=()=>setBagMode('summary');$('#bag-full').onclick=()=>setBagMode('full');
@@ -373,7 +374,32 @@ function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value
  $('#forge-stock').textContent=`En mochila: ${invCount(id)} · ${r.ore} minerales por lote · disponibles: ${max} lotes`;
  $('#forge-batches').max=Math.max(1,max);$('#forge-preview').innerHTML=valid?`${itemImg(W.items[id],q,'ore-art')} ${q*r.ore} minerales → ${itemImg(W.items['lingote_'+r.metal],ingotQty,'ore-art')} ${ingotQty} lingote${ingotQty===1?'':'s'} de ${esc(r.metal)}, o ${itemImg(W.items[r.coinItem],coinQty,'ore-art')} ${coinQty} ${esc(coinName)} (objeto de la mochila, no es <span class="smc">SMC</span>). Acreditar <span class="smc">SMC</span>: <span class="smc">${q*r.coins} SMC</span> del libro mayor.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
  const pair=$('#forge-pair'); if(pair) pair.innerHTML=`<figure>${itemImg(W.items['lingote_'+r.metal],Math.max(1,ingotQty))}<figcaption>${Math.max(0,ingotQty)} lingote${ingotQty===1?'':'s'}</figcaption></figure><figure>${itemImg(W.items[r.coinItem],Math.max(1,coinQty))}<figcaption>${Math.max(0,coinQty)} ${esc(coinName)}</figcaption></figure>`;
- const busy=!!forgeTimer;$('#forge-ingot').disabled=$('#forge-coin').disabled=$('#forge-coins').disabled=!valid||busy;
+ const busy=!!forgeTimer;const blocked=!valid||busy;
+ $('#forge-ingot').disabled=$('#forge-coin').disabled=blocked;
+ const mint=$('#forge-coins');
+ const gold=r.metal==='oro';
+ const silver=r.metal==='plata';
+ mint.dataset.mode=gold?'coins':'coin';
+ mint.classList.toggle('forge-mint',true);
+ mint.innerHTML=`<img src="../graphics/mining/moneda_${gold?'oro':r.metal}.svg?v=vidrio-r1" alt=""> ${gold?'Acuñar SMC':silver?'Acuñar SMP':'Acuñar monedas de cobre'}`;
+ if(!gold){
+   mint.dataset.mode='coin';
+ }
+ if(silver){
+   mint.dataset.mode='coin';
+   mint.disabled=blocked;
+ }else mint.disabled=blocked;
+ const why=$('#forge-mint-why');
+ if(why){
+   if(busy)why.textContent='El horno está trabajando.';
+   else if(!valid){
+     const have=invCount(id);
+     const ingots=invCount('lingote_'+r.metal);
+     why.textContent=ingots&&!have?`Tienes ${ingots} lingote${ingots===1?'':'s'} de ${r.metal}, pero faltan minerales. El horno funde el mineral, no el lingote.`:`Faltan minerales de ${r.name.toLowerCase()}. Hacen falta ${r.ore} y tienes ${have}.`;
+   }else if(silver)why.textContent='Acuñar SMP deja monedas de plata en la mochila. No crea saldo SMP: ese se mina con la prueba de trabajo, tope 84 millones.';
+   else if(gold)why.textContent=`Acuñar SMC pide la prueba de trabajo y acredita hasta ${q*r.coins} SMC del libro. No crea saldo por encima del tope.`;
+   else why.textContent='Estas monedas de cobre quedan en la mochila. No son SMC.';
+ }
  if($('#forge-made'))$('#forge-made').textContent=forgeBagLine();
 }
 function applySmelt(id,q,mode,result){
@@ -427,7 +453,7 @@ function setupBagForge(){
  const ghost=document.createElement('div');ghost.id='ore-drag-ghost';ghost.hidden=true;document.body.append(ghost);
  document.addEventListener('dragover',e=>{if(!oreDrag)return;e.preventDefault();e.dataTransfer.dropEffect=window.LiveInk.furnaceAtScreen?.(e.clientX,e.clientY)?'copy':'none';moveOreDrag(e.clientX,e.clientY);});
  document.addEventListener('drop',e=>{if(!oreDrag)return;e.preventDefault();dropOre(e.clientX,e.clientY);});addEventListener('blur',()=>{if(oreDrag||touchOre)endOreDrag();});
- const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>Puedes hacer lingotes, acuñar monedas (objeto de la mochila) o acreditar <span class="smc">SMC</span> del libro mayor.</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-ingot">Hacer lingotes</button><button type="button" id="forge-chat-coin">Acuñar monedas</button><button type="button" id="forge-chat-coins">Acreditar <span class="smc">SMC</span></button></div><p id="forge-chat-result" role="status"></p>';
+ const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>Puedes hacer lingotes, acuñar monedas (objeto de la mochila) o acreditar <span class="smc">SMC</span> del libro mayor.</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-ingot">Hacer lingotes</button><button type="button" id="forge-chat-coin">Acuñar monedas</button><button type="button" id="forge-chat-coins" class="forge-mint"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-chat-result" role="status"></p>';
  $('#chat-form').before(card);$('#forge-chat-cancel').onclick=closeForgeChat;$('#forge-chat-batches').oninput=renderForgeChat;
  $('#forge-chat-max').onclick=()=>{if(!chatForgeItem)return;$('#forge-chat-batches').value=Math.max(1,Math.floor(invCount(chatForgeItem)/MiningRules.recipes[chatForgeItem].ore));renderForgeChat();};
  for(const [id,mode] of [['forge-chat-ingot','ingot'],['forge-chat-coin','coin'],['forge-chat-coins','coins']])$('#'+id).onclick=()=>{if(!chatForgeItem)return;$('#forge-ore').value=chatForgeItem;$('#forge-batches').value=$('#forge-chat-batches').value;smelt(mode);renderForgeChat();};

@@ -717,7 +717,12 @@ def vault_for(sender):
     if not wallet_ready(sender):
         return
     box = VAULT.account(VAULT_STATE, sender.name)
-    send(sender, {'t': 'vault', 'account': VAULT.public_account(box),
+    try:
+        plata = PLATA.public_view(ECON, account_profile(sender))
+        plata['balanceSph'] = PLATA.balance_of(ECON, sender.name)
+    except Exception:
+        plata = {}
+    send(sender, {'t': 'vault', 'account': VAULT.public_account(box), 'plata': plata,
                   'note': 'El banquito y el baúl de la casa son el mismo depósito. No se pierde al morir: sólo la mochila que llevas encima puede caerse.'})
 
 def deposit_smc(sender, amount):
@@ -754,6 +759,62 @@ def withdraw_smc(sender, amount):
     except (LIBRO.LibroError, persist_duplicate):
         pass
     save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
+
+def leer_sph(message):
+    """Lee platicas (SPH). Un entero ya está en SPH; «1 SMP» son 100.000.000 SPH."""
+    if isinstance(message, int):
+        return PLATA.parse_sph(message)
+    if not isinstance(message, dict):
+        return PLATA.parse_sph(message)
+    if message.get('sph') is not None:
+        return PLATA.parse_sph(message.get('sph'))
+    return PLATA.parse_sph(message.get('amount'))
+
+
+def _anotar_plata_banco(sender, sph, incoming):
+    sph = int(sph)
+    if incoming:
+        origin, dest, note = sender.name, 'deposito', 'Depósito de Plata en el banquito'
+    else:
+        origin, dest, note = 'deposito', sender.name, 'Retiro de Plata del banquito'
+    ECO.append_tx(ECON, {
+        'type': 'bank', 'coin': 'SMP', 'from': origin, 'to': dest,
+        'amountSubs': 0, 'amountSph': sph, 'note': note,
+    })
+
+
+def deposit_smp(sender, sph):
+    """Guarda Plata en el depósito. No acuña SMP ni SMC."""
+    if not wallet_ready(sender):
+        return
+    try:
+        sph = int(sph)
+    except (TypeError, ValueError):
+        return
+    if sph <= 0 or not PLATA.park(ECON, sender.name, sph):
+        return send(sender, {'t': 'system', 'text': 'No hay Plata suficiente en la billetera para guardar.'})
+    VAULT.add_smp(VAULT.account(VAULT_STATE, sender.name), sph)
+    _anotar_plata_banco(sender, sph, True)
+    save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
+
+
+def withdraw_smp(sender, sph):
+    """Saca Plata del depósito a la billetera. No acuña."""
+    if not wallet_ready(sender):
+        return
+    try:
+        sph = int(sph)
+    except (TypeError, ValueError):
+        return
+    box = VAULT.account(VAULT_STATE, sender.name)
+    if sph <= 0 or not VAULT.take_smp(box, sph):
+        return send(sender, {'t': 'system', 'text': 'El depósito no tiene tanta Plata.'})
+    if not PLATA.unpark(ECON, sender.name, sph):
+        VAULT.add_smp(box, sph)
+        return send(sender, {'t': 'system', 'text': 'No se pudo devolver la Plata a la billetera.'})
+    _anotar_plata_banco(sender, sph, False)
+    save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
+
 
 def deposit_item(sender, item, qty):
     if not wallet_ready(sender):
@@ -1055,6 +1116,16 @@ async def handle_ws(reader, writer, cookie='', ip=''):
                     withdraw_smc(c, leer_smh(m))
                 except (TypeError, ValueError, ECO.AmountError):
                     pass
+            elif t == 'deposit_smp' and c.hello:
+                try:
+                    deposit_smp(c, leer_sph(m))
+                except (TypeError, ValueError, ECO.AmountError):
+                    send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
+            elif t == 'withdraw_smp' and c.hello:
+                try:
+                    withdraw_smp(c, leer_sph(m))
+                except (TypeError, ValueError, ECO.AmountError):
+                    send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
             elif t == 'deposit_item' and c.hello:
                 deposit_item(c, m.get('item'), m.get('qty'))
             elif t == 'withdraw_item' and c.hello:
