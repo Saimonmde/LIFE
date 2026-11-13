@@ -295,3 +295,23 @@ body.in-game:not(.in-casa) #dialogo{top:68px}
 #habilidades .leccion p{margin:4px 0;color:#d9c8a4}
 #misiones .seccion{color:#f5d27a;font-weight:700}
 #touch-extra{display:none}
+
+/* Vista 3D del valle. Las reglas de fuente de arriba no se tocan. */
+#city-map .city-map-panel{width:min(980px,calc(100vw - 12px));height:min(940px,calc(100dvh - 12px));max-height:calc(100dvh - 12px);display:flex;flex-direction:column}
+#city-map-view{position:relative;flex:1;min-height:220px;background:#163026;touch-action:none}
+#city-map-stage{position:absolute;inset:0}
+#city-map-labels,#valley-fly-labels{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+#valley-fly-labels{position:fixed;z-index:2}
+#city-map-labels button,#city-map-labels span,#valley-fly-labels span{position:absolute;transform:translate(-50%,0);border:0;border-radius:4px;padding:2px 6px;white-space:nowrap;background:#14251ee8;color:#fff1c9}
+#city-map-labels button{pointer-events:auto;cursor:pointer}
+#city-map-labels .poi,#valley-fly-labels .poi{background:#2c1a0ce8;color:#ffd66b}
+#city-map-labels .rosa,#valley-fly-labels .rosa{background:transparent;color:#f7e8bb;padding:0}
+#city-map-labels .tu,#valley-fly-labels .tu{background:#2a1c0ce8;color:#ffdf29}
+#city-map-zoom{position:absolute;right:8px;bottom:8px;z-index:3;display:flex;flex-direction:column;gap:6px}
+#city-map-zoom button{width:40px;height:40px;border-radius:8px;border:1px solid #b48a46;background:#24180ee6;color:#fff1c9;cursor:pointer}
+#city-map-view:has(#city-map-canvas:not([hidden])) #city-map-zoom{display:none}
+#city-map-canvas[hidden]{display:none!important}
+#city-map-muni{display:flex;gap:6px;overflow:auto;padding:8px 10px;flex:0 0 auto}
+#city-map-muni:empty{display:none}
+#city-map-muni button{flex:0 0 auto;min-height:40px;padding:6px 10px;border-radius:999px;background:#2c2418;color:#fff1c9;border:1px solid #b48a46;cursor:pointer}
+@media(max-width:600px){#city-map{padding:4px}#city-map .city-map-panel{width:calc(100vw - 8px);height:calc(100dvh - 8px)}#city-map-view{min-height:180px}}

@@ -877,10 +877,21 @@ cv.addEventListener('pointerdown', (e) => {
 });
 function openCityMap() {
   if (!started) return;
-  S.keys.clear(); $('#city-map').hidden=false; $('#hud-mapa').setAttribute('aria-expanded','true');
-  drawCityMap(); $('#city-map-close').focus();
+  S.keys.clear();
+  const live = window.LIVE3D && typeof LIVE3D.openValleyMap === 'function';
+  const canvas = $('#city-map-canvas');
+  if (live && canvas) canvas.hidden = true;
+  $('#city-map').hidden=false; $('#hud-mapa').setAttribute('aria-expanded','true');
+  let opened = false;
+  if (live) { try { opened = LIVE3D.openValleyMap() !== false; } catch (err) { console.error(err); } }
+  if (!opened) { if (canvas) canvas.hidden = false; drawCityMap(); }
+  $('#city-map-close').focus();
 }
-function closeCityMap() { $('#city-map').hidden=true; $('#hud-mapa').setAttribute('aria-expanded','false'); $('#hud-mapa').focus(); closeTravelAsk(); }
+function closeCityMap() {
+  if (window.LIVE3D && LIVE3D.closeValleyMap) LIVE3D.closeValleyMap();
+  const canvas = $('#city-map-canvas'); if (canvas) canvas.hidden = false;
+  $('#city-map').hidden=true; $('#hud-mapa').setAttribute('aria-expanded','false'); $('#hud-mapa').focus(); closeTravelAsk();
+}
 const TRAVEL_IDS=new Set(['barbosa','girardota','copacabana','bello','medellin','itagui','envigado','sabaneta','la_estrella','caldas','parque_bolivar','las_palmas']);
 let travelPick=null;
 function travelName(id){const label=(W.mapLabels||[]).find(item=>item.id===id);return label?label.name:id;}
@@ -1367,7 +1378,7 @@ function drawMinimap(at) {
   if((W.mapId||'city')==='city'&&W.homeDoor){let [x,y]=point(W.homeDoor.x,W.homeDoor.y);const cx=size/2,cy=size/2,dd=Math.hypot(x-cx,y-cy),lim=size/2-9;if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}mctx.fillStyle='#7dcea0';mctx.strokeStyle='#1c3324';mctx.lineWidth=2;mctx.fillRect(x-4,y-5,8,7);mctx.strokeRect(x-4,y-5,8,7);mctx.beginPath();mctx.moveTo(x-5,y-4);mctx.lineTo(x,y-8);mctx.lineTo(x+5,y-4);mctx.closePath();mctx.fill();mctx.stroke();}
   if((W.mapId||'city')==='city') drawMapLabels(mctx,(x,y)=>point(x,y), K, {x:size/2,y:size/2,r:size/2-6});
   playerStar(mctx,...point(S.player.fx,S.player.fy),7);mctx.restore();
-  if(!$('#city-map').hidden) drawCityMap();
+  if(!$('#city-map').hidden && !window.LIVE3D?.mapOpen) drawCityMap();
 }
 const MAP_CHAR_W=7.4, MAP_PAD_X=6, MAP_REF=(800-84);
 function mapLabelBox(label, unit){
