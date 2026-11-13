@@ -12,14 +12,31 @@
   ];
   const skate = { dx: 3, dy: 18 };
   const skateBlocks = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 0], [2, 1]];
+  // Bancas y esculturas propias. No copian una obra real ni el bronce del Primer Poblado.
+  const benches = [
+    { dx: 14, dy: 7, id: 'banca_norte' },
+    { dx: 24, dy: 7, id: 'banca_oriente' },
+    { dx: 17, dy: 15, id: 'banca_sur' },
+    { dx: 24, dy: 15, id: 'banca_esquina' },
+  ];
+  const sculptures = [
+    { dx: 15, dy: 9, id: 'anillo', name: 'Anillo', note: 'Pieza abstracta de reemplazo: un anillo sobre un plinto.' },
+    { dx: 21, dy: 10, id: 'columna', name: 'Columna', note: 'Pieza abstracta de reemplazo: tres bloques desplazados sobre un plinto.' },
+    { dx: 24, dy: 13, id: 'ovalo', name: 'Óvalo', note: 'Pieza abstracta de reemplazo: un óvalo sobre un plinto.' },
+  ];
   function tile(dx, dy) { return { x: PARK_ORIGIN.x + dx, y: PARK_ORIGIN.y + dy }; }
   function canecaTiles() { return canecas.map(c => Object.assign(tile(c.dx, c.dy), { ry: c.ry })); }
   function skateTiles() { return skateBlocks.map(([dx, dy]) => tile(skate.dx + dx, skate.dy + dy)); }
+  function benchTiles() { return benches.map(b => Object.assign(tile(b.dx, b.dy), { id: b.id })); }
+  function sculptureTiles() { return sculptures.map(s => Object.assign(tile(s.dx, s.dy), s)); }
   function block(W) {
     if (!W || !W.collision) return;
-    for (const t of canecaTiles().concat(skateTiles())) {
+    for (const t of canecaTiles().concat(skateTiles(), benchTiles(), sculptureTiles())) {
       if (t.y >= 0 && t.y < W.height && t.x >= 0 && t.x < W.width) W.collision[t.y][t.x] = 1;
     }
   }
-  window.EnvigadoPark = { PARK_ORIGIN, canecas, skate, canecaTiles, skateTiles, tile, block };
+  window.EnvigadoPark = {
+    PARK_ORIGIN, canecas, skate, benches, sculptures,
+    canecaTiles, skateTiles, benchTiles, sculptureTiles, tile, block,
+  };
 })();

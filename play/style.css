@@ -105,7 +105,9 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 #login { position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(42,32,18,.42), rgba(6,5,3,.9)); }
 #login form { width: min(460px, 94vw); padding: 22px 26px 18px; display: flex; flex-direction: column; gap: 9px; }
 .simoncity-lockup { text-align: center; margin: 0 0 8px; padding: 8px 4px 2px; animation: simoncity-in 900ms ease both; }
-.simoncity-title { font-size: clamp(40px, 7vw, 62px); line-height: 1.12; color: #f7f0dc; padding: 2px 4px 0; text-transform: none; white-space: nowrap; text-shadow: 0 1px 0 #fff8e8, 0 2px 0 #7c5a28, 0 10px 22px rgba(226,178,60,.38); }
+.simoncity-title { display: flex; align-items: flex-end; justify-content: center; gap: 0.08em; margin: 0; white-space: nowrap; line-height: 1; }
+.simoncity-wordmark { height: clamp(46px, 12vw, 92px); width: auto; display: block; filter: drop-shadow(1px 1px 0 #fff1c4) drop-shadow(0 3px 0 #6a4a16) drop-shadow(0 8px 12px rgba(180, 130, 40, .45)); }
+.simoncity-city { font-family: "UnifrakturMaguntia", Palatino, Georgia, serif; font-size: clamp(40px, 10vw, 84px); font-weight: 400; line-height: 0.8; padding: 0 0 0.04em; background: linear-gradient(180deg, #fff6d2 0%, #f0d48a 28%, #c4963a 62%, #7a5418 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 #4a3010) drop-shadow(0 7px 8px rgba(180, 130, 40, .4)); }
 .simoncity-rule { height: 14px; margin: 2px auto 4px; width: min(220px, 70%); background: linear-gradient(90deg, transparent, #e2b23c 18%, #f7f0dc 50%, #e2b23c 82%, transparent); clip-path: polygon(0 46%, 42% 46%, 50% 8%, 58% 46%, 100% 46%, 100% 58%, 58% 58%, 50% 96%, 42% 58%, 0 58%); }
 .simoncity-place { font-family: Georgia, "Times New Roman", serif; font-size: 26px; letter-spacing: 0.42em; color: #fff6e4; margin-top: 4px; text-transform: none; text-shadow: 0 1px 0 #2a1608; }
 .simoncity-welcome { margin: 6px 0 2px; font-family: Georgia, "Times New Roman", serif; font-size: 17px; color: #f3e2b4; letter-spacing: 0.04em; text-transform: none; }
@@ -114,7 +116,8 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 @media (prefers-reduced-motion: reduce) { .simoncity-lockup { animation: none; } }
 @media (max-width: 520px) {
   #login form { width: min(440px, calc(100vw - 24px)); padding: 18px 14px 14px; }
-  .simoncity-title { font-size: 38px; line-height: 1.16; }
+  .simoncity-wordmark { height: 52px; }
+  .simoncity-city { font-size: 46px; }
   .simoncity-place { font-size: 20px; letter-spacing: 0.28em; }
   .simoncity-welcome { font-size: 15px; }
   .simoncity-rule { width: min(180px, 64%); }
@@ -178,6 +181,11 @@ button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offse
 
 /* Session controls stay visible even in Solo mundo. */
 #b-descansar{position:fixed;z-index:24;left:max(12px,env(safe-area-inset-left));right:auto;bottom:calc(12px + env(safe-area-inset-bottom));min-width:125px;min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 17px system-ui;cursor:pointer}
+#b-bajar{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
+html.movil #b-bajar{left:auto;right:max(10px,env(safe-area-inset-right));bottom:calc(340px + env(safe-area-inset-bottom));min-height:56px;min-width:200px;font-size:17px}
+#banquito{position:fixed;z-index:18;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:14px 16px}
+#banquito header{display:flex;justify-content:space-between;align-items:center;color:#f5d27a;font-weight:700}
+#banquito-items button{margin:4px 4px 0 0;min-height:44px}
 #rest-status{position:fixed;z-index:25;left:max(12px,env(safe-area-inset-left));right:auto;bottom:70px;background:#281e15;color:#fff1c9;max-width:290px}#rest-status:empty{display:none}
 body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #world-note,body:not(.in-game) #touch-walk,body:not(.in-game) .ventana{display:none!important}
 #login-status{font-size:14px;color:#f2db9f}

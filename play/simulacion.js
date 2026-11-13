@@ -100,6 +100,9 @@ function walletSubs(name) { return (api.S.econ && api.S.econ.wallets && api.S.ec
 function syncButton() {
   const b = $('#b-montar');
   if (b) b.textContent = api.S.mounted ? 'Bajar' : 'Montar';
+  const down = $('#b-bajar');
+  if (down) down.hidden = !api.S.mounted;
+  document.body.classList.toggle('mounted', !!api.S.mounted);
 }
 function paintHud() {
   const el = $('#sai-saldo');
@@ -168,6 +171,88 @@ function payLocal(dest, sai, note) {
   libroProgress('pagar_alguien');
   api.game(`Pagas ${api.esc(formatSai(subs))} a <b>${api.esc(dest)}</b>. Sólo dentro del juego.`, 'oro');
   return true;
+}
+const TREASURY_SMC = 210000;
+function issueLocal(amount, note, kind) {
+  ensureWallet();
+  const room = Math.max(0, (MAX_SUPPLY - TREASURY_SMC) - (api.S.econ.mined || 0));
+  const granted = Math.min(Number(amount) || 0, room);
+  if (granted <= 0) { api.game('Se alcanzó el tope de 21.000.000 SMC.', 'aviso'); return 0; }
+  const subs = subunits(granted);
+  const got = subs / SUBS;
+  api.S.econ.mined += got;
+  creditNamed(walletName(), subs);
+  pushTx({ type: kind || 'mint', to: walletName(), amountSubs: subs, note: note || 'Emisión' });
+  return got;
+}
+function noteLegacy(amount) {
+  if (api.S.migrationAck) return;
+  api.S.legacyCoins = Math.max(0, Number(amount) || 0);
+}
+function flushMigration() {
+  if (!api || api.S.migrationAck) return;
+  if (api.S.net && api.S.net.ok && api.S.net.ws) {
+    api.S.net.ws.send(JSON.stringify({ t: 'migrate', amount: api.S.legacyCoins || 0 }));
+    return;
+  }
+  if (/^https?:/.test(location.protocol)) return;
+  const got = api.S.legacyCoins ? issueLocal(api.S.legacyCoins, 'Conversión 1 moneda antigua del Jardín = 1 SMC', 'migrate') : 0;
+  api.S.migrationAck = true;
+  api.S.coins = 0;
+  api.save();
+  if (got) api.game('Se convirtieron las monedas antiguas a SMC, 1 a 1.', 'oro');
+}
+function onWelcome() { flushMigration(); }
+function localVault() {
+  if (!api.S.vault) api.S.vault = { smcSubs: 0, items: {} };
+  return api.S.vault;
+}
+function requestVault() {
+  if (api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'vault' }));
+  else if (window.Banco) Banco.paint(localVault());
+}
+function bankSmc(dir, amount) {
+  const sai = Number(amount);
+  if (!(sai > 0)) return;
+  if (api.S.net.ok) {
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_smc' : 'withdraw_smc', amount: sai }));
+    return;
+  }
+  const subs = subunits(sai);
+  const box = localVault();
+  if (dir === 'in') {
+    if (!debitNamed(walletName(), subs)) { api.game('No hay SMC suficientes en la billetera.', 'aviso'); return; }
+    box.smcSubs = (box.smcSubs || 0) + subs;
+    pushTx({ type: 'bank', from: walletName(), to: 'deposito', amountSubs: subs, note: 'Depósito en el banquito' });
+  } else {
+    if ((box.smcSubs || 0) < subs) { api.game('El depósito no tiene tantas SMC.', 'aviso'); return; }
+    box.smcSubs -= subs;
+    creditNamed(walletName(), subs);
+    pushTx({ type: 'bank', from: 'deposito', to: walletName(), amountSubs: subs, note: 'Retiro del banquito' });
+  }
+  api.save();
+  if (window.Banco) Banco.paint(box);
+}
+function bankItem(dir, item, qty) {
+  qty = Number(qty);
+  if (!item || !(qty > 0)) return;
+  if (api.S.net.ok) {
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty }));
+    return;
+  }
+  const box = localVault();
+  box.items = box.items || {};
+  if (dir === 'in') {
+    if (!api.invRemove(item, qty)) { api.game('No llevas esa cantidad.', 'aviso'); return; }
+    box.items[item] = (box.items[item] || 0) + qty;
+  } else {
+    if ((box.items[item] || 0) < qty) { api.game('El depósito no tiene tanto.', 'aviso'); return; }
+    if (!api.invAdd(item, qty)) return;
+    box.items[item] -= qty;
+    if (!box.items[item]) delete box.items[item];
+  }
+  api.save();
+  if (window.Banco) Banco.paint(box);
 }
 function grantTreasury(sai, note) {
   ensureWallet();
@@ -367,6 +452,34 @@ function onNet(m) {
     }
     return true;
   }
+  if (m.t === 'smelt_result') {
+    const pending = api.S.pendingSmelt;
+    api.S.pendingSmelt = null;
+    if (m.ok && pending && api.applySmelt) api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
+    else api.game(m.reason || 'La fundidora no acreditó las SMC.', 'aviso');
+    return true;
+  }
+  if (m.t === 'migrate_result') {
+    api.S.migrationAck = true;
+    api.S.coins = 0;
+    api.save();
+    if (!m.already && m.credited) api.game(`Conversión ${m.rate}:1. Entraron ${m.credited} SMC.`, 'oro');
+    return true;
+  }
+  if (m.t === 'vault') {
+    if (window.Banco) Banco.paint(m.account || { smcSubs: 0, items: {} });
+    return true;
+  }
+  if (m.t === 'vault_item') {
+    if (m.op === 'deposit') api.invRemove(m.item, m.qty);
+    else api.invAdd(m.item, m.qty);
+    return true;
+  }
+  if (m.t === 'shift') {
+    if (m.paid) api.game(`Turno cumplido: ${m.paid} SMC. ${m.note || 'No es dinero real.'}`, 'oro');
+    return true;
+  }
+  if (m.t === 'quest_result') return true;
   if (m.t === 'pay_result') {
     if (m.ok && api.S.pendingBuy && m.to === 'puesto_frutas') {
       api.S.pendingBuy = false;
@@ -507,15 +620,16 @@ function autotest(ok) {
   api.S.player.x = api.S.player.fx = horse.x;
   api.S.player.y = api.S.player.fy = horse.y + 1;
   mountHorse(horse);
-  ok(!!api.S.mounted && speedMul() === 2, 'montar: velocidad ×2');
+  ok(!!api.S.mounted && speedMul() === 4, 'montar: velocidad ×4, el doble de la montura anterior');
+  ok(!!$('#b-bajar') && $('#b-bajar').hidden === false, 'botón Bajarse del caballo visible al montar');
   if (api.update) {
     const rider = api.S.player;
     rider.path = []; rider.x = rider.fx = 220 + off.x; rider.y = rider.fy = 70 + off.y;
-    for (let i = 1; i <= 8; i++) rider.path.push([220 + off.x + i, 70 + off.y]);
+    for (let i = 1; i <= 16; i++) rider.path.push([220 + off.x + i, 70 + off.y]);
     api.S.keys.clear();
     api.update(0.5);
     const travelled = rider.fx - (220 + off.x);
-    ok(travelled > 3.8 && travelled < 4.6, 'a caballo se recorren unas 4,2 casillas en medio segundo (' + travelled.toFixed(2) + ')');
+    ok(travelled > 7.6 && travelled < 9.2, 'a caballo se recorren unas 8,4 casillas en medio segundo (' + travelled.toFixed(2) + ')');
   }
   const water = (api.W().waterBodies.rio_claro.tiles || [])[0];
   ok(blocksTile(api.W(), water[0], water[1]) || api.W().collision[water[1]][water[0]] !== 0, 'el caballo no entra al agua');
@@ -548,6 +662,7 @@ function speedMul() { return api.S.mounted ? ((F.mounts[0] && F.mounts[0].speed)
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
+  grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankItem,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
   hashBlock, verifyBlock, emptyEcon, rewardSai, formatSai, walletToken, SUBS, GENESIS_PREV,
 };

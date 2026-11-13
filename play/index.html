@@ -65,8 +65,9 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span><img src="../graphics/ui/moneda.png" alt=""><b id="monedas">0</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo">0 SMC</b></span></div>
-<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, el libro se reinicia</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.</span></button>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo">0 SMC</b></span></div>
+<button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
+<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean, y no se retiran por OnePay ni por USDT. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Lo guardado en el banquito no se pierde al caer.</span></button>
 <div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button></div>
 
 <!-- ===== Ventanas ===== -->
@@ -82,7 +83,10 @@
 <div id="login" hidden>
   <form id="login-form" autocomplete="off">
     <div class="simoncity-lockup">
-      <div class="simoncity-title">Saimon City</div>
+      <h1 class="simoncity-title">
+        <img class="simoncity-wordmark" src="../graphics/ui/saimon-logo-gold.png" alt="Saimon City" width="980" height="338">
+        <span class="simoncity-city" aria-hidden="true">City</span>
+      </h1>
       <div class="simoncity-rule" aria-hidden="true"></div>
       <div class="simoncity-place">Medellín</div>
       <p class="simoncity-welcome">Bienvenido a Medellín</p>
@@ -104,8 +108,9 @@
     <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
-    <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). Vas al doble de prisa. No entran a edificios ni al agua.</li>
-    <li><b>SaiMonCoins (SMC):</b> sólo se emiten al lavar oro en el río. Tope 21.000.000. El puesto de frutas vende un mango por 5 SMC. Es una simulación: no es dinero real.</li>
+    <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas al cuádruple de la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua.</li>
+    <li><b>SaiMonCoins (SMC):</b> se emiten al lavar oro en el río, al fundir en la cantera y al cumplir un turno de cobre o plata. Tope 21.000.000. Cada emisión lleva un certificado con código. El puesto de frutas vende un mango por 5 SMC. Es una simulación: no es dinero real.</li>
+    <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
   </ul>
@@ -116,14 +121,24 @@
   <canvas id="city-map-canvas" width="800" height="800" role="img" aria-label="Mapa completo de SaimonCity. Tu posición está marcada con una estrella amarilla."></canvas>
   <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente</p></div>
 </section>
+<section id="banquito" class="ventana" hidden>
+  <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
+  <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Las SMC y los objetos que dejas aquí no se pierden si caes. Sólo lo que llevas en la mochila puede caerse.</p>
+  <p id="banquito-saldo">En el depósito: 0 SMC</p>
+  <label>SMC <input id="banquito-monto" type="number" min="1" value="1"></label>
+  <p><button type="button" id="banquito-depositar">Depositar SMC</button> <button type="button" id="banquito-retirar">Retirar SMC</button></p>
+  <div id="banquito-items"></div>
+  <p class="bag-note">SMC no es dinero real. El turno de la cantera tampoco se paga por OnePay ni por USDT.</p>
+</section>
 <div id="autotest" hidden></div>
-<script src="simulacion.js?v=simulacion-1"></script>
+<script src="simulacion.js?v=smc-r1"></script>
 <script src="../data/el-jardin.js?v=saimon-door-r3"></script>
 <script src="mining-rules.js?v=saimon-door-r3"></script>
 <script src="casa.js?v=saimon-door-r3"></script>
-<script src="envigado-park.js?v=envigado-r1"></script>
-<script src="game.js?v=envigado-r1"></script>
-<script type="module" src="unified3d.js?v=envigado-r1"></script>
+<script src="envigado-park.js?v=smc-r2"></script>
+<script src="banco.js?v=smc-r1"></script>
+<script src="game.js?v=smc-r1"></script>
+<script type="module" src="unified3d.js?v=smc-r3"></script>
 <script src="interface.js?v=saimon-door-r3"></script>
 </body>
 </html>

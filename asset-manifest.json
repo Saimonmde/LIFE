@@ -3354,6 +3354,26 @@
       "status": "authorized",
       "license": "CC-BY-SA-4.0",
       "attribution": "Simón — Saimon City; conservar autores adicionales y fuentes si los hay"
+    },
+    {
+      "path": "graphics/ui/saimon-logo.png",
+      "sha256": "d37a731d875a2142072e9a529310057ebfa2947a574de6f749481c0fe28378d9",
+      "author": "Simón / @Saimon888",
+      "source": "Logo propio de Simón. El título del juego usa el derivado en oro; City va en UnifrakturMaguntia (OFL).",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Wordmark Saimon de Simón / @Saimon888, fondo blanco retirado"
+    },
+    {
+      "path": "graphics/ui/saimon-logo-gold.png",
+      "sha256": "4b447c269d9cb79aa42f185b663ad0042040f57e34c05931a9b746fa2683df27",
+      "author": "Simón / @Saimon888",
+      "source": "Logo propio de Simón. El título del juego usa el derivado en oro; City va en UnifrakturMaguntia (OFL).",
+      "release_approved": true,
+      "status": "authorized",
+      "license": "CC-BY-SA-4.0",
+      "attribution": "Derivado en oro antiguo con bisel, a partir del wordmark de Simón"
     }
   ],
   "public_creator_name": "Simón",
