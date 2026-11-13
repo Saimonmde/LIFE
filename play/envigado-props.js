@@ -1,44 +1,97 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-// Canecas from Simón's scan, and a low-poly Zona skate modelled after his concrete ledges.
-import { GLTFLoader } from './glb-loader.js?v=envigado-r1';
-
+// Bancas, canecas verdes y esculturas propias. Sin escaneo y sin marcas.
 export function placeEnvigadoProps(T, scene, height) {
   const park = window.EnvigadoPark;
-  if (!park) return;
+  if (!park || !park.allProps) return;
   const concrete = concreteMaterial(T);
   const paver = paverMaterial(T);
-  const holders = park.canecaTiles().map(spot => {
+  park.drawn3d.length = 0;
+  for (const prop of park.allProps()) {
     const g = new T.Group();
-    g.position.set(spot.x * 2 + 1, height(spot.x, spot.y), spot.y * 2 + 1);
-    g.rotation.y = spot.ry || 0;
-    g.name = 'caneca';
-    const fallback = new T.Mesh(new T.CylinderGeometry(0.32, 0.36, 1, 18), new T.MeshStandardMaterial({ color: '#c5c7c4', metalness: 0.62, roughness: 0.38 }));
-    fallback.position.y = 0.5;
-    fallback.castShadow = fallback.receiveShadow = true;
-    g.add(fallback);
-    g.userData.fallback = fallback;
+    g.position.set(prop.x * 2 + 1, height(prop.x, prop.y) + 0.04, prop.y * 2 + 1);
+    g.name = prop.id;
+    g.userData.parkProp = prop.id;
+    if (prop.kind === 'caneca') buildCaneca(T, g, prop.ry || 0);
+    else if (prop.kind === 'banca') buildBanca(T, g);
+    else buildEscultura(T, g, prop.id);
     scene.add(g);
-    return g;
-  });
-  const loader = new GLTFLoader();
-  park.model = 'loading';
-  loader.load('../graphics/models/caneca_envigado.glb', (gltf) => {
-    for (const holder of holders) {
-      const copy = gltf.scene.clone(true);
-      copy.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
-      if (holder.userData.fallback) holder.remove(holder.userData.fallback);
-      holder.add(copy);
-    }
-    park.model = 'glb';
-  }, undefined, (err) => {
-    park.model = 'fallback';
-    console.warn('La caneca de Envigado usa el cilindro de respaldo.', err);
-  });
+    park.drawn3d.push(prop.id);
+  }
+  park.model = 'original';
   buildSkate(T, scene, height, park, concrete, paver);
-  buildBenches(T, scene, height, park);
-  buildSculptures(T, scene, height, park);
   buildCanopy(T, scene, height);
   buildHouses(T, scene, height);
+}
+
+function buildCaneca(T, g, ry) {
+  g.rotation.y = ry;
+  const body = new T.Mesh(new T.CylinderGeometry(0.46, 0.52, 1.35, 10), new T.MeshLambertMaterial({ color: '#1f7a3a', flatShading: true }));
+  body.position.y = 0.72;
+  const lid = new T.Mesh(new T.CylinderGeometry(0.5, 0.5, 0.16, 10), new T.MeshLambertMaterial({ color: '#145028', flatShading: true }));
+  lid.position.y = 1.46;
+  const rim = new T.Mesh(new T.TorusGeometry(0.18, 0.035, 6, 10), new T.MeshLambertMaterial({ color: '#9aa3a0', flatShading: true }));
+  rim.position.y = 1.62;
+  rim.rotation.x = Math.PI / 2;
+  body.castShadow = lid.castShadow = true;
+  g.add(body, lid, rim);
+}
+
+function buildBanca(T, g) {
+  const wood = new T.MeshLambertMaterial({ color: '#8a5a32', flatShading: true });
+  const iron = new T.MeshLambertMaterial({ color: '#3e4650', flatShading: true });
+  const box = new T.BoxGeometry(1, 1, 1);
+  for (const z of [-0.16, -0.02, 0.12]) {
+    const slat = new T.Mesh(box, wood);
+    slat.scale.set(3.3, 0.08, 0.12);
+    slat.position.set(0, 0.58, z);
+    slat.castShadow = true;
+    g.add(slat);
+  }
+  for (const y of [0.82, 1.02, 1.22]) {
+    const slat = new T.Mesh(box, wood);
+    slat.scale.set(3.3, 0.1, 0.08);
+    slat.position.set(0, y, -0.28);
+    slat.castShadow = true;
+    g.add(slat);
+  }
+  for (const x of [-1.4, 1.4]) {
+    for (const z of [-0.16, 0.14]) {
+      const leg = new T.Mesh(box, iron);
+      leg.scale.set(0.08, 0.58, 0.08);
+      leg.position.set(x, 0.29, z);
+      leg.castShadow = true;
+      g.add(leg);
+    }
+  }
+}
+
+function buildEscultura(T, g, id) {
+  const stone = new T.MeshLambertMaterial({ color: '#d9d3c7', flatShading: true });
+  const metal = new T.MeshLambertMaterial({ color: '#c4a15a', flatShading: true });
+  const plinth = new T.Mesh(new T.BoxGeometry(1.8, 0.7, 1.8), stone);
+  plinth.position.y = 0.35;
+  plinth.castShadow = true;
+  g.add(plinth);
+  if (id === 'anillo') {
+    const ring = new T.Mesh(new T.TorusGeometry(0.95, 0.22, 8, 18), metal);
+    ring.position.y = 2.15;
+    ring.rotation.x = Math.PI / 2.5;
+    ring.castShadow = true;
+    g.add(ring);
+  } else if (id === 'columna') {
+    [[0, 1.35, 0, 0.95], [0.35, 2.25, 0.1, 0.78], [-0.28, 3.05, -0.08, 0.62]].forEach(([x, y, z, s]) => {
+      const block = new T.Mesh(new T.BoxGeometry(s, 0.85, s), metal);
+      block.position.set(x, y, z);
+      block.castShadow = true;
+      g.add(block);
+    });
+  } else {
+    const oval = new T.Mesh(new T.SphereGeometry(0.7, 10, 8), metal);
+    oval.scale.set(1, 1.7, 0.72);
+    oval.position.y = 2.15;
+    oval.castShadow = true;
+    g.add(oval);
+  }
 }
 
 function buildCanopy(T, scene, height) {
@@ -81,66 +134,6 @@ function buildHouses(T, scene, height) {
     cap.position.set(body.position.x, y0 + floors * 1.35 + 0.2, body.position.z);
     body.castShadow = cap.castShadow = true;
     g.add(body, cap);
-    scene.add(g);
-  }
-}
-
-function buildBenches(T, scene, height, park) {
-  const wood = new T.MeshLambertMaterial({ color: '#6e4a2c', flatShading: true });
-  const iron = new T.MeshLambertMaterial({ color: '#3e4650', flatShading: true });
-  const box = new T.BoxGeometry(1, 1, 1);
-  for (const spot of park.benchTiles()) {
-    const g = new T.Group();
-    g.position.set(spot.x * 2 + 1, height(spot.x, spot.y), spot.y * 2 + 1);
-    g.name = spot.id;
-    const seat = new T.Mesh(box, wood);
-    seat.scale.set(1.5, 0.12, 0.48);
-    seat.position.y = 0.48;
-    const back = new T.Mesh(box, wood);
-    back.scale.set(1.5, 0.42, 0.08);
-    back.position.set(0, 0.78, -0.2);
-    for (const x of [-0.62, 0.62]) {
-      const leg = new T.Mesh(box, iron);
-      leg.scale.set(0.08, 0.48, 0.4);
-      leg.position.set(x, 0.24, 0);
-      g.add(leg);
-    }
-    seat.castShadow = back.castShadow = true;
-    g.add(seat, back);
-    scene.add(g);
-  }
-}
-
-function buildSculptures(T, scene, height, park) {
-  const stone = new T.MeshLambertMaterial({ color: '#d9d3c7', flatShading: true });
-  const bronze = new T.MeshStandardMaterial({ color: '#b08a4a', metalness: 0.35, roughness: 0.45 });
-  for (const spot of park.sculptureTiles()) {
-    const g = new T.Group();
-    g.position.set(spot.x * 2 + 1, height(spot.x, spot.y), spot.y * 2 + 1);
-    g.name = spot.id;
-    const plinth = new T.Mesh(new T.BoxGeometry(1.5, 1.1, 1.5), stone);
-    plinth.position.y = 0.55;
-    plinth.castShadow = plinth.receiveShadow = true;
-    g.add(plinth);
-    let art;
-    if (spot.id === 'anillo') {
-      art = new T.Mesh(new T.TorusGeometry(0.7, 0.16, 10, 22), bronze);
-      art.position.y = 2.0;
-      art.rotation.x = Math.PI / 2.4;
-    } else if (spot.id === 'columna') {
-      art = new T.Group();
-      [[0, 1.5, 0], [0.28, 2.25, 0.08], [-0.22, 2.95, -0.06]].forEach(([x, y, z], i) => {
-        const block = new T.Mesh(new T.BoxGeometry(0.7 - i * 0.1, 0.7, 0.7 - i * 0.1), bronze);
-        block.position.set(x, y, z);
-        art.add(block);
-      });
-    } else {
-      art = new T.Mesh(new T.SphereGeometry(0.62, 14, 12), bronze);
-      art.scale.set(1, 1.45, 0.7);
-      art.position.y = 2.15;
-    }
-    art.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
-    g.add(art);
     scene.add(g);
   }
 }

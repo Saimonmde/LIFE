@@ -3,7 +3,7 @@ import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=saimon-door-r3';
 import {enrichWorld} from './park3d.js?v=saimon-door-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-door-r3';
-import {placeEnvigadoProps} from './envigado-props.js?v=smc-r3';
+import {placeEnvigadoProps} from './envigado-props.js?v=props-r1';
 import {buildBank, placeBankHouse} from './banco3d.js?v=smc-r3';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';

@@ -1232,6 +1232,10 @@ function draw() {
     const w = dc.w || 1, h = dc.h || 1;
     list.push({ y: (dc.y + h) * TS + (dc.sortOffset || 0), x: dc.x, draw: () => drawSpriteAt(frameKey(dc, t), (dc.x + w / 2) * TS, (dc.y + h) * TS) });
   }
+  if ((W.mapId || 'city') === 'city' && window.EnvigadoPark && EnvigadoPark.allProps) {
+    EnvigadoPark.drawn2d.length = 0;
+    for (const prop of EnvigadoPark.allProps()) list.push({ y: (prop.y + 1) * TS, x: prop.x, draw: () => EnvigadoPark.paint2d(ctx, prop, TS) });
+  }
   for (const a of S.animals) if (a.state === 'alive') list.push({ y: (a.fy + 1) * TS + 1, x: a.fx, draw: () => drawSprite(a.def.sprites.alive[a.frame], a.fx, a.fy) });
   for (const npc of W.npcs || []) list.push({ y: (npc.y + 1) * TS + 2, x: npc.x, draw: () => {
     const sheet = npc.id === 'profesora_cadena' && imgs._profesora ? imgs._profesora : capatazImg;
