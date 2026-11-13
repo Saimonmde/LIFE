@@ -24,10 +24,10 @@
     const amount = block.amountText || ((block.amountSmh || 0) + ' SMH');
     const hash = block.hash || '';
     return `<article class="madre-card" data-id="${esc(id)}">
-      <header>${esc(id)} <span class="ok">${ok ? '✓ verificado' : '✗ no verifica'}</span></header>
+      <header><span class="codigo">${esc(id)}</span> <span class="ok">${ok ? '✓ verificado' : '✗ no verifica'}</span></header>
       <div>${esc(who)} · ${esc(where)}</div>
-      <div>${esc(amount)}</div>
-      <div class="hash">${esc(hash.slice(0, 16))}…${esc(hash.slice(-8))}</div>
+      <div class="smc">${esc(amount)}</div>
+      <div class="hash codigo-largo">${esc(hash)}</div>
       <button type="button" data-ver="${esc(id)}">Ver registro</button>
     </article>`;
   }
@@ -46,7 +46,7 @@
     }
     const blocks = page.blocks || [];
     body.innerHTML = `<p class="madre-aviso">${esc(page.disclaimer || '')}</p>
-      <p>Altura ${page.height || 0} · emitidas ${esc(String(page.supply))} · tope ${Number(page.maxSupply || 0).toLocaleString('es-CO')} SMC. 1 SMC = 100.000.000 SMH.</p>
+      <p>Altura ${page.height || 0} · emitidas <span class="smc">${esc(String(page.supply))}</span> · tope <span class="smc">${Number(page.maxSupply || 0).toLocaleString('es-CO')} SMC</span>. <span class="smc">1 SMC = 100.000.000 SMH</span>.</p>
       <button type="button" id="madre-verificar">Verificar la cadena</button>
       <p id="madre-estado" role="status"></p>
       ${blocks.map(card).join('') || '<p>Todavía no hay acuñaciones.</p>'}`;
@@ -73,7 +73,7 @@
     const el = $('#libro-toast');
     if (!el || !record || !record.id) return;
     el.hidden = false;
-    el.innerHTML = `<strong>Acuñaste ${esc(record.id)}</strong><span>${esc(record.amountText || ((record.amountSmh || 0) + ' SMH'))}. Simulación, sin valor real.</span><button type="button">Ver el registro</button>`;
+    el.innerHTML = `<strong>Acuñaste <span class="codigo">${esc(record.id)}</span></strong><span><span class="smc">${esc(record.amountText || ((record.amountSmh || 0) + ' SMH'))}</span>. Simulación, sin valor real.</span><button type="button">Ver el registro</button>`;
     el.querySelector('button').onclick = () => open(record.id);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.hidden = true; }, 8000);

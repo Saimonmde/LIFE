@@ -35,7 +35,8 @@
   "exceptions": {
     "play/three.module.js": "MIT",
     "play/PixelifySans.ttf": "OFL-1.1",
-    "play/fonts/UnifrakturMaguntia-Book.ttf": "OFL-1.1"
+    "play/fonts/UnifrakturMaguntia-Book.ttf": "OFL-1.1",
+    "play/fonts/Scriven.otf": "OFL-1.1"
   },
   "corresponding_source_download": "releases/saimoncity-fuente.zip",
   "repository": "https://github.com/Saimonmde/LIFE"

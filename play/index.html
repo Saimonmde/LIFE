@@ -5,8 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=valle3d-r1">
-<link rel="stylesheet" href="movil.css?v=saimon-door-r3">
+<link rel="stylesheet" href="style.css?v=valle-auth-r2">
+<link rel="stylesheet" href="movil.css?v=valle-auth-r2">
 <script src="movil.js?v=saimon-door-r3"></script>
 </head>
 <body>
@@ -69,9 +69,9 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo">0 SMC</b></span></div>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo" class="smc">0 SMC</b></span></div>
 <button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
-<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">SMC · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
+<button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short"><span class="smc">SMC</span> · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
 <div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
@@ -171,24 +171,24 @@
 <section id="banquito" class="ventana" hidden>
   <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
   <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Las SMC y los objetos que dejas aquí no se pierden si caes. Sólo lo que llevas en la mochila puede caerse.</p>
-  <p id="banquito-saldo">En el depósito: 0 SMC</p>
-  <label>SMC o SMH <input id="banquito-monto" inputmode="decimal" value="1" placeholder="1 SMC o 12345 SMH"></label>
+  <p id="banquito-saldo">En el depósito: <span class="smc">0 SMC</span></p>
+  <label><span class="smc">SMC</span> o <span class="smc">SMH</span> <input id="banquito-monto" inputmode="decimal" value="1" placeholder="1 SMC o 12345 SMH"></label>
   <p><button type="button" id="banquito-depositar">Depositar SMC</button> <button type="button" id="banquito-retirar">Retirar SMC</button></p>
   <div id="banquito-items"></div>
   <p class="bag-note">SMC no es dinero real. El turno de la cantera tampoco se paga por OnePay ni por USDT.</p>
 </section>
 <div id="autotest" hidden></div>
-<script src="simulacion.js?v=libro-madre-r1"></script>
+<script src="simulacion.js?v=valle-auth-r2"></script>
 <script src="../data/el-jardin.js?v=saimon-door-r3"></script>
 <script src="mining-rules.js?v=saimon-door-r3"></script>
 <script src="casa.js?v=saimon-door-r3"></script>
 <script src="envigado-park.js?v=smc-r2"></script>
-<script src="banco.js?v=smc-r1"></script>
+<script src="banco.js?v=valle-auth-r2"></script>
 <script src="tutorial.js?v=brujula-r1"></script>
-<script src="libro-madre.js?v=libro-madre-r1"></script>
+<script src="libro-madre.js?v=valle-auth-r2"></script>
 <script src="paneles.js?v=brujula-r1"></script>
-<script src="game.js?v=valle3d-r1"></script>
-<script type="module" src="unified3d.js?v=valle3d-r1"></script>
+<script src="game.js?v=valle-auth-r2"></script>
+<script type="module" src="unified3d.js?v=valle-auth-r2"></script>
 <script src="interface.js?v=saimon-door-r3"></script>
 </body>
 </html>

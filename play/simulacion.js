@@ -107,6 +107,7 @@ function formatSmh(smh) {
   return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
 }
 function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function moneyHtml(text) { return `<span class="smc">${api.esc(text)}</span>`; }
 function unidadActiva() {
   try { return localStorage.getItem('lifeinc.unidad') === 'SMH' ? 'SMH' : 'SMC'; } catch (e) { return 'SMC'; }
 }
@@ -377,16 +378,16 @@ function renderLibro() {
   const disc = (api.S.econ.disclaimer || (F && F.economy && F.economy.disclaimer) || '') + ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.';
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
-  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} 1 SMC = 100.000.000 saimonitos.</p>
-    <p>Minadas: <b>${api.esc(formatSmc(api.S.econ.minedSmh || 0))}</b> / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · Premio actual: <b>${api.esc(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}</b> · 1 SMC = 100.000.000 SMH · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
+  el.innerHTML = `<p class="aviso-legal">${api.esc(disc)} ${moneyHtml('1 SMC = 100.000.000 SMH')}.</p>
+    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio actual: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))} · Mempool: ${(api.S.econ.mempool || []).length} tx · Bloque cada ~60 s</p>
     ${more ? `<button type="button" id="libro-mas">Ver bloques anteriores</button>` : ''}
     <div class="bloques">${blocks.slice().reverse().map(b => {
       const ok = blockOk(blocks, b);
       const txs = b.txs || [];
       return `<article class="bloque"><header>Bloque #${b.height} · ${ok ? 'hash válido' : 'NO COINCIDE'}</header>
-        <div class="hash"><small>prev</small> ${api.esc(b.prev)}</div>
-        <div class="hash"><small>hash</small> ${api.esc(b.hash)}</div>
-        <ul>${txs.map(tx => `<li>${api.esc(tx.type)} ${tx.from ? api.esc(tx.from) + ' → ' : ''}${api.esc(tx.to || '')} ${formatSai(tx.amountSubs || 0)}${tx.note ? ' · ' + api.esc(tx.note) : ''}</li>`).join('')}</ul>
+        <div class="hash codigo-largo"><small>prev</small> ${api.esc(b.prev)}</div>
+        <div class="hash codigo-largo"><small>hash</small> ${api.esc(b.hash)}</div>
+        <ul>${txs.map(tx => `<li>${api.esc(tx.type)} ${tx.from ? api.esc(tx.from) + ' → ' : ''}${api.esc(tx.to || '')} ${moneyHtml(formatSai(tx.amountSubs || 0))}${tx.note ? ' · ' + api.esc(tx.note) : ''}</li>`).join('')}</ul>
         <button type="button" class="ver-hash" data-h="${b.height}">Verificar hash</button></article>`;
     }).join('')}</div>`;
   const older = $('#libro-mas');
