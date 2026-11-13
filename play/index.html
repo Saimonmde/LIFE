@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=mapa-fijo-r6">
-<link rel="stylesheet" href="movil.css?v=mapa-fijo-r6">
+<link rel="stylesheet" href="style.css?v=iconos-r2">
+<link rel="stylesheet" href="movil.css?v=iconos-r2">
 <link rel="stylesheet" href="hud-layout.css?v=mapa-fijo-r6">
 <script src="movil.js?v=valle-hud-r5"></script>
 </head>
@@ -76,7 +76,7 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo" class="smc">0 SMC</b></span><span id="plata-chip" title="Plata: simulación educativa, sin valor real"><b id="plata-saldo" class="smp">0 SMP</b></span></div>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><b id="sai-saldo" class="smc">0 SMC</b></span><span id="plata-chip" title="Plata: simulación educativa, sin valor real"><img class="plata-coin" src="../graphics/mining/moneda_plata.svg?v=iconos-r2" alt=""><b id="plata-saldo" class="smp">0 SMP</b></span></div>
 <button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
 <button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short"><span class="smc">SMC</span> · simulación, sin valor real</span><span class="sai-full">Simulación educativa: las SaiMonCoins (SMC) no son dinero real, no tienen valor ni se canjean. 1 SMC = 100.000.000 Simonchis (SMH); por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. Cada moneda nueva pide una prueba de trabajo y cabe en el tope del día. El libro de la simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar. Pulsa el saldo para ver SMC o SMH.</span></button>
 <aside id="pow-panel" class="hud" aria-live="polite">
@@ -88,7 +88,7 @@
   <button type="button" id="pow-cobrar" hidden>Cobrar misión pendiente</button>
 </aside>
 <aside id="plata-panel" class="hud" aria-label="Plata">
-  <p id="plata-saldo-line">Saldo: <b id="plata-saldo-panel" class="smp">0 SMP</b></p>
+  <p id="plata-saldo-line"><img class="plata-coin" src="../graphics/mining/moneda_plata.svg?v=iconos-r2" alt="">Saldo: <b id="plata-saldo-panel" class="smp">0 SMP</b></p>
   <div id="plata-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Plata minada hoy"><i id="plata-meter-bar"></i></div>
   <p id="plata-status">Sin prueba en curso.</p>
   <p id="plata-cap">Tope de hoy: —</p>
@@ -225,7 +225,7 @@
 <script src="tutorial.js?v=valle-hud-r5"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
-<script src="game.js?v=mapa-fijo-r6"></script>
+<script src="game.js?v=iconos-r2"></script>
 <script type="module" src="unified3d.js?v=mapa-fijo-r6"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>

@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="face-orop" cx="36%" cy="30%" r="72%">
+      <stop offset="0%" stop-color="#fff6d4"/>
+      <stop offset="46%" stop-color="#f3d078"/>
+      <stop offset="78%" stop-color="#c9962a"/>
+      <stop offset="100%" stop-color="#8d6214"/>
+    </radialGradient>
+    <linearGradient id="rim-orop" x1="12%" y1="0%" x2="88%" y2="100%">
+      <stop offset="0%" stop-color="#fff8e6"/>
+      <stop offset="22%" stop-color="#ffe7a8"/>
+      <stop offset="52%" stop-color="#e2b23c"/>
+      <stop offset="100%" stop-color="#5c3a08"/>
+    </linearGradient>
+    <linearGradient id="groove-orop" x1="85%" y1="0%" x2="15%" y2="100%">
+      <stop offset="0%" stop-color="#5c3a08"/>
+      <stop offset="42%" stop-color="#e2b23c"/>
+      <stop offset="100%" stop-color="#fff8e6"/>
+    </linearGradient>
+    <radialGradient id="letter-orop" cx="32%" cy="26%" r="80%">
+      <stop offset="0%" stop-color="#fff8e6"/>
+      <stop offset="48%" stop-color="#ffe7a8"/>
+      <stop offset="100%" stop-color="#e2b23c"/>
+    </radialGradient>
+    <radialGradient id="well-orop" cx="50%" cy="42%" r="62%">
+      <stop offset="62%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity=".28"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="33.2" cy="58.2" rx="18.5" ry="3.3" fill="#2a1808" opacity=".34"/>
+  <g>
+    <circle cx="30.90" cy="21.00" r="13.60" fill="#5c3a08"/>
+    <circle cx="30.20" cy="20.20" r="13.60" fill="url(#rim-orop)"/>
+    <circle cx="30.55" cy="20.65" r="11.42" fill="#8a5810" opacity=".55"/>
+    <circle cx="29.95" cy="19.85" r="11.07" fill="url(#groove-orop)"/>
+    <circle cx="30.20" cy="20.20" r="10.06" fill="url(#face-orop)"/>
+    <circle cx="30.20" cy="20.20" r="10.06" fill="url(#well-orop)"/>
+    <circle cx="30.20" cy="20.20" r="8.98" fill="none" stroke="#fff8e6" stroke-width=".7" opacity=".55"/>
+    <circle cx="30.20" cy="20.20" r="9.88" fill="none" stroke="#7a4e0c" stroke-width=".55" opacity=".28"/>
+    
+  </g>  <g>
+    <circle cx="32.10" cy="29.20" r="14.00" fill="#5c3a08"/>
+    <circle cx="31.40" cy="28.40" r="14.00" fill="url(#rim-orop)"/>
+    <circle cx="31.75" cy="28.85" r="11.76" fill="#8a5810" opacity=".55"/>
+    <circle cx="31.15" cy="28.05" r="11.41" fill="url(#groove-orop)"/>
+    <circle cx="31.40" cy="28.40" r="10.36" fill="url(#face-orop)"/>
+    <circle cx="31.40" cy="28.40" r="10.36" fill="url(#well-orop)"/>
+    <circle cx="31.40" cy="28.40" r="9.24" fill="none" stroke="#fff8e6" stroke-width=".7" opacity=".55"/>
+    <circle cx="31.40" cy="28.40" r="10.14" fill="none" stroke="#7a4e0c" stroke-width=".55" opacity=".28"/>
+    
+  </g>  <g>
+    <circle cx="33.70" cy="39.40" r="16.20" fill="#5c3a08"/>
+    <circle cx="33.00" cy="38.60" r="16.20" fill="url(#rim-orop)"/>
+    <circle cx="33.35" cy="39.05" r="13.61" fill="#8a5810" opacity=".55"/>
+    <circle cx="32.75" cy="38.25" r="13.26" fill="url(#groove-orop)"/>
+    <circle cx="33.00" cy="38.60" r="11.99" fill="url(#face-orop)"/>
+    <circle cx="33.00" cy="38.60" r="11.99" fill="url(#well-orop)"/>
+    <circle cx="33.00" cy="38.60" r="10.69" fill="none" stroke="#fff8e6" stroke-width=".7" opacity=".55"/>
+    <circle cx="33.00" cy="38.60" r="11.59" fill="none" stroke="#7a4e0c" stroke-width=".55" opacity=".28"/>
+    
+    <g transform="translate(33.00 38.60) scale(0.660)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="#7a4e0c" stroke-width="5.6" transform="translate(.7 1.15)" opacity=".42"/>
+      <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="url(#letter-orop)" stroke-width="4.7"/>
+      <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="#fff" stroke-width="1.35" transform="translate(-.35 -.55)" opacity=".42"/>
+    </g>
+    <path d="M23.0 35.0c1.3-6.2 6.8-9.4 13.3-8.4" fill="none" stroke="#fff" stroke-width="2.11" stroke-linecap="round" opacity=".7"/>
+    <path d="M37.5 45.4c1.3 1.6 1.0 3.2 0 4.5" fill="none" stroke="#fff" stroke-width="0.81" stroke-linecap="round" opacity=".35"/>
+    <path d="M44.7 26.0l.55 1.55 1.55.5-1.55.55-.55 1.6-.55-1.6-1.55-.55 1.55-.5z" fill="#fff" opacity=".92"/>
+  </g>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="top-oroip" x1="8%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#fff8e6"/>
+      <stop offset="42%" stop-color="#ffe7a8"/>
+      <stop offset="100%" stop-color="#e2b23c"/>
+    </linearGradient>
+    <linearGradient id="front-oroip" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffe7a8"/>
+      <stop offset="18%" stop-color="#e2b23c"/>
+      <stop offset="100%" stop-color="#8a5810"/>
+    </linearGradient>
+    <linearGradient id="end-oroip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e2b23c"/>
+      <stop offset="100%" stop-color="#5c3a08"/>
+    </linearGradient>
+    <linearGradient id="stamp-oroip" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#fff8e6"/>
+      <stop offset="55%" stop-color="#ffe7a8"/>
+      <stop offset="100%" stop-color="#e2b23c"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="36" cy="58" rx="22" ry="3.1" fill="#2a1808" opacity=".32"/>
+  <path d="M 34.00 13.60 Q 34.00 12.00 35.43 12.72 L 52.57 21.28 Q 54.00 22.00 54.00 23.60 L 54.00 30.40 Q 54.00 32.00 52.57 31.28 L 35.43 22.72 Q 34.00 22.00 34.00 20.40 L 34.00 13.60 Z" fill="url(#end-oroip)"/>
+  <path d="M 26.00 31.60 Q 26.00 30.00 27.54 29.56 L 52.46 22.44 Q 54.00 22.00 54.00 23.60 L 54.00 30.40 Q 54.00 32.00 52.46 32.44 L 27.54 39.56 Q 26.00 40.00 26.00 38.40 L 26.00 31.60 Z" fill="url(#front-oroip)"/>
+  <path d="M 8.06 21.03 Q 6.00 20.00 8.21 19.37 L 31.79 12.63 Q 34.00 12.00 36.06 13.03 L 51.94 20.97 Q 54.00 22.00 51.79 22.63 L 28.21 29.37 Q 26.00 30.00 23.94 28.97 L 8.06 21.03 Z" fill="url(#top-oroip)"/>
+  <path d="M 12.0 19.0 L 32.0 14.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".65"/>
+  <path d="M 38.00 27.60 Q 38.00 26.00 39.43 26.72 L 56.57 35.28 Q 58.00 36.00 58.00 37.60 L 58.00 44.40 Q 58.00 46.00 56.57 45.28 L 39.43 36.72 Q 38.00 36.00 38.00 34.40 L 38.00 27.60 Z" fill="url(#end-oroip)"/>
+  <path d="M 30.00 45.60 Q 30.00 44.00 31.54 43.56 L 56.46 36.44 Q 58.00 36.00 58.00 37.60 L 58.00 44.40 Q 58.00 46.00 56.46 46.44 L 31.54 53.56 Q 30.00 54.00 30.00 52.40 L 30.00 45.60 Z" fill="url(#front-oroip)"/>
+  <path d="M 12.06 35.03 Q 10.00 34.00 12.21 33.37 L 35.79 26.63 Q 38.00 26.00 40.06 27.03 L 55.94 34.97 Q 58.00 36.00 55.79 36.63 L 32.21 43.37 Q 30.00 44.00 27.94 42.97 L 12.06 35.03 Z" fill="url(#top-oroip)"/>
+  <path d="M 16.0 33.0 L 36.0 28.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".65"/>
+  <g transform="translate(34.00 35.00)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="#5c3a08" stroke-width="5.6" transform="translate(.4 .7) scale(.34)" opacity=".55"/>
+    <path d="M9.2-8.4c0-5.4-14.6-6.1-14.6.5-0 5.2 14.6 3.6 14.6 9.6 0 6.2-14.6 4.8-14.6 10.2" stroke="url(#stamp-oroip)" stroke-width="4.4" transform="scale(.34)"/>
+  </g>
+  <path d="M52.0 30.0l.4 1.15 1.15.35-1.15.4-.4 1.2-.4-1.2-1.15-.4 1.15-.35z" fill="#fff" opacity=".9"/>
+</svg>
