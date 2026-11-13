@@ -8,7 +8,19 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXPECTED = [
     'caneca_0', 'caneca_1', 'caneca_2',
     'banca_norte', 'banca_oriente', 'banca_sur', 'banca_esquina',
+    'banca_sendero_oeste', 'banca_sendero_este', 'banca_sendero_sur',
+    'banca_cruce_oeste', 'banca_cruce_este', 'banca_cruce_suroeste',
+    'banca_atrio_1', 'banca_atrio_2',
     'anillo', 'columna', 'ovalo',
+    'banca_caldas_este', 'banca_caldas_sur',
+    'banca_sabaneta_este', 'banca_sabaneta_sur',
+    'banca_la_estrella_este', 'banca_la_estrella_sur',
+    'banca_itagui_este', 'banca_itagui_sur',
+    'banca_medellin_este', 'banca_medellin_sur',
+    'banca_bello_este', 'banca_bello_sur',
+    'banca_copacabana_este', 'banca_copacabana_sur',
+    'banca_girardota_este', 'banca_girardota_sur',
+    'banca_barbosa_este', 'banca_barbosa_sur',
 ]
 
 
@@ -40,6 +52,35 @@ process.stdout.write(props.map(p => p.id).join(',') + '\n' + park.drawn2d.join('
         self.assertIn('EnvigadoPark.allProps()', game)
         self.assertIn('EnvigadoPark.paint2d', game)
         self.assertNotIn('poblado', props.lower())
+        self.assertIn('banca_envigado.glb', props)
+        self.assertIn('InstancedMesh', props)
+        self.assertIn('benchProxyGeometry', props)
+        self.assertIn('length: 1.63', props)
+        self.assertIn('seat: 0.48', props)
+
+    def test_benches_block_their_tile_and_leave_the_door_open(self):
+        script = r"""
+const fs = require('fs');
+const window = { Casa: { VALLE_OFFSET: { x: -133, y: 203 } } };
+global.window = window;
+eval(fs.readFileSync('play/envigado-park.js', 'utf8'));
+const park = window.EnvigadoPark;
+const W = { width: 351, height: 382, collision: Array.from({length: 382}, () => Array(351).fill(0)) };
+park.block(W);
+const benches = park.allProps().filter(p => p.kind === 'banca');
+if (benches.length < 12) process.exit(2);
+for (const bench of benches) {
+  if (W.collision[bench.y][bench.x] !== 1) process.exit(3);
+}
+for (const [x, y] of [[93, 267], [92, 268], [94, 267]]) {
+  if (W.collision[y][x] !== 0) process.exit(4);
+}
+const spec = JSON.parse(fs.readFileSync('graphics/models/banca_envigado.json', 'utf8'));
+if (spec.length_m !== 1.63 || spec.width_m !== 0.51 || spec.seat_height_m !== 0.48) process.exit(5);
+process.stdout.write(String(benches.length));
+"""
+        out = subprocess.check_output(['node', '-e', script], cwd=ROOT, text=True)
+        self.assertEqual(out.strip(), '30')
 
 
 if __name__ == '__main__':

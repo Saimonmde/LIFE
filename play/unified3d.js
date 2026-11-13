@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=valle-hud-r5';
-import {enrichWorld} from './park3d.js?v=valle-hud-r5';
+import {enrichWorld} from './park3d.js?v=props-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
-import {placeEnvigadoProps} from './envigado-props.js?v=props-r2';
+import {placeEnvigadoProps} from './envigado-props.js?v=props-r3';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
 import {createValleyView} from './valle-vista.js?v=mapa-fijo-r6';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
@@ -155,24 +155,42 @@ function boot(api){
  function house(x,y,w,d,h,c){const ground=height(x,y),cx=(x+w/2)*2,cz=(y+d/2)*2;box(cx,ground+h/2,cz,w*2,h,d*2,c);gableRoof(cx,ground+h,cz,w*2,d*2,c);for(let xx=0;xx<w;xx++)for(let level=0;level<Math.max(1,Math.floor(h/2.5));level++){for(const face of [-1,1])box((x+xx)*2+1,ground+1.5+level*2.3,cz+face*(d+.03),.7,1.25,.08,'#455653');}box(cx,ground+1,(y+d)*2+.08,1.1,2,.12,'#65503b');box(cx,ground+.2,(y+d)*2+.6,w*2+.6,.4,1.2,'#b9af98');}
  function church(x,y,w,d,brick){const ground=height(x,y);house(x,y,w,d,6,brick);const cx=(x+w/2)*2,front=(y+d)*2;box(cx,ground+7.2,front-2,3.4,14.4,3.4,brick);for(const h of [5,8.5,11.5]){box(cx,ground+h,front-.24,3.65,.25,3.65,'#d2b28d');for(const xx of [-.65,.65]){const arch=new T.Mesh(geometry('arch',()=>new T.CapsuleGeometry(.25,.9,4,8)),material('#49534d'));arch.position.set(cx+xx,ground+h-1,front-.12);arch.scale.z=.3;scene.add(arch);}}box(cx,ground+15.6,front-2,.13,2,.13,'#e2cda0');box(cx,ground+16,front-2,1.15,.12,.13,'#e2cda0');const clock=new T.Mesh(geometry('clock',()=>new T.CircleGeometry(.5,24)),material('#eee2bf'));clock.position.set(cx,ground+9.8,front-.25);scene.add(clock);box(cx,ground+9.95,front-.2,.06,.35,.05,'#4c4d40');box(cx+.13,ground+9.8,front-.2,.3,.05,.05,'#4c4d40');}
  function santaGertrudis(d){
-  const y=height(d.x,d.y),cx=(d.x+d.w/2)*2,front=(d.y+d.h)*2;
-  const white='#f3f1e9',trim='#d9d6cb';
-  house(d.x,d.y,d.w,d.h,6.3,white);
-  // Twin white bell towers, terracotta domes, classical portico and pediment.
-  for(const dx of [-7.5,7.5]){
-   box(cx+dx,y+7,front-2.5,4,14,4,white);
-   for(const h of [4.5,8.2,11,13.7])box(cx+dx,y+h,front-2.5,4.35,.28,4.35,trim);
-   for(const h of [9.5,12.1]){const arch=new T.Mesh(new T.CapsuleGeometry(.52,1.1,4,10),material('#52544d'));arch.scale.z=.12;arch.position.set(cx+dx,y+h,front-.45);scene.add(arch);}
-   const dome=new T.Mesh(new T.SphereGeometry(2.05,20,10,0,Math.PI*2,0,Math.PI/2),material('#a2644c'));dome.position.set(cx+dx,y+14,front-2.5);scene.add(dome);
-   box(cx+dx,y+17,front-2.5,.13,2,.13,'#80765f');box(cx+dx,y+17.3,front-2.5,1,.13,.13,'#80765f');
-   const clock=new T.Mesh(new T.CircleGeometry(.65,24),material('#fff8dc'));clock.position.set(cx+dx,y+7,front-.44);scene.add(clock);box(cx+dx,y+7.18,front-.39,.07,.45,.05,'#454940');box(cx+dx+.15,y+7,front-.38,.36,.07,.05,'#454940');
+  // Fachada al occidente, hacia el parque. El ancho norte-sur es el de las 33 varas;
+  // la nave es más corta que las 71 varas porque la loma del mapa empieza en x=126.
+  const y0=height(d.x,d.y);
+  const west=d.x*2, east=(d.x+d.w)*2, north=d.y*2, south=(d.y+d.h)*2;
+  const cx=(west+east)/2, cz=(north+south)/2;
+  const cream='#f4f0e4', trim='#d4cbb8', dome='#a45c45', dark='#3c433c', wood='#5a4334';
+  const facade=Math.max(8, south-north), depth=Math.max(6, east-west);
+  box(cx+0.6, y0+4.1, cz, depth-1.6, 8.2, facade-10.5, cream);
+  gableRoof(cx+0.6, y0+8.2, cz, depth-1.6, facade-10.5, cream);
+  for(const z of [north+2.8, south-2.8]){
+   box(west+2.6, y0+8.2, z, 5, 16.4, 5, cream);
+   for(const h of [4.4, 8.6, 12.6]) box(west+2.6, y0+h, z, 5.35, .26, 5.35, trim);
+   for(const h of [6.4, 10.6]){
+    const arch=new T.Mesh(new T.CapsuleGeometry(.5, 1.15, 4, 8), material(dark));
+    arch.scale.x=.14; arch.position.set(west+.12, y0+h, z); scene.add(arch);
+   }
+   const cup=new T.Mesh(new T.SphereGeometry(2.2, 16, 10, 0, Math.PI*2, 0, Math.PI/2), material(dome));
+   cup.position.set(west+2.6, y0+16.4, z); scene.add(cup);
+   box(west+2.6, y0+19.3, z, .12, 2.1, .12, '#7d7464');
+   box(west+2.6, y0+19.7, z, 1.2, .12, .12, '#7d7464');
   }
-  box(cx,y+3.6,front-.9,11,7.2,1,white);
-  for(const dx of [-3.5,0,3.5]){const door=new T.Mesh(new T.CapsuleGeometry(.65,1.7,4,12),material('#6c5540'));door.scale.z=.15;door.position.set(cx+dx,y+1.8,front-.32);scene.add(door);}
-  for(const dx of [-5,-3.3,3.3,5]){const column=new T.Mesh(new T.CylinderGeometry(.26,.32,5.2,12),material(white));column.position.set(cx+dx,y+2.9,front+.5);scene.add(column);box(cx+dx,y+.35,front+.5,.85,.5,.85,trim);box(cx+dx,y+5.5,front+.5,.8,.35,.8,trim);}
-  box(cx,y+5.9,front+.4,12,.55,2.2,white);
-  const shape=new T.Shape();shape.moveTo(-6,0);shape.lineTo(6,0);shape.lineTo(0,3);shape.closePath();const pediment=new T.Mesh(new T.ExtrudeGeometry(shape,{depth:.6,bevelEnabled:false}),material(white));pediment.position.set(cx,y+6.2,front+.5);scene.add(pediment);
-  for(let i=0;i<3;i++)box(cx,y+.15+i*.15,front+1.5-i*.35,13,.25,2-i*.3,trim);
+  for(const z of [-4.4, 0, 4.4]){
+   const opening=new T.Mesh(new T.CapsuleGeometry(z?0.72:0.95, z?1.6:2.2, 4, 10), material(wood));
+   opening.scale.x=.18; opening.position.set(west+.15, y0+(z?1.7:2.2), cz+z); scene.add(opening);
+  }
+  for(const z of [-6.4, -2.2, 2.2, 6.4]){
+   const column=new T.Mesh(new T.CylinderGeometry(.26, .32, 5.6, 10), material(cream));
+   column.position.set(west-.2, y0+2.9, cz+z); scene.add(column);
+   box(west-.2, y0+.28, cz+z, .78, .42, .78, trim);
+   box(west-.2, y0+5.75, cz+z, .72, .3, .72, trim);
+  }
+  box(west-.15, y0+6.15, cz, 1.15, .42, Math.min(facade-8, 16), cream);
+  const shape=new T.Shape(); shape.moveTo(-6.4, 0); shape.lineTo(6.4, 0); shape.lineTo(0, 2.7); shape.closePath();
+  const ped=new T.Mesh(new T.ExtrudeGeometry(shape, {depth:.55, bevelEnabled:false}), material(cream));
+  ped.rotation.y=Math.PI/2; ped.position.set(west-.55, y0+6.35, cz); scene.add(ped);
+  for(let i=0;i<4;i++) box(west-.35-i*.22, y0+.1+i*.12, cz, .36, .16, Math.min(facade-6, 18)-i*.4, trim);
  }
 
  // Templos originales del valle. Santa Gertrudis y Santa Ana siguen en sus funciones.
@@ -236,7 +254,7 @@ function boot(api){
   for(let i=0;i<road.points.length-1;i++){
    const a=road.points[i],b=road.points[i+1],dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length;
    for(let d=1;d<length;d+=3){const t=d/length,tx=a.x+dx*t,tz=a.y+dz*t;
-    if(tx>=88&&tx<=114&&tz>=256&&tz<=278)continue;
+    if(tx>=83&&tx<=125&&tz>=249&&tz<=284)continue;
     const x=tx*2+1,z=tz*2+1,y=height(tx,tz)+.1;
     const dash=box(x,y,z,.13,.04,2.4,'#f1d683');dash.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),new T.Vector3(dx*2,b.height-a.height,dz*2).normalize());
     for(const side of [-1,1]){const gx=x+nx*5.1*side,gz=z+nz*5.1*side,gy=height(gx/2,gz/2);box(gx,gy+.65,gz,.12,1.3,.12,'#aeb6b1');const rail=box(gx,gy+1.1,gz,.12,.18,6.3,'#bec4bd');rail.rotation.y=Math.atan2(dx,dz);}

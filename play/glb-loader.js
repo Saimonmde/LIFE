@@ -45,16 +45,29 @@ export class GLTFLoader {
     const pending = [];
     for (const node of json.nodes || []) {
       if (node.mesh == null) continue;
-      const prim = json.meshes[node.mesh].primitives[0];
+      for (const prim of json.meshes[node.mesh].primitives || []) {
       const geo = new T.BufferGeometry();
       const pos = read(prim.attributes.POSITION);
       geo.setAttribute('position', new T.BufferAttribute(pos, 3));
       if (prim.attributes.NORMAL != null) geo.setAttribute('normal', new T.BufferAttribute(read(prim.attributes.NORMAL), 3));
       else geo.computeVertexNormals();
+      if (prim.attributes.COLOR_0 != null) geo.setAttribute('color', new T.BufferAttribute(read(prim.attributes.COLOR_0), 3));
       if (prim.attributes.TEXCOORD_0 != null) geo.setAttribute('uv', new T.BufferAttribute(read(prim.attributes.TEXCOORD_0), 2));
       if (prim.indices != null) geo.setIndex(new T.BufferAttribute(read(prim.indices), 1));
-      const mat = new T.MeshStandardMaterial({ color: '#d5d6d2', metalness: 0.25, roughness: 0.55, side: T.DoubleSide });
+      const pbr = (json.materials && json.materials[prim.material || 0] && json.materials[prim.material || 0].pbrMetallicRoughness) || {};
+      const factor = pbr.baseColorFactor || [0.84, 0.83, 0.8, 1];
+      const mat = new T.MeshLambertMaterial({
+        color: new T.Color(factor[0], factor[1], factor[2]),
+        vertexColors: prim.attributes.COLOR_0 != null,
+        side: T.DoubleSide,
+      });
       const mesh = new T.Mesh(geo, mat);
+      if (node.matrix) mesh.applyMatrix4(new T.Matrix4().fromArray(node.matrix));
+      else {
+        if (node.translation) mesh.position.fromArray(node.translation);
+        if (node.rotation) mesh.quaternion.fromArray(node.rotation);
+        if (node.scale) mesh.scale.fromArray(node.scale);
+      }
       mesh.castShadow = mesh.receiveShadow = true;
       const image = json.images && json.images[0];
       const texView = image && views[image.bufferView];
@@ -79,6 +92,7 @@ export class GLTFLoader {
         }));
       }
       scene.add(mesh);
+      }
     }
     return Promise.all(pending).then(() => ({ scene }));
   }

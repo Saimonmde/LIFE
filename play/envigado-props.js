@@ -2,27 +2,138 @@
 // Bancas, canecas verdes y esculturas propias. Sin escaneo de caneca y sin marcas.
 import { GLTFLoader } from './glb-loader.js?v=valle-hud-r5';
 
+// Medidas del escaneo (graphics/models/banca_envigado.json). El GLB final usa la misma ruta.
+const BENCH_URL = '../graphics/models/banca_envigado.glb';
+const BENCH = { length: 1.63, width: 0.51, seat: 0.48, slab: 0.10, wedgeL: 1.40, wedgeW: 0.28, wedgeBack: 0.38, wedgeFront: 0.16 };
+
 export function placeEnvigadoProps(T, scene, height) {
   const park = window.EnvigadoPark;
   if (!park || !park.allProps) return;
   const concrete = concreteMaterial(T);
   const paver = paverMaterial(T);
   park.drawn3d.length = 0;
+  const benches = [];
   for (const prop of park.allProps()) {
     const g = new T.Group();
     g.position.set(prop.x * 2 + 1, height(prop.x, prop.y) + 0.04, prop.y * 2 + 1);
     g.name = prop.id;
     g.userData.parkProp = prop.id;
     if (prop.kind === 'caneca') buildCaneca(T, g, prop.ry || 0);
-    else if (prop.kind === 'banca') buildBanca(T, g);
+    else if (prop.kind === 'banca') benches.push(prop);
     else buildEscultura(T, g, prop.id);
     scene.add(g);
     park.drawn3d.push(prop.id);
   }
+  if (benches.length) buildBenches(T, scene, height, benches);
   park.model = 'original';
   buildSkate(T, scene, height, park, concrete, paver);
   buildCanopy(T, scene, height);
   buildHouses(T, scene, height);
+}
+
+function buildBenches(T, scene, height, benches) {
+  const mesh = new T.InstancedMesh(benchProxyGeometry(T), benchMaterial(T, true), benches.length);
+  mesh.name = 'bancas';
+  mesh.castShadow = mesh.receiveShadow = true;
+  const dummy = new T.Object3D();
+  benches.forEach((prop, i) => {
+    dummy.position.set(prop.x * 2 + 1, height(prop.x, prop.y), prop.y * 2 + 1);
+    dummy.rotation.set(0, prop.yaw || 0, 0);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.computeBoundingSphere();
+  scene.add(mesh);
+  new GLTFLoader().load(BENCH_URL, gltf => {
+    const geometry = mergeBenchGeometry(T, gltf.scene);
+    if (!geometry) return;
+    mesh.geometry.dispose();
+    mesh.geometry = geometry;
+    const colored = !!geometry.getAttribute('color');
+    mesh.material.vertexColors = colored;
+    if (!colored) {
+      const source = firstMesh(gltf.scene);
+      if (source && source.material && source.material.color) mesh.material.color.copy(source.material.color);
+    }
+    mesh.computeBoundingSphere();
+  }, undefined, () => { /* el proxy se queda si el GLB no está */ });
+}
+
+function benchMaterial(T, vertexColors) {
+  return new T.MeshLambertMaterial({ color: '#d6d0c4', vertexColors, side: T.DoubleSide });
+}
+
+function benchProxyGeometry(T) {
+  const positions = [];
+  const colors = [];
+  const top = [0.91, 0.88, 0.82], side = [0.56, 0.52, 0.48], edge = [0.40, 0.37, 0.34], dark = [0.28, 0.26, 0.24];
+  const quad = (a, b, c, d, color) => {
+    for (const tri of [[a, b, c], [a, c, d]]) for (const v of tri) { positions.push(v[0], v[1], v[2]); colors.push(color[0], color[1], color[2]); }
+  };
+  const box = (x0, x1, y0, y1, z0, z1) => {
+    quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], top);
+    quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], dark);
+    quad([x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [x1, y0, z0], side);
+    quad([x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [x0, y0, z1], side);
+    quad([x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [x0, y0, z0], edge);
+    quad([x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [x1, y0, z1], edge);
+  };
+  const { length, width, seat, slab, wedgeL, wedgeW, wedgeBack, wedgeFront } = BENCH;
+  box(-length / 2, length / 2, seat - slab, seat, -width / 2, width / 2);
+  const x0 = -wedgeL / 2, x1 = wedgeL / 2, z0 = -wedgeW / 2, z1 = wedgeW / 2;
+  const a = [x0, 0, z0], b = [x1, 0, z0], c = [x1, 0, z1], d = [x0, 0, z1];
+  const e = [x0, wedgeBack, z0], f = [x1, wedgeBack, z0], g = [x1, wedgeFront, z1], h = [x0, wedgeFront, z1];
+  quad(d, c, b, a, dark);
+  quad(a, b, f, e, side);
+  quad(c, d, h, g, edge);
+  quad(a, e, h, d, dark);
+  quad(b, c, g, f, dark);
+  quad(e, f, g, h, side);
+  const geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function firstMesh(root) {
+  let found = null;
+  root.traverse(obj => { if (!found && obj.isMesh) found = obj; });
+  return found;
+}
+
+function mergeBenchGeometry(T, root) {
+  const positions = [];
+  const colors = [];
+  let hasColor = false;
+  root.updateMatrixWorld(true);
+  root.traverse(obj => {
+    if (!obj.isMesh || !obj.geometry) return;
+    const pos = obj.geometry.getAttribute('position');
+    if (!pos) return;
+    const color = obj.geometry.getAttribute('color');
+    const index = obj.geometry.getIndex();
+    const count = index ? index.count : pos.count;
+    const v = new T.Vector3();
+    const tint = obj.material && obj.material.color ? obj.material.color : null;
+    for (let i = 0; i < count; i++) {
+      const vi = index ? index.getX(i) : i;
+      v.fromBufferAttribute(pos, vi).applyMatrix4(obj.matrixWorld);
+      positions.push(v.x, v.y, v.z);
+      if (color) {
+        hasColor = true;
+        colors.push(color.getX(vi), color.getY(vi), color.getZ(vi));
+      } else if (tint) colors.push(tint.r, tint.g, tint.b);
+      else colors.push(0.84, 0.81, 0.75);
+    }
+  });
+  if (!positions.length) return null;
+  const geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  if (hasColor || colors.length === positions.length) geo.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  return geo;
 }
 
 function buildCaneca(T, g, ry) {
@@ -36,35 +147,6 @@ function buildCaneca(T, g, ry) {
   rim.rotation.x = Math.PI / 2;
   body.castShadow = lid.castShadow = true;
   g.add(body, lid, rim);
-}
-
-function buildBanca(T, g) {
-  const wood = new T.MeshLambertMaterial({ color: '#8a5a32', flatShading: true });
-  const iron = new T.MeshLambertMaterial({ color: '#3e4650', flatShading: true });
-  const box = new T.BoxGeometry(1, 1, 1);
-  for (const z of [-0.16, -0.02, 0.12]) {
-    const slat = new T.Mesh(box, wood);
-    slat.scale.set(3.3, 0.08, 0.12);
-    slat.position.set(0, 0.58, z);
-    slat.castShadow = true;
-    g.add(slat);
-  }
-  for (const y of [0.82, 1.02, 1.22]) {
-    const slat = new T.Mesh(box, wood);
-    slat.scale.set(3.3, 0.1, 0.08);
-    slat.position.set(0, y, -0.28);
-    slat.castShadow = true;
-    g.add(slat);
-  }
-  for (const x of [-1.4, 1.4]) {
-    for (const z of [-0.16, 0.14]) {
-      const leg = new T.Mesh(box, iron);
-      leg.scale.set(0.08, 0.58, 0.08);
-      leg.position.set(x, 0.29, z);
-      leg.castShadow = true;
-      g.add(leg);
-    }
-  }
 }
 
 function buildEscultura(T, g, id) {

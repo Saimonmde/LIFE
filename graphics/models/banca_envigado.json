@@ -1,0 +1,30 @@
+{
+  "id": "banca_envigado",
+  "units": "meters",
+  "up": "Y",
+  "origin": "floor center",
+  "longAxis": "X",
+  "front": "+Z",
+  "length_m": 1.63,
+  "width_m": 0.51,
+  "seat_height_m": 0.48,
+  "top_slant_m": 0.01,
+  "slab_thickness_m": 0.1,
+  "support": {
+    "kind": "wedge",
+    "length_m": 1.4,
+    "width_m": 0.28,
+    "back_height_m": 0.38,
+    "front_height_m": 0.16
+  },
+  "triangles": 24,
+  "source": {
+    "scan": "https://scaniverse.com/scan/7bneqnib2f5mf6pg",
+    "gaussians": "https://scaniverse.com/api/media/7bneqnib2f5mf6pg/gaussians.spz",
+    "preview": "https://scaniverse.com/api/media/7bneqnib2f5mf6pg/preview.jpg",
+    "format": "SPZ v3 gzip, 577726 gaussians, fractional_bits 12",
+    "author": "Simón / @Saimon888",
+    "license": "CC-BY-SA-4.0"
+  },
+  "note": "Medido en la nube densa, ya separado el piso de baldosa y la baranda. La losa de asiento mide 1.63 m por 0.51 m y queda a 0.48 m del piso. La superficie superior es casi horizontal: 1 cm de caída en todo el ancho. Debajo, la cuña se abre: el centro queda hueco y los apoyos bajan hacia el suelo. El GLB de al lado es un proxy de caja y cuña con esas medidas. El modelo estilizado final lo reemplaza sin cambiar la ruta."
+}

@@ -1,0 +1,5 @@
+SPDX-FileCopyrightText: 2026 Simón / @Saimon888. Escaneo propio de una banca de concreto del Parque de Envigado.
+SPDX-License-Identifier: CC-BY-SA-4.0
+
+El GLB es un proxy de cajas con las medidas de ese escaneo (ver banca_envigado.json).
+El modelo estilizado final usa la misma ruta y la misma licencia del escaneo.
