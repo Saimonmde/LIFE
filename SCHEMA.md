@@ -2,7 +2,7 @@
 
 Documento para cargar El Jardín desde el cliente de Sara (Vite + React + TypeScript + Socket.io) y desde el servidor.
 Todo el JSON está en UTF-8. Las rutas de imágenes son **relativas a la raíz de este repositorio** (antes se escribían como `El-Jardin/`; esa carpeta no existe).
-La simulación educativa (caballos, SAI, Libro Mayor y lecciones) está en `data/simulacion.json` y no modifica la casa ni el Parque de Envigado.
+La simulación educativa (caballos, SaiMonCoins o SMC, Libro Mayor y lecciones) está en `data/simulacion.json` y no modifica la casa ni el Parque de Envigado.
 `data/el-jardin.js` es exactamente el mismo objeto como `window.EL_JARDIN = {...}` (sólo para abrir la vista previa sin servidor); el juego debe usar el `.json`.
 **Es un único mapa**: v3 extiende el mismo El Jardín de v2 (40×40, 64 px, ortogonal); no hay un segundo mapa.
 

@@ -566,7 +566,7 @@ function connect() {
       if (mine || m.channel === 'proximidad' || m.channel === 'global') bubble(mine ? 0 : m.fromId, m.text);
     }
     else if (m.t === 'system') sys(esc(m.text));
-    else if (window.Simulacion && Simulacion.onNet(m)) { /* SAI o resultado de pago */ }
+    else if (window.Simulacion && Simulacion.onNet(m)) { /* SMC o resultado de pago */ }
     else if (m.t === 'pong') { S.net.ping = Math.round(performance.now() - m.c); $('#ping span').textContent = S.net.ping + ' ms'; }
   };
   ws.onclose = () => {
@@ -643,7 +643,7 @@ function describe(t) {
     case 'farm_plot': return n.state === 'empty' ? 'Sembrar en <b>parcela vacía</b>' : n.state === 'planted' ? `Parcela sembrada: <b>${W.items[n.crop].name}</b>` : `Cosechar: <b>${W.items[n.crop].name}</b>`;
     case 'fishing_spot': return n.state === 'active' ? `Pescar con red: <b>${d.waterBody === 'rio_claro' ? 'Río Claro' : 'Estanque'}</b>` : 'Agua tranquila';
     case 'nodo_oro_fluvial': return n.state === 'active' ? 'Lavar arena: <b>oro fluvial en el río</b> (batea)' : 'Arena lavada';
-    case 'fruit_stand': return 'Comprar un <b>mango</b> por 5 SAI (simulación)';
+    case 'fruit_stand': return 'Comprar un <b>mango</b> por 5 SMC (simulación)';
     case 'mineral_rock': return n.state === 'active' ? `Picar: <b>${NOMBRES[d.mineral]}</b>` : 'Roca agotada';
   }
   return '';

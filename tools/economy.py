@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Saimon Coins (SAI, alias Saimony): emisión, halvings y libro mayor.
+"""SaiMonCoins (SMC): emisión, halvings y libro mayor.
+
+Nota histórica: hasta 2026 el nombre visible fue Saimon Coins (SAI), con alias Saimony.
+Ese alias ya no se muestra. Un state/economy.json antiguo se sigue leyendo; no se reescriben los bloques.
 
 Simulación educativa. No es dinero real, no tiene valor de canje y no transfiere derechos.
 """
@@ -7,7 +10,13 @@ import hashlib, json, os, time
 
 SUBS = 100_000_000
 MAX_SUPPLY = 21_000_000
-INITIAL_REWARD = 50  # SAI por bateada de oro fluvial
+INITIAL_REWARD = 50  # SMC por bateada de oro fluvial
+SYMBOL = 'SMC'
+UNIT = 'SaiMonCoin'
+DISCLAIMER = (
+    'Las SaiMonCoins (SMC) son sólo una moneda del juego. '
+    'No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.'
+)
 HALVING_MINED = 10_500_000
 TREASURY = 210_000  # reserva inicial (recompensas de misión); no es emisión nueva
 GENESIS_PREV = '0' * 64
@@ -25,9 +34,9 @@ def sai_of(subs):
 def format_sai(subs):
     s = sai_of(int(subs))
     if abs(s - round(s)) < 1e-12:
-        return f'{int(round(s)):,} SAI'.replace(',', '.')
+        return f'{int(round(s)):,} {SYMBOL}'.replace(',', '.')
     t = f'{s:.8f}'.rstrip('0').rstrip('.')
-    return t.replace('.', ',') + ' SAI'
+    return t.replace('.', ',') + ' ' + SYMBOL
 
 
 def reward_sai(mined_sai):
@@ -53,14 +62,13 @@ def empty_state():
         'type': 'genesis',
         'to': 'tesoro_genesis',
         'amountSubs': subunits(TREASURY),
-        'note': 'Reserva inicial de Saimon Coins (no es dinero real).',
+        'note': 'Reserva inicial de SaiMonCoins (no es dinero real).',
     }]
     ts = 0
     h = hash_block(GENESIS_PREV, ts, genesis_txs)
     return {
-        'unit': 'Saimon Coin',
-        'symbol': 'SAI',
-        'alias': ['Saimony'],
+        'unit': UNIT,
+        'symbol': SYMBOL,
         'smallestUnit': 'saimonito',
         'subunitsPerUnit': SUBS,
         'maxSupply': MAX_SUPPLY,
@@ -75,7 +83,7 @@ def empty_state():
             'txs': genesis_txs,
         }],
         'mempool': [],
-        'disclaimer': 'Las Saimon Coins (SAI, alias Saimony) son sólo una moneda del juego. No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.',
+        'disclaimer': DISCLAIMER,
     }
 
 
@@ -119,13 +127,25 @@ def debit(state, name, subs):
     return True
 
 
+def normalize_state(state):
+    """Ajusta el nombre visible. Conserva bloques, saldos y un archivo guardado con el símbolo SAI."""
+    state['unit'] = UNIT
+    state['symbol'] = SYMBOL
+    state.pop('alias', None)
+    state['disclaimer'] = DISCLAIMER
+    state.setdefault('smallestUnit', 'saimonito')
+    return state
+
+
 def load_state(path):
     if not os.path.isfile(path):
         st = empty_state()
         save_state(path, st)
         return st
     with open(path, encoding='utf-8') as f:
-        return json.load(f)
+        state = json.load(f)
+    normalize_state(state)
+    return state
 
 
 def save_state(path, state):

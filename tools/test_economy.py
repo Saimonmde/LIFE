@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Comprueba la emisión, el tope, el halving y el libro mayor de la simulación SAI."""
+"""Comprueba la emisión, el tope, el halving y el libro mayor de las SaiMonCoins (SMC)."""
 import json, os, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import economy as eco
@@ -8,6 +8,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class EconomyTests(unittest.TestCase):
+    def test_old_file_keeps_blocks_and_shows_smc(self):
+        old = eco.empty_state()
+        old['symbol'] = 'SAI'
+        old['unit'] = 'Saimon Coin'
+        old['alias'] = ['Saimony']
+        old['disclaimer'] = 'Las Saimon Coins (SAI, alias Saimony) son sólo una moneda del juego.'
+        genesis = old['blocks'][0]['hash']
+        eco.normalize_state(old)
+        self.assertEqual(old['symbol'], 'SMC')
+        self.assertEqual(old['unit'], 'SaiMonCoin')
+        self.assertNotIn('alias', old)
+        self.assertIn('SaiMonCoins', old['disclaimer'])
+        self.assertEqual(old['blocks'][0]['hash'], genesis)
+
     def test_reward_and_cap(self):
         self.assertEqual(eco.reward_sai(0), 50)
         self.assertEqual(eco.reward_sai(10_500_000), 25)
