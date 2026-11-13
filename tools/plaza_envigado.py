@@ -27,25 +27,23 @@ def main():
     def kind(x, y):
         return tiles[str(ground[y][x])]['kind']
 
-    plaza = {(x, y) for x in range(91, 105) for y in range(260, 273)}
+    # Plaza simétrica: cruz de senderos (sin diagonales) y empedrado alrededor.
+    plaza_x0, plaza_x1, plaza_y0, plaza_y1 = 91, 104, 260, 272
+    cross_x, cross_y = (97, 98), 266
     changed = {}
-    for y in range(257, 277):
-        for x in range(88, 113):
+    for y in range(256, 277):
+        for x in range(88, 116):
             if (x, y) in KEEP or kind(x, y) in ('water', 'creek', 'bridge'):
                 continue
-            on_cross = (x == 98 or y == 266) and (x, y) in plaza
-            on_diag = (x, y) in plaza and (x - 91 == y - 260 or (104 - x) == (y - 260))
-            if (x, y) in plaza and not on_cross and not on_diag:
-                tile = GRASS
-            elif on_cross or on_diag:
-                tile = PATH
-            else:
-                tile = COBBLE
+            inside = plaza_x0 <= x <= plaza_x1 and plaza_y0 <= y <= plaza_y1
+            on_cross = inside and (x in cross_x or y == cross_y)
+            tile = PATH if on_cross else (GRASS if inside else COBBLE)
             if ground[y][x] != int(tile):
                 ground[y][x] = int(tile)
                 changed[(x, y)] = tile
-            if tile == PATH or (x, y) in KEEP:
-                collision[y][x] = 0
+            else:
+                changed[(x, y)] = tile
+            collision[y][x] = 0
 
     for x, y in PROTECTED:
         ground[y][x] = int(COBBLE)
@@ -53,19 +51,20 @@ def main():
         changed[(x, y)] = COBBLE
 
     church = None
+    church_box = (108, 264, 5, 5)
     for mark in world['landmarks']:
         if mark.get('kind') == 'santa_gertrudis':
-            mark['x'], mark['y'], mark['w'], mark['h'] = 107, 269, 6, 5
-            mark['note'] = 'Al suroriente de la plaza, al otro lado de la calle. Arte original.'
+            mark['x'], mark['y'], mark['w'], mark['h'] = church_box
+            mark['note'] = 'Al oriente de la plaza, centrada con el sendero. Arte original.'
             church = mark
-    for y in range(269, 274):
-        for x in range(107, 113):
+    cx, cy, cw, ch = church_box
+    for y in range(cy, cy + ch):
+        for x in range(cx, cx + cw):
             if (x, y) in KEEP:
                 continue
             collision[y][x] = 1
 
-    trees = [(93, 261), (95, 263), (101, 261), (103, 263), (93, 269), (95, 271),
-             (101, 269), (102, 271), (96, 264), (100, 268), (97, 270), (91, 264)]
+    trees = [(93, 261), (102, 261), (95, 263), (100, 263), (93, 271), (102, 271), (95, 269), (100, 269)]
     world['decorations'] = [d for d in world['decorations'] if not str(d.get('id', '')).startswith('plaza_')]
     for i, (x, y) in enumerate(trees):
         if (x, y) in KEEP or kind(x, y) == 'path':
@@ -74,7 +73,7 @@ def main():
         world['decorations'].append({
             'id': f'plaza_arbol_{i}', 'type': 'canopy', 'x': x, 'y': y, 'solid': True,
         })
-    for i, (x, y, w, h, floors) in enumerate(((90, 256, 4, 2, 2), (100, 256, 4, 2, 3), (86, 262, 2, 4, 2))):
+    for i, (x, y, w, h, floors) in enumerate(((90, 256, 4, 2, 2), (102, 256, 4, 2, 2))):
         world['decorations'].append({
             'id': f'plaza_casa_{i}', 'type': 'casa_envigado', 'x': x, 'y': y, 'w': w, 'h': h,
             'floors': floors, 'solid': True,
@@ -84,6 +83,30 @@ def main():
                 if (xx, yy) in KEEP:
                     continue
                 collision[yy][xx] = 1
+
+    elev = world.get('elevation') or []
+
+    def road_height(x, y):
+        try:
+            return elev[y][x]
+        except (IndexError, TypeError):
+            return 0
+
+    for road in world.get('roads3d') or []:
+        if road.get('id') != 'valle':
+            continue
+        points = []
+        skirted = False
+        for point in road.get('points') or []:
+            px, py = int(point['x']), int(point['y'])
+            if 88 <= px <= 114 and 256 <= py <= 278:
+                if not skirted:
+                    points.append({'x': 122, 'y': 296, 'height': road_height(122, 296)})
+                    points.append({'x': 122, 'y': 246, 'height': road_height(122, 246)})
+                    skirted = True
+                continue
+            points.append(point)
+        road['points'] = points
 
     world.setdefault('valle', {})['compass'] = {
         'north': [0, -1],
@@ -108,11 +131,23 @@ def main():
             if 'id' in cell:
                 cell['id'] = int(tile)
     block['layout'] = {
-        'note': 'Plaza cuadrada con dosel, cruces y la iglesia al suroriente. Referencia de trazado, no de foto.',
+        'note': 'Plaza simétrica: cruz de senderos, bancas y árboles en espejo, iglesia al oriente. Sin carretera atravesada. Referencia de trazado, no de foto.',
         'church': {'id': 'santa_gertrudis', 'x': church['x'], 'y': church['y'], 'w': church['w'], 'h': church['h']},
         'trees': trees,
         'protected': [list(p) for p in sorted(PROTECTED)],
     }
+    props = block.setdefault('props', {})
+    props['benches'] = [
+        {'id': 'banca_norte', 'dx': 13, 'dy': 9, 'x': 94, 'y': 264},
+        {'id': 'banca_oriente', 'dx': 20, 'dy': 9, 'x': 101, 'y': 264},
+        {'id': 'banca_sur', 'dx': 13, 'dy': 13, 'x': 94, 'y': 268},
+        {'id': 'banca_esquina', 'dx': 20, 'dy': 13, 'x': 101, 'y': 268},
+    ]
+    props['sculptures'] = [
+        {'id': 'anillo', 'dx': 14, 'dy': 7, 'x': 95, 'y': 262, 'name': 'Anillo'},
+        {'id': 'columna', 'dx': 19, 'dy': 7, 'x': 100, 'y': 262, 'name': 'Columna'},
+        {'id': 'ovalo', 'dx': 15, 'dy': 15, 'x': 96, 'y': 270, 'name': 'Óvalo'},
+    ]
     BLOCK.write_text(json.dumps(block, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     print('changed', len(changed), 'church', church['x'], church['y'])
 

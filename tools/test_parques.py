@@ -128,8 +128,32 @@ class ParquesTests(unittest.TestCase):
         layout = block['layout']
         church = layout['church']
         self.assertGreater(church['x'], 100)
-        self.assertGreater(church['y'], 266)
+        self.assertLessEqual(church['y'], 266)
+        self.assertGreater(church['y'] + church['h'], 266)
         self.assertGreaterEqual(len(layout['trees']), 8)
+
+    def test_envigado_plaza_is_symmetric_and_the_road_skirts_it(self):
+        world = self.world
+        tiles = world['tiles']
+        box = (88, 256, 114, 278)
+
+        def hits(a, b):
+            steps = max(abs(b[0] - a[0]), abs(b[1] - a[1]), 1)
+            for i in range(steps + 1):
+                x = int(round(a[0] + (b[0] - a[0]) * i / steps))
+                y = int(round(a[1] + (b[1] - a[1]) * i / steps))
+                if box[0] <= x <= box[2] and box[1] <= y <= box[3]:
+                    return True
+            return False
+
+        road = next(item for item in world['roads3d'] if item['id'] == 'valle')
+        points = [(p['x'], p['y']) for p in road['points']]
+        self.assertFalse(any(hits(a, b) for a, b in zip(points, points[1:])))
+        for x, y in ((97, 266), (98, 260), (91, 266), (104, 266)):
+            self.assertEqual(tiles[str(world['ground'][y][x])]['kind'], 'path', (x, y))
+        for x, y in ((93, 262), (102, 262), (93, 270), (102, 270)):
+            self.assertEqual(tiles[str(world['ground'][y][x])]['kind'], 'grass', (x, y))
+        self.assertNotEqual(tiles[str(world['ground'][262][95])]['kind'], 'path')
 
     def test_horse_road_reaches_every_park(self):
         world = self.world

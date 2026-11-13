@@ -235,7 +235,9 @@ function boot(api){
  for(const road of W.roads3d||[]){
   for(let i=0;i<road.points.length-1;i++){
    const a=road.points[i],b=road.points[i+1],dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length;
-   for(let d=1;d<length;d+=3){const t=d/length,x=(a.x+dx*t)*2+1,z=(a.y+dz*t)*2+1,y=height(a.x+dx*t,a.y+dz*t)+.1;
+   for(let d=1;d<length;d+=3){const t=d/length,tx=a.x+dx*t,tz=a.y+dz*t;
+    if(tx>=88&&tx<=114&&tz>=256&&tz<=278)continue;
+    const x=tx*2+1,z=tz*2+1,y=height(tx,tz)+.1;
     const dash=box(x,y,z,.13,.04,2.4,'#f1d683');dash.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),new T.Vector3(dx*2,b.height-a.height,dz*2).normalize());
     for(const side of [-1,1]){const gx=x+nx*5.1*side,gz=z+nz*5.1*side,gy=height(gx/2,gz/2);box(gx,gy+.65,gz,.12,1.3,.12,'#aeb6b1');const rail=box(gx,gy+1.1,gz,.12,.18,6.3,'#bec4bd');rail.rotation.y=Math.atan2(dx,dz);}
    }

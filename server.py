@@ -21,6 +21,8 @@ import playtime as PLAY
 import vault as VAULT
 import viajes as VIAJES
 import accounts as ACC
+import fusion as FUSION
+import historia as HISTORIA
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -121,6 +123,45 @@ def river_label(node):
 _migrados = LIBRO.migrar(LIBRO_CHAIN, NFT_SEED, ECON.get('wallets') or {}, VAULT_STATE.get('accounts') or {})
 save_libro(_migrados)
 
+def maybe_fuse():
+    """Pasa el SMC ya emitido a la cuenta del fundador, una sola vez."""
+    result = FUSION.apply(ECON, ACCOUNTS, VAULT_STATE)
+    if not result.get('changed'):
+        return result
+    fresh = result.get('fresh') or []
+    dest = (result.get('record') or {}).get('wallet') or ''
+    records = []
+    for item in fresh:
+        origen = item.get('libroFrom') or item.get('from')
+        amount = int(item.get('amountSubs') or 0)
+        have = int(LIBRO.balances(LIBRO_CHAIN).get(origen) or 0)
+        take = min(amount, have)
+        if take <= 0 or not dest or origen == dest:
+            continue
+        try:
+            records.append(LIBRO.transferir(
+                LIBRO_CHAIN, NFT_SEED, origen, dest, take, FUSION.NOTE,
+            ))
+        except LIBRO.LibroError as exc:
+            print('[fusion] el libro madre no anotó', origen, exc, flush=True)
+    if records:
+        try:
+            save_libro(records)
+        except persist_duplicate:
+            print('[fusion] el libro madre ya tenía ese código; el libro mayor sí quedó', flush=True)
+    save_econ()
+    save_vault()
+    if result.get('status') == 'pending':
+        print('[fusion] pendiente hasta que entre saimon888oficial@gmail.com', flush=True)
+    elif fresh:
+        moved = sum(int(item.get('amountSubs') or 0) for item in fresh)
+        print(f'[fusion] {len(fresh)} pases, {moved} SMH hacia {dest}. {FUSION.NOTE}', flush=True)
+    elif result.get('changed'):
+        print('[fusion] depósito ya anotado; no se acreditó otra vez', flush=True)
+    return result
+
+maybe_fuse()
+
 def play_for(name, active=True):
     info = PLAY.beat(PLAYERS, name, active=active)
     save_play()
@@ -150,8 +191,9 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
         'minedSmh': int(ECON.get('minedSmh') or 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
         'mempool': ECON.get('mempool', []), 'disclaimer': (ECON.get('disclaimer') or '') + RESET_NOTE,
         'ledgerResets': True, 'symbol': 'SMC', 'symbolBase': 'SMH', 'unit': 'SaiMonCoin',
-        'smallestName': 'Simonchi', 'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
+        'smallestName': 'Simonchi', 'subunitsPerUnit': ECO.SUBS,         'maxSupply': ECO.MAX_SUPPLY,
         'maxSupplySmh': ECO.MAX_SMH,
+        'historia': HISTORIA.filas(ECON),
     }}
     if who:
         m['balanceSubs'] = 0 if locked else int((ECON.get('wallets') or {}).get(who) or 0)
@@ -361,6 +403,10 @@ def emitir(sender, smh, note, kind, foundry, tile, location):
     if pooled:
         try:
             anotar_pase(sender.name, PLATA.POOL, pooled, 'Aporte al fondo de cambio')
+            ECO.append_tx(ECON, {
+                'type': 'pool', 'from': sender.name, 'to': PLATA.POOL,
+                'amountSubs': pooled, 'note': 'Un quinto al fondo de cambio',
+            })
         except (LIBRO.LibroError, persist_duplicate):
             PLATA.devolver(ECON, sender.name, pooled)
             pooled = 0
@@ -468,6 +514,10 @@ def exchange_plata(sender, sph=None):
         PLATA.undo_exchange(ECON, profile, smh, spent)
         save_econ()
         return fail_plata(sender, 'pool')
+    ECO.append_tx(ECON, {
+        'type': 'exchange', 'from': PLATA.POOL, 'to': sender.name,
+        'amountSubs': smh, 'spentSph': spent, 'note': 'Cambio de plata por oro',
+    })
     sender.activity_tiles = 0
     save_econ()
     broadcast_econ()
@@ -606,6 +656,10 @@ def migrate_for(sender, amount, proof=None):
         if pooled:
             try:
                 anotar_pase(sender.name, PLATA.POOL, pooled, 'Aporte al fondo de cambio')
+                ECO.append_tx(ECON, {
+                    'type': 'pool', 'from': sender.name, 'to': PLATA.POOL,
+                    'amountSubs': pooled, 'note': 'Un quinto al fondo de cambio',
+                })
             except (LIBRO.LibroError, persist_duplicate):
                 PLATA.devolver(ECON, sender.name, pooled)
     else:
@@ -1121,6 +1175,7 @@ async def try_auth(method, path, target, headers, body):
             link_name, _, link_token = link.partition('|')
             settle_wallet(user, link_name, link_token)
             save_accounts()
+            maybe_fuse()
         except (ACC.AuthError, urllib.error.URLError, TimeoutError, OSError):
             return redirect(fallo, headers, [ACC.cookie('life_return', '', 0, secure)])
         return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure), ACC.cookie('life_return', '', 0, secure)])
@@ -1137,6 +1192,7 @@ async def try_auth(method, path, target, headers, body):
             user = next(u for u in ACCOUNTS['users'] if u['id'] == result['user']['id'])
             settle_wallet(user, payload.get('name') or user['name'], payload.get('walletToken') or '')
             save_accounts()
+            maybe_fuse()
         except ACC.AuthError as exc:
             return auth_response('400 Bad Request', {'error': str(exc)}, headers)
         return auth_response('200 OK', {'ok': True, 'user': ACC.public_user(user)}, headers, [ 'Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)])
