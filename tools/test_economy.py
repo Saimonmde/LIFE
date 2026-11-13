@@ -63,6 +63,39 @@ class EconomyTests(unittest.TestCase):
         self.assertNotIn('Satoshi', features['npc']['name'])
         self.assertIn('Peer-to-Peer Electronic Cash System', features['skill']['citation']['title'])
 
+    def test_old_sai_balance_stays_one_to_one(self):
+        old = eco.empty_state()
+        old['symbol'] = 'SAI'
+        old['wallets']['Ana'] = eco.subunits(12)
+        eco.normalize_state(old)
+        self.assertEqual(old['wallets']['Ana'], eco.subunits(12))
+        eco.normalize_state(old)
+        self.assertEqual(old['wallets']['Ana'], eco.subunits(12))
+
+    def test_issue_respects_the_cap(self):
+        st = eco.empty_state()
+        st['mined'] = eco.MAX_SUPPLY - eco.TREASURY - 3
+        got = eco.issue(st, 'Ana', 10, 'prueba', 'mint', now=10)
+        self.assertEqual(got, 3)
+        self.assertEqual(eco.issue(st, 'Ana', 1, 'otra', 'mint', now=20), 0)
+        self.assertLessEqual(st['mined'] + eco.TREASURY, eco.MAX_SUPPLY)
+
+    def test_old_coins_convert_once(self):
+        st = eco.empty_state()
+        first = eco.migrate_monedas(st, 'Ana', 40, now=30)
+        self.assertFalse(first['already'])
+        self.assertEqual(first['rate'], 1)
+        self.assertEqual(first['credited'], 40)
+        self.assertEqual(st['wallets']['Ana'], eco.subunits(40))
+        again = eco.migrate_monedas(st, 'Ana', 40, now=40)
+        self.assertTrue(again['already'])
+        self.assertEqual(again['credited'], 0)
+        self.assertEqual(st['wallets']['Ana'], eco.subunits(40))
+        st['mined'] = eco.MAX_SUPPLY - eco.TREASURY - 2
+        capped = eco.migrate_monedas(st, 'Beto', 9, now=50)
+        self.assertEqual(capped['credited'], 2)
+        self.assertEqual(st['migrations']['Beto']['requested'], 9)
+
 
 class ServerGuardTests(unittest.TestCase):
     @classmethod
@@ -108,6 +141,17 @@ class ServerGuardTests(unittest.TestCase):
         self.assertEqual(s.bind_wallet('Duena', token), token)
         self.assertIsNone(s.bind_wallet('Duena', '0' * len(token)))
         self.assertLessEqual(len(s.block_page()), s.LEDGER_PAGE)
+
+    def test_foundry_needs_the_mine(self):
+        s = self.server
+        before = float(s.ECON.get('mined') or 0)
+        who = s.Client(None)
+        who.hello = True
+        who.wallet_ok = True
+        who.zone = 'city'
+        who.name = 'Fundidor'
+        s.smelt_for(who, 'mineral_cobre', 1)
+        self.assertEqual(float(s.ECON.get('mined') or 0), before)
 
 
 if __name__ == '__main__':

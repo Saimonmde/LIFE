@@ -5,7 +5,7 @@
     {
       "id": "caballo",
       "name": "Caballo",
-      "speed": 2,
+      "speed": 4,
       "sprites": { "idle": "caballo_0", "walk": ["caballo_0", "caballo_1"] },
       "spawn": [
         { "id": "caballo_1", "x": 224, "y": 64 },

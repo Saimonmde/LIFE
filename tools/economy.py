@@ -154,3 +154,53 @@ def save_state(path, state):
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(state, f, ensure_ascii=False, indent=1)
     os.replace(tmp, path)
+
+
+# 1 moneda antigua del Jardín (el contador que no era SMC) = 1 SMC. El SAI ya guardado
+# sigue 1:1 porque normalize_state sólo cambia el nombre, no el saldo.
+OLD_COIN_TO_SMC = 1
+
+
+def issuance_room(state):
+    """SMC que todavía se pueden emitir. La reserva génesis no cuenta como emisión nueva."""
+    mined = float(state.get('mined') or 0)
+    return max(0.0, (MAX_SUPPLY - TREASURY) - mined)
+
+
+def issue(state, name, amount, note, kind='mint', now=None):
+    """Emite SMC nuevas contra el tope de 21.000.000. Devuelve las que cupieron."""
+    requested = float(amount or 0)
+    if requested <= 0:
+        return 0.0
+    room = issuance_room(state)
+    if room <= 0:
+        return 0.0
+    granted = min(requested, room)
+    subs = subunits(granted)
+    granted = sai_of(subs)
+    if granted <= 0:
+        return 0.0
+    state['mined'] = float(state.get('mined') or 0) + granted
+    credit(state, name, subs)
+    append_tx(state, {'type': kind, 'to': name, 'amountSubs': subs, 'note': note}, now=now)
+    return granted
+
+
+def migrate_monedas(state, name, monedas, now=None):
+    """Convierte una sola vez las monedas antiguas. Si el tope no alcanza, acredita el resto."""
+    record = state.setdefault('migrations', {})
+    if name in record:
+        return {'already': True, 'credited': 0.0, 'requested': float(record[name].get('requested') or 0), 'rate': OLD_COIN_TO_SMC}
+    requested = max(0.0, float(monedas or 0)) * OLD_COIN_TO_SMC
+    credited = issue(
+        state, name, requested,
+        f'Conversión {OLD_COIN_TO_SMC}:1 de monedas antiguas del Jardín a SMC',
+        'migrate', now=now,
+    ) if requested else 0.0
+    record[name] = {
+        'source': 'monedas_jardin',
+        'rate': OLD_COIN_TO_SMC,
+        'requested': requested,
+        'credited': credited,
+    }
+    return {'already': False, 'credited': credited, 'requested': requested, 'rate': OLD_COIN_TO_SMC}

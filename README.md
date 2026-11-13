@@ -25,7 +25,9 @@ Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del
 - `movil/` — entrada del teléfono; usa la misma vista con botones táctiles.
 - `data/el-jardin.json` — el mapa del Valle de Aburrá (10 municipios). `data/el-jardin.js` es la misma carga para abrir sin `fetch`. `data/simulacion.json` — establo, profesora, economía y lecciones, fuera de la casa. `data/valle-offset.json` — el único desplazamiento del Parque de Envigado. `data/relieve-aburra.json` — alturas simplificadas. `data/parque-envigado-bloque.json` — teselas del parque, celda por celda, antes y después de moverlas.
 - `graphics/` — arte original: teselas, objetos, personajes e interfaz.
-- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `test_economy.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `nft.py`, `ed25519.py`, `vault.py`, `payout.py`, `verify_nft.py`, `test_economy.py`, `test_nft.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+- `docs/CERTIFICADOS-SMC.md` — tope de 21 millones, conversión 1:1, certificados, banco y esculturas de reemplazo.
+- `graphics/ui/saimon-logo.png` — wordmark de Simón (CC-BY-SA-4.0). El título usa el derivado en oro `saimon-logo-gold.png` junto a la palabra City en UnifrakturMaguntia (OFL).
 
 ## Valle de Aburrá
 

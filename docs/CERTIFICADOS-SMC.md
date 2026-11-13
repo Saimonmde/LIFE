@@ -1,0 +1,47 @@
+# Certificados SMC, banco y conversión
+
+Simulación educativa. Las SaiMonCoins (SMC) no son dinero real, no se venden y no se retiran.
+
+## Tope
+
+Hay como máximo 21.000.000 SMC. La reserva génesis (210.000 SMC, para recompensas de misión) ya cuenta dentro de ese tope y no es una emisión nueva. El río, la fundidora, el turno de la cantera y la conversión de monedas antiguas sí emiten, y se detienen cuando no queda cupo. Si una conversión no cabe entera, se acredita sólo el resto y el libro guarda las dos cifras.
+
+## Conversión
+
+- 1 moneda antigua del Jardín (el contador que no era SMC) = 1 SMC.
+- Un saldo viejo guardado como SAI ya está en las mismas unidades. Al abrirlo sólo cambia el nombre a SMC. No se vuelve a multiplicar.
+- La conversión de cada nombre ocurre una sola vez.
+
+## Certificados
+
+Cada emisión nueva crea un registro con id, código único (`SMC-…`), dueño, cantidad, fecha, casilla o fundición, hash anterior y firma Ed25519. Mover SMC al banquito, pagar a otro jugador o cobrar una misión desde la reserva no crea certificado.
+
+La clave privada sale de la variable `NFT_PRIVATE_KEY` (64 caracteres hexadecimales) o se genera en `state/nft-key.json`. Ese archivo no se versiona. La clave pública se publica en `/api/nft/pubkey`.
+
+- `GET /api/nft/list`
+- `GET /api/nft/<id>` devuelve JSON compatible con metadatos ERC-721, por si más adelante se ancla. Hoy no hay cadena pública ni gas.
+- `python3 tools/verify_nft.py state/nft.json` comprueba eslabones y firmas.
+
+`state/` vive en el disco del servidor. En Render ese disco se pierde al redeploy: el libro, los certificados y el depósito vuelven a empezar. Está dicho en el aviso del juego.
+
+## Banco
+
+La Casa bancaria está junto al Parque de Envigado, fuera del bloque reservado (puerta en 113, 256; se entra desde 113, 257). Dentro hay mostrador, banquero y banquito.
+
+El banquito y el baúl de la casa son el mismo depósito, guardado en el servidor (`state/vault.json`). Depositar o retirar SMC mueve saldo entre la billetera y el depósito: no cambia la cantidad emitida. Los objetos depositados quedan en ese depósito.
+
+No hay un sistema de muerte que tire la mochila. Si más adelante una caída suelta lo que el jugador lleva encima, el depósito no entra en esa pérdida.
+
+## Turno de la cantera
+
+Ocho golpes de cobre o plata, con al menos un segundo entre ellos, pagan 10 SMC y un certificado. El oro del río sigue siendo la única bateada de oro. El adaptador OnePay/USDT existe en `tools/payout.py` y rechaza cualquier pago. En pantalla se lee que SMC no tiene valor real.
+
+## Esculturas de reemplazo en Envigado
+
+No había una obra pedida en el historial, y el bronce del Primer Poblado sigue fuera. En el parque hay tres piezas abstractas propias, sobre plinto, para que Jay las cambie:
+
+1. **Anillo** — un anillo sobre un plinto, en la casilla 96, 264.
+2. **Columna** — tres bloques desplazados sobre un plinto, en 102, 265.
+3. **Óvalo** — un óvalo sobre un plinto, en 105, 268.
+
+También hay cuatro bancas bajas (95, 262; 105, 262; 98, 270; 105, 270) y las tres canecas. Todas tienen colisión. El camino del parque sigue siendo transitable.

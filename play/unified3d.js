@@ -3,7 +3,8 @@ import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=saimon-door-r3';
 import {enrichWorld} from './park3d.js?v=saimon-door-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-door-r3';
-import {placeEnvigadoProps} from './envigado-props.js?v=envigado-r1';
+import {placeEnvigadoProps} from './envigado-props.js?v=smc-r3';
+import {buildBank, placeBankHouse} from './banco3d.js?v=smc-r3';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
@@ -41,7 +42,7 @@ function boot(api){
  }
  const target=new T.Vector3();const ray=new T.Raycaster(),pointer=new T.Vector2(),pick=[];
  const height=(x,y)=>{
-  if(W.mapId==='mine'||W.mapId==='casa')return 0;
+  if(W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco')return 0;
   const px=Math.max(0,Math.min(W.width-.001,x+.5)),py=Math.max(0,Math.min(W.height-.001,y+.5)),ix=Math.floor(px),iy=Math.floor(py),u=px-ix,v=py-iy;
   const a=corner(ix,iy),b=corner(ix+1,iy),c=corner(ix,iy+1),d=corner(ix+1,iy+1);
   return v>u?a*(1-v)+c*(v-u)+d*u:a*(1-u)+d*v+b*(u-v);
@@ -222,6 +223,7 @@ function boot(api){
  for(const d of W.doors){const m=box(d.x*2+1,height(d.x,d.y)+1,d.y*2+1,1.4,2,.3,'#684b2e');m.userData.id=d.id;pick.push(m);}
  const cityLighting=enrichWorld(T,scene,W,pick,height,material);status.lamps=cityLighting.count;
  placeEnvigadoProps(T,scene,height);
+ placeBankHouse(T,scene,height);
  for(const road of W.roads3d||[]){
   for(let i=0;i<road.points.length-1;i++){
    const a=road.points[i],b=road.points[i+1],dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length;
@@ -233,12 +235,13 @@ function boot(api){
  }
 
  const underground=buildMine(T,W);
+ const bankView=buildBank(T);
  buildHomeMarker(T,scene,pick,height,material);
  const casaView=buildHouse(T);status.rebuildHouse=(layout)=>casaView.rebuild(layout||window.Casa.layout);
  function doorHit(list){return !!(list && (list.exitDoor || list.id==='puerta_salida'));}
- const indoors=()=>W.mapId==='mine'||W.mapId==='casa';
- const activeScene=()=>W.mapId==='mine'?underground.scene:W.mapId==='casa'?casaView.scene:scene;
- const activePick=()=>W.mapId==='mine'?underground.pick:W.mapId==='casa'?casaView.pick:pick;
+ const indoors=()=>W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco';
+ const activeScene=()=>W.mapId==='mine'?underground.scene:W.mapId==='casa'?casaView.scene:W.mapId==='banco'?bankView.scene:scene;
+ const activePick=()=>W.mapId==='mine'?underground.pick:W.mapId==='casa'?casaView.pick:W.mapId==='banco'?bankView.pick:pick;
  const actorMap=new Map();
  const speechLayer=document.createElement('div');speechLayer.id='speech-layer';speechLayer.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden';document.body.append(speechLayer);
  const floatLabels=new Map();const speech=new Map(),projected=new T.Vector3();
@@ -297,13 +300,14 @@ function boot(api){
  let touches=new Map(),down=null,drag=false,pinch=0;
  cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);down=[e.clientX,e.clientY];drag=false;pinch=0;};
  cv.onpointermove=e=>{const hovering=()=>{if(W.mapId!=='casa'||drag){cv.style.cursor='';casaView.setDoorHover(false);return;}pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const over=doorHit(ray.intersectObjects(activePick(),false)[0]?.object.userData);cv.style.cursor=over?'pointer':'';casaView.setDoorHover(over);};if(!touches.has(e.pointerId)){hovering();return;}const prev=touches.get(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);if(touches.size>1){const [a,b]=[...touches.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)distance=Math.max(10,Math.min(110,distance*pinch/d));pinch=d;drag=true;}else{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)drag=true;if(drag){yaw=clampYaw(yaw-(e.clientX-prev[0])*.008);pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+(e.clientY-prev[1])*.005));}}hovering();};
- cv.onpointerup=e=>{touches.delete(e.pointerId);if(!drag&&api.started){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0];if(hit&&doorHit(hit.object.userData)){cv.style.cursor='';casaView.setDoorHover(false);api.exitHouse();return;}if(W.mapId==='casa'&&window.Casa?.editing){if(hit)window.Casa.clickTile(Math.floor(hit.point.x/2),Math.floor(hit.point.z/2),hit.object.userData.casaItem||null);return;}if(hit){const d=hit.object.userData;if(d.id)api.interact(d.id);else if(d.memory){api.goTo(d.memory.x,d.memory.y);}else if(!d.casaItem){const x=Math.floor(hit.point.x/2),y=Math.floor(hit.point.z/2);if(api.walkable(x,y))api.goTo(x,y);}}}};cv.onpointercancel=e=>{touches.delete(e.pointerId);drag=true;};cv.onwheel=e=>{e.preventDefault();distance=Math.max(10,Math.min(110,distance+Math.sign(e.deltaY)*3));};cv.oncontextmenu=e=>e.preventDefault();
+ cv.onpointerup=e=>{touches.delete(e.pointerId);if(!drag&&api.started){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0];if(hit&&doorHit(hit.object.userData)){cv.style.cursor='';casaView.setDoorHover(false);api.exitHouse();return;}if(W.mapId==='casa'&&hit&&hit.object.userData.casaItem==='chest'&&!window.Casa?.editing){window.Banco?.openPanel();return;}if(W.mapId==='casa'&&window.Casa?.editing){if(hit)window.Casa.clickTile(Math.floor(hit.point.x/2),Math.floor(hit.point.z/2),hit.object.userData.casaItem||null);return;}if(hit){const d=hit.object.userData;if(d.id)api.interact(d.id);else if(d.memory){api.goTo(d.memory.x,d.memory.y);}else if(!d.casaItem){const x=Math.floor(hit.point.x/2),y=Math.floor(hit.point.z/2);if(api.walkable(x,y))api.goTo(x,y);}}}};cv.onpointercancel=e=>{touches.delete(e.pointerId);drag=true;};cv.onwheel=e=>{e.preventDefault();distance=Math.max(10,Math.min(110,distance+Math.sign(e.deltaY)*3));};cv.oncontextmenu=e=>e.preventDefault();
  api.furnaceAtScreen=(x,y)=>{if(!api.started)return null;pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0],id=hit?.object.userData.id;return id&&S.nodes.get(id)?.def.type==='furnace'?id:null;};
  const dropHalo=new T.Mesh(new T.RingGeometry(2.3,2.6,48),new T.MeshBasicMaterial({color:0xffd369,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));dropHalo.rotation.x=-Math.PI/2;dropHalo.visible=false;
  function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}addEventListener('resize',resize);
  const colors={azul:'#376fc2',rojo:'#a33d30',verde:'#43843d',amarillo:'#d1aa36',morado:'#8858a5'};let color='';
  function updateTilt(dt){pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+((turning.has('ArrowUp')?1:0)-(turning.has('ArrowDown')?1:0))*dt*.8));}
- function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;}}else if(status._casaCam){status._casaCam=false;yaw=.45;pitch=1.12;distance=36;}if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=activeScene();if(me.parent!==view)view.add(me);
+ function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;}}else if(status._casaCam||status._bancoCam){status._casaCam=false;status._bancoCam=false;yaw=.45;pitch=1.12;distance=36;}
+ if(status.view){if(status.view.yaw!=null)yaw=status.view.yaw;if(status.view.pitch!=null)pitch=status.view.pitch;if(status.view.distance!=null)distance=status.view.distance;status.view=null;}if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=activeScene();if(me.parent!==view)view.add(me);
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  if(S.mounted)me.position.y+=.95;
@@ -316,10 +320,10 @@ function boot(api){
  target.set(p.fx*2+1,height(p.fx,p.fy)+1,p.fy*2+1);camera.position.set(target.x+Math.sin(yaw)*Math.cos(pitch)*distance,target.y+Math.sin(pitch)*distance,target.z+Math.cos(yaw)*Math.cos(pitch)*distance);camera.up.set(-Math.sin(yaw)*Math.sin(pitch),Math.cos(pitch),-Math.cos(yaw)*Math.sin(pitch));camera.lookAt(target);syncCameraControls();
  sun.position.set(target.x-25,target.y+65,target.z+22);sun.target.position.copy(target);sun.intensity=S.night?.12:2.2;ambient.intensity=S.night?.28:2;ambient.color.set(S.night?'#8ca8dd':'#ffefd3');ambient.groundColor.set(S.night?'#182332':'#405336');scene.background.set(S.night?'#080f1c':'#a4c4bc');scene.fog.color.copy(scene.background);cityLighting.update(S.night,target);
  for(const id of ['route-open','book','hud-mapa'])document.getElementById(id).disabled=away;document.querySelector('#mine-route').textContent=W.mapId==='mine'?'♨ Horno central':'⛏ Mina de Las Palmas';
- const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':region?.name||'Valle de Aburrá';
+ const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='banco'?'Casa bancaria':region?.name||'Valle de Aburrá';
  for(const n of W.npcs)actor(n.id,n.x,n.y,'#ab8338');
  for(const m of W.memories){m.mesh.rotation.y+=.01;m.mesh.visible=!found.has(m.id);if(api.started&&!found.has(m.id)&&Math.hypot(p.fx-m.x,p.fy-m.y)<2){found.add(m.id);localStorage.setItem('lifeinc.aburra.memories.v1',JSON.stringify([...found]));document.querySelector('#book').style.outline='2px solid #edc76b';}}
- document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
+ document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
  status.active=true;status.regions=W.regions.map(r=>r.id);status.ready=true;frame();
