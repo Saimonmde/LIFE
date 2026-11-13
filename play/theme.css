@@ -1,0 +1,654 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Tema vidrio oscuro. Una sola fuente de color para paneles.
+   No cambia fuentes: sigue --sans (Apple / Samsung / Inter).
+   El reloj no lleva caja: sólo sombra de texto. */
+
+:root {
+  --glass: rgba(12, 14, 20, 0.68);
+  --glass-deep: rgba(12, 14, 20, 0.72);
+  --glass-solid: #141820;
+  --glass-slot: rgba(18, 22, 30, 0.62);
+  --line: rgba(255, 255, 255, 0.32);
+  --line-soft: rgba(255, 255, 255, 0.18);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+  --ink: #f7f8fb;
+  --muted: #d7deea;
+  --gold: #f0d48a;
+  --gold-line: rgba(240, 212, 138, 0.9);
+  --silver: #e8eef3;
+  --silver-line: rgba(214, 224, 232, 0.9);
+  --radius: 14px;
+  --hit: 44px;
+}
+
+.panel,
+.ventana,
+#hud-chat,
+.tarjeta,
+#dialogo,
+#aviso,
+#ayuda,
+#login form,
+#hotbar,
+#hud-recursos > span,
+.ico,
+#ping,
+#objetivo,
+#tooltip,
+#sai-legal,
+#pow-panel,
+#plata-panel,
+#plata-cambio-box,
+#smc-pill,
+#b-limpio,
+#b-globo,
+#chat-toggle,
+#hud-toggle,
+#info-restore,
+#hud-gear,
+#hud-gear-menu,
+#hud-edit-bar,
+#movil-menu,
+#world-routes,
+#furnace-panel,
+#casa-editor,
+#banquito,
+#libro-toast,
+.city-map-panel,
+#viaje-dialogo,
+.madre-card,
+.libro-guia,
+#forge-chat-card,
+#rest-status,
+#mine-route,
+#mine-exit-route,
+.character-speech,
+.player-name,
+#autotest {
+  background-color: var(--glass-solid);
+  background-color: var(--glass-deep);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .panel,
+  .ventana,
+  #hud-chat,
+  .tarjeta,
+  #dialogo,
+  #aviso,
+  #ayuda,
+  #login form,
+  #hotbar,
+  #hud-recursos > span,
+  .ico,
+  #ping,
+  #objetivo,
+  #tooltip,
+  #sai-legal,
+  #pow-panel,
+  #plata-panel,
+  #smc-pill,
+  #b-limpio,
+  #b-globo,
+  #chat-toggle,
+  #hud-toggle,
+  #furnace-panel,
+  #casa-editor,
+  #banquito,
+  .city-map-panel,
+  #viaje-dialogo,
+  .libro-guia,
+  #forge-chat-card {
+    background-color: var(--glass-solid);
+  }
+}
+
+#hud-reloj,
+#hud-reloj.hud-fijo,
+#reloj-ahora {
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 0 !important;
+}
+#hud-reloj { color: #fff; }
+#reloj-ahora {
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 8px rgba(0, 0, 0, 0.75);
+}
+
+header,
+.city-map-panel header,
+#furnace-panel header,
+#w-inv header,
+#casa-editor header,
+#banquito header,
+#w-libro header,
+#w-libro-madre header {
+  color: var(--ink);
+  border-bottom-color: var(--line-soft);
+  background: transparent;
+}
+
+#dialogo,
+#aviso {
+  color: var(--ink);
+}
+#dialogo .quien,
+#aviso .titulo,
+#dialogo .seguir {
+  color: var(--gold);
+}
+#dialogo-cara {
+  background: rgba(20, 24, 32, 0.8);
+  border-color: var(--line);
+}
+
+#login {
+  background: rgba(8, 10, 14, 0.72);
+}
+#login form { color: var(--ink); }
+#login label,
+.login-o,
+#login .login-legal,
+.simoncity-welcome { color: var(--muted); }
+.simoncity-place { color: #fff; }
+#login input,
+#chat-input,
+#plata-cambio-box input,
+.forge-content select,
+.forge-content input,
+#forge-chat-card input,
+#banquito input,
+#casa-editor input {
+  background: rgba(8, 10, 16, 0.72);
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-height: var(--hit);
+}
+
+#smc-pill,
+#sai-chip,
+#hud-recursos > #sai-chip {
+  border-color: var(--gold-line);
+  color: var(--gold);
+}
+#plata-chip,
+#hud-recursos > #plata-chip {
+  border-color: var(--silver-line);
+  color: var(--silver);
+}
+#smc-pill { min-height: 36px; }
+
+#minimapa {
+  border: 3px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4), 0 0 0 6px rgba(12, 14, 20, 0.45);
+}
+#b-globo,
+#mm-zoom,
+#b-limpio,
+#hud-gear {
+  background-color: var(--glass-solid);
+  background-color: var(--glass-deep);
+  border: 1px solid var(--line);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+#b-globo,
+#b-limpio,
+#hud-gear { min-width: var(--hit); min-height: var(--hit); }
+.anillo-fondo { stroke: rgba(255, 255, 255, 0.28); }
+#vida-pct,
+.norte,
+.map-sur,
+.map-or,
+.map-oc { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+
+.barra { background: rgba(0, 0, 0, 0.45); border-color: var(--line-soft); }
+#zona-nombre {
+  background-color: var(--glass-deep);
+  border: 1px solid var(--line);
+  color: #fff;
+  border-radius: 999px;
+}
+
+.ico,
+#ping,
+.pestanas button[data-canal],
+header .x,
+header .plegar,
+.hud-min,
+.hud-x,
+.info-fold,
+.info-close,
+#chat-form button,
+#chat-min,
+#city-map-close,
+#city-map-zoom button,
+.viaje-botones button,
+#hud-gear-menu button,
+#hud-edit-bar button,
+#bag-modes button,
+#bag-pages button {
+  min-width: var(--hit);
+  min-height: var(--hit);
+}
+.ico { width: var(--hit); height: var(--hit); }
+header .x,
+header .plegar,
+.hud-min,
+.hud-x,
+.info-close,
+.info-fold,
+#city-map-close {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.pestanas { border-bottom-color: var(--line-soft); }
+.pestanas button[data-canal] {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+  border-color: var(--line-soft);
+}
+.pestanas button.activa {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border-color: var(--line);
+}
+#chat-input { font-size: 16px; }
+#chat-log,
+#chat-nota,
+#libro-cuerpo,
+#libro-madre-cuerpo,
+#seleccion,
+.bag-note,
+#pow-panel,
+#plata-panel,
+#plata-hint,
+#cambio-preview,
+#banquito p,
+.casa-hint { color: var(--ink); }
+#chat-log .t,
+#chat-log .canal,
+.libro-vacio,
+#pow-hint { color: var(--muted); }
+
+#inventario .slot,
+#hotbar .hs {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--glass-slot);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -8px 12px rgba(0, 0, 0, 0.28);
+}
+#inventario .slot.vacio {
+  background: rgba(8, 10, 14, 0.45);
+  border-color: var(--line-soft);
+  opacity: 0.55;
+}
+#inventario .slot.sel,
+#hotbar .hs.sel {
+  border-color: var(--gold);
+  box-shadow: inset 0 0 0 2px var(--gold), 0 0 12px rgba(240, 212, 138, 0.28);
+}
+#inventario .slot .item-name,
+#inventario .slot .n,
+#hotbar .hs .n,
+#hotbar .hs .k { color: #fff; }
+#inventario .slot .n,
+#hotbar .hs .n {
+  background: rgba(12, 14, 20, 0.82);
+  border-color: var(--line);
+}
+
+#w-inv,
+#furnace-panel,
+#w-libro,
+#w-libro-madre,
+#w-hab,
+#ayuda,
+#tutorial,
+#banquito {
+  background-color: var(--glass-deep);
+}
+/* Libro al centro e inventario a la derecha: no tapan la Plata ni el minimapa. */
+#w-libro,
+#w-libro-madre,
+#w-hab {
+  left: max(12px, calc(50vw - 210px));
+  right: auto;
+  top: 88px;
+  width: min(420px, calc(100vw - 460px));
+}
+#w-inv {
+  left: auto;
+  right: max(12px, env(safe-area-inset-right));
+  top: 88px;
+  width: min(400px, calc(100vw - 480px));
+}
+#banquito,
+#furnace-panel,
+#ayuda,
+#tutorial {
+  left: 50%;
+  right: auto;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(86dvh, 760px);
+}
+#w-inv header,
+#furnace-panel header { background: transparent; }
+
+.libro-guia,
+.madre-card,
+#plata-cambio-box,
+.banco-caja {
+  background-color: rgba(12, 14, 20, 0.55);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  color: var(--ink);
+}
+.libro-guia p,
+.libro-tabla th,
+.libro-tabla td,
+.libro-bloques summary { color: var(--ink); }
+.libro-tabla th { color: var(--gold); }
+.libro-tabla td,
+.libro-tabla th { border-bottom-color: var(--line-soft); }
+.libro-tabs button,
+#city-map-muni button,
+#city-map-clear,
+#viaje-no {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border: 1px solid var(--line);
+  min-height: var(--hit);
+}
+.libro-tabs button.activa,
+#city-map-walk,
+#viaje-si,
+#bag-modes button[aria-pressed="true"] {
+  background: var(--gold);
+  color: #1a1408;
+  border-color: var(--gold);
+}
+
+.city-map-panel { background-color: var(--glass-deep); }
+#city-map { background: rgba(8, 10, 14, 0.62); }
+#city-map-view { background: #10241c; }
+#city-map-labels button,
+#city-map-labels span,
+#valley-fly-labels span {
+  background: rgba(12, 14, 20, 0.72);
+  color: #fff;
+  border: 1px solid var(--line-soft);
+}
+#city-map-go span,
+.city-map-panel p,
+#city-map-title { color: #fff; }
+
+#viaje-dialogo { color: #fff; }
+#viaje-pregunta { color: #fff; }
+
+#furnace-panel,
+.forge-content,
+#forge-stock,
+#forge-preview,
+#forge-result,
+#forge-made,
+#forge-mint-why { color: var(--ink); }
+.forge-content button,
+#forge-chat-card button,
+#libro-madre-cuerpo button,
+#libro-toast button,
+#pow-panel button,
+.plata-acciones button,
+#pow-plata,
+#banquito button,
+#casa-editor button,
+#ayuda button,
+#login button,
+#tutorial button {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-height: var(--hit);
+  font-family: var(--sans);
+  font-weight: 600;
+}
+#forge-coins.forge-mint,
+#forge-coin.forge-mint,
+#forge-chat-coins.forge-mint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 8px;
+  font-size: 18px;
+  background: rgba(240, 212, 138, 0.18);
+  border-color: var(--gold-line);
+  color: #fff;
+}
+#forge-coins img,
+#forge-coin img,
+#forge-chat-coins img {
+  width: 36px;
+  height: 36px;
+  image-rendering: auto;
+}
+#forge-coins:disabled,
+#forge-coin:disabled,
+#forge-ingot:disabled,
+.plata-acciones button:disabled,
+#banquito button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+#forge-mint-why,
+#cambio-result,
+#banco-cambio-nota {
+  color: #fff;
+  font-weight: 600;
+}
+#pow-cambiar,
+#banco-cambiar {
+  background: rgba(240, 212, 138, 0.2);
+  border-color: var(--gold-line);
+  color: #fff;
+  min-height: 52px;
+  font-size: 16px;
+}
+
+.banco-unidad {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.banco-caja { padding: 10px; margin: 8px 0; }
+.banco-caja h3 {
+  margin: 0 0 6px;
+  font: 600 16px/1.2 var(--sans);
+  color: #fff;
+}
+.banco-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.banco-fila input { flex: 1 1 140px; }
+.banco-fila button { flex: 1 1 120px; }
+
+#hud-perfil > header,
+#hud-mapa > header,
+#hotbar > header,
+#hud-recursos > header,
+#hud-top > header,
+#hud-edit-bar,
+#hud-gear-menu {
+  background-color: var(--glass-deep);
+  border-color: var(--line);
+  color: #fff;
+}
+.hud-asa { background: rgba(240, 212, 138, 0.85); border-color: #fff; }
+
+#b-descansar,
+#b-bajar,
+#b-casa,
+#b-editar-casa,
+#touch-extra button,
+#mine-enter {
+  background: rgba(12, 14, 20, 0.72);
+  color: #fff;
+  border: 1px solid var(--gold-line);
+  min-height: var(--hit);
+}
+#b-salir-parque { background: rgba(12, 14, 20, 0.78); color: #fff; border-color: var(--gold-line); }
+
+.character-speech { color: #fff; text-shadow: none; }
+.character-speech:after {
+  background: rgba(12, 14, 20, 0.72);
+  border-color: var(--line);
+}
+
+#objetivo { color: #fff; }
+.marca,
+.marca .simoncity-hud,
+.simoncity-hud-sub { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85); }
+
+#hud-gear {
+  top: max(8px, env(safe-area-inset-top));
+  left: auto;
+  right: 210px;
+  transform: none;
+  z-index: 82;
+}
+#hud-gear-menu { left: auto; right: 12px; transform: none; }
+#hud-top {
+  top: max(8px, env(safe-area-inset-top));
+  right: 250px;
+  left: auto;
+  max-width: 300px;
+  justify-content: flex-end;
+}
+#pow-panel {
+  top: 420px;
+  max-height: 250px;
+  overflow: auto;
+}
+#plata-panel {
+  top: 420px;
+  left: 276px;
+  max-height: 250px;
+}
+@media (min-width: 1100px) {
+  #hotbar {
+    left: 300px;
+    right: 680px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    bottom: 12px;
+    justify-content: center;
+  }
+  #w-inv { top: 300px; width: min(360px, 30vw); max-height: 50vh; }
+  #w-libro, #w-libro-madre { top: 72px; left: 300px; width: min(420px, 32vw); max-height: 320px; }
+}
+#hud-toggle { bottom: calc(92px + env(safe-area-inset-bottom)); }
+.forge-actions {
+  position: sticky;
+  bottom: 0;
+  padding: 8px 0 4px;
+  background: rgba(12, 14, 20, 0.94);
+  z-index: 2;
+}
+#forge-recipes { max-height: 120px; overflow: auto; }
+#furnace-panel, #banquito, #w-libro, #w-inv, #ayuda, #w-hab { z-index: 46; overflow: auto; }
+
+/* El reloj no debe chocar con la pastilla SMC. */
+@media (max-width: 1100px) {
+  #w-libro,
+  #w-libro-madre,
+  #w-hab,
+  #w-inv,
+  #banquito,
+  #furnace-panel,
+  #ayuda,
+  #tutorial {
+    left: 8px;
+    right: 8px;
+    top: 64px;
+    width: auto;
+    max-width: none;
+    transform: none;
+    max-height: min(62dvh, calc(100dvh - 96px));
+  }
+  #furnace-panel,
+  #banquito { top: 48px; }
+}
+@media (max-width: 820px) and (orientation: portrait) {
+  #hud-reloj {
+    top: calc(max(6px, env(safe-area-inset-top)) + 132px);
+    right: max(8px, env(safe-area-inset-right));
+  }
+  #smc-pill { max-width: calc(100vw - 24px); }
+  #plata-panel,
+  #pow-panel {
+    max-height: 28vh;
+  }
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  #hud-reloj { top: max(4px, env(safe-area-inset-top)); left: 42%; }
+  #smc-pill {
+    top: max(4px, env(safe-area-inset-top));
+    left: 168px;
+    right: auto;
+    transform: none;
+  }
+  #plata-panel, #pow-panel { max-height: 28dvh; }
+  html.movil #pow-panel {
+    top: auto;
+    bottom: 58px;
+    left: 8px;
+    width: min(200px, 32vw);
+    max-height: 24dvh;
+  }
+  #w-libro,
+  #banquito,
+  #furnace-panel,
+  #w-inv { max-height: calc(100dvh - 16px); }
+}
+html.movil #pow-panel {
+  top: 360px;
+  left: max(6px, env(safe-area-inset-left));
+  width: min(160px, 42vw);
+  max-height: 18vh;
+  overflow: auto;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  html.movil #pow-panel { top: auto; bottom: 108px; max-height: 20dvh; }
+}
+html.movil #smc-pill {
+  top: max(6px, env(safe-area-inset-top));
+  left: auto;
+  right: 124px;
+  transform: none;
+  z-index: 60;
+}
+
+#cambio-preview,
+#plata-fondo,
+#plata-xcap,
+#plata-tasa { color: #fff; }

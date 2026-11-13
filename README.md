@@ -2,6 +2,8 @@
 
 Creación y dirección original: **Simón**. Mundo 3D en desarrollo, con mapa del Valle de Aburrá, minería y fundición, inventario, chat y cámara orbital.
 
+Life Inc es la red madre del proyecto. Saimon City es el mapa del Valle de Aburrá en construcción, con los parques de sus diez municipios conectados. El mapa jugable es interpretativo; no es una reconstrucción urbana terminada.
+
 ## Licencias y contribución
 
 Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-SA-4.0**. Marca y logo: política separada. Three.js conserva MIT y Pixelify Sans conserva SIL OFL 1.1.
@@ -14,7 +16,17 @@ Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-S
 
 Cada persona conserva sus derechos sobre sus aportaciones. No se transfiere automáticamente copyright, marca ni un bien físico mediante un NFT. La licencia no registra la marca ni convierte el servidor actual en una red descentralizada.
 
-La simulación de **SaiMonCoins (SMC)**, del **Libro Mayor** y del **Libro madre** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SMC. 1 SMC = 100.000.000 **Simonchis (SMH)**, la unidad mínima, como un satoshi. Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. Sólo el oro del río emite SMC nuevas. El nombre anterior, Saimon Coins (SAI) con alias Saimony, ya no se usa. Sin `DATABASE_URL`, el servidor guarda el libro, el depósito, los certificados, las cuentas y el tiempo jugado en `state/*.json` (no se versiona; en Render ese disco se borra al reciclar la instancia). Con `DATABASE_URL` ese mismo estado vive en Postgres y sobrevive al redeploy. Sigue leyendo un archivo guardado con el símbolo viejo SAI.
+La simulación de **SaiMonCoins (SMC)**, del **Libro Mayor** y del **Libro madre** es educativa. No es dinero real, no tiene valor ni canje, y no transfiere derechos, marca ni bienes. El tope es 21.000.000 SMC. 1 SMC = 100.000.000 **Simonchis (SMH)**, la unidad mínima, como un satoshi. Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. Cada SMC nueva pide una prueba de trabajo, una cuenta y el tope del día. De cada emisión nueva, cuatro quintos entran a la billetera y un quinto queda en el fondo de cambio. La reserva génesis de 210.000 SMC no es emisión nueva. El nombre anterior, Saimon Coins (SAI) con alias Saimony, ya no se usa. Sin `DATABASE_URL`, el servidor guarda el libro, el depósito, los certificados, las cuentas y el tiempo jugado en `state/*.json` (no se versiona; en Render ese disco se borra al reciclar la instancia). Con `DATABASE_URL` ese mismo estado vive en Postgres y sobrevive al redeploy. Sigue leyendo un archivo guardado con el símbolo viejo SAI.
+
+La **Plata (SMP)** es la segunda moneda del libro. 1 SMP = 100.000.000 platicas (SPH). El tope es 84.000.000 SMP y no hay reserva inicial: ese número cabe entero en el navegador. El premio empieza en 5 SMP y se parte a la mitad cada 42 millones. La red apunta a 144 pruebas al día. Una cuenta nueva puede minar 5 SMP al día; con la edad, el tiempo jugado y las misiones llega a 125 SMP. Cambiar Plata por SMC quema la Plata y paga con el fondo ya emitido, a 100 SMP por 1 SMC. No se acuñan SMC fuera de la prueba de trabajo ni por encima de 21.000.000. Cada cuenta puede sacar hoy como máximo un quinto de su tope de SMC, y nunca más de la décima parte del fondo. Entre todas, hoy sólo sale la mitad del fondo. Un invitado no recibe Plata. Nadie, ni una cuenta de administración, tiene un cupo distinto.
+
+## Acceso e identidad
+
+Las cuentas conservan su identificador y un identificador público de avatar estable. Ninguno sustituye la contraseña ni la sesión. El acceso por correo y contraseña reutiliza cuentas verificadas existentes; el registro por correo exige código enviado por el proveedor configurado. El teléfono es opcional y, cuando se indica, conserva la verificación por SMS.
+
+Los nuevos nicknames se reservan en el servidor sin distinguir mayúsculas ni variantes Unicode equivalentes. El código comprueba disponibilidad al solicitar el registro y otra vez al verificarlo. Los registros pendientes reservan temporalmente el nombre. Las cuentas OAuth nuevas reciben un nombre libre; las cuentas existentes mantienen sus identificadores y monederos. Los invitados no pueden presentarse con nombres reservados por una cuenta. No se renombran cuentas antiguas ni se convierten nombres/avatar públicos en claves secretas. Si existen duplicados históricos, requieren conciliación individual; no se concede ni transfiere el nombre de otra persona.
+
+El cambio/venta de nombres queda pendiente de un diseño con consentimiento y controles contra acaparamiento; no hay cobros ni transferencias de nombres. La unicidad corresponde al servidor actual; varias instancias escritoras requerirían una restricción transaccional adicional en la base de datos. Sin proveedor de correo configurado, el registro por correo permanece oculto; las cuentas Google y el acceso a cuentas por contraseña ya existentes siguen disponibles según su configuración.
 
 ## Mapa del repositorio
 
@@ -25,9 +37,9 @@ Todo está en la raíz. No hay una carpeta `El-Jardin` ni una copia paralela del
 - `movil/` — entrada del teléfono; usa la misma vista con botones táctiles.
 - `data/el-jardin.json` — el mapa del Valle de Aburrá (10 municipios). `data/el-jardin.js` es la misma carga para abrir sin `fetch`. `data/simulacion.json` — establo, profesora, economía y lecciones, fuera de la casa. `data/valle-offset.json` — el único desplazamiento del Parque de Envigado. `data/relieve-aburra.json` — alturas simplificadas. `data/parque-envigado-bloque.json` — teselas del parque, celda por celda, antes y después de moverlas.
 - `graphics/` — arte original: teselas, objetos, personajes e interfaz.
-- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `libro.py` (libro madre), `nft.py`, `ed25519.py`, `vault.py`, `payout.py`, `verify_nft.py`, `test_economy.py`, `test_libro.py`, `test_nft.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
-- `docs/CERTIFICADOS-SMC.md` — tope de 21 millones, conversión 1:1, certificados, banco y esculturas de reemplazo.
-- `graphics/ui/saimon-logo.png` — wordmark de Simón (CC-BY-SA-4.0). El título usa el derivado en oro `saimon-logo-gold.png` junto a la palabra City en UnifrakturMaguntia (OFL).
+- `tools/` — `relieve_aburra.py` (SRTM), `valle_aburra.py` (regenera el valle), `economy.py`, `supply.py`, `plata.py`, `libro.py` (libro madre), `nft.py`, `ed25519.py`, `vault.py`, `payout.py`, `verify_nft.py`, `test_economy.py`, `test_supply.py`, `test_plata.py`, `test_libro.py`, `test_nft.py` y `test_parques.py`. `tools/build.py` conserva un generador histórico del mapa; no hace falta para jugar.
+- `docs/CERTIFICADOS-SMC.md` — tope de 21 millones, fondo de cambio, Plata (SMP), conversión 1:1, certificados, banco y esculturas de reemplazo.
+- `graphics/ui/saimon-logo.png` — wordmark de Simón (CC-BY-SA-4.0). El título usa el derivado en oro `saimon-logo-gold.png` junto a la palabra City en una sans seminegra.
 
 ## Valle de Aburrá
 

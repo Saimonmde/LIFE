@@ -18,7 +18,7 @@ from decimal import Decimal
 SUBS = 100_000_000
 MAX_SUPPLY = 21_000_000
 MAX_SMH = MAX_SUPPLY * SUBS  # 2.100.000.000.000.000
-INITIAL_REWARD = 50  # SMC por bateada de oro fluvial
+INITIAL_REWARD = 1  # SMC por prueba aceptada. 50 por bateada se minaba demasiado rápido.
 INITIAL_REWARD_SMH = INITIAL_REWARD * SUBS
 SYMBOL = 'SMC'
 SYMBOL_BASE = 'SMH'
@@ -209,7 +209,7 @@ def empty_state():
     }]
     ts = 0
     h = hash_block(GENESIS_PREV, ts, genesis_txs)
-    return {
+    state = {
         'unit': UNIT,
         'symbol': SYMBOL,
         'smallestUnit': SYMBOL_BASE,
@@ -231,6 +231,15 @@ def empty_state():
         'mempool': [],
         'disclaimer': DISCLAIMER,
     }
+    import supply
+    supply.ensure(state)
+    import plata
+    plata.ensure(state)
+    if isinstance(state.get('supply'), dict):
+        state['supply'].pop('_fresh', None)
+    if isinstance(state.get('plata'), dict):
+        state['plata'].pop('_fresh', None)
+    return state
 
 
 def verify_block(block, prev_hash=None):
@@ -313,12 +322,16 @@ def migrate_amounts(state):
 
 
 def normalize_state(state):
-    """Ajusta el nombre visible y la unidad. Conserva bloques y un archivo guardado con el símbolo SAI."""
+    """Ajusta el nombre visible y la unidad. Conserva bloques, saldos y la reserva génesis."""
     state['unit'] = UNIT
     state['symbol'] = SYMBOL
     state.pop('alias', None)
     state['disclaimer'] = DISCLAIMER
     migrate_amounts(state)
+    import supply
+    supply.ensure(state)
+    import plata
+    plata.ensure(state)
     return state
 
 
@@ -330,6 +343,15 @@ def load_state(path):
         save_state(path, state)
         return state
     normalize_state(state)
+    fresh = False
+    if state.get('supply', {}).get('_fresh'):
+        state['supply'].pop('_fresh', None)
+        fresh = True
+    if state.get('plata', {}).get('_fresh'):
+        state['plata'].pop('_fresh', None)
+        fresh = True
+    if fresh:
+        save_state(path, state)
     return state
 
 
@@ -364,30 +386,53 @@ def issue(state, name, amount_smh, note, kind='mint', now=None):
     return granted
 
 
-def migrate_monedas(state, name, monedas, now=None):
-    """Convierte una sola vez las monedas antiguas. 1 moneda = 1 SMC = 100.000.000 SMH."""
+def migrate_monedas(state, name, monedas, now=None, limit_smh=None):
+    """Convierte monedas antiguas. 1 moneda = 1 SMC = 100.000.000 SMH.
+
+    Sin límite, acredita de una vez lo que quepa en el tope (el comportamiento de siempre).
+    Con limit_smh, acredita sólo ese trozo y deja el resto pendiente para otro día.
+    Un registro viejo, sin la marca done, se trata como ya terminado.
+    """
     record = state.setdefault('migrations', {})
-    if name in record:
+    prior = record.get(name) if isinstance(record.get(name), dict) else None
+    if prior and prior.get('done', True):
         return {
             'already': True,
             'credited': 0,
-            'requested': int(record[name].get('requested') or 0),
+            'requested': int(prior.get('requested') or 0),
             'rate': OLD_COIN_TO_SMC,
             'unit': 'SMH',
         }
-    requested = smc_to_smh(monedas) * OLD_COIN_TO_SMC
-    if requested < 0:
-        requested = 0
-    credited = issue(
-        state, name, requested,
+    if prior:
+        requested = int(prior.get('requested') or 0)
+        already = int(prior.get('credited') or 0)
+    else:
+        requested = smc_to_smh(monedas) * OLD_COIN_TO_SMC
+        if requested < 0:
+            requested = 0
+        already = 0
+    left = max(0, requested - already)
+    chunk = left if limit_smh is None else min(left, max(0, int(limit_smh)))
+    credited_now = issue(
+        state, name, chunk,
         f'Conversión {OLD_COIN_TO_SMC}:1 de monedas antiguas del Jardín a SMC',
         'migrate', now=now,
-    ) if requested else 0
+    ) if chunk else 0
+    total = already + int(credited_now)
+    done = total >= requested or issuance_room(state) <= 0
     record[name] = {
         'source': 'monedas_jardin',
         'rate': OLD_COIN_TO_SMC,
         'requested': requested,
-        'credited': credited,
+        'credited': total,
+        'done': done,
         'unit': 'SMH',
     }
-    return {'already': False, 'credited': credited, 'requested': requested, 'rate': OLD_COIN_TO_SMC, 'unit': 'SMH'}
+    return {
+        'already': False,
+        'credited': int(credited_now),
+        'requested': requested,
+        'rate': OLD_COIN_TO_SMC,
+        'unit': 'SMH',
+        'done': done,
+    }

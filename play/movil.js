@@ -11,7 +11,7 @@
   for (const t of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(t, e => e.preventDefault(), { passive: false });
   let lastTap = 0;
   document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTap < 300 && !e.target.closest('input,textarea')) e.preventDefault(); lastTap = n; }, { passive: false });
-  document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !e.target.closest('.ventana,#hud-chat,#chat-log,#ayuda,#memories,#camera-panel,#furnace-panel,#city-map,.panel')) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !e.target.closest('.ventana,#hud-chat,#chat-log,#ayuda,#memories,#camera-panel,#furnace-panel,#city-map,.panel,.hud-pieza,.hud-shell,#hud-gear-menu,#hud-edit-bar')) e.preventDefault(); }, { passive: false });
   // Botón "Menú" que muestra/oculta las herramientas del mundo (Memorias, Cámara, Recorrer…).
   addEventListener('DOMContentLoaded', () => {
     const b = document.createElement('button');

@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-// Bancas, canecas verdes y esculturas propias. Sin escaneo y sin marcas.
+// Bancas, canecas verdes y esculturas propias. Sin escaneo de caneca y sin marcas.
+import { GLTFLoader } from './glb-loader.js?v=valle-hud-r5';
+
 export function placeEnvigadoProps(T, scene, height) {
   const park = window.EnvigadoPark;
   if (!park || !park.allProps) return;
