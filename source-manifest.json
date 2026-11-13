@@ -26,7 +26,10 @@
     "tools/tiles.py",
     "tools/village.py",
     "tools/update_licensing.py",
-    "play/licencias.html"
+    "play/licencias.html",
+    "economy.py",
+    "tools/test_economy.py",
+    "tools/test_world.py"
   ],
   "exceptions": {
     "play/three.module.js": "MIT",

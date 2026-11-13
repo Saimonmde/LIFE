@@ -7,16 +7,18 @@
         python3 server.py --port 8765 --host 0.0.0.0 --sin-bots
 - Canales de chat: Global, Proximidad (≤ 30 m = 15 casillas), Clan, Grupo.
 """
-import uuid
+import uuid, math
+from economy import Economy
 import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, socket, struct, time, urllib.parse
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-BLOCKED = ('/references', '/tools', '/server.py')
+BLOCKED = ('/references', '/tools', '/server.py', '/economy.py', '/data/economy', '/.git', '/.env')
 PROX_TILES = 15           # 30 m con 2 m por casilla
 MAX_TEXT = 160
 CHANNELS = ('global', 'proximidad', 'clan', 'grupo')
 SERVER_ID = uuid.uuid4().hex[:12]
+ECONOMY = Economy(os.environ.get('SAIMON_ECONOMY_DB',os.path.join(ROOT,'data','economy.sqlite3')),int(os.environ.get('SAIMON_COIN_SUPPLY','21000000')))
 
 with open(os.path.join(ROOT, 'data', 'el-jardin.json'), encoding='utf-8') as f:
     WORLD = json.load(f)
@@ -153,18 +155,33 @@ async def handle_ws(reader, writer):
                 c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
                 c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
                 c.level = int(m.get('level') or 1); c.hello = True
-                send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
+                c.wallet,c.wallet_token=ECONOMY.wallet(m.get('walletToken'))
+                send(c,{'t':'economy','token':c.wallet_token,'wallet':ECONOMY.snapshot(c.wallet)})
+                send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone == 'city'],
                          'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
                 if c.zone != 'casa':
                     broadcast({'t': 'join', 'player': c.public()}, exclude=c)
                     broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
+            elif t == 'economy' and c.hello:
+                try:
+                    result=ECONOMY.act(c.wallet,m,c.zone,c.x,c.y)
+                    send(c,{'t':'economy','request':m.get('request'),'result':result,'wallet':ECONOMY.snapshot(c.wallet)})
+                except (ValueError,TypeError) as error:send(c,{'t':'economy','request':m.get('request'),'error':str(error),'wallet':ECONOMY.snapshot(c.wallet)})
             elif t == 'move' and c.hello:
+                if m.get('zone') == 'mine':
+                    try:
+                        x,y=float(m['x']),float(m['y'])
+                        if not math.isfinite(x) or not math.isfinite(y) or not 0<=x<36 or not 0<=y<32:continue
+                    except (ValueError,TypeError,KeyError):continue
+                    if c.zone!='mine':broadcast({'t':'leave','id':c.id},exclude=c)
+                    c.zone='mine';c.x=x;c.y=y
+                    continue
                 if m.get('zone') == 'casa':
                     if c.zone != 'casa':
                         c.zone = 'casa'
                         broadcast({'t': 'leave', 'id': c.id}, exclude=c)
                     continue
-                was_casa = c.zone == 'casa'
+                was_casa = c.zone in ('casa','mine')
                 c.zone = 'city'
                 try:
                     c.x = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); c.y = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
@@ -220,7 +237,7 @@ async def handle(reader, writer):
         writer.write(b'HTTP/1.1 302 Found\r\nLocation: /play/\r\nContent-Length: 0\r\n\r\n'); await writer.drain(); writer.close(); return
     if path.endswith('/'): path += 'index.html'
     full = os.path.realpath(os.path.join(ROOT, path.lstrip('/')))
-    ok = full.startswith(ROOT + os.sep) and os.path.isfile(full) and not any(path.startswith(b) for b in BLOCKED) and method in ('GET', 'HEAD')
+    ok = full.startswith(ROOT + os.sep) and not full.endswith(('.sqlite3','.sqlite3-wal','.sqlite3-shm','.db','.db-wal','.db-shm')) and os.path.isfile(full) and not any(path.startswith(b) for b in BLOCKED) and method in ('GET', 'HEAD')
     if not ok:
         body = b'404'; writer.write(b'HTTP/1.1 404 Not Found\r\nContent-Length: 3\r\nConnection: close\r\n\r\n' + body)
     else:

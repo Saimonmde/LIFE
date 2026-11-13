@@ -224,3 +224,10 @@ body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-sal
 @media(max-width:700px){#casa-editor{top:auto;bottom:max(8px,env(safe-area-inset-bottom));max-height:46dvh}#b-editar-casa{top:auto;bottom:max(64px,calc(env(safe-area-inset-bottom) + 64px));left:auto;right:max(8px,env(safe-area-inset-right));transform:none}#b-salir-parque{left:auto;right:max(8px,env(safe-area-inset-right));bottom:max(116px,calc(env(safe-area-inset-bottom) + 116px));transform:none}body.casa-editando #b-editar-casa{bottom:auto;top:max(8px,env(safe-area-inset-top))}}
 
 #login .login-legal{display:block;text-align:center;color:#d6c191;font:11px/1.5 system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px}
+
+/* Original gold mark with blackletter city lockup. */
+.saimon-entry-logo{display:block;width:min(320px,75vw);height:150px;object-fit:contain;margin:-8px auto -18px;filter:drop-shadow(0 5px 12px #0008)}
+#horse-controls{position:fixed;right:12px;bottom:78px;z-index:14;display:flex;gap:6px}#horse-controls button{background:#332419;color:#f8dfaa;border:1px solid #b99350;border-radius:8px;padding:10px;font:14px system-ui}body:not(.in-game) #horse-controls,.solo-mundo #horse-controls{display:none}
+
+#ledger-panel{position:fixed;inset:15% auto auto 50%;transform:translateX(-50%);width:min(520px,92vw);max-height:65vh;overflow:auto;z-index:25}#ledger-content{padding:15px;font:14px/1.5 system-ui}#ledger-panel header{display:flex;justify-content:space-between;padding:12px}
+#world-routes{max-height:calc(100dvh - 280px);overflow-y:auto;overscroll-behavior:contain;padding-bottom:14px!important}#world-routes header{position:sticky;top:0;background:#302b22;z-index:1}@media(max-width:600px){#horse-controls{max-width:calc(100vw - 24px);flex-wrap:wrap;justify-content:flex-end;bottom:112px}#horse-controls button{padding:8px;font-size:12px}.saimon-entry-logo{height:110px}}

@@ -4,7 +4,7 @@ import {buildMine} from './mine3d.js?v=saimon-door-r3';
 import {enrichWorld} from './park3d.js?v=saimon-door-r3';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=saimon-door-r3';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
-const BUILD='saimoncity-camera360-r1';
+const BUILD='valle-caballo-libro-r2';
 const status=window.LIVE3D={active:false,build:BUILD};
 const wait=setInterval(()=>{if(window.LiveInk?.world?.clientReady){clearInterval(wait);try{boot(window.LiveInk);}catch(e){console.error(e);status.error=String(e);document.querySelector('#zona-nombre').textContent='No se pudo iniciar 3D · recarga o activa WebGL';}}},100);
 function boot(api){
@@ -189,6 +189,12 @@ function boot(api){
 
  const underground=buildMine(T,W);
  buildHomeMarker(T,scene,pick,height,material);
+ const horse=new T.Group();scene.add(horse);const horseLegs=[];
+ function horsePart(w,h,d,x,y,z,c){const m=new T.Mesh(new T.BoxGeometry(w,h,d),material(c));m.position.set(x,y,z);m.castShadow=true;horse.add(m);return m;}
+ horsePart(.9,.85,1.7,0,1.15,0,'#805238');horsePart(.55,1.05,.55,0,1.8,.7,'#805238');horsePart(.55,.48,.85,0,2.22,1,'#9b6845');horsePart(.6,.16,.85,0,1.65,-.1,'#33241b');
+ for(const x of [-.3,.3])for(const z of [-.55,.55]){const leg=new T.Group();leg.position.set(x,.95,z);horse.add(leg);for(const [w,h,d,y,c] of [[.18,.9,.2,-.45,'#5b392b'],[.22,.18,.28,-.85,'#302a25']]){const part=new T.Mesh(new T.BoxGeometry(w,h,d),material(c));part.position.y=y;part.castShadow=true;leg.add(part);}horseLegs.push(leg);}
+ for(const x of [-.2,.2])horsePart(.13,.35,.15,x,2.58,.8,'#65412e');horsePart(.15,.8,.18,0,1.15,-.94,'#32251f');
+ for(const x of [-.29,.29])horsePart(.03,.08,.1,x,2.3,1.1,'#171714');
  const casaView=buildHouse(T);status.rebuildHouse=(layout)=>casaView.rebuild(layout||window.Casa.layout);
  function doorHit(list){return !!(list && (list.exitDoor || list.id==='puerta_salida'));}
  const indoors=()=>W.mapId==='mine'||W.mapId==='casa';
@@ -255,7 +261,7 @@ function boot(api){
  function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}addEventListener('resize',resize);
  const colors={azul:'#376fc2',rojo:'#a33d30',verde:'#43843d',amarillo:'#d1aa36',morado:'#8858a5'};let color='';
  function updateTilt(dt){pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+((turning.has('ArrowUp')?1:0)-(turning.has('ArrowDown')?1:0))*dt*.8));}
- function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;}}else if(status._casaCam){status._casaCam=false;yaw=.45;pitch=1.12;distance=36;}if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=activeScene();if(me.parent!==view)view.add(me);
+ function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;}}else if(status._casaCam){status._casaCam=false;yaw=.45;pitch=1.12;distance=36;}if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=activeScene();if(me.parent!==view)view.add(me);const h=S.horse;horse.visible=!!h&&W.mapId==='city';if(horse.visible){const hx=h.mounted?p.fx:h.x,hy=h.mounted?p.fy:h.y;horse.position.set(hx*2+1,height(hx,hy),hy*2+1);horse.rotation.y=h.mounted?({up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0):Math.PI/2;horseLegs.forEach((l,i)=>l.rotation.x=h.mounted&&p.path.length?Math.sin(time*(h.gallop?.018:.01)+(i%2)*Math.PI)*.6:0);if(h.mounted)me.position.y+=1.25;}
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  const away=indoors();const live=new Set(['self',...(away?[]:W.npcs.map(n=>n.id))]);if(!away)for(const [id,o] of S.others){if(o.zone==='casa')continue;live.add('peer'+id);const peer=actor('peer'+id,o.fx,o.fy,colors[o.color]);peer.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[o.dir]||0;}for(const [id,a] of actorMap)if(!live.has(id)){if(away&&!String(id).startsWith('peer'))continue;(a.parent||scene).remove(a);actorMap.delete(id);}

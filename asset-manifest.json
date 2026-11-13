@@ -4,6 +4,15 @@
   "policy": "Only entries marked release_approved are licensed as stated, to the extent the licensor holds the necessary rights. Other rights and third-party notices remain intact. Brand assets are excluded. Exact generator pixel matches document provenance, not legal exclusivity.",
   "assets": [
     {
+      "path": "graphics/brand/saimon-gold-v1.png",
+      "sha256": "ec74332937cacf99e839379089a1f0ecd3b142f572bd5c56926e74243b30ca5f",
+      "author": null,
+      "source": null,
+      "release_approved": false,
+      "license": "LicenseRef-Saimon-Brand-Reserved",
+      "status": "brand-excluded"
+    },
+    {
       "path": "graphics/characters/animal_ave_0.png",
       "sha256": "832f41c0d6b62d513cec0f2f668f2f19ff89e382951b78292391e96a546d947e",
       "author": "Simón — Saimon City (aportes propios y créditos conservados)",
@@ -3319,5 +3328,6 @@
     "data/el-jardin.json",
     "data/el-jardin.js"
   ],
-  "repository": "https://github.com/Saimonmde/LIFE"
+  "repository": "https://github.com/Saimonmde/LIFE",
+  "last_inventory_update": "2026-11-13"
 }

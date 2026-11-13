@@ -10,7 +10,7 @@ ARCHIVE = ROOT / 'releases' / 'saimoncity-fuente.zip'
 NOTICES = ['LICENSE', 'LICENSE.md', 'NOTICE.md', 'MARCA.md', 'CONTRIBUTING.md',
            'THIRD-PARTY-NOTICES.md', 'BLOCKCHAIN-Y-PROPIEDAD.md',
            'MANTENIMIENTO-LICENCIAS.md', 'CREDITOS-RECURSOS.md',
-           'ADOPCION.md', 'asset-manifest.json', 'source-manifest.json']
+           'ADOPCION.md', 'MUNDO-Y-ECONOMIA.md', 'asset-manifest.json', 'source-manifest.json']
 
 
 def digest(path):
@@ -27,7 +27,7 @@ def source_files():
         if p.name == '.DS_Store' or p.name == 'lifein.json' or p.name.startswith('.env') or p.suffix in {'.pyc', '.pyo', '.pem', '.key'}:
             continue
         allowed_dirs = {'play', 'movil', 'graphics', 'tools', 'LICENSES'}
-        allowed_root = set(NOTICES) | {'README.md', 'SCHEMA.md', 'server.py', 'jugar.sh', 'render.yaml', '.python-version', '.gitignore'}
+        allowed_root = set(NOTICES) | {'README.md', 'SCHEMA.md', 'server.py', 'economy.py', 'jugar.sh', 'render.yaml', '.python-version', '.gitignore'}
         if rel.parts[0] not in allowed_dirs and rel.as_posix() not in allowed_root and rel.as_posix() not in {'data/el-jardin.json', 'data/el-jardin.js', 'data/el-jardin.json.license', 'data/el-jardin.js.license', 'README.md.license', 'SCHEMA.md.license'}:
             continue
         yield p, rel

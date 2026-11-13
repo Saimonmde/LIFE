@@ -2,6 +2,10 @@
 
 Creación y dirección original: **Simón**. Mundo 3D en desarrollo, con mapa del Valle de Aburrá, minería y fundición, inventario, chat y cámara orbital.
 
+## Versión del valle y economía
+
+Diez municipios conectados, caballo con paso y galope, inicio en casa y logo dorado. La emisión de prueba aprobada es de **21.000.000** de monedas, distribuida desde una tesorería con registro en el servidor. Véase [alcance, controles y persistencia](MUNDO-Y-ECONOMIA.md).
+
 ## Licencias y contribución
 
 Código propio: **AGPL-3.0-or-later**. Contenidos propios autorizados: **CC-BY-SA-4.0**. Marca y logo: política separada. Three.js conserva MIT y Pixelify Sans conserva SIL OFL 1.1.
