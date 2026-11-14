@@ -618,7 +618,11 @@ def swing_for(sender, mineral, proof=None):
                   'note': shift_note, 'supply': result.get('view')})
 
 def migration_left(sender, amount):
-    prior = (ECON.get('migrations') or {}).get(sender.name)
+    migrations = ECON.get('migrations') or {}
+    lock = migrations.get(ECO.migration_lock(sender.name) or '')
+    if isinstance(lock, dict) and lock.get('done', True):
+        return 0
+    prior = migrations.get(sender.name)
     if isinstance(prior, dict) and prior.get('done', True):
         return 0
     if isinstance(prior, dict):
@@ -1198,6 +1202,51 @@ def vuelta_pedida(query, cookie):
     return juego_vuelta(asked)
 
 
+def _volcar(live, new):
+    live.clear()
+    live.update(new)
+
+
+def eliminar_cuenta_propia(user, confirm):
+    """Borra sólo la cuenta de esta sesión. Una escritura; si falla, el estado vivo no cambia."""
+    import copy
+    import persist
+    import borrar_cuenta as borrar
+    accounts = copy.deepcopy(ACCOUNTS)
+    economy = copy.deepcopy(ECON)
+    vault_state = copy.deepcopy(VAULT_STATE)
+    players = copy.deepcopy(PLAYERS)
+    nft_chain = copy.deepcopy(NFT_CHAIN)
+    libro_chain = copy.deepcopy(LIBRO_CHAIN)
+    bundle = {
+        'accounts': accounts,
+        'economy': economy,
+        'vault': vault_state,
+        'players': players,
+        'nft': nft_chain,
+        'libro': libro_chain,
+    }
+    result = borrar.aplicar(bundle, user, confirm, seed=NFT_SEED, now=int(time.time()))
+    if not result.get('ok') or result.get('already'):
+        return result
+    docs = [
+        ('accounts', ACCOUNTS_PATH, accounts),
+        ('economy', ECON_PATH, economy),
+        ('vault', VAULT_PATH, vault_state),
+        ('players', PLAY_PATH, players),
+        ('nft', NFT_PATH, nft_chain),
+        ('libro_madre', LIBRO_PATH, libro_chain),
+    ]
+    persist.save_bundle(docs, result.get('new_ids') or [], os.path.dirname(LIBRO_PATH) or '.')
+    _volcar(ACCOUNTS, accounts)
+    _volcar(ECON, economy)
+    _volcar(VAULT_STATE, vault_state)
+    _volcar(PLAYERS, players)
+    _volcar(NFT_CHAIN, nft_chain)
+    _volcar(LIBRO_CHAIN, libro_chain)
+    return result
+
+
 async def try_auth(method, path, target, headers, body, remote_ip=None):
     if not path.startswith('/auth'):
         return None
@@ -1284,6 +1333,18 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         token = ACC.read_cookie(cookie, 'life_session')
         ACCOUNTS['sessions'].pop(token, None)
         save_accounts()
+        return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    if path == '/auth/delete-account' and method == 'POST':
+        token = ACC.read_cookie(cookie, 'life_session')
+        user = ACC.session_user(ACCOUNTS, token)
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para eliminarla.'}, headers)
+        try:
+            result = eliminar_cuenta_propia(user, payload.get('confirm'))
+        except Exception:
+            return auth_response('500 Internal Server Error', {'error': 'No se pudo eliminar la cuenta. No se cambió nada.'}, headers)
+        if not result.get('ok'):
+            return auth_response(result.get('status') or '400 Bad Request', {'error': result.get('error') or 'No se pudo eliminar la cuenta.'}, headers)
         return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
     return auth_response('404 Not Found', {'error': 'no existe'}, headers)
 
