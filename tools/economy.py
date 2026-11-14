@@ -386,6 +386,14 @@ def issue(state, name, amount_smh, note, kind='mint', now=None):
     return granted
 
 
+def migration_lock(name):
+    """Clave opaca: una cuenta borrada no vuelve a emitir su conversión si el nickname se reutiliza."""
+    key = ' '.join(str(name or '').strip().casefold().split())
+    if not key:
+        return ''
+    return 'lock:' + hashlib.sha256(key.encode('utf-8')).hexdigest()[:16]
+
+
 def migrate_monedas(state, name, monedas, now=None, limit_smh=None):
     """Convierte monedas antiguas. 1 moneda = 1 SMC = 100.000.000 SMH.
 
@@ -394,6 +402,16 @@ def migrate_monedas(state, name, monedas, now=None, limit_smh=None):
     Un registro viejo, sin la marca done, se trata como ya terminado.
     """
     record = state.setdefault('migrations', {})
+    lock_key = migration_lock(name)
+    locked = record.get(lock_key) if lock_key else None
+    if isinstance(locked, dict) and locked.get('done', True):
+        return {
+            'already': True,
+            'credited': 0,
+            'requested': int(locked.get('requested') or 0),
+            'rate': OLD_COIN_TO_SMC,
+            'unit': 'SMH',
+        }
     prior = record.get(name) if isinstance(record.get(name), dict) else None
     if prior and prior.get('done', True):
         return {
