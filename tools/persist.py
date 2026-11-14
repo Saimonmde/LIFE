@@ -118,6 +118,75 @@ def load_named(name, path):
     return doc if isinstance(doc, dict) else json.loads(doc)
 
 
+def save_bundle(docs, new_ids=None, ids_directory=None):
+    """Guarda varios almacenes en una sola transacción. Si falla, no queda ninguno a medias.
+
+    docs: lista de (name, path, doc). new_ids se reservan en la misma escritura.
+    """
+    fresh = []
+    seen = set()
+    for ident in new_ids or []:
+        if not ident or ident in seen:
+            continue
+        seen.add(ident)
+        fresh.append(ident)
+    directory = ids_directory
+    if directory is None and docs:
+        directory = os.path.dirname(docs[0][1]) or '.'
+    directory = directory or '.'
+    if not enabled():
+        if fresh:
+            have = _read_ids(directory)
+            clash = next((i for i in fresh if i in have), None)
+            if clash:
+                raise DuplicateId(clash)
+        temps = []
+        try:
+            for name, path, doc in docs:
+                os.makedirs(os.path.dirname(path) or '.', exist_ok=True)
+                tmp = path + '.tmp-bundle'
+                with open(tmp, 'w', encoding='utf-8') as handle:
+                    json.dump(doc, handle, ensure_ascii=False, indent=1)
+                temps.append((tmp, path))
+            if fresh:
+                ids_path = _ids_path(directory)
+                merged = _read_ids(directory) | set(fresh)
+                os.makedirs(os.path.dirname(ids_path) or '.', exist_ok=True)
+                tmp = ids_path + '.tmp-bundle'
+                with open(tmp, 'w', encoding='utf-8') as handle:
+                    json.dump({'ids': sorted(merged)}, handle)
+                temps.append((tmp, ids_path))
+            for tmp, path in temps:
+                os.replace(tmp, path)
+        except Exception:
+            for tmp, _path in temps:
+                if os.path.isfile(tmp):
+                    try:
+                        os.remove(tmp)
+                    except OSError:
+                        pass
+            raise
+        return
+    ensure()
+    conn = _connect()
+    try:
+        with conn.transaction():
+            if fresh:
+                conn.execute('CREATE TABLE IF NOT EXISTS libro_ids (id TEXT PRIMARY KEY)')
+                for ident in fresh:
+                    conn.execute('INSERT INTO libro_ids (id) VALUES (%s)', (ident,))
+            for name, path, doc in docs:
+                conn.execute(
+                    """INSERT INTO stores (name, doc, updated_at) VALUES (%s, %s::jsonb, now())
+                       ON CONFLICT (name) DO UPDATE SET doc = EXCLUDED.doc, updated_at = now()""",
+                    (name, json.dumps(doc)),
+                )
+    except Exception as exc:
+        if getattr(exc, 'sqlstate', None) == '23505' or type(exc).__name__ == 'UniqueViolation':
+            raise DuplicateId(fresh[0] if fresh else '') from exc
+        raise
+
+
 def save_named(name, path, doc):
     if not enabled():
         _write_file(path, doc)
