@@ -29,6 +29,41 @@
       bagCafe: 'bulto_cafe_64.png',
       bagCacao: 'bulto_cacao_64.png',
     },
+    models: {
+      plant: {
+        cafe: {
+          siembra: { glb: '', lod: '', flat: 'cafe_siembra_64.png' },
+          crecimiento: { glb: '', lod: '', flat: 'cafe_crecimiento_64.png' },
+          floracion: { glb: '', lod: '', flat: 'cafe_crecimiento_64.png' },
+          fruto: { glb: '', lod: '', flat: 'cafe_cosecha_64.png' },
+          cosecha: { glb: '', lod: '', flat: 'cafe_cosecha_64.png' },
+        },
+        cacao: {
+          siembra: { glb: '', lod: '', flat: 'cacao_siembra_64.png' },
+          crecimiento: { glb: '', lod: '', flat: 'cacao_crecimiento_64.png' },
+          floracion: { glb: '', lod: '', flat: 'cacao_crecimiento_64.png' },
+          fruto: { glb: '', lod: '', flat: 'cacao_cosecha_64.png' },
+          cosecha: { glb: '', lod: '', flat: 'cacao_cosecha_64.png' },
+        },
+      },
+      workshop: {
+        cafe: {
+          despulpado: { glb: '', lod: '', flat: 'taller_cafe_lite.png' },
+          fermentacion: { glb: '', lod: '', flat: 'taller_cafe_lite.png' },
+          lavado: { glb: '', lod: '', flat: 'taller_cafe_lite.png' },
+          secado: { glb: '', lod: '', flat: 'taller_cafe_lite.png' },
+          trilla: { glb: '', lod: '', flat: 'taller_cafe_lite.png' },
+          bulto: { glb: '', lod: '', flat: 'bulto_cafe_64.png' },
+        },
+        cacao: {
+          quiebre: { glb: '', lod: '', flat: 'taller_cacao_lite.png' },
+          fermentacion: { glb: '', lod: '', flat: 'taller_cacao_lite.png' },
+          secado: { glb: '', lod: '', flat: 'taller_cacao_lite.png' },
+          seleccion: { glb: '', lod: '', flat: 'taller_cacao_lite.png' },
+          libro: { glb: '', lod: '', flat: 'kg_cosechados.svg' },
+        },
+      },
+    },
     colors: {
       trunk: '#6b4a2c',
       trunkDark: '#3a2412',
