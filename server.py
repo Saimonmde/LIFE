@@ -44,6 +44,7 @@ import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
 import caballo_cuenta as CABALLO
+import partida as PARTIDA
 import world_edits as EDITS
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -2411,6 +2412,20 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         save_accounts()
         save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'casa': shown['casa']}, headers)
+    if path == '/auth/partida' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para recuperar la partida.'}, headers)
+        return auth_response('200 OK', {'partida': PARTIDA.recall(user)}, headers)
+    if path == '/auth/partida' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar la partida.'}, headers)
+        shown = PARTIDA.remember(user, payload if isinstance(payload, dict) else {})
+        CASA.mirror(VIDA, 'acct:' + user['id'], user)
+        save_accounts()
+        save_vida()
+        return auth_response('200 OK', {'ok': True, 'partida': shown}, headers)
     if path == '/auth/caballo' and method == 'GET':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:

@@ -335,6 +335,20 @@
   function persist(key) {
     if (!dirty) return;
     try { Core.saveLayout(localStorage, key || profile().key, snapshot()); } catch (e) {}
+    if (window.Partida) Partida.touch();
+  }
+  function applySaved(hud) {
+    if (!hud || typeof hud !== 'object') return;
+    if (window.HudLayoutCore) {
+      for (const mobile of [false, true]) for (const portrait of [false, true]) {
+        const key = HudLayoutCore.storageKey(mobile, portrait);
+        if (hud[key]) {
+          try { Core.saveLayout(localStorage, key, hud[key]); } catch (e) {}
+        }
+      }
+    }
+    if (typeof hud.pantallaLimpia === 'boolean') setClean(hud.pantallaLimpia);
+    layoutNow();
   }
   function clearOwned() {
     for (const el of managed.values()) {
@@ -566,7 +580,7 @@
 
   window.HudLayout = {
     scan, setEditing, resetLayout, userOpen, userClose, place,
-    piece: pieceEl,
+    piece: pieceEl, applySaved, snapshot,
     minimize(id, on) { const el = pieceEl(id); if (el) { setMinimized(el, on !== false); dirty = true; persist(); } },
     profile,
   };
