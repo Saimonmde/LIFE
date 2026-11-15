@@ -684,7 +684,26 @@ function renderForgeChat(){if(!chatForgeItem)return;const r=MiningRules.recipes[
 // ---------------- inventario / xp / monedas ----------------
 const SLOTS = 60;
 function invCount(id) { return S.inv.filter(s => s && s.item === id).reduce((a, s) => a + s.qty, 0); }
-function invAdd(id,qty){const next=MiningRules.add(S.inv,W.items,id,qty,SLOTS);if(!next){game('Tu mochila está llena. Libera una casilla.','aviso');return false;}S.inv=next;save();renderInv();return true;}
+function avisarMochilaLlena() {
+  let box = document.getElementById('mochila-llena');
+  if (!box) {
+    box = document.createElement('section');
+    box.id = 'mochila-llena';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Mochila llena');
+    box.innerHTML = '<h2>Tu mochila está llena</h2><p>No se guardó nada. El objeto sigue donde estaba.</p><p class="fila"><button type="button" id="mochila-dejar">Dejarlo donde está</button><button type="button" id="mochila-abrir">Abrir la mochila</button></p>';
+    document.body.append(box);
+    box.querySelector('#mochila-dejar').onclick = () => { box.hidden = true; };
+    box.querySelector('#mochila-abrir').onclick = () => {
+      box.hidden = true;
+      const inv = document.getElementById('w-inv');
+      if (inv) inv.hidden = false;
+    };
+  }
+  box.hidden = false;
+}
+window.avisarMochilaLlena = avisarMochilaLlena;
+function invAdd(id,qty){const next=MiningRules.add(S.inv,W.items,id,qty,SLOTS);if(!next){avisarMochilaLlena();return false;}S.inv=next;save();renderInv();return true;}
 function invRemove(id,qty){const next=MiningRules.remove(S.inv,id,qty);if(!next)return false;S.inv=next;if(!S.inv[S.sel])S.sel=-1;save();renderInv();if(window.Acunar)Acunar.paint();return true;}
 window.quitarDelInventario = invRemove;
 const selected = () => S.sel >= 0 && S.inv[S.sel] ? S.inv[S.sel].item : null;
@@ -844,8 +863,21 @@ function questProgress(type, item, qty) {
     if ((type === 'collect' && st.type === 'collect' && st.item === item) || (type === 'talk' && st.type === 'talk' && st.target === item)) {
       S.quest.steps[st.id] = Math.min(st.count, (S.quest.steps[st.id] || 0) + qty);
       if (stepDone(st)) {
+        const gifts = (st.onComplete && st.onComplete.giveItems) || [];
+        const given = [];
+        let full = false;
+        for (const g of gifts) {
+          if (invCount(g.item)) continue;
+          if (!invAdd(g.item, g.qty)) { full = true; break; }
+          given.push(g);
+        }
+        if (full) {
+          for (const g of given) invRemove(g.item, g.qty);
+          S.quest.steps[st.id] = Math.max(0, (S.quest.steps[st.id] || 0) - qty);
+          break;
+        }
         game(`Primeros Pasos: <b>${esc(st.text)}</b> ✔`, 'oro');
-        for (const g of (st.onComplete && st.onComplete.giveItems) || []) if (!invCount(g.item)) { invAdd(g.item, g.qty); game(`Recibes: <b>${W.items[g.item].name}</b>.`, 'juego'); }
+        for (const g of given) game(`Recibes: <b>${W.items[g.item].name}</b>.`, 'juego');
       }
     }
   }
@@ -1220,7 +1252,7 @@ function migrarMetal() {
   if (S.net && S.net.ok) S.net.ws.send(JSON.stringify({ t: 'metal_migrar', counts }));
 }
 function tintinear(item) { if (window.Sonido && Sonido.isRaw(item)) Sonido.clink(); }
-function give(item, qty, tx, ty) { if (invAdd(item, qty)) { tintinear(item); floatText(tx, ty, `+${qty} ${W.items[item].name}`); questProgress('collect', item, qty); } }
+function give(item, qty, tx, ty) { if (!invAdd(item, qty)) return false; tintinear(item); floatText(tx, ty, `+${qty} ${W.items[item].name}`); questProgress('collect', item, qty); return true; }
 function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * TS + 32, y: ty * TS, text, color, t0: now() }); }
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
@@ -1246,13 +1278,13 @@ function act(t) {
   if(d.type==='furnace')return openFurnace(n);
   if (d.type === 'fruit_tree') {
     if (n.state !== 'full') return game(`El ${NOMBRES[d.species].toLowerCase()} no tiene frutas. Vuelven en ${secs()} s.`, 'aviso');
-    const q = rnd(d.yield.min, d.yield.max); give(d.yield.item, q, d.x, d.y); game(`Recoges ${q} × <b>${W.items[d.yield.item].name}</b>.`);
+    const q = rnd(d.yield.min, d.yield.max); if (!give(d.yield.item, q, d.x, d.y)) return; game(`Recoges ${q} × <b>${W.items[d.yield.item].name}</b>.`);
     if (d.bonus && Math.random() < d.bonus.chance) { give(d.bonus.item, 1, d.x, d.y - 0.4); game(`¡Encontraste una <b>${W.items[d.bonus.item].name.toLowerCase()}</b>!`); }
     addXp('gathering', d.xp); n.state = 'picked'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'wood_tree') {
     if (!needTool(d.tool)) return;
     if (n.state !== 'standing') return game(`Sólo queda el tocón. El pino vuelve a crecer en ${secs()} s.`, 'aviso');
-    const q = rnd(d.yield.min, d.yield.max); give('madera', q, d.x, d.y); game(`Talas el pino y obtienes ${q} × <b>madera</b>.`);
+    const q = rnd(d.yield.min, d.yield.max); if (!give('madera', q, d.x, d.y)) return; game(`Talas el pino y obtienes ${q} × <b>madera</b>.`);
     addXp('woodcutting', d.xp); n.state = 'stump'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'farm_plot') {
     if (n.state === 'empty') {
@@ -1265,20 +1297,20 @@ function act(t) {
       addXp('planting', d.xp.plant); floatText(d.x, d.y, 'Sembrado'); game(`Siembras <b>${W.items[seed].name.toLowerCase()}</b>. Lista en ${Math.round(d.growMs / 1000)} s.`);
     } else if (n.state === 'planted') game(`La planta de ${W.items[n.crop].name.toLowerCase()} está creciendo… faltan ${secs()} s.`, 'aviso');
     else {
-      const q = rnd(d.harvest.fruitMin, d.harvest.fruitMax); give(n.crop, q, d.x, d.y); game(`Cosechas ${q} × <b>${W.items[n.crop].name}</b>.`);
+      const q = rnd(d.harvest.fruitMin, d.harvest.fruitMax); if (!give(n.crop, q, d.x, d.y)) return; game(`Cosechas ${q} × <b>${W.items[n.crop].name}</b>.`);
       if (Math.random() < d.harvest.seedChance) give(n.crop + '_seed', 1, d.x, d.y - 0.4);
       addXp('planting', d.xp.harvest); n.state = 'empty'; n.crop = null;
     }
   } else if (d.type === 'fishing_spot') {
     if (!needTool(d.tool)) return;
     if (n.state !== 'active') return game(`Aquí no hay peces ahora. Vuelven en ${secs()} s.`, 'aviso');
-    const fish = rollTable(d.yield.table); give(fish, d.yield.qty, d.x, d.y); game(`Lanzas la red y atrapas: <b>${W.items[fish].name}</b>.`);
+    const fish = rollTable(d.yield.table); if (!give(fish, d.yield.qty, d.x, d.y)) return; game(`Lanzas la red y atrapas: <b>${W.items[fish].name}</b>.`);
     addXp('fishing', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'nodo_oro_fluvial') {
     if (!needTool(d.tool)) return;
     if (n.state !== 'active') return game(`Ya lavaste esta arena. El río trae más oro en ${secs()} s.`, 'aviso');
     if (Math.random() > d.successChance) { floatText(d.x, d.y, 'Sólo arena…', '#e8d9b0'); return game('Mueves la batea en la corriente… sólo arena. Intenta otra vez.', 'aviso'); }
-    give(d.yield.item, 1, d.x, d.y); if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'lavar', qty: 1 })); game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro');
+    if (!give(d.yield.item, 1, d.x, d.y)) return; if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'lavar', qty: 1 })); game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro');
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;
@@ -1297,7 +1329,12 @@ function act(t) {
 }
 function hunt(a) {
   const d = a.def; if (!needTool(d.tool)) return; if (a.state !== 'alive') return;
-  for (const y of d.yield) if (Math.random() < y.chance) give(y.item, rnd(y.min, y.max), a.x, a.y - (y.item === 'carne' ? 0 : 0.4));
+  const got = [];
+  for (const y of d.yield) if (Math.random() < y.chance) got.push([y.item, rnd(y.min, y.max)]);
+  const antes = S.inv.map(slot => slot ? { ...slot } : null);
+  if (got.some(([item, qty]) => !give(item, qty, a.x, a.y - (item === 'carne' ? 0 : 0.4)))) {
+    S.inv = antes; save(); renderInv(); return;
+  }
   game(`Cazas un <b>${NOMBRES[d.species].toLowerCase()}</b> con la lanza.`); addXp('hunting', d.xp); a.state = 'hunted'; a.until = now() + d.respawnMs; tired();
 }
 
