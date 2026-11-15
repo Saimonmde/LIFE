@@ -32,6 +32,7 @@ import persist as PERSIST
 import mundos as MUNDOS
 import social as SOCIAL
 import topes as TOPES
+import historial as HIST
 import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
@@ -235,6 +236,8 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['reloj'] = RELOJ.payload(ECON)
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
     m['cupos'] = cupos_public(profile)
+    if who and not locked:
+        m['historial'] = HIST.para(ECON, who)
     return m
 
 def token_matches(stored, presented):
@@ -439,6 +442,8 @@ def emitir(sender, smh, note, kind, foundry, tile, location):
     sender.kept_smh = kept
     sender.pool_smh = pooled
     sender.activity_tiles = 0
+    if kept > 0:
+        HIST.anotar(ECON, 'simoncoin', kept, sender.name, note)
     save_econ()
     broadcast_econ()
     return granted, token, pub
@@ -507,10 +512,12 @@ def mint_plata(sender, proof=None):
         save_econ()
         broadcast_econ()
         sph = int(result.get('sph') or 0)
+        if sph > 0:
+            HIST.anotar(ECON, 'simonplata', sph, sender.name, 'Acuñación de Simonplata')
         text = f'Se minaron {PLATA.format_pair(sph)}. Es una simulación: no es dinero real.'
         send(sender, {'t': 'system', 'text': text})
         send(sender, {'t': 'issued', 'coin': 'SMP', 'amountSph': sph, 'amountText': PLATA.format_pair(sph), 'kind': 'plata', 'plata': result.get('view')})
-        send(sender, {'t': 'plata_result', 'ok': True, 'reason': text, 'amountSph': sph, 'amountText': PLATA.format_pair(sph), 'plata': result.get('view'), 'coin': 'SMP'})
+        send(sender, {'t': 'plata_result', 'ok': True, 'reason': text, 'amountSph': sph, 'amountText': PLATA.format_pair(sph), 'plata': result.get('view'), 'coin': 'SMP', **saldos_de(sender)})
         return result
     opened = PLATA.open_challenge(ECON, profile, 'plata', 'libre')
     save_econ()
@@ -614,6 +621,19 @@ def cupos_public(profile=None):
         }
     return {'reset': TOPES.RESET_LABEL, 'coins': coins}
 
+def saldos_de(sender):
+    """Lo que el cliente tiene que pintar. Incluye el serial de cada acuñación."""
+    profile = account_profile(sender) or {}
+    view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
+    bal = view.get('balances') or {}
+    return {
+        'ledger': view,
+        'balanceSubs': int(bal.get('simoncoin') or 0),
+        'balanceSph': int(bal.get('simonplata') or 0),
+        'historial': HIST.para(ECON, sender.name),
+        'cupos': cupos_public(profile),
+    }
+
 def acunar_for(sender, coin, pieces, proof=None):
     spec = TOPES.metal(str(coin or ''))
     if not spec or not _en_la_mina(sender) or not wallet_ready(sender):
@@ -660,6 +680,9 @@ def acunar_for(sender, coin, pieces, proof=None):
         if not result.get('ok'):
             return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
         got = int(result.get('sph') or 0) / ECO.SUBS
+        if int(result.get('sph') or 0) > 0:
+            HIST.anotar(ECON, 'simonplata', int(result.get('sph') or 0), sender.name, 'Acuñación de Simonplata con plata cruda')
+            save_econ()
         broadcast_econ()
     else:
         want = int(quote['recibes'])
@@ -675,14 +698,16 @@ def acunar_for(sender, coin, pieces, proof=None):
         if not result.get('ok'):
             return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
         got = int(result.get('qty') or 0)
+        if got > 0:
+            HIST.anotar(ECON, 'simonchis', got, sender.name, 'Acuñación de Simonchis con cobre crudo')
+            save_econ()
         broadcast_econ()
     done = TOPES.cotizar(quote['gastas'], row['rate'], got, got, quote['gastas'], whole=whole)
-    view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
         'item': row['item'], 'spent': done['gastas'], 'recibes': done['recibes'],
         'reason': f'Se acuñó {done["recibes"]} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
-        'ledger': view, 'cupos': cupos_public(profile),
+        **saldos_de(sender),
     })
 
 def fundir_lingotes(sender, ore, batches):
@@ -722,9 +747,11 @@ def fundir_simonchis(sender, ore, batches, proof):
         return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
     qty = int(result['qty'])
     note = f'Se acuñaron {qty} Simonchis. No es dinero real.'
+    HIST.anotar(ECON, 'simonchis', qty, sender.name, note)
+    save_econ()
     view = MONEDAS.ledger(ECON, sender.name, profile['account'])
     broadcast_econ()
-    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonchis', 'ore': ore, 'batches': batches, 'qty': qty, 'coin': 'Simonchis', 'reason': note, 'ledger': view})
+    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonchis', 'ore': ore, 'batches': batches, 'qty': qty, 'coin': 'Simonchis', 'reason': note, 'ledger': view, **saldos_de(sender)})
     send(sender, {'t': 'system', 'text': note})
 
 def fundir_simonplata(sender, ore, batches, proof):
@@ -733,7 +760,7 @@ def fundir_simonplata(sender, ore, batches, proof):
     if result and result.get('pending'):
         send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Calculando la prueba de Simonplata. El mineral sigue en la mochila.'})
     elif result and result.get('ok'):
-        send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
+        send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', **saldos_de(sender)})
 
 def smelt_for(sender, ore, batches, proof=None, mode=None):
     ore = str(ore or '')
@@ -771,8 +798,7 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
     note = f'Se acuñó {ECO.format_smc(kept).replace(" SMC", " Simoncoin")}.'
     if pooled:
         note += ' Una parte quedó en el fondo de cambio.'
-    view = MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))
-    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simoncoin', 'grantedSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_smc(kept), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view'), 'ledger': view, 'reason': note})
+    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simoncoin', 'grantedSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_smc(kept), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view'), 'reason': note, **saldos_de(sender)})
     send(sender, {'t': 'system', 'text': note + ' No es dinero real.'})
 
 def swing_for(sender, mineral, proof=None):
@@ -1449,7 +1475,7 @@ def handle_client_message(c, m, t):
         c.wallet_token = owned or ''
         welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
-                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON)}
+                 'reloj': RELOJ.payload(ECON), **saldos_de(c)}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         send(c, welcome)
         if c.place not in MUNDOS.PRIVATE:

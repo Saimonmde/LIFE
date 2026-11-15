@@ -27,8 +27,9 @@
   }
   function balances() {
     const S = window.__ELJARDIN || {};
-    const ledger = S.ledger && S.ledger.balances;
-    const name = window.nombrePropio ? nombrePropio() : '';
+    const propios = S.saldos || (S.ledger && S.ledger.balances);
+    const ledger = propios;
+    const name = (S.me && S.me.name) || (window.nombrePropio ? nombrePropio() : '');
     let simoncoin = ledger ? ledger.simoncoin : 0;
     let simonplata = ledger ? ledger.simonplata : 0;
     let simonchis = ledger ? ledger.simonchis : 0;
@@ -80,7 +81,7 @@
       if (!response.ok) return;
       const ledger = await response.json();
       if (window.__ELJARDIN) {
-        const prev = __ELJARDIN.ledger && __ELJARDIN.ledger.balances;
+        const prev = __ELJARDIN.saldos || (__ELJARDIN.ledger && __ELJARDIN.ledger.balances);
         __ELJARDIN.ledger = Object.assign({}, ledger, prev ? { balances: prev } : {});
       }
       paint();
@@ -168,6 +169,7 @@
       '<h3>Caballo</h3><p>Tu caballo te lleva solo por el camino. También puedes llamarlo a la puerta.</p>',
       '<button type="button" id="cajon-llamar">Llamar a mi caballo</button>',
       '<h3>Atajos</h3>',
+      '<button type="button" id="cajon-banco">Mi banco / Historial</button>',
       '<button type="button" id="cajon-perfil">Perfil</button>',
       '<button type="button" id="cajon-minar">Acuñar monedas</button>',
       '<button type="button" id="cajon-plata">Simonplata</button>',
@@ -179,6 +181,7 @@
     ].join('');
     menu.prepend(block);
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
+    $('#cajon-banco').onclick = () => { closeDrawer(); if (window.Saldos) Saldos.open(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
     $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
     $('#cajon-plata').onclick = () => showPiece('plata-panel');

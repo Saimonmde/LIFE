@@ -1,0 +1,24 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+.saldo-mas { animation: saldo-mas .8s ease; }
+.saldo-menos { animation: saldo-menos .8s ease; }
+@keyframes saldo-mas { from { color: #8dff9a; } to { color: inherit; } }
+@keyframes saldo-menos { from { color: #ff9a8d; } to { color: inherit; } }
+#banco-fondo { position: fixed; inset: 0; z-index: 84; background: rgba(12, 8, 4, .55); }
+#banco-fondo[hidden] { display: none !important; }
+#banco-panel {
+  position: fixed; z-index: 85; left: 50%; top: max(12px, env(safe-area-inset-top));
+  transform: translateX(-50%); width: min(440px, calc(100vw - 16px));
+  max-height: min(86dvh, 720px); overflow: auto; box-sizing: border-box;
+  padding: 0 14px 16px; border-radius: 18px; border: 3px solid #e7c27a;
+  background: #2a2118; color: #fff6e8; font-family: var(--sans);
+}
+#banco-panel[hidden] { display: none !important; }
+#banco-panel header {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
+  justify-content: space-between; margin: 0 -14px 10px; padding: 12px 14px;
+  background: #3a2a1c; border-bottom: 2px solid #e7c27a;
+}
+#banco-panel h2 { margin: 0; font-size: 20px; }
+#banco-panel .x { min-width: 44px; min-height: 44px; border-radius: 12px; border: 1px solid #e7c27a; background: #f3e2b8; color: #3a2a16; font: 700 18px/1 var(--sans); }
+#banco-lista p { margin: 8px 0; font-size: 15px; line-height: 1.35; }
+#cajon-banco { min-height: 48px; width: 100%; margin: 8px 0; border: 0; border-radius: 12px; background: #e2b23c; color: #3a2a16; font: 700 16px/1.2 var(--sans); }

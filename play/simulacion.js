@@ -455,7 +455,8 @@ function applyServer(m) {
   if (st.historia) api.S.econ.historia = st.historia;
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
-  if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
+  if (window.Saldos) Saldos.aplicar(api.S, m);
+  else if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
   if (m.plata) {
     api.S.plata = m.plata;
     if (m.balanceSph != null) api.S.plata.balanceSph = m.walletLocked ? 0 : m.balanceSph;
@@ -701,7 +702,8 @@ function onNet(m) {
   if (m.t === 'issued' && m.libro && window.LibroMadre) LibroMadre.toast(m.libro);
   if (m.t === 'plata_result' || m.t === 'exchange_result') {
     if (m.plata) rememberPlata(m.plata);
-    if (m.ledger) api.S.ledger = m.ledger;
+    if (window.Saldos) Saldos.recibir(m);
+    else if (m.ledger) api.S.ledger = m.ledger;
     const box = document.getElementById('cambio-result');
     if (box) box.textContent = m.reason || (m.ok ? 'Cambio hecho.' : 'No se pudo cambiar.');
     const pending = api.S.pendingSmelt;
@@ -731,7 +733,8 @@ function onNet(m) {
     }
     const pending = api.S.pendingSmelt;
     api.S.pendingSmelt = null;
-    if (m.ledger) api.S.ledger = m.ledger;
+    if (window.Saldos) Saldos.recibir(m);
+    else if (m.ledger) api.S.ledger = m.ledger;
     if (m.ok && pending && api.applySmelt) {
       api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
       const done = document.getElementById('forge-result');
