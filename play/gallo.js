@@ -76,6 +76,8 @@
         homeX: raw.x,
         homeY: raw.y,
         where: raw.where || 'patio',
+        species: raw.species || 'gallo',
+        loose: !!raw.loose,
         mode: 'idle',
         phase: (raw.x + raw.y) % 5 / 5,
         dir: 'down',
@@ -131,7 +133,18 @@
     return (HEAR - dist) / (HEAR - NEAR);
   }
 
-  function nearest(player) {
+    function nearestLoose(player, caught) {
+      const skip = caught || [];
+      let best = null;
+      for (const bird of birds) {
+        if (!bird.loose || skip.indexOf(bird.id) >= 0) continue;
+        const dist = Math.hypot(bird.fx - player.x, bird.fy - player.y);
+        if (dist > 2.4) continue;
+        if (!best || dist < best.dist) best = { dist: dist, id: bird.id, species: bird.species || 'gallo' };
+      }
+      return best;
+    }
+    function nearest(player) {
     let best = null;
     for (const bird of birds) {
       const dist = Math.hypot(bird.fx - player.x, bird.fy - player.y);
@@ -254,10 +267,11 @@
   }
 
   function touch(id) {
-    const bird = birds.find(function (item) { return item.id === id; });
-    if (bird) bird.looked = true;
-    if (typeof onTake === 'function') onTake(bird || { id: id });
-    return { ok: true, item: ITEM, name: NAME, id: id || '' };
+    const given = id && typeof id === 'object' ? id : null;
+    const bird = given || birds.find(function (item) { return item.id === id; });
+    if (bird && bird.looked !== undefined) bird.looked = true;
+    if (typeof onTake === 'function') onTake(bird || { id: id, species: 'gallo' });
+    return { ok: true, item: ITEM, name: NAME, id: (bird && bird.id) || id || '' };
   }
 
   function icon() {
@@ -288,6 +302,8 @@
     gameDay: gameDay,
     notice: notice,
     sellable: sellable,
+    killable: function () { return false; },
+    nearestLoose: nearestLoose,
     boot: boot,
     stepBird: stepBird,
     hearGain: hearGain,

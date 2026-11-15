@@ -8,6 +8,7 @@ import re
 
 import caballo_cuenta
 import casa_cuenta
+import corral
 import gallos
 import mascotas
 import muebles
@@ -212,6 +213,7 @@ def pack(raw):
         'hud': _hud(raw.get('hud')),
     }
     data['gallos'] = gallos.count_inv(data['inv'])
+    data['corral'] = corral.sanitize(raw.get('corral'))
     position = _position(raw.get('position'))
     if position:
         data['position'] = position
@@ -247,6 +249,7 @@ def remember(user, raw):
         casa_cuenta.apply(user, casa_payload)
     if data.get('coat'):
         caballo_cuenta.apply(user, data['coat'])
+    user['corral'] = data.get('corral') or corral.empty()
     return recall(user)
 
 

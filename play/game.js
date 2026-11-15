@@ -110,9 +110,13 @@ async function init() {
     const icon = Gallos.icon();
     W.items.gallo = { id: 'gallo', name: 'Gallo', stackable: true, maxStack: Gallos.CAP, icon: { '32': icon } };
     const pic = new Image(); pic.src = icon; imgs['icon:gallo'] = pic;
-    Gallos.onTake = () => {
-      if (invCount('gallo') >= Gallos.CAP) { game('Ya tienes el tope de gallos.', 'aviso'); return; }
-      if (invAdd('gallo', 1)) game('Guardaste un <b>gallo</b>. Se puede vender y cambiar.', 'juego');
+    Gallos.onTake = (bird) => {
+      if (!window.Corral) return;
+      const answer = Corral.catchWorld(bird || { species: 'gallo' });
+      if (!answer.ok) { game(answer.reason === 'protegida' ? 'La Guacharaca no se atrapa.' : 'No se pudo atrapar.', 'aviso'); return; }
+      save();
+      const name = answer.animal.species === 'gallina' ? 'gallina' : 'gallo';
+      game('Atrapaste un <b>' + name + '</b>. Quedó en tu corral. No se mata; el gallo sí se puede vender.', 'juego');
     };
   }
   for (const n of W.nodes) {
@@ -839,6 +843,7 @@ function partidaSnapshot() {
     libro, studied: S.studied || {}, hp: S.hp, energy: S.energy,
     position: { mapId: W.mapId || 'city', x: S.player.x, y: S.player.y, dir: S.player.dir },
     hud, layout: window.Casa ? Casa.layout : null, pet: S.pet || null,
+    corral: window.Corral ? Corral.snapshot() : null,
     coat: window.Caballo ? Caballo.coat : '',
     horse: (() => {
       const mount = (S.mounts || []).find(item => item.personal);
@@ -862,6 +867,7 @@ function applyPartida(doc) {
   if (doc.pet && window.Vida && Vida.decorate) { S.pet = Vida.decorate(doc.pet); try { localStorage.setItem('lifeinc.mascota.v1', JSON.stringify(doc.pet)); } catch (e) {} }
   else if (doc.pet) S.pet = doc.pet;
   if (doc.layout && window.Casa && Casa.apply) Casa.apply(doc.layout);
+  if (doc.corral && window.Corral) Corral.apply(doc.corral);
   if (doc.coat && window.Caballo && Caballo.applyCoat) Caballo.applyCoat(doc.coat);
   if (doc.horse && Number.isFinite(Number(doc.horse.x)) && Number.isFinite(Number(doc.horse.y))) {
     const mount = ensurePersonalHorse();
@@ -1528,6 +1534,10 @@ function hunt(a) {
     game('La <b>Guacharaca</b> es fauna protegida. No se caza, no se captura y no se vende.', 'aviso');
     return;
   }
+  if (d.species === 'gallo' || d.species === 'gallina' || (window.Gallos && Gallos.killable && Gallos.killable(d.species))) {
+    game('No se mata. Se puede atrapar y, si es gallo, vender.', 'aviso');
+    return;
+  }
   if (!needTool(d.tool)) return; if (a.state !== 'alive') return;
   const got = [];
   for (const y of d.yield) if (Math.random() < y.chance) got.push([y.item, rnd(y.min, y.max)]);
@@ -1975,6 +1985,11 @@ function update(dt) {
   if (window.Caballo) Caballo.tick(dt, horseContext());
   if (window.Guacharaca) Guacharaca.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
   if (window.Gallos) Gallos.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
+  if (window.Corral) {
+    const casa = (window.HOGARES && HOGARES.casas || []).find(item => item.id === (S.me && S.me.municipio));
+    Corral.tick(dt, casa || null);
+    paintAtrapar();
+  }
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId==='central' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
@@ -2325,6 +2340,42 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
+function paintAtrapar() {
+  let button = document.getElementById('atrapar-ave');
+  if (!button) {
+    button = document.createElement('button');
+    button.id = 'atrapar-ave';
+    button.type = 'button';
+    button.className = 'hud';
+    button.textContent = 'Atrapar';
+    button.style.cssText = 'position:fixed;left:50%;bottom:138px;transform:translateX(-50%);z-index:16';
+    button.onclick = () => {
+      const bird = (window.Gallos ? Gallos.birds() : []).find(item => item.id === button.dataset.id);
+      if (bird && window.Gallos) Gallos.touch(bird);
+    };
+    document.body.append(button);
+    const vender = document.createElement('button');
+    vender.id = 'vender-gallo';
+    vender.type = 'button';
+    vender.className = 'hud';
+    vender.textContent = 'Vender gallo';
+    vender.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:16';
+    vender.onclick = () => {
+      const animal = (Corral.animals() || []).find(item => item.species === 'gallo');
+      if (!animal) { game('No hay un gallo en tu corral.', 'aviso'); return; }
+      Corral.takeOut(animal.id);
+      if (invAdd('gallo', 1)) game('El gallo salió del corral. Ya se puede vender o cambiar. No se mata.', 'juego');
+      save();
+    };
+    document.body.append(vender);
+  }
+  const city = (W.mapId || 'city') === 'city';
+  const loose = city && window.Gallos ? Gallos.nearestLoose(S.player, Corral.caught()) : null;
+  button.hidden = !loose;
+  if (loose) button.dataset.id = loose.id;
+  const vender = document.getElementById('vender-gallo');
+  if (vender) vender.hidden = !(city && (Corral.animals() || []).some(item => item.species === 'gallo'));
+}
 function horseContext(){
  const avoid=new Set();
  if(window.Casa){avoid.add(Casa.PARK_DOOR.x+','+Casa.PARK_DOOR.y);avoid.add(Casa.PARK_STAND.x+','+Casa.PARK_STAND.y);}

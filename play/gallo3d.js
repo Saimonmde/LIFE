@@ -34,9 +34,15 @@ function part(root, w, h, d, x, y, z, color) {
   return mesh;
 }
 
-export function createGallo() {
+const COATS = {
+  dorado: '#c47a32', negro: '#2c2c2c', blanco: '#f4f1ea', rojo: '#a33b2a',
+  blanca: '#f7f4ee', pinta: '#e6d2a8', negra: '#3a322c', dorada: '#d7a441',
+};
+
+export function createGallo(color) {
   const root = new T.Group();
-  const body = part(root, 0.42, 0.36, 0.58, 0, 0.48, 0.02, COLOR.body);
+  const bodyColor = COATS[color] || COLOR.body;
+  const body = part(root, 0.42, 0.36, 0.58, 0, 0.48, 0.02, bodyColor);
   part(root, 0.34, 0.12, 0.4, 0, 0.62, 0.02, COLOR.wing);
   part(root, 0.28, 0.1, 0.22, 0, 0.36, 0.12, COLOR.deep);
   const tail = [
@@ -72,4 +78,10 @@ export function createGallo() {
     wattle.scale.y = 1 + Math.sin((time || 0) * 5) * 0.06;
   }
   return { root, pose };
+}
+
+export function createGallina(color) {
+  const bird = createGallo(color || 'blanca');
+  bird.root.scale.set(0.82, 0.78, 0.82);
+  return bird;
 }
