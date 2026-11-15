@@ -186,6 +186,49 @@ def _techo_simonplata():
     return simonplata_daily_sph(days * DAY, hours * 3600, quests) / SUBS
 
 
+def siguiente(age_seconds, play_seconds, quests):
+    """El próximo peldaño del tope, con los mismos días, horas y misiones de _growth."""
+    age_seconds = max(0, int(age_seconds or 0))
+    play_seconds = max(0, int(play_seconds or 0))
+    quests = max(0, int(quests or 0))
+    days, hours, done = _growth(age_seconds, play_seconds, quests)
+    max_days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
+    max_hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
+    max_quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
+    now_smc = simoncoin_daily_smh(age_seconds, play_seconds, quests) / SUBS
+    now_smp = simonplata_daily_sph(age_seconds, play_seconds, quests) / SUBS
+    steps = []
+
+    def add(kind, wait, future_age, future_play, future_quests, when):
+        smc = simoncoin_daily_smh(future_age, future_play, future_quests) / SUBS - now_smc
+        smp = simonplata_daily_sph(future_age, future_play, future_quests) / SUBS - now_smp
+        steps.append({
+            'kind': kind,
+            'wait': wait,
+            'simoncoin': smc,
+            'simonplata': smp,
+            'text': when + ' Sumas ' + _cantidad(smc) + ' de Simoncoin y ' + _cantidad(smp) + ' de Simonplata al tope del día.',
+        })
+
+    if days < max_days:
+        wait = DAY - (age_seconds % DAY)
+        add('edad', wait, age_seconds + wait, play_seconds, quests, 'El siguiente peldaño llega con un día más de cuenta.')
+    if hours < max_hours:
+        wait = 3600 - (play_seconds % 3600)
+        add('juego', wait, age_seconds, play_seconds + wait, quests, 'El siguiente peldaño llega con una hora más de juego.')
+    if done < max_quests:
+        add('mision', None, age_seconds, play_seconds, quests + 1, 'El siguiente peldaño llega al completar una misión más.')
+    if not steps:
+        steps.append({
+            'kind': 'listo',
+            'wait': None,
+            'simoncoin': 0,
+            'simonplata': 0,
+            'text': 'Ya llegaste al tope de recompensas de Simoncoin y Simonplata.',
+        })
+    return steps
+
+
 def hoy(coins):
     """'Hoy te quedan X' a partir de los cupos ya calculados. Sin números fijos."""
     lines = []
@@ -197,11 +240,13 @@ def hoy(coins):
     return lines
 
 
-def letrero():
+def letrero(age_seconds=0, play_seconds=0, quests=0, now=None):
     """Texto del letrero de la mina. Los números salen de estas funciones."""
+    import time as _time
     import economy
     import plata
     import cobre
+    now = int(_time.time() if now is None else now)
     oro = rate('simoncoin')
     plata_rate = rate('simonplata')
     cobre_rate = rate('simonchis')
@@ -225,4 +270,6 @@ def letrero():
         'rates': {'simoncoin': oro, 'simonplata': plata_rate, 'simonchis': cobre_rate},
         'daily': {'simoncoin': oro_base, 'simoncoinMax': oro_top, 'simonplata': plata_base, 'simonplataMax': plata_top, 'simonchis': chis},
         'supply': {'simoncoin': economy.MAX_SUPPLY, 'simonplata': plata.MAX_SUPPLY, 'simonchis': cobre.MAX_SUPPLY},
+        'resetAt': next_reset(now),
+        'steps': siguiente(age_seconds, play_seconds, quests),
     }

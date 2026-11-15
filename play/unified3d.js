@@ -11,7 +11,7 @@ import {createValleyView} from './valle-vista.js?v=valle-geo-r2';
 import {attachVida} from './vida3d.js?v=mascota-r1';
 import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
 import {createHorse, poseRider} from './caballo3d.js?v=caballo-r1';
-import {board as mineBoard} from './letrero3d.js?v=letrero-r1';
+import {board as mineBoard} from './letrero3d.js?v=letrero-r2';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};

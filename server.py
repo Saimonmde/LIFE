@@ -660,6 +660,24 @@ def cupos_public(profile=None):
         }
     return {'reset': TOPES.RESET_LABEL, 'coins': coins}
 
+def _reglas_mina(headers):
+    now = time.time()
+    user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session')) or {}
+    name = str(user.get('wallet_name') or user.get('name') or '')
+    age = play = quests = 0
+    if user:
+        age = max(0, int(now - int(user.get('createdAt') or now)))
+        if name:
+            box = PLAY.ensure(PLAYERS, name, now=int(now)) or {}
+            play = int(box.get('playtime') or 0)
+            quests = SUP.quest_count(ECON, name)
+    payload = TOPES.letrero(age, play, quests, now)
+    if user.get('id'):
+        payload['hoy'] = TOPES.hoy(cupos_public({
+            'account': user['id'], 'age': age, 'play': play, 'quests': quests,
+        })['coins'])
+    return payload
+
 def _acunar_fail(sender, reason, code=''):
     send(sender, {'t': 'acunar_result', 'ok': False, 'reason': reason, 'code': code})
 
@@ -2421,7 +2439,7 @@ async def handle(reader, writer):
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
     if path == '/reglas-mina' and method in ('GET', 'HEAD'):
-        body = json.dumps(TOPES.letrero(), ensure_ascii=False).encode()
+        body = json.dumps(_reglas_mina(headers), ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return

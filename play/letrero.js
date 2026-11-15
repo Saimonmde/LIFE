@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   let data = null;
-  let pinned = false;
+  let timer = 0;
 
   function cantidad(number) {
     const value = Number(number);
@@ -15,7 +15,7 @@
     return Number(whole).toLocaleString('es-CO') + (frac ? ',' + frac : '');
   }
 
-  function hoy() {
+  function hoyLocal() {
     const cupos = window.LiveInk && LiveInk.state && LiveInk.state.cupos;
     const coins = cupos && cupos.coins;
     if (!coins) return [];
@@ -26,16 +26,36 @@
     }).filter(Boolean);
   }
 
-  function paint() {
-    const box = document.getElementById('letrero-texto');
+  function clockText() {
+    if (!data || !data.resetAt) return '';
+    const left = Math.max(0, data.resetAt * 1000 - Date.now());
+    const total = Math.floor(left / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor(total / 60) % 60;
+    const s = total % 60;
+    const pad = (n) => (n < 10 ? '0' + n : String(n));
+    const when = data.reset ? ' (' + data.reset + ')' : '';
+    return 'Falta ' + h + ':' + pad(m) + ':' + pad(s) + ' para el próximo reinicio' + when + '.';
+  }
+
+  function fill(id, lines) {
+    const box = document.getElementById(id);
     if (!box) return;
-    const lines = ((data && data.lines) || []).concat(hoy());
     box.replaceChildren();
     lines.forEach((line) => {
       const p = document.createElement('p');
       p.textContent = line;
       box.append(p);
     });
+  }
+
+  function paint() {
+    fill('letrero-texto', (data && data.lines) || []);
+    fill('letrero-hoy', (data && data.hoy && data.hoy.length) ? data.hoy : hoyLocal());
+    fill('letrero-pasos', ((data && data.steps) || []).map((step) => step.text).filter(Boolean));
+    const clock = document.getElementById('letrero-cuenta');
+    if (clock) clock.textContent = clockText();
+    if (data && data.resetAt && data.resetAt * 1000 - Date.now() <= 0) load();
   }
 
   function ensure() {
@@ -46,37 +66,38 @@
     panel.hidden = true;
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', 'Reglas de la mina');
-    panel.innerHTML = '<header><strong>Reglas de la mina</strong><button type="button" id="letrero-cerrar" aria-label="Cerrar">✕</button></header><div id="letrero-texto"></div>';
+    panel.innerHTML = '<header><strong>Reglas de la mina</strong><button type="button" id="letrero-cerrar" aria-label="Cerrar">✕</button></header><p id="letrero-cuenta"></p><div id="letrero-hoy"></div><div id="letrero-texto"></div><div id="letrero-pasos"></div>';
     document.body.append(panel);
-    panel.querySelector('#letrero-cerrar').onclick = () => { pinned = false; panel.hidden = true; };
+    panel.querySelector('#letrero-cerrar').onclick = () => close();
     return panel;
+  }
+
+  function close() {
+    const panel = document.getElementById('letrero-mina');
+    if (panel) panel.hidden = true;
+    clearInterval(timer);
+    timer = 0;
   }
 
   function open() {
     const panel = ensure();
     panel.hidden = false;
-    pinned = true;
     paint();
+    clearInterval(timer);
+    timer = setInterval(paint, 1000);
+    load();
   }
 
-  function setNear(near) {
-    const panel = ensure();
-    if (near) {
-      panel.hidden = false;
-      paint();
-      return;
-    }
-    if (!pinned) panel.hidden = true;
-  }
+  function setNear() {}
 
   function load() {
-    fetch('/reglas-mina', { cache: 'no-store' }).then((r) => r.json()).then((body) => {
+    fetch('/reglas-mina', { cache: 'no-store', credentials: 'same-origin' }).then((r) => r.json()).then((body) => {
       data = body;
       paint();
     }).catch(() => {});
   }
 
-  window.Letrero = { open, setNear, paint, load };
+  window.Letrero = { open, setNear, paint, load, close };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load);
   else load();
 })();
