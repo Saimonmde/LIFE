@@ -19,6 +19,18 @@ Para afirmar posesión física, autenticidad o pureza haría falta algo aparte d
 
 Nada de eso lo sustituye el QR ni el historial de pases. La ficha no es dinero del Banco de la República y este sistema no le asigna un precio.
 
+## Arte de Sara
+
+El diseño para fabricar las piezas está en [`docs/fichas-fisicas/arte/`](fichas-fisicas/arte/README.md). Lo hizo Sara. Hay dos fichas primarias y una variante de comprobación:
+
+- Simonplata, aspecto de plata, 39 mm, zona de QR de 15 mm.
+- Simonchis, aspecto de cobre, 34 mm, zona de QR de 14 mm.
+- Variantes a 30 mm, con el QR en 12 mm (no es un simple encogido de las otras).
+
+Los SVG están en milímetros reales, con capas sueltas de corte y de grabado. También están los PDF de cada cara, las vistas previas, las hojas de tamaños y cotas, las tolerancias y la nota legal en el README, y el aviso de la fuente Inter en `fonts/NOTICE.txt`. Los créditos de esta entrega están en [`CREDITOS.md`](fichas-fisicas/arte/CREDITOS.md).
+
+**El QR que se ve en ese arte es solo de EJEMPLO.** Codifica la palabra `EJEMPLO` y va tachado. No es el HMAC de ninguna ficha del servidor. Antes de grabar una pieza hay que quitarlo y poner el código único de esa pieza. Este arte no enciende `FICHAS_FISICAS`.
+
 ## Cómo se llama
 
 En Colombia una pieza no puede imitar la moneda o el billete de curso legal. Estas piezas se llaman **fichas** o **medallas coleccionables**. No son pesos, no son un medio de pago oficial y no se presentan como dinero del Estado.

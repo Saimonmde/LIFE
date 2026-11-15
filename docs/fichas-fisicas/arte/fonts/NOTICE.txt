@@ -1,0 +1,16 @@
+Fuentes usadas en las fichas físicas de Saimon City.
+Los textos de los SVG van convertidos a trazos. No se redistribuyen archivos .ttf.
+
+1) Inter
+   Autor: Rasmus Andersson / The Inter Project Authors
+   Licencia: SIL Open Font License 1.1
+   https://openfontlicense.org
+   Uso: toda la tipografía de las fichas (leyendas, pancarta legal, número
+   de serie, sello EJEMPLO) y los rótulos de las hojas de vista previa.
+   Se instancia en negrita o extranegrita (ejes wght 700–800) para que el
+   palo no baje de 0,20 mm a la altura mínima de 1,20 mm.
+
+2) UnifrakturMaguntia
+   No se utiliza en este paquete. Sigue reservada al título «Reglas de la Mina».
+
+Ver también /workspace/sara-saimon/fonts/NOTICE.txt.
