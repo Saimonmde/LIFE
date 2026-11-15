@@ -44,6 +44,7 @@ import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
 import caballo_cuenta as CABALLO
+import gallos as GALLOS
 import partida as PARTIDA
 import world_edits as EDITS
 
@@ -2423,6 +2424,12 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar la partida.'}, headers)
         shown = PARTIDA.remember(user, payload if isinstance(payload, dict) else {})
         CASA.mirror(VIDA, 'acct:' + user['id'], user)
+        who = user.get('wallet_name') or user.get('name') or ''
+        if who:
+            before = PURSES.count(VAULT_STATE, who, 'gallo')
+            after = GALLOS.sync_purse(VAULT_STATE, who, shown.get('gallos') or 0)
+            if after != before:
+                save_vault()
         save_accounts()
         save_vida()
         return auth_response('200 OK', {'ok': True, 'partida': shown}, headers)
