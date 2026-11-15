@@ -1167,7 +1167,8 @@ function needTool(tool) {
 }
 function face(tx, ty) { const p = S.player, dx = tx - p.x, dy = ty - p.y; p.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
 function rollTable(table) { const tot = table.reduce((a, r) => a + r.weight, 0); let r = Math.random() * tot; for (const e of table) { if ((r -= e.weight) < 0) return e.item; } return table[0].item; }
-function give(item, qty, tx, ty) { if (invAdd(item, qty)) { floatText(tx, ty, `+${qty} ${W.items[item].name}`); questProgress('collect', item, qty); } }
+function tintinear(item) { if (window.Sonido && Sonido.isRaw(item)) Sonido.clink(); }
+function give(item, qty, tx, ty) { if (invAdd(item, qty)) { tintinear(item); floatText(tx, ty, `+${qty} ${W.items[item].name}`); questProgress('collect', item, qty); } }
 function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * TS + 32, y: ty * TS, text, color, t0: now() }); }
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
@@ -1229,7 +1230,7 @@ function act(t) {
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;
     if (n.state !== 'active') return game(`La roca está agotada. Vuelve en ${secs()} s.`, 'aviso');
-    const q = rnd(d.yield.min, d.yield.max);if(!invAdd(d.yield.item,q))return;floatText(d.x,d.y,`+${q} ${W.items[d.yield.item].name}`);questProgress('collect',d.yield.item,q);S.player.miningUntil=now()+800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`);
+    const q = rnd(d.yield.min, d.yield.max);if(!invAdd(d.yield.item,q))return;tintinear(d.yield.item);floatText(d.x,d.y,`+${q} ${W.items[d.yield.item].name}`);questProgress('collect',d.yield.item,q);S.player.miningUntil=now()+800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`);
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();save();
     if (W.mapId==='mine' && (d.mineral==='cobre' || d.mineral==='plata') && now()-(S.lastSwing||0)>=1000) {
       S.lastSwing=now();

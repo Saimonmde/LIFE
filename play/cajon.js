@@ -168,6 +168,9 @@
       '<h3>Viajar</h3><div id="cajon-lugares"></div>',
       '<h3>Caballo</h3><p>Tu caballo te lleva solo por el camino. También puedes llamarlo a la puerta.</p>',
       '<button type="button" id="cajon-llamar">Llamar a mi caballo</button>',
+      '<h3>Sonido</h3>',
+      '<button type="button" id="cajon-sonido" aria-pressed="false">Sonido: apagado</button>',
+      '<label class="sonido-vol">Volumen <input id="cajon-volumen" type="range" min="0" max="100" value="70" aria-label="Volumen"></label>',
       '<h3>Atajos</h3>',
       '<button type="button" id="cajon-perfil">Perfil</button>',
       '<button type="button" id="cajon-minar">Acuñar monedas</button>',
@@ -207,6 +210,7 @@
     $('#cajon-barra').onclick = () => showPiece('hotbar');
     $('#cajon-simon').onclick = () => { location.href = '/play/simon.html'; };
     $('#cajon-ajustes').onclick = () => { const start = $('#hud-edit-start'); if (start) start.click(); };
+    if (window.Sonido) Sonido.bind();
     let startX = 0;
     menu.addEventListener('pointerdown', (e) => { startX = e.clientX; });
     menu.addEventListener('pointerup', (e) => { if (e.clientX - startX > 70) closeDrawer(); });
