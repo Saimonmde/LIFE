@@ -44,5 +44,41 @@
     onChoose = null;
   }
 
-  window.Hogar = { ORDEN, entryMode, casa, stand, current, openPicker, closePicker };
+  function readLocal() {
+    let layout = null;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || key.indexOf('lifeinc.casa.v1:') !== 0) continue;
+        const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+        if (parsed && Array.isArray(parsed.items)) { layout = parsed; break; }
+      }
+    } catch (e) { layout = null; }
+    let items = [];
+    try {
+      const bag = JSON.parse(localStorage.getItem('lifeinc.eljardin.v3') || 'null');
+      const box = bag && bag.vault && bag.vault.items;
+      if (Array.isArray(box)) items = box;
+      else if (box && typeof box === 'object') items = Object.keys(box).map(item => ({ item: item, qty: box[item] }));
+    } catch (e) { items = []; }
+    let pet = null;
+    try { pet = JSON.parse(localStorage.getItem('lifeinc.mascota.v1') || 'null'); } catch (e) { pet = null; }
+    return { layout: layout, items: items, pet: pet };
+  }
+
+  async function migrate(user) {
+    if (!user || (user.casa && user.casa.migrated)) return user;
+    const local = readLocal();
+    const response = await fetch('/auth/casa', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ migrate: true, layout: local.layout, items: local.items, pet: local.pet }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.user) return user;
+    if (result.casa && result.casa.layout && window.Casa && Casa.apply) Casa.apply(result.casa.layout);
+    return result.user;
+  }
+
+  window.Hogar = { ORDEN, entryMode, casa, stand, current, openPicker, closePicker, readLocal, migrate };
 })();

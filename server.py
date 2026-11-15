@@ -33,6 +33,7 @@ import mundos as MUNDOS
 import social as SOCIAL
 import vida_api as VIDA_API
 import hogar as HOGAR
+import casa_cuenta as CASA
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1197,12 +1198,18 @@ def vida_try(c, m, t):
             send(c, {'t': 'vida_error', 'error': 'Esa mascota no está en el catálogo.'})
             return True
         c.pet = pet
+        if getattr(c, 'user', None):
+            CASA.apply(c.user, {'pet': pet})
+            save_accounts()
         save_vida()
         send(c, {'t': 'pet', 'id': c.id, 'pet': pet})
         broadcast({'t': 'pet', 'id': c.id, 'pet': pet}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
         return True
     if t == 'hogar':
         layout = SOCIAL.save_home(VIDA, key, m.get('layout'))
+        if getattr(c, 'user', None):
+            CASA.apply(c.user, {'layout': layout})
+            save_accounts()
         save_vida()
         send(c, {'t': 'hogar', 'layout': layout})
         return True
@@ -1351,6 +1358,9 @@ def handle_client_message(c, m, t):
         c.level = clamp_level(m.get('level'), 1); c.hello = True
         c.identity = SOCIAL.identity_of(c)
         c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
+        if getattr(c, 'user', None) and CASA.absorb(c.user, VIDA, c.identity):
+            save_accounts()
+            save_vida()
         stored = SOCIAL.pet_for(VIDA, c.identity)
         if stored:
             c.pet = stored
@@ -1783,7 +1793,27 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         except ACC.AuthError as exc:
             return auth_response('400 Bad Request', {'error': str(exc)}, headers)
         spot = HOGAR.stand(shown['municipio'])
+        if shown.get('casa') and shown['casa'].get('pet'):
+            CASA.mirror(VIDA, 'acct:' + user['id'], user)
+            save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'home': {'x': spot[0], 'y': spot[1], 'name': HOGAR.NOMBRES[shown['municipio']]}}, headers)
+    if path == '/auth/casa' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para ver tu casa.'}, headers)
+        return auth_response('200 OK', {'casa': CASA.view(user)}, headers)
+    if path == '/auth/casa' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar tu casa.'}, headers)
+        try:
+            shown = ACC.save_casa(user, payload, migrate=bool(payload.get('migrate')))
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        CASA.mirror(VIDA, 'acct:' + user['id'], user)
+        save_accounts()
+        save_vida()
+        return auth_response('200 OK', {'ok': True, 'user': shown, 'casa': shown['casa']}, headers)
     if path == '/auth/salir' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         ACCOUNTS['sessions'].pop(token, None)

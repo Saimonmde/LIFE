@@ -139,6 +139,9 @@ async function init() {
     } catch (e) { sessionUser = null; }
   }
   if (sessionUser) {
+    if (window.Hogar && Hogar.migrate) {
+      try { sessionUser = await Hogar.migrate(sessionUser) || sessionUser; } catch (e) {}
+    }
     S.sessionUser = sessionUser;
     S.me.municipio = sessionUser.municipio || '';
     window.SaimonSession = { id: sessionUser.id, municipio: S.me.municipio };

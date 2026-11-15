@@ -242,21 +242,33 @@ def open_session(doc, user, now=None):
 
 
 def public_user(user):
+    import casa_cuenta
+    shown = casa_cuenta.view(user)
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or '',
         'avatar_id': 'avatar_' + user['id'],
-        'municipio': user.get('municipio') or '',
+        'municipio': shown['municipio'],
+        'casa': shown,
     }
 
 
 def set_municipio(doc, user, municipio):
-    """Guarda el municipio de la casa. Una cuenta vieja, sin el campo, sigue vacía."""
-    import hogar
-    key = str(municipio or '').strip().lower()
-    if key not in hogar.ORDEN:
-        raise AuthError('Ese municipio no está en el Valle de Aburrá.')
-    user['municipio'] = key
+    """Guarda el municipio dentro de la casa de la cuenta."""
+    import casa_cuenta
+    try:
+        casa_cuenta.apply(user, {'municipio': municipio})
+    except casa_cuenta.CasaError as exc:
+        raise AuthError(str(exc)) from exc
+    return public_user(user)
+
+
+def save_casa(user, payload, migrate=False):
+    import casa_cuenta
+    try:
+        casa_cuenta.apply(user, payload, migrate=migrate)
+    except casa_cuenta.CasaError as exc:
+        raise AuthError(str(exc)) from exc
     return public_user(user)
 
 
