@@ -831,6 +831,11 @@ function partidaSnapshot() {
     position: { mapId: W.mapId || 'city', x: S.player.x, y: S.player.y, dir: S.player.dir },
     hud, layout: window.Casa ? Casa.layout : null, pet: S.pet || null,
     coat: window.Caballo ? Caballo.coat : '',
+    horse: (() => {
+      const mount = (S.mounts || []).find(item => item.personal);
+      if (!mount) return { coat: window.Caballo ? Caballo.coat : '' };
+      return { x: mount.fx, y: mount.fy, dir: mount.dir || 'down', coat: mount.coat || (window.Caballo ? Caballo.coat : '') };
+    })(),
   };
 }
 function applyPartida(doc) {
@@ -849,6 +854,15 @@ function applyPartida(doc) {
   else if (doc.pet) S.pet = doc.pet;
   if (doc.layout && window.Casa && Casa.apply) Casa.apply(doc.layout);
   if (doc.coat && window.Caballo && Caballo.applyCoat) Caballo.applyCoat(doc.coat);
+  if (doc.horse && Number.isFinite(Number(doc.horse.x)) && Number.isFinite(Number(doc.horse.y))) {
+    const mount = ensurePersonalHorse();
+    mount.x = mount.fx = Number(doc.horse.x);
+    mount.y = mount.fy = Number(doc.horse.y);
+    if (doc.horse.dir) mount.dir = doc.horse.dir;
+    mount.ridden = false;
+    mount.called = false;
+    if (doc.horse.coat && window.Caballo && Caballo.applyCoat) Caballo.applyCoat(doc.horse.coat);
+  }
   if (doc.hud && window.HudLayout && HudLayout.applySaved) HudLayout.applySaved(doc.hud);
   const pos = doc.position;
   if (pos && ['city', 'casa', 'mine', 'banco', 'central'].includes(pos.mapId)) {
@@ -2295,9 +2309,10 @@ function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTM
 function horseContext(){
  const avoid=new Set();
  if(window.Casa){avoid.add(Casa.PARK_DOOR.x+','+Casa.PARK_DOOR.y);avoid.add(Casa.PARK_STAND.x+','+Casa.PARK_STAND.y);}
+ const city=cityMap||W;
  return {S:S,W:W,seconds:now()/1000,houses:(window.HOGARES&&HOGARES.casas)||[],avoid:avoid,
-  open(x,y){if(!inside(x,y)||W.collision[y][x]!==0)return false;const kind=W.tiles[W.ground[y][x]]&&W.tiles[W.ground[y][x]].kind;return kind!=='water'&&kind!=='creek';},
-  route(x,y,tx,ty){return bfs(x,y,(a,b)=>a===tx&&b===ty);}};
+  open(x,y){if(x<0||y<0||x>=city.width||y>=city.height||!city.collision[y]||city.collision[y][x]!==0)return false;const kind=city.tiles[city.ground[y][x]]&&city.tiles[city.ground[y][x]].kind;return kind!=='water'&&kind!=='creek';},
+  route(x,y,tx,ty){if((W.mapId||'city')!=='city')return null;return bfs(x,y,(a,b)=>a===tx&&b===ty);}};
 }
 function ensurePersonalHorse(){
  S.mounts=S.mounts||[];

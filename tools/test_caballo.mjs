@@ -79,6 +79,25 @@ assert.notEqual(horse.x + ',' + horse.y, '10,10');
 assert.notEqual(horse.x + ',' + horse.y, '10,11');
 assert.equal(S.paddock.length >= 1 && S.paddock.length <= 2, true);
 
+const home = S.paddock.find(item => item.id.endsWith('-0'));
+S.player.fx = 2;
+S.player.fy = 2;
+S.player.x = 2;
+S.player.y = 2;
+S.player.path = [];
+for (let i = 0; i < 8; i++) {
+  Caballo.tick(0.5, { S, seconds: 10 + i, houses: [{ id: 'envigado', name: 'Envigado', x: 12, y: 14 }], open: grid, route: null, avoid: new Set(['12,14']) });
+}
+assert.ok(Math.hypot(horse.fx - home.x, horse.fy - home.y) < 8, 'el caballo se queda cerca de la casa');
+assert.ok(Math.hypot(horse.fx - S.player.fx, horse.fy - S.player.fy) > 3, 'el caballo no sigue al jugador');
+const wall = (x, y) => grid(x, y) && x !== 13;
+horse.x = horse.fx = home.x;
+horse.y = horse.fy = home.y;
+horse.goal = [home.x + 1, home.y];
+horse.wanderAt = 100;
+Caballo.tick(0.5, { S, seconds: 30, houses: [{ id: 'envigado', name: 'Envigado', x: 12, y: 14 }], open: wall, route: null, avoid: new Set(['12,14']) });
+assert.notEqual(horse.x, 13, 'no atraviesa la pared');
+
 const bay = createHorse(T, { coat: 'bay' });
 const grey = createHorse(T, { coat: 'grey' });
 const black = createHorse(T, { coat: 'black' });
