@@ -1,0 +1,177 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Editar mundo. Vidrio oscuro, línea de oro, fuente del HUD. No tapa el minimapa ni el chat. */
+
+#muestras-badge,
+#editar-mundo-volver {
+  position: fixed;
+  z-index: 74;
+  left: max(8px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100vw - 150px);
+  padding: 6px 10px;
+  border: 1px solid var(--gold-line, rgba(240, 212, 138, 0.9));
+  border-radius: 999px;
+  background: rgba(12, 14, 20, 0.72);
+  color: #f7f8fb;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  backdrop-filter: blur(8px);
+}
+#muestras-badge { top: max(8px, env(safe-area-inset-top)); }
+#editar-mundo-volver {
+  top: calc(max(8px, env(safe-area-inset-top)) + 36px);
+  min-height: 44px;
+  cursor: pointer;
+}
+#muestras-badge[hidden],
+#editar-mundo-volver[hidden],
+#editor-panel[hidden],
+#ed-box[hidden] { display: none !important; }
+#editor-panel button {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid var(--gold-line, rgba(240, 212, 138, 0.9));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7f8fb;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: normal;
+}
+#editor-panel {
+  --ed-top: 58px;
+  position: fixed;
+  z-index: 72;
+  top: var(--ed-top);
+  left: max(8px, env(safe-area-inset-left));
+  width: min(336px, calc(100vw - 200px));
+  max-height: calc(100dvh - var(--ed-top) - 220px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--gold-line, rgba(240, 212, 138, 0.9));
+  border-radius: 14px;
+  background: rgba(12, 14, 20, 0.72);
+  color: #f7f8fb;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.35;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+}
+body.muestras #editor-panel { --ed-top: 48px; }
+#editor-panel.ed-preview { visibility: hidden; pointer-events: none; }
+#editor-panel .ed-head,
+#editor-panel .ed-row,
+#editor-panel .ed-tools,
+#editor-panel .ed-layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+#editor-panel .ed-head { flex-shrink: 0; justify-content: space-between; margin-bottom: 4px; }
+#editor-panel .ed-head strong { letter-spacing: 0.02em; font-size: 14px; align-self: center; }
+#editor-panel .ed-row > button,
+#editor-panel .ed-tools > button,
+#editor-panel .ed-head > button {
+  flex: 1 1 30%;
+  min-width: 72px;
+  min-height: 44px;
+}
+#editor-panel.ed-colapsado .ed-scroll,
+#editor-panel.ed-colapsado .ed-tabs,
+#editor-panel.ed-colapsado #ed-status { display: none; }
+#ed-status { margin: 0 0 6px; color: #d7deea; font-size: 12px; }
+.ed-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding-bottom: 4px;
+}
+.ed-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 48px;
+  padding: 4px 2px;
+  font-size: 11px;
+  line-height: 1.1;
+  text-align: center;
+}
+.ed-tabs button span { max-width: 100%; }
+.ed-tabs svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+.ed-tabs button.on,
+#editor-panel button.on { background: rgba(240, 212, 138, 0.2); color: #f0d48a; }
+.ed-scroll { overflow: auto; min-height: 0; flex: 1 1 auto; padding-right: 2px; }
+.ed-tools, .ed-layers { flex-shrink: 0; }
+#editor-panel section { display: none; }
+#editor-panel[data-tab="caminos"] [data-for="caminos"],
+#editor-panel[data-tab="objetos"] [data-for="objetos"],
+#editor-panel[data-tab="terreno"] [data-for="terreno"],
+#editor-panel[data-tab="vegetacion"] [data-for="vegetacion"],
+#editor-panel[data-tab="superficies"] [data-for="superficies"],
+#editor-panel[data-tab="disenos"] [data-for="disenos"] { display: block; }
+#editor-panel label { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; font-size: 12px; }
+#editor-panel input[type="range"] { width: 100%; accent-color: #e2b23c; }
+#editor-panel input[type="text"],
+#editor-panel input[type="color"],
+#ed-design-name,
+#ed-confirm {
+  min-height: 36px;
+  border: 1px solid rgba(240, 212, 138, 0.55);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #f7f8fb;
+  font-family: var(--sans);
+  padding: 4px 8px;
+}
+.ed-grid, #ed-list, #ed-designs, #ed-history { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-grid button, #ed-list button { flex: 1 1 30%; }
+.ed-note, #editor-panel h3 { color: #d7deea; font-size: 12px; font-weight: 500; }
+.ed-swatches { display: flex; flex-direction: column; gap: 4px; }
+.ed-palette { display: flex; gap: 4px; }
+.ed-palette button { width: 28px; height: 28px; min-height: 28px; padding: 0; }
+.ed-check { flex-direction: row !important; align-items: center; gap: 6px; margin: 0; }
+.ed-tools, .ed-layers { margin-top: 6px; }
+#ed-designs article, #ed-history button, #ed-list button {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+}
+#ed-preview-tools { display: none; gap: 6px; margin-top: 6px; }
+#editor-panel.ed-preview-env #ed-preview-tools { display: flex; }
+#ed-box {
+  position: fixed;
+  z-index: 71;
+  border: 1px dashed #e2b23c;
+  background: rgba(226, 178, 60, 0.15);
+  pointer-events: none;
+}
+body.modo-edicion #world-tools,
+body.modo-edicion #world-note { visibility: hidden; }
+
+@media (max-width: 820px) {
+  #editor-panel {
+    top: calc(max(8px, env(safe-area-inset-top)) + 128px);
+    left: max(8px, env(safe-area-inset-left));
+    right: auto;
+    width: min(250px, calc(100vw - 140px));
+    max-height: min(45vh, calc(100dvh - 128px - 340px));
+  }
+  .ed-tabs button { min-height: 44px; font-size: 11px; }
+}
