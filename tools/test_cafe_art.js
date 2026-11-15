@@ -13,6 +13,14 @@ for (const key of needed) {
 }
 assert.ok(map.colors.leaf && map.colors.cherry && map.colors.pod);
 assert.strictEqual(map.credit, 'Sara');
+assert.deepStrictEqual(map.stand, {
+  workshopCafe: 'taller_cafe_lite.png',
+  workshopCacao: 'taller_cacao_lite.png',
+  kg: 'kg_cosechados.svg',
+});
+for (const file of Object.values(map.sheets)) {
+  assert.ok(fs.existsSync(path.join(dir, file)), file);
+}
 for (const file of Object.values(map.icons)) {
   const bytes = fs.statSync(path.join(dir, file)).size;
   assert.ok(bytes < 80000, file + ' pesa demasiado para el celular: ' + bytes);

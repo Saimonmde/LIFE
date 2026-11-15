@@ -15,17 +15,17 @@
 #libro-open { bottom: 92px; }
 #finca-panel, #libro-publico {
   position: fixed;
-  z-index: 40;
-  top: 72px;
+  z-index: 88;
+  top: 8px;
   right: 12px;
   width: min(440px, calc(100vw - 24px));
-  max-height: calc(100dvh - 96px);
+  max-height: calc(100dvh - 16px);
   overflow: auto;
   box-sizing: border-box;
   padding: 14px;
   border-radius: 16px;
   border: 1px solid #d7c4a2;
-  background: #1c1814f5;
+  background: #1c1814;
   color: #f7f1e6;
   font: 16px/1.45 "Avenir Next", "Segoe UI", system-ui, sans-serif;
   box-shadow: 0 16px 40px #0008;
@@ -49,17 +49,18 @@
   color: #fff6e4;
   font: 600 15px/1.2 "Avenir Next", "Segoe UI", system-ui, sans-serif;
 }
-#finca-panel h3, #libro-publico h3 { margin: 14px 0 6px; font-size: 16px; }
+#finca-panel h3, #libro-publico h3 { margin: 8px 0 4px; font-size: 16px; }
 .finca-plot, .finca-bag { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #3a3228; }
 .finca-note { color: #e7d3ae; margin: 6px 0; }
-.libro-lead, .libro-ingots p { color: #e7d3ae; }
+.libro-lead, .libro-ingots p { color: #e7d3ae; margin: 4px 0; }
 .libro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .libro-crop, .libro-coin, .libro-ingots, .libro-feed {
-  margin-top: 8px;
-  padding: 10px;
+  margin-top: 6px;
+  padding: 8px;
   border-radius: 12px;
   background: #2a241c;
 }
+.libro-coin p, .libro-crop p { margin: 2px 0; }
 .libro-ico { display: flex; gap: 6px; }
 .libro-ico svg, .libro-ico img { width: 36px; height: 36px; object-fit: contain; }
 .libro-bar { height: 10px; border-radius: 99px; background: #3d3428; overflow: hidden; margin-top: 6px; }
@@ -74,8 +75,16 @@
     width: 100%;
     max-height: 72dvh;
     border-radius: 18px 18px 0 0;
+    padding-bottom: 80px;
+    z-index: 88;
   }
   .libro-grid { grid-template-columns: 1fr; }
-  #finca-open { bottom: 168px; }
-  #libro-open { bottom: 112px; }
+  .libro-ico svg, .libro-ico img { width: 46px; height: 46px; }
+  #finca-open, #libro-open {
+    top: calc(max(8px, env(safe-area-inset-top)) + 72px);
+    bottom: auto;
+    z-index: 24;
+  }
+  #finca-open { left: max(8px, env(safe-area-inset-left)); }
+  #libro-open { left: calc(max(8px, env(safe-area-inset-left)) + 108px); }
 }

@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
 const modelo = require('../play/finca-modelo.js');
 const map = require('../play/assets/cafe-cacao/map.js');
 
@@ -25,4 +27,13 @@ const hand = modelo.visualFor(withGlb, { group: 'plant', crop: 'cafe', id: 'frut
 assert.strictEqual(hand.kind, 'flat');
 
 assert.deepStrictEqual(modelo.PHASES, ['siembra', 'crecimiento', 'floracion', 'fruto', 'cosecha']);
+const html = fs.readFileSync(path.join(__dirname, '../play/index.html'), 'utf8');
+const tag = html.match(/src="(finca-modelo\.js[^"]*)"/);
+assert.ok(tag, 'falta finca-modelo.js en la página');
+assert.ok(fs.existsSync(path.join(__dirname, '../play', tag[1].split('?')[0])));
+const scene = fs.readFileSync(path.join(__dirname, '../play/finca3d.js'), 'utf8');
+assert.ok(scene.includes('plotCafePlanton') && scene.includes('plotCafeVerde') && scene.includes('plotCafeMaduro'));
+assert.ok(scene.includes('Sprite'));
+assert.ok(scene.includes('opt.height'));
+assert.ok(scene.includes('v2/'));
 console.log('finca modelo ok');
