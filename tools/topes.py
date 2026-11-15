@@ -38,6 +38,7 @@ DEFAULT_QUEST_CAP = 10
 METALES = {
     'simoncoin': {
         'item': 'pepita_oro',
+        'items': ('pepita_oro', 'mineral_oro'),
         'env': 'MINT_ORO_POR_MONEDA',
         'default': DEFAULT_ORO_POR_MONEDA,
         'name': 'Simoncoin',
@@ -88,7 +89,8 @@ def metal(coin):
     spec = METALES.get(coin)
     if not spec:
         return None
-    return dict(spec, rate=rate(coin))
+    items = tuple(spec.get('items') or (spec['item'],))
+    return dict(spec, rate=rate(coin), items=items)
 
 
 def _growth(age_seconds, play_seconds, quests):
@@ -126,28 +128,26 @@ def next_reset(now):
 
 
 def cotizar(have, rate_n, daily_left, global_left, pieces=None, whole=False):
-    """Cuántas monedas salen de piezas enteras, sin pasar el día ni el mundo.
+    """Cuántas monedas salen, sin pasar el día ni el mundo.
 
-    `have` es el metal en la mochila. `pieces` es cuántas quiere gastar.
-    Si no cabe ni una pieza bajo el tope, no se acuña nada.
-    Con `whole`, sólo salen monedas enteras (el cobre).
+    El tope se puede usar entero aunque no sea un número cabal de pepitas:
+    0,25 Simoncoin gasta 1,25 oros. Con `whole`, el cobre sigue en monedas enteras.
     """
-    have = max(0, int(have or 0))
+    have = max(0.0, float(have or 0))
     rate_n = max(1, int(rate_n or 1))
     daily_left = max(0.0, float(daily_left or 0))
     global_left = max(0.0, float(global_left or 0))
     alcanzan = have / rate_n
     techo = min(alcanzan, daily_left, global_left)
-    max_pieces = min(have, int(techo * rate_n + 1e-9))
+    max_pieces = min(have, techo * rate_n)
     if whole:
-        max_pieces = (max_pieces // rate_n) * rate_n
+        max_pieces = (int(max_pieces) // rate_n) * rate_n
     if pieces is None:
         pieces = max_pieces
     else:
-        pieces = max(0, min(have, int(pieces)))
-    pieces = min(pieces, max_pieces)
+        pieces = max(0.0, min(have, float(pieces), max_pieces))
     if whole:
-        pieces = (pieces // rate_n) * rate_n
+        pieces = (int(pieces) // rate_n) * rate_n
     recibes = pieces / rate_n
     return {
         'tienes': have,
