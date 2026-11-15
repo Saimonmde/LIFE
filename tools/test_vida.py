@@ -231,6 +231,7 @@ class SaveTests(unittest.TestCase):
             'pet': {'species': 'dog', 'breed': 'husky', 'variant': 3, 'name': 'Nieve'},
             'layout': muebles.default_layout(),
             'coat': 'grey',
+            'horse': {'x': 94.5, 'y': 268, 'dir': 'left', 'coat': 'grey'},
             'coins': 999999, 'wallets': {'Ana': 50}, 'finca': {'plots': 9},
         }
         saved = partida.remember(user, payload)
@@ -243,6 +244,9 @@ class SaveTests(unittest.TestCase):
         self.assertEqual(again['position'], {'mapId': 'casa', 'x': 4.0, 'y': 6.0, 'dir': 'down'})
         self.assertEqual(again['hud']['lifeinc.hud.layout.desktop.horizontal']['hud-mapa']['x'], 12)
         self.assertEqual(again['coat'], 'grey')
+        self.assertEqual(again['horse']['x'], 94.5)
+        self.assertEqual(again['horse']['y'], 268)
+        self.assertEqual(again['horse']['dir'], 'left')
         self.assertTrue(again['libro']['started'])
         self.assertEqual(again['studied'], {'oro': True})
         self.assertNotIn('coins', again)

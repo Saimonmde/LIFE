@@ -174,6 +174,28 @@ def _hud(raw):
     return out
 
 
+def _horse(raw):
+    if not isinstance(raw, dict):
+        return None
+    coat = caballo_cuenta.normalize(raw.get('coat'))
+    try:
+        x = float(raw.get('x'))
+        y = float(raw.get('y'))
+    except (TypeError, ValueError):
+        return {'coat': coat} if coat else None
+    if x != x or y != y:
+        return {'coat': coat} if coat else None
+    direction = raw.get('dir') if raw.get('dir') in DIRS else 'down'
+    found = {
+        'x': round(max(0, min(400, x)), 2),
+        'y': round(max(0, min(400, y)), 2),
+        'dir': direction,
+    }
+    if coat:
+        found['coat'] = coat
+    return found
+
+
 def pack(raw):
     """Deja sólo lo que se puede volver a cargar. Ignora monedas y finca."""
     raw = raw if isinstance(raw, dict) else {}
@@ -198,8 +220,15 @@ def pack(raw):
         if pet:
             data['pet'] = pet
     coat = caballo_cuenta.normalize(raw.get('coat'))
+    horse = _horse(raw.get('horse'))
+    if horse and horse.get('coat'):
+        coat = horse['coat']
     if coat:
         data['coat'] = coat
+    if horse:
+        if coat and not horse.get('coat'):
+            horse['coat'] = coat
+        data['horse'] = horse
     return data
 
 
