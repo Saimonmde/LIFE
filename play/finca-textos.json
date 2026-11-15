@@ -1,0 +1,153 @@
+{
+  "cafe": [
+    {
+      "etapa": "siembra",
+      "titulo": "Siembra",
+      "texto": "Acá nace el palo de café. La plántula se pone en la tierra, con cuidado, para que agarre bien y empiece a crecer.",
+      "dato": "En Colombia, el Café de Colombia protegido por la Denominación de Origen solo puede ser de la especie arábiga (Coffea arabica). El reglamento de la Federación Nacional de Cafeteros no admite otra especie.",
+      "fuente": "https://federaciondecafeteros.org/wp-content/uploads/2026/03/9.-Reglamento-de-Uso-de-la-DO-IGP-Cafe-de-Colombia-1.pdf"
+    },
+    {
+      "etapa": "crecimiento",
+      "titulo": "Crecimiento",
+      "texto": "El palito crece en la ladera, con tiempo y cuidado. Todavía no es hora de recoger, pero ya se está haciendo fuerte.",
+      "dato": "El 25 de junio de 2011, la Unesco inscribió el Paisaje Cultural Cafetero de Colombia en la Lista del Patrimonio Mundial. Es un paisaje de café en parcelas pequeñas, en las laderas de los Andes, fruto de una tradición de más de cien años.",
+      "fuente": "https://whc.unesco.org/en/list/1121/"
+    },
+    {
+      "etapa": "floracion",
+      "titulo": "Floración",
+      "texto": "El palo se llena de florecitas. Es un momento corto y muy lindo. Después, esas flores se irán volviendo fruto.",
+      "dato": "Cenicafé explica que, en la zona cafetera de Colombia, la flor se abre cuando un período seco de mediana o larga duración se interrumpe con una lluvia, o con un cambio brusco de temperatura.",
+      "fuente": "https://publicaciones.cenicafe.org/index.php/avances_tecnicos/article/download/511/566/524"
+    },
+    {
+      "etapa": "cereza_madura",
+      "titulo": "Cereza madura",
+      "texto": "La flor se vuelve un frutico. Cuando está maduro se pone de un rojo bonito, y ahí sí se puede recoger.",
+      "dato": "La cartilla de cosecha de Cenicafé enseña que, desde la floración hasta que el fruto madura, transcurren unos 8 meses. Y hay que recoger solamente los frutos maduros.",
+      "fuente": "https://publicaciones.cenicafe.org/index.php/libros_manuales/article/download/3197/3218/2968"
+    },
+    {
+      "etapa": "cosecha",
+      "titulo": "Cosecha",
+      "texto": "Se recogen las cerezas maduras, una a una, a mano, en varios pases. En el juego, los kilos cosechados se suman al Libro Mayor y no bajan al vender. Vender no crea monedas.",
+      "dato": "En muchas regiones de Colombia hay dos épocas de cosecha: la de mayor volumen se llama cosecha principal, y la de menor volumen se llama mitaca o traviesa. En otras regiones solo hay una cosecha al año. Así lo describe Cenicafé.",
+      "fuente": "https://publicaciones.cenicafe.org/index.php/libros_manuales/article/download/3197/3218/2968"
+    },
+    {
+      "etapa": "despulpado",
+      "titulo": "Despulpado",
+      "texto": "Se le quita la cáscara roja al frutico. Queda el grano, todavía con una capa dulce y babosa.",
+      "dato": "Cenicafé recomienda recibir y despulpar el café el mismo día de la recolección, para cuidar la calidad del grano.",
+      "fuente": "https://publicaciones.cenicafe.org/index.php/libros_manuales/article/download/3197/3218/2968"
+    },
+    {
+      "etapa": "fermentacion",
+      "titulo": "Fermentación",
+      "texto": "El grano reposa un rato. Esa espera ayuda a que después se pueda lavar bien y a que la taza quede rica.",
+      "dato": "Cenicafé desarrolló un método llamado Fermaestro para reconocer el punto final de esa fermentación, o sea, el momento en que ya se puede pasar al lavado.",
+      "fuente": "https://doi.org/10.38141/10779/0563"
+    },
+    {
+      "etapa": "lavado",
+      "titulo": "Lavado",
+      "texto": "Se lava el grano con agua limpia, para quitarle lo que quedó pegado. Así queda más limpio y listo para secarse.",
+      "dato": "El reglamento de la Denominación de Origen Café de Colombia define el producto como café de la especie Coffea arabica lavado, cultivado en la Zona Cafetera Colombiana.",
+      "fuente": "https://federaciondecafeteros.org/wp-content/uploads/2026/03/9.-Reglamento-de-Uso-de-la-DO-IGP-Cafe-de-Colombia-1.pdf"
+    },
+    {
+      "etapa": "secado",
+      "titulo": "Secado",
+      "texto": "El grano se seca al sol o en un secador, con calma, hasta que queda en su punto. Ni muy húmedo ni quemado.",
+      "dato": "Cenicafé indica que el café pergamino —el grano que todavía tiene su cascarita— debe quedar con una humedad de entre el 10% y el 12% para conservarse y comercializarse bien.",
+      "fuente": "https://doi.org/10.38141/10779/0387"
+    },
+    {
+      "etapa": "trilla",
+      "titulo": "Trilla",
+      "texto": "Se le quita la cascarita seca al grano. Así queda limpio y suave, listo para empacar.",
+      "dato": "La Federación Nacional de Cafeteros explica el factor de rendimiento así: es la cantidad de café pergamino seco que se necesita para obtener un saco de 70 kilogramos de café excelso, el café listo para exportar. El valor de referencia actual es de 94 kilogramos de pergamino seco para esos 70 kilogramos de excelso.",
+      "fuente": "https://federaciondecafeteros.org/aprenda-a-vender-su-cafe/"
+    },
+    {
+      "etapa": "bulto",
+      "titulo": "Bulto",
+      "texto": "El café ya seco y trillado se empaca en bultos. En el juego, los kilos cosechados se suman al Libro Mayor y no bajan al vender. Vender no crea monedas.",
+      "dato": "En Colombia, el saco de café excelso que usa la Federación Nacional de Cafeteros como referencia es de 70 kilogramos.",
+      "fuente": "https://federaciondecafeteros.org/aprenda-a-vender-su-cafe/"
+    }
+  ],
+  "cacao": [
+    {
+      "etapa": "siembra",
+      "titulo": "Siembra",
+      "texto": "Se siembra el cacao en un hueco bien hecho, con una planta sana. Es el primer paso para que el árbol nazca fuerte.",
+      "dato": "Una guía de buenas prácticas usada en Colombia recomienda comprar las semillas, yemas o plántulas en viveros o fincas con jardín clonal registrados ante el ICA, para partir de material sano y confiable.",
+      "fuente": "https://repository.agrosavia.co/server/api/core/bitstreams/34087291-b795-460a-9a45-61bf8c96a0ff/content"
+    },
+    {
+      "etapa": "crecimiento",
+      "titulo": "Crecimiento",
+      "texto": "El arbolito crece a la sombra de otros palos. Así se siente más a gusto y se va haciendo grande.",
+      "dato": "Un manual de Agrosavia explica que el cacao se desarrolla mejor con sombra. En las primeras etapas del cultivo, hasta los dos o cuatro años, los requerimientos de sombra van del 50% al 70%, y ese porcentaje debe ir bajando conforme el árbol envejece.",
+      "fuente": "https://doi.org/10.21930/agrosavia.manual.7408027"
+    },
+    {
+      "etapa": "floracion",
+      "titulo": "Floración",
+      "texto": "Salen florecitas en el tronco y en las ramas. Parece mentira, pero la flor nace del palo mismo.",
+      "dato": "El mismo manual de Agrosavia describe que las flores salen en cojines florales de 40 a 60 flores, a lo largo del tronco y de las ramas. A ese tipo de floración se le llama caulinar.",
+      "fuente": "https://doi.org/10.21930/agrosavia.manual.7408027"
+    },
+    {
+      "etapa": "mazorca",
+      "titulo": "Mazorca",
+      "texto": "La flor se vuelve una mazorca. Adentro van los granos, envueltos en una pulpa dulce.",
+      "dato": "Según Agrosavia, las mazorcas pueden pesar entre 300 y 1.000 gramos, tienen de 5 a 10 surcos a lo largo, y cada una guarda entre 30 y 40 semillas cubiertas de pulpa.",
+      "fuente": "https://doi.org/10.21930/agrosavia.manual.7408027"
+    },
+    {
+      "etapa": "cosecha",
+      "titulo": "Cosecha",
+      "texto": "Se cortan solo las mazorcas maduras, con cuidado de no lastimar el árbol ni el cojín donde nacerán más flores.",
+      "dato": "El Manual de beneficio del cacao, archivado en el repositorio de Agrosavia, advierte que por ningún motivo se deben cosechar frutos todavía verdes: esos granos están duros, no se separan fácil y no fermentan bien.",
+      "fuente": "https://repository.agrosavia.co/server/api/core/bitstreams/a3a61a3c-48f5-4d03-88bd-12bff4ff2041/content"
+    },
+    {
+      "etapa": "quiebre",
+      "titulo": "Quiebre",
+      "texto": "Se parte la mazorca y se sacan los granos con la mano, despacio, sin herirlos.",
+      "dato": "Ese mismo manual cuenta que en Colombia es común abrir la mazorca por la mitad golpeándola sobre el lomo del machete, no sobre el filo, para no cortar los granos.",
+      "fuente": "https://repository.agrosavia.co/server/api/core/bitstreams/a3a61a3c-48f5-4d03-88bd-12bff4ff2041/content"
+    },
+    {
+      "etapa": "fermentacion_cajones",
+      "titulo": "Fermentación en cajones",
+      "texto": "Los granos se dejan en cajones de madera, para que fermenten con calma. Hay que revolverlos a su tiempo.",
+      "dato": "El manual recomienda cajones de madera, con huecos en el fondo para que escurra el líquido. En Támesis, en el suroeste de Antioquia, la fermentación tarda entre 5 y 6 días, porque la temperatura es más baja. En esas fermentaciones largas, el primer volteo se hace a las 48 horas y después cada 24 horas.",
+      "fuente": "https://repository.agrosavia.co/server/api/core/bitstreams/a3a61a3c-48f5-4d03-88bd-12bff4ff2041/content"
+    },
+    {
+      "etapa": "secado",
+      "titulo": "Secado",
+      "texto": "Después, los granos se secan al sol, sobre tablas de madera, hasta que quedan en su punto.",
+      "dato": "Según el mismo manual, el grano seco debe quedar con un 7% de humedad. No conviene bajar del 6%, porque los granos se vuelven quebradizos. Al sol, el secado suele demorar entre 3 y 9 días, según las horas y la fuerza del sol.",
+      "fuente": "https://repository.agrosavia.co/server/api/core/bitstreams/a3a61a3c-48f5-4d03-88bd-12bff4ff2041/content"
+    },
+    {
+      "etapa": "seleccion",
+      "titulo": "Selección",
+      "texto": "Se limpian y se escogen los granos buenos. Se apartan los que están quebrados, mohosos o muy chiquitos.",
+      "dato": "Ese manual señala que, en Colombia, el cacao corriente debe cumplir requisitos mínimos para comercializarse. Entre ellos: 7% de humedad y un peso mínimo de 105 gramos en 100 granos. Para mirar la calidad se usa la prueba de corte: se parten 100 granos a lo largo y se revisa el interior.",
+      "fuente": "https://repository.agrosavia.co/server/api/core/bitstreams/a3a61a3c-48f5-4d03-88bd-12bff4ff2041/content"
+    },
+    {
+      "etapa": "kilos_libro_mayor",
+      "titulo": "Kilos registrados en el Libro Mayor",
+      "texto": "Los kilos que cosechaste se anotan en el Libro Mayor. Esa cifra no baja si después vendés. Vender no crea monedas.",
+      "dato": "En abril de 2024, el Consejo de la Organización Internacional del Cacao (ICCO) mantuvo a Colombia en la lista de países que exportan cacao fino de aroma, y fijó que el 80% de sus exportaciones de cacao en grano se clasifica así.",
+      "fuente": "https://www.icco.org/fine-or-flavor-cocoa/"
+    }
+  ]
+}

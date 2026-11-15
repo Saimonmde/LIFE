@@ -52,6 +52,10 @@
 #finca-panel h3, #libro-publico h3 { margin: 8px 0 4px; font-size: 16px; }
 .finca-plot, .finca-bag { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #3a3228; }
 .finca-note { color: #e7d3ae; margin: 6px 0; }
+.finca-carta { margin: 4px 0 10px; }
+.finca-carta summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.finca-carta p { margin: 6px 0; font-size: 15px; }
+.finca-carta a { color: #f4d99b; }
 .libro-lead, .libro-ingots p { color: #e7d3ae; margin: 4px 0; }
 .libro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .libro-crop, .libro-coin, .libro-ingots, .libro-feed {

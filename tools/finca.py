@@ -797,6 +797,7 @@ def player_view(state, config, account, purse, now):
                 'bagKg': int(spec.get('bagKg') or 0),
                 'note': spec.get('note') or '',
                 'steps': [step['label'] for step in _steps(spec)],
+                'stepIds': [step['id'] for step in _steps(spec)],
                 'eduSteps': [step.get('label') or step.get('id') for step in ((config.get('edu') or {}).get(crop) or [])],
                 'prices': spec.get('prices') or {},
             }
