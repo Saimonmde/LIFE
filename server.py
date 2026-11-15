@@ -1806,6 +1806,19 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             save_accounts()
             return auth_response('400 Bad Request', {'error': str(exc)}, headers)
         return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
+    if path == '/auth/simon' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
+        old_wallet = user.get('wallet_name') or ''
+        try:
+            shown = ACC.claim_simon(ACCOUNTS, user)
+            mover_billetera(old_wallet, user.get('wallet_name') or '')
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
     if path == '/auth/registro' and method == 'POST':
         if not ACC.email_ready():
             return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado. Entra con Google o Facebook.'}, headers)

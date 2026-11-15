@@ -127,6 +127,27 @@ def name_key(name):
     return ' '.join(unicodedata.normalize('NFKC', str(name or '')).casefold().split())
 
 
+_SIMON_LEET = str.maketrans({'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i'})
+
+
+def simon_key(text):
+    """Forma plana: sin acentos, sin símbolos, con los números que imitan letras."""
+    raw = unicodedata.normalize('NFKD', str(text or ''))
+    raw = ''.join(ch for ch in raw if not unicodedata.combining(ch))
+    raw = raw.casefold().translate(_SIMON_LEET)
+    return re.sub(r'[^a-z]', '', raw)
+
+
+def simon_reserved(text):
+    return simon_key(text) == 'simon'
+
+
+def is_owner(user):
+    import fusion
+    email = str((user or {}).get('email') or '').strip().lower()
+    return bool(email) and email == fusion.owner_email()
+
+
 def name_available(doc, name, email=None, user_id=None, now=None):
     key = name_key(name)
     if not key:
@@ -217,9 +238,15 @@ def set_nick_and_password(doc, user, nick, password, confirm, now=None):
     _hit_rate(doc, 'clave:' + user['id'], now)
     if user.get('password_hash'):
         raise AuthError('Esta cuenta ya tiene contraseña.')
+    if simon_reserved(nick) and not is_owner(user):
+        raise AuthError('Ese apodo está reservado.')
     nick = game_name(nick)
     if not nick:
         raise AuthError('Escribe un apodo de hasta 16 letras.')
+    if simon_reserved(nick) and not is_owner(user):
+        raise AuthError('Ese apodo está reservado.')
+    if is_owner(user) and simon_reserved(nick) and name_key(nick) != 'simon':
+        raise AuthError('El apodo del fundador es Simon.')
     if not isinstance(password, str) or password != confirm:
         raise AuthError('Las contraseñas no coinciden.')
     key = name_key(nick)
@@ -231,16 +258,36 @@ def set_nick_and_password(doc, user, nick, password, confirm, now=None):
     if not name_available(doc, nick, user_id=user['id'], now=now):
         raise AuthError('Ese apodo ya pertenece a otra cuenta.')
     user['password_hash'] = hash_password(password)
-    user['name'] = nick
-    user['wallet_name'] = nick
+    user['name'] = 'Simon' if is_owner(user) and simon_reserved(nick) else nick
+    user['wallet_name'] = user['name']
+    return public_user(user)
+
+
+def claim_simon(doc, user, now=None):
+    """El fundador toma el apodo Simon gratis. No crea ni guarda una contraseña."""
+    now = _now(now)
+    if not user or not is_owner(user):
+        raise AuthError('Ese apodo está reservado.')
+    _hit_rate(doc, 'simon:' + user['id'], now)
+    for other in doc['users']:
+        if other.get('id') == user['id']:
+            continue
+        if simon_key(other.get('name')) == 'simon' or simon_key(other.get('wallet_name')) == 'simon':
+            raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    user['name'] = 'Simon'
+    user['wallet_name'] = 'Simon'
     return public_user(user)
 
 
 def begin_signup(doc, name, email, phone, password, send_email, start_sms, now=None):
     now = _now(now)
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
     name = game_name(name)
     email = str(email or '').strip().lower()
     phone = str(phone or '').strip().replace(' ', '')
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
     if not name:
         raise AuthError('Escribe un nombre de hasta 16 letras.')
     if not EMAIL_RE.match(email) or len(email) > 254:
@@ -316,6 +363,7 @@ def public_user(user):
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or '',
         'needsPassword': not bool(user.get('password_hash')),
+        'canClaimSimon': is_owner(user) and simon_key(user.get('wallet_name') or user.get('name')) != 'simon',
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
         'casa': shown,
@@ -380,6 +428,8 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             user.setdefault('providers', {})[provider] = sub
     if user is None:
         name = game_name(profile.get('name') or email.split('@')[0] or 'Jugador') or 'Jugador'
+        if (simon_reserved(profile.get('name')) or simon_reserved(name)) and not is_owner({'email': email}):
+            name = 'Jugador'
         base = name
         n = 2
         while not name_available(doc, name, email=email, now=now):
@@ -430,8 +480,12 @@ def _token_hash(raw):
 def begin_email_account(doc, name, email, password, send_link, now=None):
     """Crea un registro pendiente. La cuenta no existe hasta abrir el enlace."""
     now = _now(now)
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
     name = game_name(name)
     email = str(email or '').strip().lower()
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
     if not name:
         raise AuthError('Escribe un apodo de hasta 16 letras.')
     if not EMAIL_RE.match(email) or len(email) > 254:
