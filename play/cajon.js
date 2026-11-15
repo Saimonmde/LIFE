@@ -226,6 +226,14 @@
     button.title = 'Ir a la mina y picar';
     button.onclick = () => { if (window.LiveInk && LiveInk.goMine) LiveInk.goMine(); };
     document.body.append(button);
+    if (document.getElementById('b-acunar-pulgar')) return;
+    const mint = document.createElement('button');
+    mint.type = 'button';
+    mint.id = 'b-acunar-pulgar';
+    mint.textContent = 'Acuñar';
+    mint.title = 'Acuñar o cambiar monedas';
+    mint.onclick = () => { if (window.Acunar) Acunar.open(); };
+    document.body.append(mint);
   }
   function boot() {
     mountPicar();

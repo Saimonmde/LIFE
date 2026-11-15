@@ -12,8 +12,10 @@ const world = read('play/unified3d.js');
 const page = read('play/index.html');
 
 assert.ok(movil.includes('#city-joystick'));
-assert.ok(css.includes('z-index: 45'));
-assert.ok(css.includes('bottom: calc(112px + env(safe-area-inset-bottom))'));
+assert.ok(css.includes('joy-flotante') || world.includes('joy-flotante'));
+assert.ok(world.includes('inMoveZone'));
+assert.ok(world.includes('stickPower'));
+assert.ok(read('play/game.js').includes("S.keys.has('joystick')"));
 assert.ok(css.includes('height: 100dvh'));
 assert.ok(skin.includes('height: 100dvh'));
 assert.ok(world.includes('visualViewport'));
@@ -21,4 +23,5 @@ assert.ok(world.includes('orientationchange'));
 assert.ok(world.includes('status.editorApi'));
 assert.ok(!world.includes('onlostpointercapture'));
 assert.ok(page.includes('unified3d.js?v=joystick-v1'));
+assert.ok(page.includes('id="b-acunar-pulgar"') || read('play/cajon.js').includes('b-acunar-pulgar'));
 console.log('joystick vertical ok');

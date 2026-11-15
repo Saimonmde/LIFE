@@ -1946,7 +1946,9 @@ function update(dt) {
     if ((dx || dy) && walkable(nx, ny)) { p.path = [[nx, ny]]; p.pending = null; S.dest = null; }
     else if (dx || dy) p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
   }
-  const cruise = SPEED * (S.mounted ? Simulacion.speedMul() : (sprinting ? 1.75 : 1));
+  const joy = S.keys.has('joystick');
+  const power = joy && window.LiveInk && LiveInk.stickPower ? Math.max(0.28, LiveInk.stickPower()) : 1;
+  const cruise = SPEED * (joy ? power : 1) * (S.mounted ? Simulacion.speedMul() : (sprinting ? 1.75 : 1));
   if (p.emote === 'sit' && t < (p.emoteUntil || 0)) p.path = [];
   const want = p.path.length ? cruise * (p.path.length <= 1 ? 0.62 : 1) : 0;
   p.speed = window.Motion ? Motion.approach(p.speed || 0, want, dt, sprinting ? 10 : 6.5, 12) : want;
@@ -1967,7 +1969,7 @@ function update(dt) {
           else if (tg.kind === 'animal' && tg.a.state === 'alive' && p.repaths++ < 4) approach(tg);
           else if (tg.kind === 'animal') game('El animal se alejó.', 'aviso');
           budget = 0;
-        } else if (S.mounted && budget > 1e-4 && !S.dialog && !S.houseEdit) {
+        } else if ((S.mounted || S.keys.has('joystick')) && budget > 1e-4 && !S.dialog && !S.houseEdit) {
           let mx = 0, my = 0; const K = S.keys;
           if (K.has('w') || K.has('arrowup')) my = -1; if (K.has('s') || K.has('arrowdown')) my = 1;
           if (K.has('a') || K.has('arrowleft')) mx = -1; if (K.has('d') || K.has('arrowright')) mx = 1;
