@@ -528,6 +528,22 @@ def harvest(state, config, account, plot_id, now):
     return {'kg': kg, 'totalKg': total, 'item': item, 'hash': digest, 'prev': prev}
 
 
+def harvest_all(state, config, account, now):
+    """Cosecha cada parcela madura. No crea kilos ni monedas."""
+    box = _account(state, config, account)
+    ready = []
+    for plot_id, plot in box['plots'].items():
+        migrate_plot(plot, now, config)
+        if stage_of(plot, now, config) == 'maduro':
+            ready.append(plot_id)
+    if not ready:
+        raise FincaError('no hay parcelas maduras')
+    kilos = 0
+    for plot_id in ready:
+        kilos += harvest(state, config, account, plot_id, now)['kg']
+    return {'plots': ready, 'kg': kilos}
+
+
 def process(state, config, account, crop, now):
     box = _account(state, config, account)
     if _tick(state, box, crop, now, config, account):
@@ -829,6 +845,9 @@ def act(state, purse, config, account, op, args, now, present=True):
             changed = True
         elif op == 'cosechar':
             harvest(state, config, account, str(args.get('plot') or ''), now)
+            changed = True
+        elif op == 'cosechar_todo':
+            harvest_all(state, config, account, now)
             changed = True
         elif op == 'procesar':
             process(state, config, account, str(args.get('crop') or ''), now)

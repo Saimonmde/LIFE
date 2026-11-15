@@ -83,7 +83,8 @@
       const steps = spec.steps || [];
       const ids = spec.stepIds || [];
       const batch = batches[crop];
-      const buttons = steps.map(label => `<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`).join('');
+      const lead = batch ? 'Procesar' : 'Llevar al taller';
+      const buttons = `<button type="button" class="finca-llevar" data-op="procesar" data-crop="${crop}">${lead}</button>` + steps.map(label => `<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`).join('');
       const cards = ids.map(id => carta(crop, (PASO[crop] || {})[id] || id)).join('');
       const status = batch ? (batch.settled ? `Listo: ${batch.step}.` : `Trabajando: ${batch.step}.`) : 'El taller está libre.';
       return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>${cards}`;
@@ -190,6 +191,7 @@
       if (message.error) say(message.error);
       else if (message.ok && message.view) say('Listo.');
       paintFarm();
+      paintDock();
       if (window.LIVE3D && LIVE3D.syncFinca) LIVE3D.syncFinca(view);
       return false;
     }
@@ -245,6 +247,79 @@
       if (!panel || panel.hidden || !ws || ws.readyState !== 1) return;
       send('ver');
     }, 4000);
+    setInterval(() => {
+      paintDock();
+      const ws = window.LiveInk && LiveInk.state && LiveInk.state.net && LiveInk.state.net.ws;
+      if (!nearFarm() || !ws || ws.readyState !== 1) return;
+      send('ver');
+    }, 2000);
+  }
+
+  function zone() {
+    const world = window.LiveInk && LiveInk.world;
+    return (world && world.mapId) || 'city';
+  }
+
+  function nearFarm() {
+    const world = window.LiveInk && LiveInk.world;
+    const player = window.LiveInk && LiveInk.state && LiveInk.state.player;
+    if (!world || !player || zone() !== 'city') return false;
+    const spot = (world.waypoints || []).find(row => row.id === 'las_palmas');
+    if (!spot) return false;
+    return Math.max(Math.abs(player.fx - spot.x), Math.abs(player.fy - spot.y)) <= 30;
+  }
+
+  function ensureDock() {
+    let dock = document.getElementById('oficio-cerca');
+    if (dock) return dock;
+    dock = document.createElement('div');
+    dock.id = 'oficio-cerca';
+    dock.hidden = true;
+    dock.setAttribute('role', 'group');
+    dock.setAttribute('aria-label', 'Acciones al acercarse');
+    document.body.append(dock);
+    return dock;
+  }
+
+  function paintDock() {
+    const dock = ensureDock();
+    const buttons = [];
+    if (nearFarm() && view) {
+      const ripe = (view.plots || []).filter(row => row.stage === 'maduro');
+      ripe.forEach(row => {
+        const name = row.crop === 'cafe' ? 'café' : 'cacao';
+        buttons.push(`<button type="button" data-op="cosechar" data-plot="${esc(row.id)}">Cosechar<small>${name}</small></button>`);
+      });
+      if (ripe.length > 1) buttons.push('<button type="button" data-op="cosechar_todo">Cosechar todo</button>');
+      const goods = view.goods || {};
+      const batches = view.batches || {};
+      [['cafe', 'café', goods.cafe_cereza], ['cacao', 'cacao', goods.cacao_baba]].forEach(([crop, name, have]) => {
+        const working = !!batches[crop];
+        if (!working && !(Number(have) > 0)) return;
+        const both = (Number(goods.cafe_cereza) > 0 || batches.cafe) && (Number(goods.cacao_baba) > 0 || batches.cacao);
+        const label = working ? (both ? `Procesar ${name}` : 'Procesar') : (both ? `Llevar ${name} al taller` : 'Llevar al taller');
+        buttons.push(`<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`);
+      });
+    }
+    if (zone() === 'mine' || zone() === 'central') {
+      buttons.push('<button type="button" data-op="acunar">Acuñar</button>');
+    }
+    if (!buttons.length) {
+      dock.hidden = true;
+      dock.innerHTML = '';
+      return;
+    }
+    dock.hidden = false;
+    dock.innerHTML = buttons.join('');
+    dock.querySelectorAll('button').forEach(button => {
+      button.onclick = () => {
+        if (button.dataset.op === 'acunar') {
+          if (window.Acunar) Acunar.open();
+          return;
+        }
+        send(button.dataset.op, { plot: button.dataset.plot, crop: button.dataset.crop });
+      };
+    });
   }
 
   fetch('finca-textos.json?v=cierre-r1').then(res => res.ok ? res.json() : null).then(doc => {
