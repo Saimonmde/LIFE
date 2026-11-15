@@ -108,6 +108,13 @@ body.mapa-limpio #hud-gear {
   background: rgba(12, 8, 4, .45);
 }
 #cajon-fondo[hidden] { display: none !important; }
+#b-picar {
+  position: fixed; z-index: 70; left: max(10px, env(safe-area-inset-left));
+  top: 206px; min-width: 48px; min-height: 48px; border: 0; border-radius: 14px;
+  background: #c4a574; color: #1c1208; font: 800 14px/1 var(--sans); padding: 8px 10px;
+  box-shadow: 0 3px 10px #0007;
+}
+body:not(.in-game) #b-picar { display: none !important; }
 #hud-gear-menu h2 {
   margin: 0 0 8px;
   font: 650 18px/1.2 var(--sans);
