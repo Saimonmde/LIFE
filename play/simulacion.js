@@ -603,7 +603,7 @@ function mountHorse(horse) {
   h.ridden = true;
   h.x = h.fx = p.x; h.y = h.fy = p.y;
   syncButton();
-  api.game('Montas el <b>caballo</b>. Vas al doble de prisa. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
+  api.game('Montas el <b>caballo</b>. Vas a 2,2 veces la marcha a pie. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
 }
 function blocksTile(W, x, y) {
   if (!api.S.mounted) return false;
@@ -928,7 +928,7 @@ function autotest(ok) {
   api.S.player.x = api.S.player.fx = horse.x;
   api.S.player.y = api.S.player.fy = horse.y + 1;
   mountHorse(horse);
-  ok(!!api.S.mounted && speedMul() === 4, 'montar: velocidad ×4, el doble de la montura anterior');
+  ok(!!window.Caballo && Caballo.MOUNT_SPEED === 2.2 && speedMul() === 2.2, 'montar: velocidad ×2,2, una sola constante');
   ok(!!$('#b-bajar') && $('#b-bajar').hidden === false, 'botón Bajarse del caballo visible al montar');
   if (api.update) {
     const rider = api.S.player;
@@ -937,7 +937,7 @@ function autotest(ok) {
     api.S.keys.clear();
     api.update(0.5);
     const travelled = rider.fx - (220 + off.x);
-    ok(travelled > 7.6 && travelled < 9.2, 'a caballo se recorren unas 8,4 casillas en medio segundo (' + travelled.toFixed(2) + ')');
+    ok(travelled > 4.3 && travelled < 5.0, 'a caballo se recorren unas 4,6 casillas en medio segundo (' + travelled.toFixed(2) + ')');
   }
   const water = (api.W().waterBodies.rio_claro.tiles || [])[0];
   ok(blocksTile(api.W(), water[0], water[1]) || api.W().collision[water[1]][water[0]] !== 0, 'el caballo no entra al agua');
@@ -965,7 +965,7 @@ function autotest(ok) {
   const chain = verifyBlock(api.S.econ.blocks[0], GENESIS_PREV);
   ok(chain, 'el bloque génesis verifica');
 }
-function speedMul() { return api.S.mounted ? ((F.mounts[0] && F.mounts[0].speed) || 2) : 1; }
+function speedMul() { return api.S.mounted ? ((window.Caballo && Caballo.MOUNT_SPEED) || 2.2) : 1; }
 
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,

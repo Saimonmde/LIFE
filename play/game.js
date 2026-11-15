@@ -1760,6 +1760,7 @@ function update(dt) {
     p.animT += dt * (1 + (p.speed || 0) / SPEED);
   } else p.animT += dt * 0.2;
   if (window.Simulacion) Simulacion.syncHorse();
+  if (window.Caballo) Caballo.tick(dt, horseContext());
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId!=='mine')sendMove(false);
@@ -2098,14 +2099,22 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
+function horseContext(){
+ const avoid=new Set();
+ if(window.Casa){avoid.add(Casa.PARK_DOOR.x+','+Casa.PARK_DOOR.y);avoid.add(Casa.PARK_STAND.x+','+Casa.PARK_STAND.y);}
+ return {S:S,W:W,seconds:now()/1000,houses:(window.HOGARES&&HOGARES.casas)||[],avoid:avoid,
+  open(x,y){if(!inside(x,y)||W.collision[y][x]!==0)return false;const kind=W.tiles[W.ground[y][x]]&&W.tiles[W.ground[y][x]].kind;return kind!=='water'&&kind!=='creek';},
+  route(x,y,tx,ty){return bfs(x,y,(a,b)=>a===tx&&b===ty);}};
+}
 function ensurePersonalHorse(){
  S.mounts=S.mounts||[];
  let horse=S.mounts.find(m=>m.personal);
  if(!horse){
   const def=(W.mounts&&W.mounts[0])||{id:'caballo',name:'Caballo',speed:4};
-  horse={def,id:'caballo-personal',personal:true,x:S.player.x,y:S.player.y,fx:S.player.fx,fy:S.player.fy,ridden:false};
+  horse={def,id:'caballo-personal',personal:true,x:S.player.x,y:S.player.y,fx:S.player.fx,fy:S.player.fy,ridden:false,coat:(window.Caballo&&Caballo.coat)||'bay',gait:'idle',phase:0,tethered:false,called:false};
   S.mounts.push(horse);
  }
+ if(window.Caballo)horse.coat=Caballo.coat;
  return horse;
 }
 function entranceSpot(){
@@ -2129,6 +2138,7 @@ function summonPersonalHorse(){
  const horse=ensurePersonalHorse();
  if(S.mounted===horse&&window.Simulacion)Simulacion.dismount();
  horse.ridden=false;horse.x=horse.fx=spot[0];horse.y=horse.fy=spot[1];
+ if(window.Caballo)Caballo.noteSummon(horse);else horse.called=true;
  game('Tu caballo apareció junto a la entrada.','juego');
 }
 function mountAndGo(x,y,after){

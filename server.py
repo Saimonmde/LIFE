@@ -40,6 +40,7 @@ import crudo as CRUDO
 import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
+import caballo_cuenta as CABALLO
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -2233,6 +2234,21 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         save_accounts()
         save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'casa': shown['casa']}, headers)
+    if path == '/auth/caballo' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para ver tu caballo.'}, headers)
+        return auth_response('200 OK', {'caballo': CABALLO.view(user)}, headers)
+    if path == '/auth/caballo' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar el pelaje.'}, headers)
+        try:
+            shown = ACC.set_caballo(user, payload.get('coat'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown, 'caballo': shown['caballo']}, headers)
     if path == '/auth/salir' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         ACCOUNTS['sessions'].pop(token, None)

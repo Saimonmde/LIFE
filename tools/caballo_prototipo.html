@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caballo criollo</title>
+<style>html,body{margin:0;height:100%;background:#f3efe8;overflow:hidden}canvas{display:block}</style>
+</head><body>
+<script src="../play/caballo.js"></script>
+<script type="module">
+import * as T from '../play/three.module.js';
+import { createHorse } from '../play/caballo3d.js';
+
+const q = new URLSearchParams(location.search);
+const shot = q.get('shot') || 'three';
+const narrow = q.get('movil') === '1' || innerWidth < 700;
+const renderer = new T.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(1);
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.setClearColor('#f3efe8');
+document.body.append(renderer.domElement);
+const scene = new T.Scene();
+scene.background = new T.Color('#f3efe8');
+scene.add(new T.HemisphereLight(0xfff4e4, 0x8d9078, 1.35));
+const sun = new T.DirectionalLight(0xfff0dc, 2.1);
+sun.position.set(-3.2, 6.5, 2.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 24;
+sun.shadow.camera.left = -6;
+sun.shadow.camera.right = 6;
+sun.shadow.camera.top = 6;
+sun.shadow.camera.bottom = -6;
+scene.add(sun);
+const ground = new T.Mesh(new T.CircleGeometry(8, 48), new T.MeshLambertMaterial({ color: '#e7e1d4' }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+function house() {
+  const g = new T.Group();
+  const wall = new T.MeshLambertMaterial({ color: '#f7f1e4' });
+  const roof = new T.MeshLambertMaterial({ color: '#a86448' });
+  const wood = new T.MeshLambertMaterial({ color: '#6b4228' });
+  const box = (w, h, d, x, y, z, mat) => {
+    const m = new T.Mesh(new T.BoxGeometry(w, h, d), mat);
+    m.position.set(x, y, z);
+    m.castShadow = m.receiveShadow = true;
+    g.add(m);
+  };
+  box(3.2, 2.4, 2.6, 0, 1.2, 0, wall);
+  box(3.5, 0.16, 2.9, 0, 2.45, 0, roof);
+  box(0.16, 0.7, 3.1, -1.45, 2.7, 0, roof);
+  box(0.16, 0.7, 3.1, 1.45, 2.7, 0, roof);
+  box(3.1, 0.12, 0.16, 0, 3.0, 0, wood);
+  box(0.9, 1.7, 0.08, 0, 0.9, 1.32, wood);
+  box(0.7, 0.7, 0.06, -0.95, 1.55, 1.34, new T.MeshLambertMaterial({ color: '#9ec4cf' }));
+  g.position.set(-1.7, 0, -0.3);
+  scene.add(g);
+}
+
+const horses = [];
+function put(coat, x, z, gait, phase, tethered) {
+  const horse = createHorse(T, { coat });
+  horse.root.position.set(x, 0, z);
+  horse.update({ gait, phase, time: 1.4, tethered });
+  scene.add(horse.root);
+  horses.push(horse);
+  return horse;
+}
+
+if (shot === 'coats') {
+  put('bay', -1.7, 0, 'idle', 0.2, false);
+  put('grey', 0, 0, 'idle', 0.35, false);
+  put('black', 1.7, 0, 'idle', 0.5, false);
+} else if (shot === 'house') {
+  house();
+  put('bay', 1.15, 0.85, 'idle', 0.25, true);
+  ground.material.color.set('#d5d8c4');
+} else {
+  const gait = shot === 'gallop' ? 'gallop' : 'idle';
+  const phase = shot === 'gallop' ? 0.2 : 0.22;
+  put('bay', 0, 0, gait, phase, false);
+}
+
+const camera = new T.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 40);
+const look = new T.Vector3(0, 1.05, 0.05);
+if (shot === 'side') camera.position.set(4.2, 1.25, 0.05);
+else if (shot === 'house') { camera.position.set(narrow ? 4.2 : 5.4, 1.8, 4.6); look.set(-0.2, 1.0, 0.3); }
+else if (shot === 'coats') camera.position.set(0.2, 1.6, narrow ? 7.2 : 6.2);
+else if (shot === 'gallop') camera.position.set(2.5, 1.35, 3.1);
+else camera.position.set(narrow ? 2.7 : 2.35, 1.4, narrow ? 3.3 : 2.85);
+camera.lookAt(look);
+renderer.render(scene, camera);
+document.body.dataset.ready = '1';
+</script>
+</body></html>

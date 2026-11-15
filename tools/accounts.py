@@ -358,6 +358,7 @@ def open_session(doc, user, now=None):
 
 def public_user(user):
     import casa_cuenta
+    import caballo_cuenta
     shown = casa_cuenta.view(user)
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
@@ -367,6 +368,7 @@ def public_user(user):
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
         'casa': shown,
+        'caballo': caballo_cuenta.view(user),
     }
 
 
@@ -376,6 +378,15 @@ def set_municipio(doc, user, municipio):
     try:
         casa_cuenta.apply(user, {'municipio': municipio})
     except casa_cuenta.CasaError as exc:
+        raise AuthError(str(exc)) from exc
+    return public_user(user)
+
+
+def set_caballo(user, coat):
+    import caballo_cuenta
+    try:
+        caballo_cuenta.apply(user, coat)
+    except caballo_cuenta.CoatError as exc:
         raise AuthError(str(exc)) from exc
     return public_user(user)
 
