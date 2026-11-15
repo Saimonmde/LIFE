@@ -663,6 +663,45 @@ html.movil #smc-pill {
     linear-gradient(#1a2748 0%, #070b16 70%, #03040a 100%);
 }
 #intro-cielo[hidden] { display: none !important; }
+/* En el celular el vuelo amanece: noche arriba, alba en el horizonte y estrellas.
+   La idea del degradado sale del cielo de la intro en el PR #60; no trae la posesión. */
+@media (max-width: 820px) {
+  #intro-cielo {
+    background:
+      radial-gradient(ellipse 90% 38% at 50% 108%, rgba(255, 214, 156, .9), transparent 58%),
+      radial-gradient(ellipse 70% 28% at 50% 86%, rgba(232, 126, 92, .45), transparent 62%),
+      linear-gradient(180deg, #050714 0%, #10183c 22%, #1c2a58 46%, #3a335f 64%, #8a5360 80%, #e39a62 92%, #ffd7a8 100%);
+  }
+  #intro-cielo.noche {
+    background:
+      radial-gradient(ellipse 80% 30% at 50% 112%, rgba(255, 186, 120, .35), transparent 60%),
+      linear-gradient(180deg, #050714 0%, #10183c 55%, #3a335f 82%, #c47a58 100%);
+  }
+  #intro-cielo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(1.4px 1.4px at 8% 12%, #fff, transparent),
+      radial-gradient(1px 1px at 18% 22%, #fff, transparent),
+      radial-gradient(1.6px 1.6px at 27% 8%, #fff, transparent),
+      radial-gradient(1px 1px at 36% 18%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 46% 11%, #fff, transparent),
+      radial-gradient(1px 1px at 58% 16%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 69% 7%, #fff, transparent),
+      radial-gradient(1px 1px at 78% 20%, #fff, transparent),
+      radial-gradient(1.3px 1.3px at 88% 12%, #fff, transparent),
+      radial-gradient(1px 1px at 14% 34%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 32% 38%, #fff, transparent),
+      radial-gradient(1px 1px at 51% 30%, #fff, transparent),
+      radial-gradient(1.4px 1.4px at 64% 36%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 32%, #fff, transparent),
+      radial-gradient(1px 1px at 24% 48%, #fff, transparent),
+      radial-gradient(1.2px 1.2px at 73% 46%, #fff, transparent);
+    opacity: .9;
+  }
+}
 
 /* Dentro de la casa los tres botones van en columna, debajo del mapa
    y por encima de la barra. No se montan entre ellos ni sobre la barra. */
