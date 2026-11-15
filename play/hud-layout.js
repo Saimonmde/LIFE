@@ -12,6 +12,7 @@
     ['hud-chat', 'Chat', 'hud'],
     ['hotbar', 'Barra rápida', 'hud'],
     ['hud-recursos', 'Bolsa, SMC y Plata', 'hud'],
+    ['barra-monedas', 'Monedas', 'hud'],
     ['sai-legal', 'Aviso SMC', 'hud'],
     ['pow-panel', 'Simoncoin', 'hud'],
     ['plata-panel', 'Simonplata', 'hud'],

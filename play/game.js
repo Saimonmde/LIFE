@@ -575,7 +575,7 @@ function renderInv() {
     const s = i<SLOTS?S.inv[i]:null; const d = document.createElement('div');
     if(s)d.setAttribute('role','button'); d.tabIndex=s?0:-1;
     d.className = 'slot' + (s ? '' : ' vacio') + (i === S.sel ? ' sel' : '');
-    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = itemImg(it, s.qty) + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil)return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; }
+    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = `<span class="gema">${itemImg(it, s.qty)}</span>` + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil)return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; }
     el.appendChild(d);
   }
   updateBagMode();
@@ -584,7 +584,7 @@ function renderInv() {
   const hb = $('#hotbar'); hb.querySelectorAll('.hs').forEach(n => n.remove());
   for (let i = 0; i < 10; i++) {
     const s = S.inv[i]; const d = document.createElement('div'); d.className = 'hs' + (i === S.sel ? ' sel' : '');
-    d.innerHTML = `<span class="k">${(i + 1) % 10}</span>` + (s ? itemImg(W.items[s.item], s.qty) + `<span class="n">${W.items[s.item].stackable ? s.qty : ''}</span>` : '');
+    d.innerHTML = `<span class="k">${(i + 1) % 10}</span>` + (s ? `<span class="gema">${itemImg(W.items[s.item], s.qty)}</span><span class="n">${W.items[s.item].stackable ? s.qty : ''}</span>` : '');
     if (s) { d.title = W.items[s.item].name; d.onpointerenter=e=>showItemTip(W.items[s.item], s.qty, e); d.onpointerleave=hideItemTip; }
     d.onclick = () => { if (S.inv[i]) { S.sel = S.sel === i ? -1 : i; renderInv(); } };
     hb.appendChild(d);
