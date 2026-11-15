@@ -32,9 +32,10 @@
     let simoncoin = ledger ? ledger.simoncoin : 0;
     let simonplata = ledger ? ledger.simonplata : 0;
     let simonchis = ledger ? ledger.simonchis : 0;
-    if (!ledger && window.Simulacion && name) {
-      simoncoin = Simulacion.walletSubs(name) || 0;
+    if (!ledger && S.econ && S.econ.wallets && name) {
+      simoncoin = S.econ.wallets[name] || 0;
       simonplata = (S.plata && S.plata.balanceSph) || 0;
+      simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
     return {
       simoncoin: coinText(simoncoin, window.Simulacion ? Simulacion.SUBS : 100000000),
@@ -188,7 +189,7 @@
     let startX = 0;
     menu.addEventListener('pointerdown', (e) => { startX = e.clientX; });
     menu.addEventListener('pointerup', (e) => { if (e.clientX - startX > 70) closeDrawer(); });
-    paint();
+    try { paint(); } catch (e) { console.error(e); }
     try { paintPlaces(); } catch (e) { console.error(e); }
   }
   function boot() {
