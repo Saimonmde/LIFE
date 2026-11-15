@@ -353,7 +353,13 @@ function requestVault() {
   if (api.S.net.ok) api.S.net.ws.send(JSON.stringify({ t: 'vault' }));
   else if (window.Banco) Banco.paint(localVault());
 }
+function bankReady() {
+  if (!api.S.net.ok) { api.game('Sin conexión: el banco muestra saldos en caché. Reconecta para mover monedas u objetos.', 'aviso'); return false; }
+  if (api.S.walletLocked) { api.game('Billetera bloqueada en este dispositivo. Recupera el acceso para operar en el banco.', 'aviso'); return false; }
+  return true;
+}
 function bankSmp(dir, amount) {
+  if (!bankReady()) return;
   let sph;
   try { sph = parsePlata(withUnit(amount, unidadPlata())); }
   catch (e) { api.game('Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.', 'aviso'); return; }
@@ -381,6 +387,7 @@ function bankSmp(dir, amount) {
   if (window.Banco) Banco.paint(box);
 }
 function bankSmc(dir, amount) {
+  if (!bankReady()) return;
   let subs;
   try { subs = parseAmount(withUnit(amount, unidadActiva())); }
   catch (e) { api.game('Monto no válido. Ejemplo: 1 SMC o 12.345 SMH.', 'aviso'); return; }
@@ -407,6 +414,7 @@ function bankSmc(dir, amount) {
   if (window.Banco) Banco.paint(box);
 }
 function bankItem(dir, item, qty) {
+  if (!bankReady()) return;
   qty = Number(qty);
   if (!item || !(qty > 0)) return;
   if (api.S.net.ok) {
@@ -464,6 +472,7 @@ function applyServer(m) {
   if (m.cupos) api.S.cupos = m.cupos;
   if (window.Acunar) Acunar.paint();
   if (m.ledger) api.S.ledger = m.ledger;
+  if (m.purse) api.S.purse = m.purse;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();

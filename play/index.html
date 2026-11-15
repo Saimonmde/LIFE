@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="theme.css?v=vidrio-r1">
 <link rel="stylesheet" href="cuenta.css?v=nick-r1">
 <link rel="stylesheet" href="cajon.css?v=cajon-r1">
+<link rel="stylesheet" href="economy.css?v=codex-trade-r1">
 <link rel="stylesheet" href="login.css?v=simon-r1">
 <link rel="stylesheet" href="vida.css?v=guia-r1">
 <link rel="stylesheet" href="acunar.css?v=acunar-r1">
@@ -236,6 +237,8 @@
     <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
+    <li><b>Intercambiar:</b> pulsa a otra persona o su nombre en Jugadores. Las dos aceptan y las dos confirman, a 30 m. Entran Simoncoin, Simonplata, Simonchis y bolsas de café o cacao que el servidor haya acreditado.</li>
+    <li><b>Puente de la 4 Sur:</b> cruce peatonal al sur de Medellín, entre Guayabal y El Poblado. Es una recreación por código, no el escaneo.</li>
   </ul>
   <button type="button" id="btn-jugar" data-cierra="ayuda">¡A jugar!</button> <button id="btn-reiniciar">Reiniciar progreso</button>
 </div>
@@ -260,8 +263,10 @@
   <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Arrastra para mover el mapa. Pellizca o usa + y − para el zoom. Toca un lugar y confirma para teletransportarte. Toca el terreno: confirma el teletransporte o pulsa Ir aquí para caminar.</p></div>
 </section>
 <section id="banquito" class="ventana" hidden>
-  <header>Banquito <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
+  <header>Banco e inventario <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
   <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Guardar o retirar no crea monedas: sólo las mueve, y cada pase queda en el libro mayor.</p>
+  <p id="bank-state" role="status"></p>
+  <p id="bank-daily"></p>
   <p class="banco-unidad">1 SMC = 100.000.000 SMH y 1 SMP = 100.000.000 SPH. Es la misma cantidad; el botón sólo cambia cómo se escribe.</p>
   <div class="banco-caja" id="banco-oro">
     <h3>Simoncoin</h3>
@@ -299,7 +304,7 @@
 </section>
 <div id="autotest" hidden></div>
 <script src="historia.js?v=vidrio-r1"></script>
-<script src="simulacion.js?v=monedas-r1"></script>
+<script src="simulacion.js?v=codex-trade-r1"></script>
 <script src="pow.js?v=vidrio-r1"></script>
 <script src="../data/el-jardin.js?v=fusion-r1"></script>
 <script src="mining-rules.js?v=valle-hud-r5"></script>
@@ -309,13 +314,14 @@
 <script src="hogar.js?v=valle-geo-r1"></script>
 <script src="casa.js?v=hogar-r1"></script>
 <script src="envigado-park.js?v=fusion-r1"></script>
-<script src="banco.js?v=vidrio-r1"></script>
+<script src="banco.js?v=codex-trade-r1"></script>
 <script src="tutorial.js?v=guia-r1"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
 <script src="llegada.js?v=ovni-r1"></script>
-<script src="game.js?v=guia-r1"></script>
-<script type="module" src="unified3d.js?v=ovni-r1"></script>
+<script src="game.js?v=codex-trade-r1"></script>
+<script src="economy-ui.js?v=codex-trade-r1"></script>
+<script type="module" src="unified3d.js?v=codex-trade-r1"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
 <script src="hud-layout.js?v=monedas-r1"></script>

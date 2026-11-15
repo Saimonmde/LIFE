@@ -7,6 +7,7 @@ import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
 import {createValleyView} from './valle-vista.js?v=valle-geo-r2';
 import {attachVida} from './vida3d.js?v=vida-r1';
+import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
@@ -47,6 +48,7 @@ function boot(api){
  const target=new T.Vector3();const ray=new T.Raycaster(),pointer=new T.Vector2(),pick=[];
  const height=(x,y)=>{
   if(W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco')return 0;
+  if(W.bridge4Sur&&onBridge(W.bridge4Sur,Math.floor(x),Math.floor(y)))return bridgeHeight(W.bridge4Sur,x+.5);
   const px=Math.max(0,Math.min(W.width-.001,x+.5)),py=Math.max(0,Math.min(W.height-.001,y+.5)),ix=Math.floor(px),iy=Math.floor(py),u=px-ix,v=py-iy;
   const a=corner(ix,iy),b=corner(ix+1,iy),c=corner(ix,iy+1),d=corner(ix+1,iy+1);
   return v>u?a*(1-v)+c*(v-u)+d*u:a*(1-u)+d*v+b*(u-v);
@@ -72,7 +74,7 @@ function boot(api){
   const key=cx+','+cy;if(chunkMeshes.has(key))return;
   const x0=cx*CHUNK,y0=cy*CHUNK,x1=Math.min(W.width,(cx+1)*CHUNK),y1=Math.min(W.height,(cy+1)*CHUNK);
   const groups={};
-  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){(groups[terrainKind(x,y)]??=[]).push([x,y]);}
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){if(onBridge(W.bridge4Sur,x,y))continue;(groups[terrainKind(x,y)]??=[]).push([x,y]);}
   const holder=new T.Group();holder.userData.chunk=key;
   for(const [k,cells] of Object.entries(groups)){const positions=[],uv=[];for(const [x,y] of cells){const v=[[x*2,corner(x,y),y*2],[x*2,corner(x,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y),y*2]];for(const i of [0,1,2,0,2,3]){positions.push(...v[i]);uv.push(v[i][0]/4,v[i][2]/4);}}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.computeVertexNormals();const mesh=new T.Mesh(geo,material(palette[k]||'#7b9253'));mesh.receiveShadow=true;mesh.userData.terrain=true;holder.add(mesh);pick.push(mesh);}
   scene.add(holder);chunkMeshes.set(key,holder);
@@ -87,6 +89,7 @@ function boot(api){
  const bootSpots=[[W.spawn.x,W.spawn.y]];if(window.Casa)bootSpots.push([Casa.PARK_STAND.x,Casa.PARK_STAND.y]);
  for(const spot of bootSpots)updateTerrainChunks(spot[0],spot[1]);
  const valley=createValleyView(T,{W,scene,corner,terrainKind,chunkMeshes,chunkSize:CHUNK,renderer,camera,narrow,height});
+ const bridgeView=buildBridge4Sur(T,W.bridge4Sur);scene.add(bridgeView.group);for(const mesh of bridgeView.meshes)pick.push(mesh);
  status.openValleyMap=()=>valley.open();
  status.closeValleyMap=()=>valley.close();
  status.zoomMap=(dir)=>valley.zoomBy(dir);
@@ -269,8 +272,8 @@ function boot(api){
  function drawPlayerNames(){
   for(const [id,el] of playerNames)if(id!=='self'&&!S.others.has(id)){el.remove();playerNames.delete(id);}
   for(const [id,p] of S.others){
-   let el=playerNames.get(id);if(!el){el=document.createElement('div');el.className='player-name';speechLayer.append(el);playerNames.set(id,el);}
-   el.textContent=window.nombreAjeno?window.nombreAjeno(p):p.name;el.classList.toggle('bot-name',!!p.bot);
+   let el=playerNames.get(id);if(!el){el=document.createElement('button');el.type='button';el.className='player-name';el.onclick=()=>{if(!p.bot)window.TradeUI?.openTrade(id);};speechLayer.append(el);playerNames.set(id,el);}
+   el.textContent=(window.nombreAjeno?window.nombreAjeno(p):p.name)+(p.bot?'':' · Intercambiar');el.classList.toggle('bot-name',!!p.bot);el.classList.toggle('can-trade',!p.bot);el.disabled=!!p.bot;
    placeName(el, actorMap.get('peer'+id));
   }
   let mine=playerNames.get('self');
@@ -322,7 +325,7 @@ function boot(api){
  let touches=new Map(),down=null,drag=false,pinch=0;
  cv.onpointerdown=e=>{if(valley.isOpen()){valley.pointerDown(e);return;}cv.setPointerCapture(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);down=[e.clientX,e.clientY];drag=false;pinch=0;};
  cv.onpointermove=e=>{if(valley.isOpen()){valley.pointerMove(e);return;}const hovering=()=>{if(W.mapId!=='casa'||drag){cv.style.cursor='';casaView.setDoorHover(false);return;}pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const over=doorHit(ray.intersectObjects(activePick(),false)[0]?.object.userData);cv.style.cursor=over?'pointer':'';casaView.setDoorHover(over);};if(!touches.has(e.pointerId)){hovering();return;}const prev=touches.get(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);if(touches.size>1){const [a,b]=[...touches.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)distance=Math.max(10,Math.min(distMax(),distance*pinch/d));pinch=d;drag=true;}else{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)drag=true;if(drag){yaw=clampYaw(yaw-(e.clientX-prev[0])*.008);pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+(e.clientY-prev[1])*.005));}}hovering();};
- cv.onpointerup=e=>{if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);if(!drag&&api.started){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0];if(hit&&doorHit(hit.object.userData)){cv.style.cursor='';casaView.setDoorHover(false);api.exitHouse();return;}if(W.mapId==='casa'&&hit&&hit.object.userData.casaItem==='chest'&&!window.Casa?.editing){window.Banco?.openPanel();return;}if(W.mapId==='casa'&&window.Casa?.editing){if(hit)window.Casa.clickTile(Math.floor(hit.point.x/2),Math.floor(hit.point.z/2),hit.object.userData.casaItem||null);return;}if(hit){const d=hit.object.userData;if(d.poste){window.Vida?.openPoste();return;}if(d.id)api.interact(d.id);else if(d.memory){api.goTo(d.memory.x,d.memory.y);}else if(!d.casaItem){const x=Math.floor(hit.point.x/2),y=Math.floor(hit.point.z/2);if(api.walkable(x,y))api.goTo(x,y);}}}};cv.onpointercancel=e=>{if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);drag=true;};cv.onwheel=e=>{if(valley.isOpen()){valley.wheel(e);return;}e.preventDefault();distance=Math.max(10,Math.min(distMax(),distance+Math.sign(e.deltaY)*3));};cv.oncontextmenu=e=>e.preventDefault();
+ cv.onpointerup=e=>{if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);if(!drag&&api.started){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const peers=(W.mapId||'city')==='city'?[...actorMap.entries()].filter(([id])=>String(id).startsWith('peer')&&!S.others.get(Number(String(id).slice(4)))?.bot).map(([,a])=>a):[];const person=peers.length?ray.intersectObjects(peers,true)[0]:null;if(person){let node=person.object;while(node&&!peers.includes(node))node=node.parent;const entry=[...actorMap.entries()].find(([,v])=>v===node);if(entry){window.TradeUI?.openTrade(Number(String(entry[0]).slice(4)));return;}}const hit=ray.intersectObjects(activePick(),false)[0];if(hit&&doorHit(hit.object.userData)){cv.style.cursor='';casaView.setDoorHover(false);api.exitHouse();return;}if(W.mapId==='casa'&&hit&&hit.object.userData.casaItem==='chest'&&!window.Casa?.editing){window.Banco?.openPanel();return;}if(W.mapId==='casa'&&window.Casa?.editing){if(hit)window.Casa.clickTile(Math.floor(hit.point.x/2),Math.floor(hit.point.z/2),hit.object.userData.casaItem||null);return;}if(hit){const d=hit.object.userData;if(d.poste){window.Vida?.openPoste();return;}if(d.id)api.interact(d.id);else if(d.memory){api.goTo(d.memory.x,d.memory.y);}else if(!d.casaItem){const x=Math.floor(hit.point.x/2),y=Math.floor(hit.point.z/2);if(api.walkable(x,y))api.goTo(x,y);}}}};cv.onpointercancel=e=>{if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);drag=true;};cv.onwheel=e=>{if(valley.isOpen()){valley.wheel(e);return;}e.preventDefault();distance=Math.max(10,Math.min(distMax(),distance+Math.sign(e.deltaY)*3));};cv.oncontextmenu=e=>e.preventDefault();
  api.furnaceAtScreen=(x,y)=>{if(!api.started)return null;pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0],id=hit?.object.userData.id;return id&&S.nodes.get(id)?.def.type==='furnace'?id:null;};
  status.pickId=(x,y)=>{if(!api.started)return '';pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0];return (hit&&hit.object.userData.id)||'';};
  const dropHalo=new T.Mesh(new T.RingGeometry(2.3,2.6,48),new T.MeshBasicMaterial({color:0xffd369,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));dropHalo.rotation.x=-Math.PI/2;dropHalo.visible=false;
@@ -339,7 +342,7 @@ function boot(api){
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  if(S.mounted)me.position.y+=.95;
- if(!indoors())updateTerrainChunks(S.player.fx,S.player.fy);
+ if(!indoors())updateTerrainChunks(S.player.fx,S.player.fy);bridgeView.update(p.fx,p.fy,!indoors()&&!valley.isOpen());
  const away=indoors();
  for(const m of S.mounts||[]){const g=ensureHorse(m);g.visible=!away;const x=m.ridden?p.fx:m.fx,y=m.ridden?p.fy:m.fy;g.position.set(x*2+1,height(x,y),y*2+1);g.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[m.ridden?p.dir:'right']||0;}
  const live=new Set(['self',...(away?[]:W.npcs.map(n=>n.id))]);if(!away)for(const [id,o] of S.others){if(o.zone==='casa')continue;live.add('peer'+id);const peer=actor('peer'+id,o.fx,o.fy,colors[o.color]);peer.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[o.dir]||0;}for(const [id,a] of actorMap)if(!live.has(id)){if(away&&!String(id).startsWith('peer'))continue;(a.parent||scene).remove(a);actorMap.delete(id);}

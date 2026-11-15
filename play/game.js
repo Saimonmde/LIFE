@@ -67,6 +67,10 @@ const loadImg = (src) => new Promise((ok, ko) => { const i = new Image(); i.onlo
 
 async function init() {
   W = await load();
+  try {
+    const bridge = await import('./bridge4sur.js?v=puente-4-sur-r1');
+    bridge.install(W);
+  } catch (err) { console.error(err); }
   prepareMining();
   await Simulacion.installWorld(W, S);
   Simulacion.bind({
@@ -439,7 +443,7 @@ function rest() {
 $('#b-descansar').onclick=rest;
 addEventListener('pagehide',()=>{ if(started) save(); });
 
-const MAP_FIELDS=['width','height','ground','collision','elevation','nodes','npcs','doors','animals','regions','waypoints','roads3d','memories','riverLayouts','bridges','parkDetails','surfaceZones','signs3d','scenery3d','waterBodies','decorations','landmarks','areas','spawn'];
+const MAP_FIELDS=['width','height','ground','collision','elevation','nodes','npcs','doors','animals','regions','waypoints','roads3d','memories','riverLayouts','bridges','parkDetails','surfaceZones','signs3d','scenery3d','waterBodies','decorations','landmarks','areas','spawn','bridge4Sur'];
 let cityMap=null,caveMap=null,casaMap=null,cityNodes=null,caveNodes=null,casaNodes=null,cityAnimals=null,cityReturn=null;
 function prepareCave(){
  const palmas=W.waypoints.find(p=>p.id==='las_palmas');let entry=null;
@@ -1010,6 +1014,7 @@ function connect() {
       addLine(m.channel, chatLine(m, mine));
       if (mine || m.channel === 'proximidad' || m.channel === 'global') bubble(mine ? 0 : m.fromId, m.text);
     }
+    else if (window.TradeUI && TradeUI.onNet(m)) { /* intercambio entre dos personas */ }
     else if (m.t === 'system') sys(esc(m.text));
     else if (window.Acunar && Acunar.onNet(m)) { /* acuñar */ }
     else if (window.Simulacion && Simulacion.onNet(m)) { /* SMC o resultado de pago */ }
@@ -1064,7 +1069,7 @@ const dist = (o) => Math.hypot(o.fx - S.player.fx, o.fy - S.player.fy);
 function renderNearby() {
   const el = $('#cercanos'), list = [...S.others.values()].filter(o => !o.bot).sort((a, b) => dist(a) - dist(b));
   $('#n-cercanos').textContent = list.length;
-  el.innerHTML = list.length ? list.slice(0, 10).map(o => { const m = Math.round(dist(o) * (W.render.metersPerTile || 2)); return `<li class="${m > 30 ? 'lejos' : ''}"><span class="pt"></span><span>${esc(nombreAjeno(o))}</span><span class="m">${m} m</span></li>`; }).join('')
+  el.innerHTML = list.length ? list.slice(0, 10).map(o => { const m = Math.round(dist(o) * (W.render.metersPerTile || 2)); return `<li class="${m > 30 ? 'lejos' : ''}"><span class="pt"></span><button type="button" data-trade-peer="${o.id}">${esc(nombreAjeno(o))} · Intercambiar</button><span class="m">${m} m</span></li>`; }).join('')
     : `<li class="vacio">${S.net.ok ? 'Nadie más conectado' : 'Sin conexión al servidor'}</li>`;
 }
 
@@ -1093,12 +1098,14 @@ const cheb = (ax, ay, bx, by) => Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 
 // ---------------- objetivos clicables ----------------
 function targetTile(t) {
+  if (t.kind === 'peer') { const o = S.others.get(t.id); return { x: o?.fx ?? S.player.fx, y: o?.fy ?? S.player.fy }; }
   if (t.kind === 'animal') return { x: t.a.x, y: t.a.y };
   if (t.kind === 'mount') return { x: t.m.x, y: t.m.y };
   if (t.kind === 'npc' || t.kind === 'door') return { x: t.d.x, y: t.d.y };
   return { x: t.n.def.x, y: t.n.def.y };
 }
 function describe(t) {
+  if (t.kind === 'peer') return 'Intercambiar con <b>' + esc(nombreAjeno(S.others.get(t.id) || {})) + '</b>';
   if (t.kind === 'animal') return `Cazar: <b>${NOMBRES[t.a.def.species]}</b>`;
   if (t.kind === 'mount') return Simulacion.describeMount(t.m);
   if (t.kind === 'npc') return `Hablar con: <b>${esc(t.d.name)}</b>`;
@@ -1119,6 +1126,13 @@ function describe(t) {
 function spriteKeyFor(n) { const d = n.def; return d.type === 'farm_plot' && n.state === 'grown' ? d.sprites.grown[n.crop] : d.sprites[n.state]; }
 function hitTest(wx, wy) {
   const cand = [];
+  if ((W.mapId || 'city') === 'city') {
+    for (const o of S.others.values()) {
+      if (o.bot) continue;
+      const ox = o.fx * TS + 32, oy = (o.fy + 1) * TS;
+      if (Math.abs(wx - ox) < 28 && wy > oy - 88 && wy < oy) cand.push({ kind: 'peer', id: o.id, sort: oy + 1100 });
+    }
+  }
   for (const a of S.animals) {
     if (a.state !== 'alive') continue;
     const s = W.sprites[a.def.sprites.alive[0]]; const ox = a.fx * TS + 32 - s.anchorX, oy = (a.fy + 1) * TS - s.anchorY;
@@ -1153,6 +1167,7 @@ function followRoad(id) {
   p.path=path;p.pending=null;S.dest={x,y,t:now()};
 }
 function approach(t) {
+  if (t.kind === 'peer') { window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t);
   const goal = t.kind === 'door' ? ((x, y) => x === t.d.approach.x && y === t.d.approach.y) : ((x, y) => cheb(x, y, tt.x, tt.y) === 1);
   if (goal(p.x, p.y) && !p.path.length) { p.pending = null; S.dest = null; act(t); return; }
@@ -1172,6 +1187,7 @@ function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * 
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
 function act(t) {
+  if (t.kind === 'peer') { window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t); face(tt.x, tt.y);
   if (t.kind === 'mount') return Simulacion.mountHorse(t.m);
   if (t.kind === 'npc') return t.d.id === 'profesora_cadena' ? Simulacion.talkProfesora() : talkCapataz();
