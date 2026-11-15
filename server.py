@@ -1012,10 +1012,13 @@ def arrival_position(resume=None):
                 seen.add(tile); queue.append(tile)
     return float(SPAWN[0]), float(SPAWN[1])
 
-TRAVEL_GATE = VIAJES.Gate()
+TRAVEL_GATE = VIAJES.Gate(cooldown=VIAJES.ASTRAL_COOLDOWN)
+
+def correct_move(sender):
+    send(sender, {'t': 'move_correct', 'x': round(sender.x, 2), 'y': round(sender.y, 2), 'zone': sender.zone})
 
 def travel_for(sender, dest_id):
-    """Lleva al jugador a un municipio o punto conocido. El servidor elige la casilla."""
+    """Viaje astral: el servidor elige la casilla de un lugar conocido. No acepta coordenadas sueltas."""
     now = time.time()
     try:
         dest = VIAJES.resolve(WORLD, clean(dest_id, 32).lower())
@@ -1027,6 +1030,7 @@ def travel_for(sender, dest_id):
     sender.zone = 'city'
     sender.x, sender.y = float(dest['x']), float(dest['y'])
     sender.moving = False
+    sender.move_at = now
     if was_hidden:
         broadcast({'t': 'join', 'player': sender.public()}, exclude=sender)
     else:
@@ -1087,7 +1091,8 @@ def handle_client_message(c, m, t):
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''
         send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
-                 'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
+                 'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
+                 'introSeen': bool(c.user.get('introSeen')) if getattr(c, 'user', None) else False})
         if c.zone != 'casa':
             broadcast({'t': 'join', 'player': c.public()}, exclude=c)
             broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
@@ -1096,27 +1101,48 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
         if not c.wallet_ok:
             send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
+    elif t == 'intro_done' and c.hello:
+        user = getattr(c, 'user', None)
+        if user is not None:
+            ACC.mark_intro(user)
+            save_accounts()
+        send(c, {'t': 'intro_saved', 'introSeen': bool(user.get('introSeen')) if user else False})
     elif t == 'travel' and c.hello:
         travel_for(c, m.get('id'))
     elif t == 'move' and c.hello:
         zone = m.get('zone')
         if zone in ('casa', 'mine', 'banco'):
             if c.zone == 'city' and zone != 'city':
+                c.city_x, c.city_y = c.x, c.y
                 broadcast({'t': 'leave', 'id': c.id}, exclude=c)
             c.zone = zone
             return
-        was_casa = c.zone != 'city'
-        c.zone = 'city'
         try:
             nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
         except Exception: return
         if nx != nx or ny != ny: return
-        step = max(abs(nx - c.x), abs(ny - c.y))
-        c.x, c.y = nx, ny
-        note_motion(c, step)
+        now = time.time()
+        came_from = c.zone
+        if came_from != 'city':
+            back = (getattr(c, 'city_x', None), getattr(c, 'city_y', None))
+            if came_from == 'mine' and back[0] is None:
+                back = (c.x, c.y)
+            if not VIAJES.portal_arrival(came_from, nx, ny, back):
+                return correct_move(c)
+            c.zone = 'city'
+            c.x, c.y = nx, ny
+            c.move_at = now
+            note_motion(c, 1)
+        else:
+            step = max(abs(nx - c.x), abs(ny - c.y))
+            if not VIAJES.step_allowed(step, now - float(getattr(c, 'move_at', now) or now)):
+                return correct_move(c)
+            c.move_at = now
+            c.x, c.y = nx, ny
+            note_motion(c, step)
         c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
         c.moving = bool(m.get('moving')); c.level = clamp_level(m.get('level'), c.level)
-        if was_casa: broadcast({'t': 'join', 'player': c.public()}, exclude=c)
+        if came_from != 'city': broadcast({'t': 'join', 'player': c.public()}, exclude=c)
         else: broadcast({'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2), 'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'}, exclude=c)
     elif t == 'ping':
         send(c, {'t': 'pong', 'c': m.get('c')})

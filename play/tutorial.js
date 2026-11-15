@@ -17,6 +17,7 @@
     }
   }
   function afterFly() {
+    if (window.Intro) return;
     if (/autotest=1/.test(location.search)) return;
     try { if (localStorage.getItem(KEY)) return; } catch {}
     open();
@@ -25,7 +26,7 @@
     const t = event.target;
     if (!(t instanceof Element)) return;
     if (t.id === 'tutorial-cerrar' || t.id === 'tutorial-saltar') close(true);
-    if (t.id === 'b-tutorial') open();
+    if (t.id === 'b-tutorial') { if (window.Intro) Intro.replay(); else open(); }
   });
   window.Tutorial = { open, close, afterFly };
 })();

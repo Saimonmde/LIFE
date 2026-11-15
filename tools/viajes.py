@@ -24,6 +24,21 @@ NOMBRES = {
 }
 SAFE = {'cobble', 'path', 'grass', 'grass_worn', 'grass_flowers', 'bridge', 'asphalt', 'pavement'}
 COOLDOWN = 2.5
+# El viaje astral salta sólo a un lugar de esta lista. 4 s evita encadenar saltos.
+ASTRAL_COOLDOWN = 4
+# Misma marcha que el cliente: 4.2 casillas/s a pie, ×4 a caballo. El margen cubre un paquete atrasado.
+HORSE_SPEED = 4.2 * 4
+STEP_SLACK = 1.35
+STEP_BURST = 1.25
+# Puertas de salida. Coinciden con play/casa.js (PARK_STAND) y play/banco.js (OUTSIDE).
+PORTALS = {
+    'casa': (94, 267),
+    'banco': (113, 257),
+}
+ANCHORS = {
+    'casa': {'name': 'Tu casa', 'x': 94, 'y': 267, 'kind': 'lugar'},
+    'banco': {'name': 'Casa bancaria', 'x': 113, 'y': 257, 'kind': 'lugar'},
+}
 
 
 class ViajeError(Exception):
@@ -84,6 +99,11 @@ def catalog(world):
             'y': int(src['y']),
             'kind': 'poi' if key in POIS else 'municipio',
         })
+    have = {item['id'] for item in found}
+    for key, src in ANCHORS.items():
+        if key in have:
+            continue
+        found.append({'id': key, 'name': src['name'], 'x': src['x'], 'y': src['y'], 'kind': src['kind']})
     return found
 
 
@@ -97,6 +117,28 @@ def resolve(world, dest_id):
     if not walkable(world, x, y) or _kind(world, x, y) == 'water':
         raise ViajeError('el destino no es caminable')
     return {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind']}
+
+
+def step_allowed(step, dt):
+    """Un paso de a pie o a caballo cabe. Un salto de decenas de casillas, no."""
+    step = abs(float(step or 0))
+    if step <= 0:
+        return True
+    dt = max(0.05, min(2.0, float(dt)))
+    return step <= HORSE_SPEED * STEP_SLACK * dt + STEP_BURST
+
+
+def portal_arrival(zone, x, y, back=None):
+    """La primera casilla al salir de un interior es la puerta, no un punto cualquiera."""
+    if zone == 'mine':
+        if not back or back[0] is None or back[1] is None:
+            return False
+        ax, ay = float(back[0]), float(back[1])
+    elif zone in PORTALS:
+        ax, ay = PORTALS[zone]
+    else:
+        return False
+    return max(abs(float(x) - ax), abs(float(y) - ay)) <= 3
 
 
 class Gate:

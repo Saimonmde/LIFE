@@ -238,7 +238,15 @@ def public_user(user):
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or user['name'],
         'avatar_id': 'avatar_' + user['id'],
+        'introSeen': bool(user.get('introSeen')),
     }
+
+
+def mark_intro(user):
+    """La intro del primer ingreso ya se vio. El documento se guarda con el resto de la cuenta."""
+    if user is not None:
+        user['introSeen'] = True
+    return user
 
 
 def session_user(doc, token, now=None):

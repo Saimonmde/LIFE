@@ -434,7 +434,7 @@
     menu.id = 'hud-gear-menu';
     menu.className = 'hud';
     menu.hidden = true;
-    menu.innerHTML = '<button type="button" id="hud-edit-start">Modo edición de interfaz</button><button type="button" id="hud-reset">Restablecer diseño</button><div id="hud-reopen"></div>';
+    menu.innerHTML = '<button type="button" id="hud-edit-start">Modo edición de interfaz</button><button type="button" id="hud-replay-intro">Ver intro otra vez</button><button type="button" id="hud-reset">Restablecer diseño</button><div id="hud-reopen"></div>';
     const bar = document.createElement('div');
     bar.id = 'hud-edit-bar';
     bar.className = 'hud';
@@ -449,6 +449,7 @@
       paintReopen();
     });
     menu.querySelector('#hud-edit-start').addEventListener('click', () => setEditing(true));
+    menu.querySelector('#hud-replay-intro').addEventListener('click', () => { menu.hidden = true; gear.setAttribute('aria-expanded', 'false'); if (window.Intro) Intro.replay(); });
     menu.querySelector('#hud-reset').addEventListener('click', () => { resetLayout(); menu.hidden = true; });
     bar.querySelector('#hud-edit-reset').addEventListener('click', resetLayout);
     bar.querySelector('#hud-edit-done').addEventListener('click', () => setEditing(false));

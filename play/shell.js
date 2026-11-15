@@ -106,6 +106,27 @@
     if (ctx && ctx.state === 'running') ctx.suspend();
   }
 
+  function tone(freq, ms) {
+    if (!wanted()) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    if (!ctx) ctx = new AC();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const t0 = ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(0.05, t0 + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + Math.max(0.12, ms / 1000));
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + Math.max(0.18, ms / 1000) + 0.02);
+  }
+  window.LifeAudio = { enabled: wanted, tone: tone };
+
   function toggleSound() {
     if (wanted() && ctx && ctx.state === 'running') {
       try { localStorage.setItem(KEY, '0'); } catch (e) {}

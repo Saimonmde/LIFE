@@ -31,9 +31,13 @@ const game = fs.readFileSync(path.join(__dirname, '..', 'play', 'game.js'), 'utf
 assert.ok(page.includes('id="smc-pill"'));
 assert.ok(css.includes('#smc-pill'));
 assert.ok(css.includes('body.pantalla-limpia #smc-pill'));
-assert.ok(game.includes('¿Teletransportarte a '));
+assert.ok(game.includes('¿Cómo quieres ir a '));
+assert.ok(game.includes('Viaje astral'));
+assert.ok(game.includes('requestAstral'));
 assert.ok(game.includes('askMapSpot'));
-assert.ok(page.includes('>Confirmar<'));
+assert.ok(page.includes('>Viaje astral<'));
+assert.ok(page.includes('id="viaje-caballo"'));
+assert.ok(page.includes('Ver intro otra vez') || fs.readFileSync(path.join(__dirname, '..', 'play', 'hud-layout.js'), 'utf8').includes('Ver intro otra vez'));
 assert.ok(page.includes('>Ir aquí<'));
 assert.ok(page.includes('id="banco-cambiar"'));
 assert.ok(page.includes('Guardar SMP'));
