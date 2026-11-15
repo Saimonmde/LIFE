@@ -136,12 +136,40 @@
     const pets = (catalog && catalog.pets) || {};
     for (const species of ['dog', 'cat']) {
       for (const breed of pets[species] || []) {
-        const b = document.createElement('button');
-        b.type = 'button';
-        const dots = (breed.colors || []).map(color => '<i class="vida-swatch" style="background:' + color + '"></i>').join('');
-        b.innerHTML = (species === 'dog' ? 'Perro' : 'Gato') + ' ' + breed.name + '<br>' + dots;
-        b.onclick = () => chooseColors(species, breed);
-        box.append(b);
+        const card = document.createElement('article');
+        card.className = 'mascota-carta';
+        const canvas = document.createElement('canvas');
+        canvas.className = 'mascota-preview';
+        canvas.width = 128;
+        canvas.height = 128;
+        canvas.dataset.pet = JSON.stringify({ species, breed: breed.id, variant: 0, colors: breed.colors });
+        const title = document.createElement('strong');
+        title.textContent = (species === 'dog' ? 'Perro ' : 'Gato ') + breed.name;
+        const tones = document.createElement('span');
+        tones.className = 'mascota-tonos';
+        (breed.colors || []).forEach((color) => {
+          const dot = document.createElement('i');
+          dot.className = 'vida-swatch';
+          dot.style.background = color;
+          tones.append(dot);
+        });
+        const name = document.createElement('input');
+        name.maxLength = 16;
+        name.placeholder = 'Su nombre';
+        name.setAttribute('aria-label', 'Nombre de ' + breed.name);
+        const adopt = document.createElement('button');
+        adopt.type = 'button';
+        adopt.textContent = 'Adoptar';
+        adopt.onclick = () => {
+          const pet = { species, breed: breed.id, variant: 0, name: name.value.trim() || breed.name, colors: breed.colors };
+          localStorage.setItem('lifeinc.mascota.v1', JSON.stringify(pet));
+          localStorage.removeItem('lifeinc.mascota.skip');
+          setPet(pet);
+          send({ t: 'adoptar', pet });
+          finishGate();
+        };
+        card.append(canvas, title, tones, name, adopt);
+        box.append(card);
       }
     }
     if (!box.childElementCount) {
@@ -149,27 +177,6 @@
       p.textContent = 'No se pudo cargar el catálogo. Puedes seguir y adoptar después.';
       box.append(p);
     }
-  }
-
-  function chooseColors(species, breed) {
-    const box = $('vida-colores');
-    box.hidden = false;
-    box.replaceChildren();
-    (breed.colorNames || breed.colors || []).forEach((name, index) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      const color = breed.colors[index];
-      b.innerHTML = '<i class="vida-swatch" style="background:' + color + '"></i>' + name;
-      b.onclick = () => {
-        const pet = { species, breed: breed.id, variant: index, name: breed.name, colors: breed.colors };
-        localStorage.setItem('lifeinc.mascota.v1', JSON.stringify(pet));
-        localStorage.removeItem('lifeinc.mascota.skip');
-        setPet(pet);
-        send({ t: 'adoptar', pet });
-        finishGate();
-      };
-      box.append(b);
-    });
   }
 
   function mount() {
@@ -199,7 +206,7 @@
     door.innerHTML = [
       '<header><strong>Antes de entrar</strong></header>',
       '<div id="vida-paso-mundo"><h2>Elige un mundo</h2><div id="vida-mundos"></div></div>',
-      '<div id="vida-paso-mascota" hidden><h2>Adopta un cachorro o un gatito</h2><p>Te sigue por el valle y se queda en tu casa. Tres colores por raza.</p><div id="vida-razas"></div><div id="vida-colores" hidden></div><p><button type="button" id="vida-sin-mascota">Ahora no</button> <button type="button" id="vida-feedback-puerta">Mandar feedback</button></p></div>',
+      '<div id="vida-paso-mascota" hidden><h2>Adopta un cachorro o un gatito</h2><p>Elige uno. Escribe su nombre. Se queda en tu casa.</p><div id="vida-razas"></div><p><button type="button" id="vida-sin-mascota">Ahora no</button> <button type="button" id="vida-feedback-puerta">Mandar feedback</button></p></div>',
     ].join('');
     const feedback = document.createElement('section');
     feedback.id = 'vida-feedback';

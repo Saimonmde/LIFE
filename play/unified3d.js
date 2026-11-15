@@ -8,7 +8,7 @@ import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
 import {buildCentral, placeCentralHouse} from './central3d.js?v=central-r1';
 import {createValleyView} from './valle-vista.js?v=valle-geo-r2';
-import {attachVida} from './vida3d.js?v=vida-r1';
+import {attachVida} from './vida3d.js?v=mascota-r1';
 import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
 import {createHorse, poseRider} from './caballo3d.js?v=caballo-r1';
 // The existing game remains the sole owner of simulation, actions, chat and saves.

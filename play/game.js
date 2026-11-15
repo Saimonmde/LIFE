@@ -410,7 +410,7 @@ function startGame() {
   }
   Casa.load(S.me.name);
   if (!fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
-  sys(`Bienvenido a Medellín, ${esc(nombrePropio())}.`);
+  sys(`Saimon City. Valle de Aburrá, 1777. Hola, ${esc(nombrePropio())}.`);
   connect(); updateTutorial(true);
   if (!fly && !ovni && !heliSpot && window.Tutorial) Tutorial.afterFly();
   if (Q.has('forja')) showForgePreview();
@@ -441,7 +441,7 @@ function rest() {
   $('#rest-status').textContent=''; $('#login-status').textContent='Progreso guardado. Puedes volver a entrar.';
   $('#login').hidden=false; $('#login-form button[type=submit]').focus();
 }
-$('#b-descansar').onclick=rest;
+$('#b-descansar').onclick=irACasaAstral;
 addEventListener('pagehide',()=>{ if(started) save(); });
 
 const MAP_FIELDS=['width','height','ground','collision','elevation','nodes','npcs','doors','animals','regions','waypoints','roads3d','memories','riverLayouts','bridges','parkDetails','surfaceZones','signs3d','scenery3d','waterBodies','decorations','landmarks','areas','spawn','bridge4Sur'];
@@ -481,12 +481,51 @@ function applyCasaLayout(){
  if(!walkable(p.x,p.y)){p.x=p.fx=Casa.SPAWN.x;p.y=p.fy=Casa.SPAWN.y;p.path=[];}
  drawMinimapBase();
 }
+function greetPet(){
+ S.petGreetUntil = performance.now() + 2200;
+ const pet = S.pet;
+ if (pet && pet.species === 'cat') game(pet.name ? '<b>' + esc(pet.name) + '</b> maúlla.' : 'Tu gato maúlla.');
+ else if (pet && pet.species === 'dog') game(pet.name ? '<b>' + esc(pet.name) + '</b> mueve la cola.' : 'Tu perro mueve la cola.');
+}
 function enterHouse(){
  if((W.mapId||'city')==='mine'){game('Sal de la mina antes de volver a casa.','aviso');return;}
- if((W.mapId||'city')==='casa'){game('Ya estás en tu casa.');return;}
+ if((W.mapId||'city')==='casa'){greetPet();return;}
  Casa.load(S.me.name);
  S.portalUntil=now()+800;
  switchMap('casa');
+}
+function irACasa(){
+ if (S.mounted && window.Simulacion) Simulacion.dismount();
+ if ((W.mapId||'city')==='casa') { greetPet(); return; }
+ Casa.load(S.me.name);
+ S.portalUntil=now()+800;
+ switchMap('casa');
+}
+let astralTimer = 0;
+function finishAstral(){
+ clearTimeout(astralTimer);
+ astralTimer = 0;
+ const veil = document.getElementById('astral');
+ if (veil) veil.hidden = true;
+ irACasa();
+}
+function irACasaAstral(){
+ if (!started) return;
+ if ((W.mapId||'city')==='casa') { greetPet(); return; }
+ const veil = document.getElementById('astral');
+ if (!veil) { irACasa(); return; }
+ veil.hidden = false;
+ clearTimeout(astralTimer);
+ astralTimer = setTimeout(finishAstral, 1500);
+}
+const astralVeil = document.getElementById('astral');
+if (astralVeil) {
+  astralVeil.addEventListener('click', (event) => {
+    if (event.target.id === 'astral' || event.target.id === 'astral-saltar') finishAstral();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && astralTimer) { event.preventDefault(); finishAstral(); }
+  });
 }
 function exitHouse(){
  if((W.mapId||'city')!=='casa')return;
@@ -533,9 +572,9 @@ function switchMap(id,restored=false){
  drawMinimapBase();
  if(!restored){
   save();
-  if(id==='mine')game('Entras a la mina de Las Palmas. Toca una veta para usar tu pica; el horno está en el centro.');
+  if(id==='mine')game('Pica el metal. En el horno, Acuñar lo guarda como monedas en tu inventario.');
   else if(id==='city'&&prev==='mine')game('Sales de la mina y vuelves a Las Palmas.');
-  else if(id==='casa')game('Entras a tu casa en Medellín. La puerta sale al Parque de Envigado. El baúl es el mismo depósito del banquito.');
+  else if(id==='casa'){ greetPet(); game('Estás en casa. Tu mascota te espera.'); }
   else if(id==='city'&&prev==='casa')game('Sales al <b>Parque de Envigado</b>. El botón Casa te devuelve a tu casa.');
   else if(id==='banco')game('Entras a la Casa bancaria. El mostrador atiende el banquero. El banquito guarda SMC y objetos: no se pierden si caes.');
   else if(id==='city'&&prev==='banco')game('Sales de la Casa bancaria, junto al Parque de Envigado.');
