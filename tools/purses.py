@@ -18,6 +18,7 @@ import mochila
 CATALOG = {
     'bolsa_cafe': 'Bolsa de café',
     'bolsa_cacao': 'Bolsa de cacao',
+    'gallo': 'Gallo',
 }
 MAX_STACK = 9999
 

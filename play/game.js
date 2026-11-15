@@ -106,6 +106,15 @@ async function init() {
   if (profNpc) imgs._profesora = await loadImg(profNpc.sheet);
   await Promise.all(Object.entries(W.sprites).map(async ([k, s]) => { imgs[k] = await loadImg(s.image); }));
   await Promise.all(Object.values(W.items).map(async it => { imgs['icon:' + it.id] = await loadImg(it.icon['32']); }));
+  if (window.Gallos && !W.items.gallo) {
+    const icon = Gallos.icon();
+    W.items.gallo = { id: 'gallo', name: 'Gallo', stackable: true, maxStack: Gallos.CAP, icon: { '32': icon } };
+    const pic = new Image(); pic.src = icon; imgs['icon:gallo'] = pic;
+    Gallos.onTake = () => {
+      if (invCount('gallo') >= Gallos.CAP) { game('Ya tienes el tope de gallos.', 'aviso'); return; }
+      if (invAdd('gallo', 1)) game('Guardaste un <b>gallo</b>. Se puede vender y cambiar.', 'juego');
+    };
+  }
   for (const n of W.nodes) {
     if (n.type === 'animal') S.animals.push({ def: n, x: n.x, y: n.y, fx: n.x, fy: n.y, state: 'alive', until: 0, nextMove: now() + 1000 + Math.random() * 3000, frame: 0 });
     else S.nodes.set(n.id, { def: n, state: n.initialState, until: 0, crop: null });
@@ -1860,7 +1869,10 @@ function applyCircadian(announce) {
     const night = isNightPhase(st.name);
     if (S.night !== night) {
       S.night = night;
-      if (announce && started) game(S.night ? 'Anochece en El Jardín.' : 'Amanece en El Jardín.', 'juego');
+      if (announce && started) {
+        if (!S.night && window.Gallos) Gallos.onGameDawn(S.reloj);
+        else game(S.night ? 'Anochece en El Jardín.' : 'Amanece en El Jardín.', 'juego');
+      }
     }
   } else if (S.nightOverride == null) {
     S.night = isNightPhase(st.name);
@@ -1962,6 +1974,7 @@ function update(dt) {
   if (window.Simulacion) Simulacion.syncHorse();
   if (window.Caballo) Caballo.tick(dt, horseContext());
   if (window.Guacharaca) Guacharaca.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
+  if (window.Gallos) Gallos.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId==='central' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
