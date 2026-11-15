@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="cajon.css?v=mina-r1">
 <link rel="stylesheet" href="economy.css?v=codex-trade-r1">
 <link rel="stylesheet" href="emotes.css?v=movimiento-r1">
-<link rel="stylesheet" href="login.css?v=simon-r1">
+<link rel="stylesheet" href="login.css?v=apodo-vista">
 <link rel="stylesheet" href="vida.css?v=mascota-r1">
 <link rel="stylesheet" href="acunar.css?v=acunar-r1">
 <link rel="stylesheet" href="finca.css?v=v2-r1">
@@ -184,6 +184,7 @@
     <div id="registro" hidden>
       <p>Elige un apodo. Te enviamos un enlace: la cuenta no sirve hasta que lo abras.</p>
       <label>Apodo<input id="l-nombre" maxlength="16" autocomplete="nickname" placeholder="Cómo te verán"></label>
+      <p id="l-apodo-vista" class="apodo-vista" aria-live="polite">Acepta letras, números y espacios. Así quedará: (vacío)</p>
       <div class="colores" id="l-colores"></div>
       <label>Correo<input id="r-email" type="email" autocomplete="email"></label>
       <label>Contraseña<input id="r-pass" type="password" minlength="8" maxlength="1024" autocomplete="new-password"></label>
@@ -211,6 +212,7 @@
   <header>Tu apodo y tu contraseña</header>
   <p>Sólo esta vez. Después entras con el apodo y la contraseña, sin el correo.</p>
   <label>Apodo<input id="p-nick" maxlength="16" autocomplete="nickname"></label>
+  <p id="p-apodo-vista" class="apodo-vista" aria-live="polite">Acepta letras, números y espacios. Así quedará: (vacío)</p>
   <label>Contraseña<input id="p-pass" type="password" autocomplete="new-password"></label>
   <label>Confirmar<input id="p-pass2" type="password" autocomplete="new-password"></label>
   <p id="p-fuerza" aria-live="polite">Escribe una contraseña.</p>
@@ -346,7 +348,7 @@
 <script src="motion.js?v=movimiento-r1"></script>
 <script src="caballo.js?v=caballo-r1"></script>
 <script src="letrero.js?v=sara-cartel"></script>
-<script src="game.js?v=mochila-llena"></script>
+<script src="game.js?v=apodo-vista"></script>
 <script src="emotes.js?v=movimiento-r1"></script>
 <script src="economy-ui.js?v=mochila-llena"></script>
 <script type="module" src="unified3d.js?v=sara-cartel"></script>
@@ -356,7 +358,7 @@
 <script src="hud-layout.js?v=monedas-r1"></script>
 <script src="cuenta.js?v=mascota-r1"></script>
 <script src="cajon.js?v=mascota-r1"></script>
-<script src="acunar.js?v=raices-r1"></script>
+<script src="acunar.js?v=metal-falta"></script>
 <script src="vida.js?v=mascota-r1"></script>
 <script src="instructivo.js?v=elisa-r1"></script>
 </body>

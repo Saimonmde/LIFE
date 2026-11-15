@@ -59,6 +59,18 @@
     const text = Number(n || 0).toLocaleString('es-CO', { maximumFractionDigits: 2 });
     return text;
   }
+  const CORTO = { simoncoin: 'oro', simonplata: 'plata', simonchis: 'cobre' };
+  function elegirMoneda() {
+    const order = ['simoncoin', 'simonplata', 'simonchis'];
+    const con = order.filter((id) => countRow(RATES[id]) > 0);
+    if (!con.length) return 'simoncoin';
+    return con.find((id) => countRow(RATES[id]) >= RATES[id].rate) || con[0];
+  }
+  function textoFalta(have, rate, nombre) {
+    const resto = Number(have) % Number(rate);
+    const falta = resto === 0 ? Number(rate) : Number(rate) - resto;
+    return 'Tienes ' + num(have) + ' de ' + nombre + ', te falta ' + num(falta);
+  }
   function ensure() {
     if ($('#acunar')) return;
     const veil = document.createElement('button');
@@ -118,33 +130,30 @@
     $('#acunar-alcanzan').textContent = `Con eso alcanzan: ${num(shown.alcanzan)} ${row.name}`;
     $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.)`;
     const ir = $('#acunar-ir');
+    const corto = CORTO[coin] || 'metal';
+    const falta = shown.gastas < 1 ? textoFalta(shown.tienes, row.rate, corto) : '';
     if (!aqui) {
-      $('#acunar-vas').textContent = 'Ve al horno de la mina';
+      $('#acunar-vas').textContent = falta ? falta + ' Ve al horno de la mina.' : 'Ve al horno de la mina';
       if (ir) { ir.hidden = false; ir.textContent = 'Ve al horno de la mina'; }
-      $('#acunar-ok').disabled = true;
-    } else if (have < 0.05) {
-      $('#acunar-vas').textContent = 'Pica una veta: todavía no tienes metal.';
+    } else if (falta) {
+      $('#acunar-vas').textContent = falta;
       if (ir) ir.hidden = true;
-      $('#acunar-ok').disabled = true;
     } else {
       $('#acunar-vas').textContent = `Vas a recibir: ${num(shown.recibes)} ${row.name} y gastas: ${num(shown.gastas)} ${row.metal}`;
       if (ir) ir.hidden = true;
-      $('#acunar-ok').disabled = busy || shown.gastas <= 0;
     }
-    if (busy) {
-      $('#acunar-vas').textContent = 'Calculando prueba…';
-      $('#acunar-ok').disabled = true;
-    }
+    if (busy) $('#acunar-vas').textContent = 'Calculando prueba…';
     const slider = $('#acunar-cantidad');
     slider.max = String(shown.maxPieces);
     slider.value = String(shown.gastas);
-    $('#acunar-ok').disabled = shown.gastas < 1;
+    $('#acunar-ok').disabled = busy || !aqui || shown.gastas < 1;
     $('#acunar').querySelectorAll('[data-coin]').forEach(button => {
       button.classList.toggle('activa', button.dataset.coin === coin);
     });
   }
   function open() {
     ensure();
+    coin = elegirMoneda();
     pieces = null;
     $('#acunar').hidden = false;
     $('#acunar-fondo').hidden = false;
@@ -216,5 +225,5 @@
     if (box && m.reason) box.textContent = m.reason;
     return true;
   }
-  window.Acunar = { open, close, paint, onNet };
+  window.Acunar = { open, close, paint, onNet, elegirMoneda, textoFalta };
 })();

@@ -31,6 +31,15 @@ function pareceSimon(text) {
   const folded = flat.replace(/[^a-z0-9@$]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't').replace(/@/g, 'a').replace(/\$/g, 's');
   return folded === 'simon';
 }
+function apodoQueQueda(text) {
+  const cleaned = String(text || '').normalize('NFKC').replace(/[^0-9A-Za-zÁÉÍÓÚáéíóúÑñ ]/g, '');
+  return cleaned.trim().slice(0, 16);
+}
+function pintarApodo(input, vista) {
+  if (!input || !vista) return;
+  const queda = apodoQueQueda(input.value);
+  vista.textContent = 'Acepta letras, números y espacios. Así quedará: ' + (queda || '(vacío)');
+}
 function apodoCuenta(user) {
   const wallet = String((user && user.wallet_name) || '').trim();
   const email = String((user && user.email) || '').trim().toLowerCase();
@@ -278,6 +287,14 @@ const bEntrar = $('#b-entrar'); if (bEntrar) bEntrar.onclick = async () => {
   } catch (error) { $('#login-status').textContent = error.message; }
   finally { bEntrar.disabled = false; }
 };
+[['p-nick', 'p-apodo-vista'], ['l-nombre', 'l-apodo-vista']].forEach(([inputId, viewId]) => {
+  const input = document.getElementById(inputId);
+  const vista = document.getElementById(viewId);
+  if (!input || !vista) return;
+  const paint = () => pintarApodo(input, vista);
+  input.addEventListener('input', paint);
+  paint();
+});
 const clave = $('#p-pass');
 if (clave) clave.addEventListener('input', () => {
   const fuerza = fuerzaClave(clave.value);
