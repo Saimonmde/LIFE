@@ -194,7 +194,28 @@ body:not(.in-game) #astral-saltar { display: none !important; }
 
 html.movil #guia { top: 168px; bottom: auto; }
 html.movil #guia p { font-size: 22px; }
-html.movil #astral-aurora { animation: none; filter: none; opacity: .55; }
+html.movil #astral-aurora,
+#astral-cielo .aurora-quiet { animation: none; filter: none; }
+
+/* Cielo del celular: noche arriba, alba en el horizonte, estrellas y sin desenfoque. */
+@media (max-width: 820px) {
+  #astral-cielo {
+    background:
+      radial-gradient(ellipse 90% 38% at 50% 108%, rgba(255, 214, 156, .85), transparent 58%),
+      radial-gradient(ellipse 70% 28% at 50% 86%, rgba(232, 126, 92, .42), transparent 62%),
+      radial-gradient(ellipse 40% 22% at 18% 22%, rgba(88, 110, 190, .35), transparent 70%),
+      linear-gradient(180deg, #050714 0%, #10183c 22%, #1c2a58 46%, #3a335f 64%, #8a5360 80%, #e39a62 92%, #ffd7a8 100%);
+  }
+  #astral-aurora {
+    animation: none;
+    filter: none;
+    opacity: .45;
+    top: 58%;
+    height: 28%;
+    background: linear-gradient(180deg, transparent, rgba(255, 196, 140, .35), transparent);
+  }
+  #astral-estrellas { opacity: 1; }
+}
 html.movil #viaje-bar {
   top: auto;
   right: max(8px, env(safe-area-inset-right));

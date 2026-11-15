@@ -52,17 +52,20 @@
   function stars() {
     const el = $('astral-estrellas');
     if (!el || el.dataset.listo) return;
-    const n = mobile() ? 16 : 42;
-    const bits = [];
+    const narrow = mobile();
+    const n = narrow ? 36 : 56;
+    const layers = [];
     for (let i = 0; i < n; i++) {
-      const x = Math.round((i * 97) % 100);
-      const y = Math.round((i * 53) % 78);
-      const r = i % 5 === 0 ? 2 : 1;
-      bits.push(x + 'vw ' + y + 'vh 0 ' + r + 'px #fff');
+      const x = (i * 97) % 100;
+      const y = (i * 53) % 62;
+      const r = i % 9 === 0 ? 2.4 : i % 3 === 0 ? 1.7 : 1.15;
+      const tone = i % 8 === 0 ? '#fff4d2' : '#fff';
+      layers.push('radial-gradient(circle ' + r + 'px at ' + x + '% ' + y + '%, ' + tone + ' 0 68%, transparent 74%)');
     }
-    el.style.backgroundImage = 'radial-gradient(circle, #fff 70%, transparent 72%)';
-    el.style.backgroundSize = '2px 2px';
-    el.style.boxShadow = bits.join(',');
+    el.style.backgroundImage = layers.join(',');
+    el.style.backgroundRepeat = 'no-repeat';
+    el.style.backgroundSize = 'auto';
+    el.style.boxShadow = 'none';
     el.dataset.listo = '1';
   }
 

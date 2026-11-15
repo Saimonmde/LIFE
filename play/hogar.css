@@ -84,6 +84,77 @@ body.in-game #b-oficio-perfil { margin-top: 6px; }
 #visita-banda p { margin: 0; font: 14px/1.3 system-ui, sans-serif; }
 body.casa-visita #b-editar-casa { display: none !important; }
 
+/* Dentro de la casa, Minado, Plata y Herramientas ocupan columnas o filas distintas. */
+body.in-casa #pow-panel,
+body.in-casa #plata-panel,
+body.in-casa #world-tools,
+html.movil body.in-casa #pow-panel.hud-puesto,
+html.movil body.in-casa #plata-panel.hud-puesto,
+html.movil body.in-casa #world-tools.hud-puesto,
+body.in-casa #pow-panel.hud-puesto,
+body.in-casa #plata-panel.hud-puesto,
+body.in-casa #world-tools.hud-puesto {
+  position: fixed !important;
+  transform: none !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  z-index: 16;
+  overflow: auto;
+}
+body.in-casa.mapa-limpio #pow-panel,
+body.in-casa.mapa-limpio #plata-panel,
+body.in-casa #pow-panel,
+body.in-casa #plata-panel {
+  display: block !important;
+}
+body.in-casa.mapa-limpio #world-tools,
+body.in-casa #world-tools {
+  display: flex !important;
+  flex-wrap: wrap;
+  top: 248px !important;
+  left: max(8px, env(safe-area-inset-left)) !important;
+  width: max-content !important;
+  max-width: 250px !important;
+  max-height: 150px;
+}
+body.in-casa #pow-panel {
+  top: 248px !important;
+  left: 272px !important;
+  width: 248px !important;
+  max-height: 280px;
+}
+body.in-casa #plata-panel {
+  top: 248px !important;
+  left: 532px !important;
+  width: 280px !important;
+  max-height: 420px;
+}
+@media (max-width: 900px) {
+  html.movil body.in-casa #world-tools.hud-puesto,
+  body.in-casa #world-tools {
+    top: 148px !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    width: min(230px, calc(100vw - 108px)) !important;
+    max-width: min(230px, calc(100vw - 108px)) !important;
+    max-height: 88px;
+  }
+  html.movil body.in-casa #pow-panel.hud-puesto,
+  body.in-casa #pow-panel {
+    top: 246px !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    width: min(230px, calc(100vw - 108px)) !important;
+    max-height: 150px;
+  }
+  html.movil body.in-casa #plata-panel.hud-puesto,
+  body.in-casa #plata-panel {
+    top: 406px !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    width: min(230px, calc(100vw - 108px)) !important;
+    max-height: 190px;
+  }
+}
+
 @media (max-width: 700px) {
   #oficio-titulo { font-size: 22px; }
   #b-direccion, body.in-casa:not(.casa-visita) #b-direccion {

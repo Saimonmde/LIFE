@@ -111,6 +111,17 @@ html.movil #hotbar .hs.sel {
   clip: rect(0 0 0 0);
 }
 
+/* Una sola pastilla de monedas: la barra flotante. La pastilla de arriba y el SMC de abajo no se repiten. */
+body.pantalla-limpia #smc-pill,
+body.mapa-limpio #smc-pill,
+.solo-mundo #smc-pill,
+html.movil #smc-pill,
+#smc-pill,
+body.pantalla-limpia #hud-recursos > #sai-chip,
+#hud-recursos > #sai-chip {
+  display: none !important;
+}
+
 #barra-monedas {
   position: fixed;
   z-index: 5;
