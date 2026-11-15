@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Independent underground map, built from the same collision grid used by movement.
-import {attachFinca} from './finca3d.js?v=finca-r1';
+import {attachFinca} from './finca3d.js?v=sara-r1';
 export function buildMine(T,W){
  const map=W.caveDefinition,scene=new T.Scene();scene.background=new T.Color('#130e0b');scene.fog=new T.Fog('#1c130e',38,100);scene.add(new T.HemisphereLight(0xe6bf83,0x503c27,.95));const fill=new T.DirectionalLight(0xe4c79b,.75);fill.position.set(20,45,25);scene.add(fill);
  const pick=[],resources=new Map(),materials=new Map();const mat=c=>{if(!materials.has(c))materials.set(c,new T.MeshLambertMaterial({color:c,flatShading:true}));return materials.get(c);};

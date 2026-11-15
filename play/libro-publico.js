@@ -87,7 +87,7 @@
       ['cacao', 'Cacao', kg.cacao || 0, bags.cacao || 0],
     ];
     const cropHtml = crops.map(([id, name, kilos, count]) => (
-      `<article class="libro-crop"><div class="libro-ico">${icon(id)}${icon('bag')}</div>` +
+      `<article class="libro-crop"><div class="libro-ico">${icon(id)}${icon('kg')}${icon('bag')}</div>` +
       `<h3>${name}</h3><p><b>${esc(formatEs(kilos))} kg</b> cosechados</p><p><b>${esc(formatEs(count))}</b> bultos procesados</p></article>`
     )).join('');
     const coins = [
