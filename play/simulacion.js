@@ -188,8 +188,11 @@ const $ = (s) => document.querySelector(s);
 function walletName() { return api.S.me.name || 'Viajero'; }
 function walletSubs(name) { return (api.S.econ && api.S.econ.wallets && api.S.econ.wallets[name]) || 0; }
 function syncButton() {
+  const label = api.S.mounted ? 'Bajar' : 'Montar';
   const b = $('#b-montar');
-  if (b) b.textContent = api.S.mounted ? 'Bajar' : 'Montar';
+  if (b) b.textContent = label;
+  const bar = $('#b-montar-barra');
+  if (bar) bar.textContent = label;
   const down = $('#b-bajar');
   if (down) down.hidden = !api.S.mounted;
   document.body.classList.toggle('mounted', !!api.S.mounted);
@@ -593,7 +596,7 @@ function dismount() {
   syncButton();
   api.game('Bajas del caballo.', 'juego');
 }
-function mountHorse(horse) {
+function mountHorse(horse, quiet) {
   if (api.S.mounted) return dismount();
   const h = horse || nearestMount();
   if (!h || h.ridden) { api.game('Acércate a un caballo del establo (tecla M o el botón Montar).', 'aviso'); return; }
@@ -603,7 +606,22 @@ function mountHorse(horse) {
   h.ridden = true;
   h.x = h.fx = p.x; h.y = h.fy = p.y;
   syncButton();
-  api.game('Montas el <b>caballo</b>. Vas al doble de prisa. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
+  if (!quiet) api.game('Montas el <b>caballo</b>. Vas a 2,2 veces la marcha a pie. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
+}
+function summonAndMount() {
+  if ((api.W().mapId || 'city') !== 'city') { api.game('Los caballos esperan fuera, en el parque.', 'aviso'); return; }
+  if (api.S.mounted) return;
+  const near = nearestMount();
+  if (near) { mountHorse(near); return; }
+  const horse = window.LiveInk && LiveInk.ensurePersonalHorse && LiveInk.ensurePersonalHorse();
+  if (!horse) { api.game('No hay un caballo a la mano.', 'aviso'); return; }
+  const p = api.S.player;
+  horse.ridden = false;
+  horse.called = false;
+  horse.x = horse.fx = p.x;
+  horse.y = horse.fy = p.y;
+  mountHorse(horse, true);
+  api.game('El caballo acude. Vas a 2,2 veces la marcha a pie. WASD, flechas o el joystick lo guían. El botón Bajar desmonta.', 'juego');
 }
 function blocksTile(W, x, y) {
   if (!api.S.mounted) return false;
@@ -928,7 +946,7 @@ function autotest(ok) {
   api.S.player.x = api.S.player.fx = horse.x;
   api.S.player.y = api.S.player.fy = horse.y + 1;
   mountHorse(horse);
-  ok(!!api.S.mounted && speedMul() === 4, 'montar: velocidad ×4, el doble de la montura anterior');
+  ok(!!window.Caballo && Caballo.MOUNT_SPEED === 2.2 && speedMul() === 2.2, 'montar: velocidad ×2,2, una sola constante');
   ok(!!$('#b-bajar') && $('#b-bajar').hidden === false, 'botón Bajarse del caballo visible al montar');
   if (api.update) {
     const rider = api.S.player;
@@ -937,7 +955,7 @@ function autotest(ok) {
     api.S.keys.clear();
     api.update(0.5);
     const travelled = rider.fx - (220 + off.x);
-    ok(travelled > 7.6 && travelled < 9.2, 'a caballo se recorren unas 8,4 casillas en medio segundo (' + travelled.toFixed(2) + ')');
+    ok(travelled > 4.3 && travelled < 5.0, 'a caballo se recorren unas 4,6 casillas en medio segundo (' + travelled.toFixed(2) + ')');
   }
   const water = (api.W().waterBodies.rio_claro.tiles || [])[0];
   ok(blocksTile(api.W(), water[0], water[1]) || api.W().collision[water[1]][water[0]] !== 0, 'el caballo no entra al agua');
@@ -965,11 +983,11 @@ function autotest(ok) {
   const chain = verifyBlock(api.S.econ.blocks[0], GENESIS_PREV);
   ok(chain, 'el bloque génesis verifica');
 }
-function speedMul() { return api.S.mounted ? ((F.mounts[0] && F.mounts[0].speed) || 2) : 1; }
+function speedMul() { return api.S.mounted ? ((window.Caballo && Caballo.MOUNT_SPEED) || 2.2) : 1; }
 
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
-  mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
+  mountHorse, dismount, summonAndMount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
   rememberSupply, rememberPlata, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,

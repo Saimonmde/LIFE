@@ -40,6 +40,7 @@ import crudo as CRUDO
 import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
+import caballo_cuenta as CABALLO
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1523,6 +1524,10 @@ def vida_try(c, m, t):
 
 TRAVEL_GATE = VIAJES.Gate()
 
+def correct_move(sender):
+    send(sender, {'t': 'move_correct', 'x': round(sender.x, 2), 'y': round(sender.y, 2), 'zone': getattr(sender, 'zone', 'city')})
+
+
 def travel_for(sender, dest_id):
     """Lleva al jugador a un municipio o punto conocido. El servidor elige la casilla."""
     now = time.time()
@@ -1536,6 +1541,7 @@ def travel_for(sender, dest_id):
     sender.zone = 'city'
     sender.x, sender.y = float(dest['x']), float(dest['y'])
     sender.moving = False
+    sender.move_at = now
     sender.place = MUNDOS.place_of(sender.x, sender.y, 'city', PLACES)
     room_shift(sender, old_world, old_place)
     send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
@@ -1715,6 +1721,7 @@ def handle_client_message(c, m, t):
         c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
         c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
         c.level = clamp_level(m.get('level'), 1); c.hello = True
+        c.move_at = time.time()
         c.identity = SOCIAL.identity_of(c)
         c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
         if getattr(c, 'user', None) and CASA.absorb(c.user, VIDA, c.identity):
@@ -1752,20 +1759,37 @@ def handle_client_message(c, m, t):
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
+        now_move = time.time()
         if zone in ('casa', 'mine', 'banco'):
+            if c.zone == 'city':
+                c.city_x, c.city_y = c.x, c.y
             c.zone = zone
             c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
             if (old_world, old_place) != (c.world, c.place):
                 room_shift(c, old_world, old_place)
             return
-        c.zone = 'city'
         try:
             nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
         except Exception: return
         if nx != nx or ny != ny: return
-        step = max(abs(nx - c.x), abs(ny - c.y))
-        c.x, c.y = nx, ny
-        note_motion(c, step)
+        came_from = c.zone
+        if came_from != 'city':
+            back = (getattr(c, 'city_x', None), getattr(c, 'city_y', None))
+            if not VIAJES.portal_arrival(came_from, nx, ny, back):
+                return correct_move(c)
+            c.zone = 'city'
+            c.x, c.y = nx, ny
+            c.move_at = now_move
+            note_motion(c, 1)
+        else:
+            step = max(abs(nx - c.x), abs(ny - c.y))
+            elapsed = now_move - float(getattr(c, 'move_at', now_move) or now_move)
+            if not VIAJES.step_allowed(step, elapsed):
+                return correct_move(c)
+            c.move_at = now_move
+            c.x, c.y = nx, ny
+            note_motion(c, step)
+        c.zone = 'city'
         c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
         c.moving = bool(m.get('moving')); c.level = clamp_level(m.get('level'), c.level)
         c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
@@ -2233,6 +2257,21 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         save_accounts()
         save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'casa': shown['casa']}, headers)
+    if path == '/auth/caballo' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para ver tu caballo.'}, headers)
+        return auth_response('200 OK', {'caballo': CABALLO.view(user)}, headers)
+    if path == '/auth/caballo' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar el pelaje.'}, headers)
+        try:
+            shown = ACC.set_caballo(user, payload.get('coat'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown, 'caballo': shown['caballo']}, headers)
     if path == '/auth/salir' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         ACCOUNTS['sessions'].pop(token, None)
