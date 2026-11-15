@@ -3,7 +3,7 @@ import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=afuera-r1';
 import {attachFinca} from './finca3d.js?v=afuera-r1';
 import {enrichWorld} from './park3d.js?v=valle-hud-r5';
-import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
+import {buildHouse, buildHomeMarker} from './casa3d.js?v=fachada-r1';
 import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
 import {buildCentral, placeCentralHouse} from './central3d.js?v=central-r1';
@@ -61,6 +61,7 @@ function boot(api){
  };
  const mat=c=>new T.MeshLambertMaterial({color:c,flatShading:true});const cache=new Map();
  function material(c){if(!cache.has(c))cache.set(c,mat(c));return cache.get(c);}
+ function terrainMaterial(c){const key='suave:'+c;if(!cache.has(key))cache.set(key,new T.MeshLambertMaterial({color:c,flatShading:false}));return cache.get(key);}
  const geometries=new Map();function geometry(key,build){if(!geometries.has(key))geometries.set(key,build());return geometries.get(key);}
  function box(x,y,z,w,h,d,c){const m=new T.Mesh(geometry(`box:${w},${h},${d}`,()=>new T.BoxGeometry(w,h,d)),material(c));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
  const palette={grass:'#74875b',grass_flowers:'#74875b',grass_worn:'#74875b',path:'#c4ac87',cobble:'#bd886d',pavement:'#aab0b1',creek:'#689598',bridge:'#967247',water:'#357f8b',cliff:'#777769',shore:'#baa47a',mountain:'#718164',rocky:'#929080',asphalt:'#444a4c'};
@@ -82,7 +83,7 @@ function boot(api){
   const groups={};
   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){if(onBridge(W.bridge4Sur,x,y))continue;(groups[terrainKind(x,y)]??=[]).push([x,y]);}
   const holder=new T.Group();holder.userData.chunk=key;
-  for(const [k,cells] of Object.entries(groups)){const positions=[],uv=[];for(const [x,y] of cells){const v=[[x*2,corner(x,y),y*2],[x*2,corner(x,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y+1),(y+1)*2],[(x+1)*2,corner(x+1,y),y*2]];for(const i of [0,1,2,0,2,3]){positions.push(...v[i]);uv.push(v[i][0]/4,v[i][2]/4);}}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.computeVertexNormals();const mesh=new T.Mesh(geo,material(palette[k]||'#7b9253'));mesh.receiveShadow=true;mesh.userData.terrain=true;holder.add(mesh);pick.push(mesh);}
+  for(const [k,cells] of Object.entries(groups)){const positions=[],uv=[],indices=[],indexOf=new Map();const vert=(x,y)=>{const id=x+','+y;if(indexOf.has(id))return indexOf.get(id);const i=positions.length/3;indexOf.set(id,i);positions.push(x*2,corner(x,y),y*2);uv.push(x/2,y/2);return i;};for(const [x,y] of cells){const a=vert(x,y),b=vert(x,y+1),c=vert(x+1,y+1),d=vert(x+1,y);indices.push(a,b,c,a,c,d);}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(positions,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(indices);geo.computeVertexNormals();const mesh=new T.Mesh(geo,terrainMaterial(palette[k]||'#7b9253'));mesh.receiveShadow=true;mesh.userData.terrain=true;holder.add(mesh);pick.push(mesh);}
   scene.add(holder);chunkMeshes.set(key,holder);
  }
  function dropChunk(key){const holder=chunkMeshes.get(key);if(!holder)return;scene.remove(holder);holder.traverse(m=>{if(!m.isMesh)return;const i=pick.indexOf(m);if(i>=0)pick.splice(i,1);});chunkMeshes.delete(key);}
