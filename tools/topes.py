@@ -34,6 +34,10 @@ DEFAULT_SIMONCHIS = 200
 DEFAULT_AGE_DAYS = 60
 DEFAULT_PLAY_HOURS = 40
 DEFAULT_QUEST_CAP = 10
+# Segundos que tarda una veta picada en volver. El cliente usa los mismos milisegundos.
+VEIN_ORO_S = 32
+VEIN_PLATA_S = 18
+VEIN_COBRE_S = 18
 
 METALES = {
     'simoncoin': {
@@ -255,17 +259,33 @@ def letrero(age_seconds=0, play_seconds=0, quests=0, now=None):
     plata_base = simonplata_daily_sph(0, 0, 0) / SUBS
     plata_top = _techo_simonplata()
     chis = simonchis_daily()
+    bono_dia = _float_env('MINT_SIMONPLATA_AGE_SMP', DEFAULT_SIMONPLATA_AGE)
+    bono_hora = _float_env('MINT_SIMONPLATA_PLAY_SMP', DEFAULT_SIMONPLATA_PLAY)
+    bono_mision = _float_env('MINT_SIMONPLATA_QUEST_SMP', DEFAULT_SIMONPLATA_QUEST)
     lines = [
-        'Puedes picar todo el mineral que quieras. Lo que tiene tope diario es convertirlo en monedas.',
-        f'{_cantidad(oro)} oros crudos hacen 1 Simoncoin. El tope empieza en {_cantidad(oro_base)} al día y puede llegar a {_cantidad(oro_top)}.',
-        f'{_cantidad(plata_rate)} de plata cruda hacen 1 Simonplata. El tope empieza en {_cantidad(plata_base)} al día y sube con las recompensas hasta {_cantidad(plata_top)}.',
+        'Bienvenido. Acá se pica el mineral y se acuñan las monedas del juego. No son dinero real.',
+        (
+            f'Picar no tiene tope. Podés picar las veces que quieras. El mineral queda en la mochila y picar no crea monedas. '
+            f'Si una veta de oro se agota, vuelve en {_cantidad(VEIN_ORO_S)} segundos. '
+            f'La plata vuelve en {_cantidad(VEIN_PLATA_S)} segundos y el cobre en {_cantidad(VEIN_COBRE_S)} segundos.'
+        ),
+        f'{_cantidad(oro)} oros crudos hacen 1 Simoncoin. Hasta {_cantidad(oro_base)} Simoncoin al día. Ese tope sube hasta {_cantidad(oro_top)} con recompensas.',
+        (
+            f'{_cantidad(plata_rate)} de plata cruda hacen 1 Simonplata. Hasta {_cantidad(plata_base)} Simonplata al día, más bonos: '
+            f'{_cantidad(bono_dia)} por día de cuenta, {_cantidad(bono_hora)} por hora de juego y {_cantidad(bono_mision)} por misión. '
+            f'Con esos bonos sube hasta {_cantidad(plata_top)}.'
+        ),
         f'{_cantidad(cobre_rate)} de cobre crudo hacen 1 Simonchis. El tope es {_cantidad(chis)} al día.',
-        'El tope se reinicia cada día a las ' + RESET_LABEL + '.',
-        'El tope de cada persona sube poco a poco con las recompensas, parecido a Bitcoin.',
-        f'En todo el mundo sólo habrá {_cantidad(economy.MAX_SUPPLY)} de Simoncoin, {_cantidad(plata.MAX_SUPPLY)} de Simonplata y {_cantidad(cobre.MAX_SUPPLY)} de Simonchis. No se crea ni una más.',
+        'Para acuñar tenés que entrar con tu apodo. El cupo se reinicia a las ' + RESET_LABEL + '.',
+        (
+            f'Hay tres monedas y el total ya está fijo: {_cantidad(economy.MAX_SUPPLY)} de Simoncoin, '
+            f'{_cantidad(plata.MAX_SUPPLY)} de Simonplata y {_cantidad(cobre.MAX_SUPPLY)} de Simonchis. '
+            'No se puede crear más ni copiarlas. Si el mundo ya llegó al máximo, el horno se detiene.'
+        ),
     ]
     return {
         'lines': lines,
+        'veins': {'oro': VEIN_ORO_S, 'plata': VEIN_PLATA_S, 'cobre': VEIN_COBRE_S},
         'reset': RESET_LABEL,
         'rates': {'simoncoin': oro, 'simonplata': plata_rate, 'simonchis': cobre_rate},
         'daily': {'simoncoin': oro_base, 'simoncoinMax': oro_top, 'simonplata': plata_base, 'simonplataMax': plata_top, 'simonchis': chis},
