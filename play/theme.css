@@ -506,6 +506,8 @@ header .plegar,
 
 #b-descansar,
 #b-bajar,
+#b-skate,
+html.movil #touch-extra #b-skate-movil,
 #b-casa,
 #b-editar-casa,
 #touch-extra button,
@@ -516,6 +518,19 @@ header .plegar,
   min-height: var(--hit);
 }
 #b-salir-parque { background: rgba(12, 14, 20, 0.78); color: #fff; border-color: var(--gold-line); }
+#b-bajar,
+#b-skate,
+html.movil #touch-extra #b-skate-movil {
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+}
+html.movil #touch-extra #b-skate-movil {
+  min-width: 96px;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font: 700 15px system-ui, sans-serif;
+}
 
 .character-speech { color: #fff; text-shadow: none; }
 .character-speech:after {
