@@ -236,7 +236,7 @@ def open_session(doc, user, now=None):
 def public_user(user):
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
-        'wallet_name': user.get('wallet_name') or user['name'],
+        'wallet_name': user.get('wallet_name') or '',
         'avatar_id': 'avatar_' + user['id'],
     }
 

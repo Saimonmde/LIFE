@@ -21,10 +21,36 @@ const NOMBRES = {
   conejo: 'Conejo', venado: 'Venado', ave: 'Ave silvestre', cobre: 'Roca de cobre', plata: 'Roca de plata', piedra: 'Roca de piedra', pino: 'Pino',
 };
 const CANALES = { global: 'Global', proximidad: 'Proximidad', clan: 'Clan', grupo: 'Grupo' };
+function textoNombre(raw) {
+  const text = String(raw || '').trim();
+  if (!text || text.includes('@')) return 'Viajero';
+  return text.slice(0, 16);
+}
+function apodoCuenta(user) {
+  const wallet = String((user && user.wallet_name) || '').trim();
+  const email = String((user && user.email) || '').trim().toLowerCase();
+  if (!wallet || wallet.includes('@') || (email && wallet.toLowerCase() === email)) return 'Viajero';
+  return wallet.slice(0, 16);
+}
+function nombrePropio() {
+  const nick = String((S.me && S.me.nick) || '').trim();
+  if (nick && !nick.includes('@')) return nick.slice(0, 16);
+  if (S.sessionUser) return 'Viajero';
+  return textoNombre(S.me && S.me.name);
+}
+function nombreAjeno(p) {
+  if (!p) return 'Viajero';
+  const nick = String(p.nick || '').trim();
+  if (nick && !nick.includes('@')) return nick.slice(0, 16);
+  if (p.avatar_id) return 'Viajero';
+  return textoNombre(p.name);
+}
+window.nombrePropio = nombrePropio;
+window.nombreAjeno = nombreAjeno;
 
 // ---------------- estado ----------------
 const S = window.__ELJARDIN = {
-  me: { name: 'Viajero', color: 'azul', clan: '', group: '' }, houseEdit: false,
+  me: { name: 'Viajero', nick: 'Viajero', color: 'azul', clan: '', group: '' }, sessionUser: null, houseEdit: false,
   player: { x: 0, y: 0, fx: 0, fy: 0, path: [], dir: 'down', animT: 0, busyUntil: 0, pending: null, repaths: 0 },
   nodes: new Map(), animals: [], inv: [], sel: -1, xp: {}, coins: 0, energy: 100, hp: 100, sprintLock: false, playtime: 0, createdAt: 0, lastInput: 0,
   quest: { stage: 0, steps: {}, done: false, turnedIn: false },
@@ -69,7 +95,8 @@ async function init() {
   S.player.x = S.player.fx = W.spawn.x; S.player.y = S.player.fy = W.spawn.y; S.player.dir = W.spawn.facing || 'down';
   let prof = null; try { prof = JSON.parse(localStorage.getItem('lifeinc.perfil') || 'null'); } catch (e) {}
   if (prof) {
-    if (prof.name) S.me.name = String(prof.name).slice(0, 16);
+    if (prof.name) S.me.name = textoNombre(prof.name);
+    S.me.nick = S.me.name;
     S.me.clan = prof.clan || ''; S.me.group = prof.group || '';
     if (prof.color) S.me.color = prof.color;
   }
@@ -93,9 +120,9 @@ async function init() {
     startGame(); autotest(); return;
   }
   beginAtHome();
-  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) S.me.name = Q.get('nombre'); beginAtHome(); W.clientReady = true; startGame(); return; }
+  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) { S.me.name = textoNombre(Q.get('nombre')); S.me.nick = S.me.name; } beginAtHome(); W.clientReady = true; startGame(); return; }
   W.clientReady = true;
-  if (prof && prof.name) { $('#l-nombre').value = prof.name; if (prof.color) S.me.color = prof.color; buildColorPicker(); }
+  if (prof && prof.name) { $('#l-nombre').value = textoNombre(prof.name); if (prof.color) S.me.color = prof.color; buildColorPicker(); }
   if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con el proveedor. Intenta otra vez.';
   let sessionUser = null;
   if (Q.get('auth') !== 'error') {
@@ -108,14 +135,14 @@ async function init() {
     } catch (e) { sessionUser = null; }
   }
   if (sessionUser) {
-    const name = String(sessionUser.wallet_name || sessionUser.name || '').slice(0, 16);
-    if (name) {
-      S.me.name = name;
-      if ($('#l-nombre')) $('#l-nombre').value = name;
-      try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
-      startGame();
-      return;
-    }
+    S.sessionUser = sessionUser;
+    S.me.nick = apodoCuenta(sessionUser);
+    const wallet = String(sessionUser.wallet_name || '').trim();
+    if (wallet && !wallet.includes('@') && wallet.toLowerCase() !== String(sessionUser.email || '').trim().toLowerCase()) S.me.name = wallet.slice(0, 16);
+    if ($('#l-nombre')) $('#l-nombre').value = S.me.nick;
+    try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
+    startGame();
+    return;
   }
   $('#login').hidden = false; $('#l-nombre').focus();
   fetch('/auth/providers').then(r => r.json()).then(p => {
@@ -167,11 +194,13 @@ const bPedir = $('#b-pedir-codigo'); if (bPedir) bPedir.onclick = () => {
 const bVer = $('#b-verificar'); if (bVer) bVer.onclick = () => {
   let token = '';
   try { token = (window.Simulacion && Simulacion.walletToken && Simulacion.walletToken($('#l-nombre').value.trim())) || ''; } catch (e) {}
-  fetch('/auth/verificar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), email_code:$('#r-email-code').value.trim(), phone_code:$('#r-phone-code').value.trim(), walletToken: token})}).then(r => r.json()).then(m => { if (m.user) { $('#l-nombre').value = m.user.wallet_name || m.user.name; $('#login-form').requestSubmit(); } else $('#login-status').textContent = m.error || 'No se pudo verificar.'; });
+  fetch('/auth/verificar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), email_code:$('#r-email-code').value.trim(), phone_code:$('#r-phone-code').value.trim(), walletToken: token})}).then(r => r.json()).then(m => { if (m.user) { if (m.user.wallet_name && !String(m.user.wallet_name).includes('@')) $('#l-nombre').value = String(m.user.wallet_name).slice(0, 16); $('#login-form').requestSubmit(); } else $('#login-status').textContent = m.error || 'No se pudo verificar.'; });
 };
 $('#login-form').onsubmit = (e) => {
   e.preventDefault();
-  S.me.name = $('#l-nombre').value.trim().slice(0, 16) || 'Viajero';
+  S.me.name = textoNombre($('#l-nombre').value.trim().slice(0, 16));
+  S.me.nick = S.me.name;
+  S.sessionUser = null;
   S.me.clan = S.me.clan || ''; S.me.group = S.me.group || '';
   localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me));
   $('#login').hidden = true; startGame();
@@ -181,7 +210,7 @@ function startGame() {
   if (started) return; started = true;
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
-  $('#mi-nombre').textContent = S.me.name; drawPortrait();
+  $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
   const fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
   if (fly) {
     if ((W.mapId || 'city') === 'casa') switchMap('city');
@@ -192,7 +221,7 @@ function startGame() {
   } else beginAtHome();
   Casa.load(S.me.name);
   if (!fly && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
-  sys(`Bienvenido a Medellín, ${esc(S.me.name)}.`);
+  sys(`Bienvenido a Medellín, ${esc(nombrePropio())}.`);
   connect(); updateTutorial(true);
   if (!fly && window.Tutorial) Tutorial.afterFly();
   if (Q.has('forja')) showForgePreview();
@@ -745,13 +774,14 @@ $('#chat-form').onsubmit = (e) => {
   e.preventDefault(); const inp = $('#chat-input'); const text = inp.value.trim(); inp.value = ''; inp.blur(); if (!text) return;
   if (window.Simulacion && Simulacion.offlineCommand(text)) return;
   if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'chat', channel: S.chat.tab, text }));
-  else { addLine(S.chat.tab, chatLine({ channel: S.chat.tab, from: S.me.name, text, ts: hhmm() }, true)); bubble(0, text); }
+  else { addLine(S.chat.tab, chatLine({ channel: S.chat.tab, from: nombrePropio(), text, ts: hhmm() }, true)); bubble(0, text); }
 };
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 const NAME_COL = ['#7fd0ff', '#ff9ad5', '#ffd27a', '#9df59a', '#c9a6ff', '#ffb070'];
 function chatLine(m, mine) {
   const col = mine ? '#9df59a' : NAME_COL[(m.fromId || 0) % NAME_COL.length];
-  return `<span class="t">[${esc(m.ts)}]</span> <span class="n" style="color:${col}">${esc(m.from)}:</span> ${esc(m.text)}`;
+  const who = mine ? nombrePropio() : textoNombre(m.from);
+  return `<span class="t">[${esc(m.ts)}]</span> <span class="n" style="color:${col}">${esc(who)}:</span> ${esc(m.text)}`;
 }
 function bubble(id, text) { S.bubbles.set(id, { text: text.length > 60 ? text.slice(0, 58) + '…' : text, until: now() + 6000 }); }
 
@@ -779,7 +809,7 @@ function connect() {
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
     if (m.t === 'welcome') {
-      S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; $('#mi-nombre').textContent = S.me.name;
+      S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; S.me.nick = m.you.nick ? textoNombre(m.you.nick) : (S.sessionUser ? 'Viajero' : textoNombre(m.you.name)); $('#mi-nombre').textContent = nombrePropio();
       S.net.serverId = m.serverId || null;
       if (!S.net.hasJoined && W.mapId==='casa') placeAtHouseSpawn();
       S.net.hasJoined=true; S.others.clear();
@@ -787,7 +817,7 @@ function connect() {
       renderNearby();
       $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (window.Simulacion) Simulacion.onWelcome();
     } else if (m.t === 'join' && m.player) addOther(m.player);
-    else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; renderChat(); } }
+    else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
     else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
@@ -849,7 +879,7 @@ const dist = (o) => Math.hypot(o.fx - S.player.fx, o.fy - S.player.fy);
 function renderNearby() {
   const el = $('#cercanos'), list = [...S.others.values()].filter(o => !o.bot).sort((a, b) => dist(a) - dist(b));
   $('#n-cercanos').textContent = list.length;
-  el.innerHTML = list.length ? list.slice(0, 10).map(o => { const m = Math.round(dist(o) * (W.render.metersPerTile || 2)); return `<li class="${m > 30 ? 'lejos' : ''}"><span class="pt"></span><span>${esc(o.name)}</span><span class="m">${m} m</span></li>`; }).join('')
+  el.innerHTML = list.length ? list.slice(0, 10).map(o => { const m = Math.round(dist(o) * (W.render.metersPerTile || 2)); return `<li class="${m > 30 ? 'lejos' : ''}"><span class="pt"></span><span>${esc(nombreAjeno(o))}</span><span class="m">${m} m</span></li>`; }).join('')
     : `<li class="vacio">${S.net.ok ? 'Nadie más conectado' : 'Sin conexión al servidor'}</li>`;
 }
 
@@ -1577,7 +1607,7 @@ function draw() {
   for (const o of S.others.values()) list.push({ y: (o.fy + 1) * TS + 2, x: o.fx, draw: () => {
     drawChar(sheets[o.color] || sheets.default, o.fx, o.fy, o.dir || 'down', o.walking, t / 1000);
     const cx = o.fx * TS + 32, top = (o.fy + 1) * TS - 96;
-    nameplate(cx, top - 20, [[o.name, '#ffffff', 12], ...(o.clan ? [[`<${o.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${o.level || 1}`, '#b8e0ff', 11]]);
+    nameplate(cx, top - 20, [[nombreAjeno(o), '#ffffff', 12], ...(o.clan ? [[`<${o.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${o.level || 1}`, '#b8e0ff', 11]]);
   } });
   list.push({ y: (p.fy + 1) * TS + 3, x: p.fx, draw: () => {
     ctx.strokeStyle = 'rgba(120,255,120,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.fx * TS + 32, (p.fy + 1) * TS - 12, 20, 8, 0, 0, Math.PI * 2); ctx.stroke();
@@ -1585,7 +1615,7 @@ function draw() {
     drawChar(sheets[S.me.color] || sheets.default, p.fx, S.mounted ? p.fy - 0.35 : p.fy, p.dir, !!p.path.length, p.animT);
     const sel = selected(); if (sel && W.items[sel].category === 'tool' && imgs['icon:' + sel]) ctx.drawImage(imgs['icon:' + sel], Math.round(p.fx * TS + 40), Math.round((p.fy + 1) * TS - 56), 24, 24);
     const cx = p.fx * TS + 32, top = (p.fy + 1) * TS - 96;
-    nameplate(cx, top - 20, [[S.me.name, '#9df59a', 12], ...(S.me.clan ? [[`<${S.me.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${totalLevel()}`, '#b8e0ff', 11]]);
+    nameplate(cx, top - 20, [[nombrePropio(), '#9df59a', 12], ...(S.me.clan ? [[`<${S.me.clan}>`, '#ffd27a', 11]] : []), [`Nv. ${totalLevel()}`, '#b8e0ff', 11]]);
   } });
   if (S.dest) { // marca de clic amarilla
     const k = Math.min(1, (t - (S.dest.t || 0)) / 300), dx = S.dest.x * TS + 32, dy = S.dest.y * TS + 32, s = 10 - k * 3;
