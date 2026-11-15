@@ -361,6 +361,11 @@ class FincaTests(unittest.TestCase):
         ):
             self.assertIn(line, guide)
             self.assertIn(line, ayuda)
+        with open(os.path.join(ROOT, 'play', 'finca.js'), encoding='utf-8') as handle:
+            panel = handle.read()
+        self.assertIn('bulto de ${bag.kg || 0} kg', panel)
+        self.assertIn('kg de café cereza', panel)
+        self.assertIn('kg de cacao en baba', panel)
 
 
 if __name__ == '__main__':

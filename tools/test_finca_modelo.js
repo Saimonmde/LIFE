@@ -41,6 +41,8 @@ assert.ok(scene.includes('opt.height'));
 assert.ok(scene.includes('0.0156'));
 assert.ok(scene.includes('3.2, 3.2, 1'));
 assert.ok(scene.includes('anclas'));
+assert.ok(scene.includes('col * 2.2'));
+assert.ok(scene.includes('col * 3'));
 assert.ok(scene.includes('manifest.json'));
 
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../play/assets/cafe-cacao/sara/manifest.json'), 'utf8'));
