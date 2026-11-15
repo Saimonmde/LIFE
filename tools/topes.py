@@ -160,3 +160,69 @@ def cotizar(have, rate_n, daily_left, global_left, pieces=None, whole=False):
         'recibes': recibes,
         'sobran': have - pieces,
     }
+
+
+def _cantidad(number):
+    number = float(number)
+    if abs(number - round(number)) < 1e-6:
+        whole = int(round(number))
+        return f'{whole:,}'.replace(',', '.')
+    text = f'{number:.2f}'.rstrip('0').rstrip('.')
+    whole, frac = text.split('.')
+    return f'{int(whole):,}'.replace(',', '.') + ',' + frac
+
+
+def _techo_simoncoin():
+    days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
+    hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
+    quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
+    return simoncoin_daily_smh(days * DAY, hours * 3600, quests) / SUBS
+
+
+def _techo_simonplata():
+    days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
+    hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
+    quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
+    return simonplata_daily_sph(days * DAY, hours * 3600, quests) / SUBS
+
+
+def hoy(coins):
+    """'Hoy te quedan X' a partir de los cupos ya calculados. Sin números fijos."""
+    lines = []
+    for coin in ('simoncoin', 'simonplata', 'simonchis'):
+        row = (coins or {}).get(coin) or {}
+        if 'left' not in row:
+            continue
+        lines.append('Hoy te quedan ' + _cantidad(row['left']) + ' ' + row.get('name', coin) + '.')
+    return lines
+
+
+def letrero():
+    """Texto del letrero de la mina. Los números salen de estas funciones."""
+    import economy
+    import plata
+    import cobre
+    oro = rate('simoncoin')
+    plata_rate = rate('simonplata')
+    cobre_rate = rate('simonchis')
+    oro_base = simoncoin_daily_smh(0, 0, 0) / SUBS
+    oro_top = _techo_simoncoin()
+    plata_base = simonplata_daily_sph(0, 0, 0) / SUBS
+    plata_top = _techo_simonplata()
+    chis = simonchis_daily()
+    lines = [
+        'Puedes picar todo el mineral que quieras. Lo que tiene tope diario es convertirlo en monedas.',
+        f'{_cantidad(oro)} oros crudos hacen 1 Simoncoin. El tope empieza en {_cantidad(oro_base)} al día y puede llegar a {_cantidad(oro_top)}.',
+        f'{_cantidad(plata_rate)} de plata cruda hacen 1 Simonplata. El tope empieza en {_cantidad(plata_base)} al día y sube con las recompensas hasta {_cantidad(plata_top)}.',
+        f'{_cantidad(cobre_rate)} de cobre crudo hacen 1 Simonchis. El tope es {_cantidad(chis)} al día.',
+        'El tope se reinicia cada día a las ' + RESET_LABEL + '.',
+        'El tope de cada persona sube poco a poco con las recompensas, parecido a Bitcoin.',
+        f'En todo el mundo sólo habrá {_cantidad(economy.MAX_SUPPLY)} de Simoncoin, {_cantidad(plata.MAX_SUPPLY)} de Simonplata y {_cantidad(cobre.MAX_SUPPLY)} de Simonchis. No se crea ni una más.',
+    ]
+    return {
+        'lines': lines,
+        'reset': RESET_LABEL,
+        'rates': {'simoncoin': oro, 'simonplata': plata_rate, 'simonchis': cobre_rate},
+        'daily': {'simoncoin': oro_base, 'simoncoinMax': oro_top, 'simonplata': plata_base, 'simonplataMax': plata_top, 'simonchis': chis},
+        'supply': {'simoncoin': economy.MAX_SUPPLY, 'simonplata': plata.MAX_SUPPLY, 'simonchis': cobre.MAX_SUPPLY},
+    }
