@@ -70,6 +70,7 @@ def empty_state():
         'publicEvents': [],
         'privateEvents': [],
         'feed': [],
+        'place': 'las_palmas',
     }
 
 
@@ -90,6 +91,7 @@ def normalize(state):
     base['seededSmh'] = int(state.get('seededSmh') or 0)
     base['seq'] = int(state.get('seq') or 0)
     base['lastBagHash'] = str(state.get('lastBagHash') or '')
+    base['place'] = 'las_palmas'
     for crop in CROPS:
         base['harvestedKg'][crop] = int((state.get('harvestedKg') or {}).get(crop) or 0)
         base['processedBags'][crop] = int((state.get('processedBags') or {}).get(crop) or 0)
