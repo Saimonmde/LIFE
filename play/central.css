@@ -1,0 +1,57 @@
+/* Banco Central. Verde de bóveda, distinto del horno marrón y del diálogo de monedas. */
+.banco-central {
+  position: fixed;
+  z-index: 80;
+  left: 50%;
+  top: 12%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 20px));
+  max-height: min(78vh, 640px);
+  overflow: auto;
+  padding: 16px 16px 18px;
+  border-radius: 18px;
+  border: 3px solid #e2b23c;
+  background: #06241c;
+  color: #f4f7f2;
+  font: 16px/1.4 system-ui, sans-serif;
+  box-shadow: 0 18px 50px #02140f;
+}
+.banco-central header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.banco-central header img { width: 42px; height: 42px; }
+.banco-central h2, .banco-central h3 { margin: 0; color: #f6e7a8; }
+.banco-central h2 { font-size: 22px; letter-spacing: 0.02em; }
+.banco-central .bc-lead { color: #d5e6df; }
+.banco-central label { display: block; margin: 8px 0; }
+.banco-central select, .banco-central input {
+  margin-left: 8px;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid #e2b23c;
+  background: #0c3b2e;
+  color: #f4f7f2;
+  padding: 4px 8px;
+}
+.banco-central button, .banco-central a {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #e2b23c;
+  color: #10241c;
+  font: 700 15px/1 system-ui, sans-serif;
+  padding: 8px 12px;
+}
+.banco-central a { display: inline-block; text-decoration: none; margin: 8px 0; }
+.banco-central #bc-cerrar {
+  margin-left: auto;
+  background: #f4f7f2;
+  color: #06241c;
+}
+.banco-central section { margin-top: 12px; padding-top: 8px; border-top: 1px solid #1f6b52; }
+.banco-central ol { margin: 6px 0 0; padding-left: 18px; }
+.banco-central.cerrado { border-color: #8fb9a8; }
+.banco-central[hidden] { display: none !important; }

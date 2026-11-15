@@ -24,6 +24,17 @@ NOMBRES = {
 }
 SAFE = {'cobble', 'path', 'grass', 'grass_worn', 'grass_flowers', 'bridge', 'asphalt', 'pavement'}
 COOLDOWN = 2.5
+# La misma marcha que play/caballo.js: 4.2 casillas/s a pie, × MOUNT_SPEED a caballo.
+WALK_SPEED = 4.2
+MOUNT_SPEED = 2.2
+HORSE_SPEED = WALK_SPEED * MOUNT_SPEED
+STEP_SLACK = 1.35
+STEP_BURST = 1.25
+# Puertas de salida. Coinciden con play/casa.js (PARK_STAND) y play/banco.js (OUTSIDE).
+PORTALS = {
+    'casa': (94, 267),
+    'banco': (113, 257),
+}
 
 
 class ViajeError(Exception):
@@ -97,6 +108,28 @@ def resolve(world, dest_id):
     if not walkable(world, x, y) or _kind(world, x, y) == 'water':
         raise ViajeError('el destino no es caminable')
     return {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind']}
+
+
+def step_allowed(step, dt):
+    """Un paso de a pie o a caballo cabe. Un salto de decenas de casillas, no."""
+    step = abs(float(step or 0))
+    if step <= 0:
+        return True
+    dt = max(0.05, min(2.0, float(dt)))
+    return step <= HORSE_SPEED * STEP_SLACK * dt + STEP_BURST
+
+
+def portal_arrival(zone, x, y, back=None):
+    """La primera casilla al salir de un interior es la puerta, no un punto cualquiera."""
+    if zone == 'mine':
+        if not back or back[0] is None or back[1] is None:
+            return True
+        ax, ay = float(back[0]), float(back[1])
+    elif zone in PORTALS:
+        ax, ay = PORTALS[zone]
+    else:
+        return True
+    return max(abs(float(x) - ax), abs(float(y) - ay)) <= 3
 
 
 class Gate:

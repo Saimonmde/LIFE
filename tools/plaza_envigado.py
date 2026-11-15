@@ -1,14 +1,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Recompone el Parque de Envigado con el tamaño real que cabe en el plano.
 
-OpenStreetMap (vía 154893173) dibuja el parque como un cuadrado de 73.1 m de lado,
-girado 32° respecto al norte verdadero porque sigue el damero (calles 37 y 38 Sur,
-carreras 42 y 43). Aquí el norte del juego es -y y la casilla mide 2 m, así que el
-prado es un cuadrado alineado de 36×36 casillas (72 m).
+OpenStreetMap (vía 154893173) mide el parque unos 73.5 × 72.7 m, girado unos 32°
+respecto al norte verdadero porque sigue el damero (calles 37 y 38 Sur, carreras 42
+y 43). Aquí el norte del juego es -y y la casilla mide 2 m, así que el prado jugable
+es un cuadrado alineado de 36×36 casillas (72 m).
 
-La iglesia (vía 552362722, y 71×33 varas ≈ 59×28 m) va al oriente. La fachada usa
-los 28 m. La nave queda en 12 m: el plano está plano solo hasta x=125 y la loma
-empieza en x=126. No se mueve la puerta, el caballo, el oro del arroyo ni el skate.
+La iglesia (vía 552362722) mide unos 50.3 × 46.4 m y queda al este-sureste, a unos
+7 m, sobre la Carrera 42. La fachada del juego usa 28 m. La nave queda en 12 m: el
+plano está plano solo hasta x=125 y la loma empieza en x=126. No se mueve la puerta,
+el caballo, el oro del arroyo ni el skate.
 
 La escala del valle (7.2 casillas/km) no se toca. Son dos escalas y se dejan escritas.
 """
@@ -25,7 +26,7 @@ SKATE = {(x, y) for x in range(84, 87) for y in (273, 274)}
 KEEP = PROTECTED | SKATE
 GRASS, PATH, COBBLE = '0', '10', '104'
 
-# Prado de 72 m. El cuadrado OSM mide 73.1 m; la casilla de juego mide 2 m.
+# Prado jugable de 72 m. OSM mide unos 73.5 × 72.7 m, girados ~32°; la casilla mide 2 m.
 LAWN = (83, 118, 249, 284)  # x0, x1, y0, y1 inclusive
 CHURCH = (120, 259, 6, 14)  # x, y, w, h → 12 m de fondo por 28 m de fachada
 ROAD_BOX = (83, 249, 125, 284)
@@ -170,10 +171,10 @@ def main():
         'osm': {
             'parkWay': 154893173,
             'parkName': 'Parque Principal Marceliano Vélez',
-            'squareSide_m': 73.1,
-            'square_m': [73.1, 73.2],
+            'squareSide_m': 73.5,
+            'square_m': [73.5, 72.7],
             'area_m2': 5349,
-            'rotationFromTrueNorth_deg': 45,
+            'rotationFromTrueNorth_deg': 32,
             'streets': {
                 'nw': 'Carrera 43, peatonal',
                 'se': 'Carrera 42, lado de la iglesia',
@@ -186,7 +187,9 @@ def main():
             'monuments': 'Omitidos. Nunca el bronce del Primer Poblado.',
             'churchWay': 552362722,
             'churchName': 'Iglesia de Santa Gertrudis',
-            'churchGap_m': 7.3,
+            'churchGap_m': 7,
+            'churchSide': 'este-sureste',
+            'churchFootprint_m': [50.3, 46.4],
             'churchCentroid_m': 74,
             'churchLong_m': 59.5,
             'churchBody_m': 45,
@@ -195,8 +198,9 @@ def main():
             'churchBBox_m': [55.6, 57.4],
             'churchVaras': '71 x 33 varas. 1 vara castellana = 0.8359 m, o sea 59.3 m por 27.6 m. La nave citada mide 54 varas (45.1 m). El ancho de 54.7 m en OSM incluye anexos.',
             'fetched': '2026-11-13',
-            'license': 'OpenStreetMap, ODbL',
-            'source': 'OpenStreetMap, ODbL, vía 154893173 y vía 552362722. Dossier del diseñador, 13 nov 2026.',
+            'license': '© OpenStreetMap contributors, ODbL',
+            'attribution': '© OpenStreetMap contributors, ODbL',
+            'source': '© OpenStreetMap contributors, ODbL. Vía 154893173 y vía 552362722. Dossier del diseñador, 13 nov 2026.',
         },
         'play': {
             'lawnTiles': {'x0': x0, 'x1': x1, 'y0': y0, 'y1': y1},

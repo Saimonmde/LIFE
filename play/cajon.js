@@ -179,6 +179,8 @@
       '<button type="button" id="cajon-barra">Barra rápida</button>',
       '<button type="button" id="cajon-simon">Simon</button>',
       '<button type="button" id="cajon-ajustes">Ajustes de la pantalla</button>',
+      '<button type="button" id="cajon-finca">Cafetal de Las Palmas</button>',
+      '<button type="button" id="cajon-libro">Libro Mayor</button>',
       '<div id="cajon-panel"></div>',
     ].join('');
     const closer = document.createElement('button');
@@ -211,6 +213,8 @@
     $('#cajon-simon').onclick = () => { location.href = '/play/simon.html'; };
     $('#cajon-ajustes').onclick = () => { const start = $('#hud-edit-start'); if (start) start.click(); };
     if (window.Sonido) Sonido.bind();
+    const openFinca = $('#cajon-finca'); if (openFinca) openFinca.onclick = () => { if (window.Finca) Finca.openPanel(); closeDrawer(); };
+    const openLibro = $('#cajon-libro'); if (openLibro) openLibro.onclick = () => { if (window.Finca) Finca.openLibro(); closeDrawer(); };
     let startX = 0;
     menu.addEventListener('pointerdown', (e) => { startX = e.clientX; });
     menu.addEventListener('pointerup', (e) => { if (e.clientX - startX > 70) closeDrawer(); });

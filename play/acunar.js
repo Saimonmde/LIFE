@@ -4,17 +4,26 @@
   'use strict';
   const $ = (s) => document.querySelector(s);
   const RATES = {
-    simoncoin: { item: 'pepita_oro', rate: 5, name: 'Simoncoin', metal: 'oros crudos', cap: 0.25 },
+    simoncoin: { item: 'pepita_oro', items: ['pepita_oro', 'mineral_oro'], rate: 5, name: 'Simoncoin', metal: 'oros crudos', cap: 0.25 },
     simonplata: { item: 'mineral_plata', rate: 4, name: 'Simonplata', metal: 'plata cruda', cap: 5 },
     simonchis: { item: 'mineral_cobre', rate: 3, name: 'Simonchis', metal: 'cobre crudo', cap: 200, whole: true },
   };
   let coin = 'simoncoin';
   let pieces = 0;
+  let busy = false;
 
   function count(id) {
     const S = window.__ELJARDIN;
     if (!S || !S.inv) return 0;
-    return S.inv.reduce((sum, slot) => sum + (slot && slot.item === id ? slot.qty : 0), 0);
+    return S.inv.reduce((sum, slot) => sum + (slot && slot.item === id ? Number(slot.qty) || 0 : 0), 0);
+  }
+  function countRow(row) {
+    const ids = row.items && row.items.length ? row.items : [row.item];
+    return ids.reduce((sum, id) => sum + count(id), 0);
+  }
+  function enMina() {
+    const world = window.LiveInk && LiveInk.world;
+    return !!(world && world.mapId === 'mine');
   }
   function spec() {
     const live = window.__ELJARDIN && __ELJARDIN.cupos && __ELJARDIN.cupos.coins;
@@ -23,6 +32,7 @@
     if (!row) return base;
     return {
       item: row.item || base.item,
+      items: row.items || base.items || [row.item || base.item],
       rate: row.rate || base.rate,
       name: row.name || base.name,
       metal: row.metal || base.metal,
@@ -38,9 +48,9 @@
     const world = row.room != null ? row.room : 1e15;
     const reach = have / rate;
     const ceiling = Math.min(reach, daily, world);
-    let maxPieces = Math.min(have, Math.floor(ceiling * rate + 1e-9));
+    let maxPieces = Math.min(have, ceiling * rate);
     if (row.whole) maxPieces = Math.floor(maxPieces / rate) * rate;
-    let spend = Math.max(0, Math.min(have, chosen == null ? maxPieces : chosen | 0));
+    let spend = Math.max(0, Math.min(have, chosen == null ? maxPieces : Number(chosen) || 0));
     spend = Math.min(spend, maxPieces);
     if (row.whole) spend = Math.floor(spend / rate) * rate;
     return { tienes: have, alcanzan: reach, hoy: daily, cap: row.cap, maxPieces, gastas: spend, recibes: spend / rate };
@@ -72,7 +82,7 @@
       '<p id="acunar-alcanzan"></p>',
       '<p id="acunar-hoy"></p>',
       '<p id="acunar-vas"></p>',
-      '<input id="acunar-cantidad" type="range" min="0" value="0" aria-label="Cuánto metal gastar">',
+      '<input id="acunar-cantidad" type="range" min="0" value="0" step="0.05" aria-label="Cuánto metal gastar">',
       '<button type="button" class="grande" id="acunar-ok">Acuñar</button>',
       '<button type="button" class="grande" id="acunar-ir" hidden>Ir a la mina / Picar</button>',
     ].join('');
@@ -98,7 +108,8 @@
   function paint(resetSlider) {
     ensure();
     const row = spec();
-    const have = count(row.item);
+    const have = countRow(row);
+    const aqui = enMina();
     if (resetSlider !== false && pieces == null) pieces = null;
     const q = quote(have, row, pieces);
     if (pieces == null) pieces = q.maxPieces;
@@ -106,11 +117,24 @@
     $('#acunar-tienes').textContent = `Tienes: ${num(shown.tienes)} ${row.metal}`;
     $('#acunar-alcanzan').textContent = `Con eso alcanzan: ${num(shown.alcanzan)} ${row.name}`;
     $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.)`;
-    $('#acunar-vas').textContent = have < 1
-      ? 'Ve a la mina a picar metal'
-      : `Vas a recibir: ${num(shown.recibes)} ${row.name} y gastas: ${num(shown.gastas)} ${row.metal}`;
     const ir = $('#acunar-ir');
-    if (ir) ir.hidden = have > 0;
+    if (!aqui) {
+      $('#acunar-vas').textContent = 'Ve al horno de la mina';
+      if (ir) { ir.hidden = false; ir.textContent = 'Ve al horno de la mina'; }
+      $('#acunar-ok').disabled = true;
+    } else if (have < 0.05) {
+      $('#acunar-vas').textContent = 'Pica una veta: todavía no tienes metal.';
+      if (ir) ir.hidden = true;
+      $('#acunar-ok').disabled = true;
+    } else {
+      $('#acunar-vas').textContent = `Vas a recibir: ${num(shown.recibes)} ${row.name} y gastas: ${num(shown.gastas)} ${row.metal}`;
+      if (ir) ir.hidden = true;
+      $('#acunar-ok').disabled = busy || shown.gastas <= 0;
+    }
+    if (busy) {
+      $('#acunar-vas').textContent = 'Calculando prueba…';
+      $('#acunar-ok').disabled = true;
+    }
     const slider = $('#acunar-cantidad');
     slider.max = String(shown.maxPieces);
     slider.value = String(shown.gastas);
@@ -129,22 +153,63 @@
   }
   function send() {
     const row = spec();
-    const shown = quote(count(row.item), row, pieces);
+    const shown = quote(countRow(row), row, pieces);
     const S = window.__ELJARDIN;
     const ws = S && S.net && S.net.ws;
     if (!ws || !S.net.ok) {
       $('#acunar-vas').textContent = 'Hace falta el servidor para acuñar. El metal sigue en la mochila.';
       return;
     }
+    if (!enMina()) {
+      $('#acunar-vas').textContent = 'Ve al horno de la mina';
+      return;
+    }
+    busy = true;
     ws.send(JSON.stringify({ t: 'acunar', coin, pieces: shown.gastas }));
+    $('#acunar-vas').textContent = 'Calculando prueba…';
     $('#acunar-ok').disabled = true;
   }
+  function fallo(m) {
+    busy = false;
+    paint();
+    const box = $('#acunar-vas');
+    if (box) box.textContent = (m && m.reason) || 'No se pudo acuñar.';
+    const ok = $('#acunar-ok');
+    if (ok && enMina()) ok.disabled = false;
+  }
   function onNet(m) {
-    if (!m || m.t !== 'acunar_result') return false;
+    if (!m) return false;
+    if (m.t === 'pow_challenge' && m.resume && m.resume.t === 'acunar') {
+      busy = true;
+      const box = $('#acunar-vas');
+      if (box) box.textContent = 'Calculando prueba…';
+      const ok = $('#acunar-ok');
+      if (ok) ok.disabled = true;
+      return false;
+    }
+    if ((m.t === 'pow_result' || m.t === 'smelt_result') && m.ok === false && !m.needPow) {
+      fallo(m);
+      return false;
+    }
+    if (m.t === 'acunar_result' && m.pending) {
+      busy = true;
+      const box = $('#acunar-vas');
+      if (box) box.textContent = 'Calculando prueba…';
+      const ok = $('#acunar-ok');
+      if (ok) ok.disabled = true;
+      return true;
+    }
+    if (m.t !== 'acunar_result') return false;
+    busy = false;
     if (m.cupos && window.__ELJARDIN) __ELJARDIN.cupos = m.cupos;
     if (m.ledger && window.__ELJARDIN) __ELJARDIN.ledger = m.ledger;
-    if (m.ok && window.Sonido) Sonido.fromMint(m);
-    if (m.ok && m.item && m.spent && window.quitarDelInventario) quitarDelInventario(m.item, m.spent);
+    if (m.crudo && window.ponerMetal) {
+      Object.keys(m.crudo).forEach(id => window.ponerMetal(id, m.crudo[id]));
+    } else if (m.ok && m.spentItems && window.quitarMetal) {
+      Object.keys(m.spentItems).forEach(id => window.quitarMetal(id, m.spentItems[id]));
+    }
+    if (!m.ok) return fallo(m), true;
+    if (window.Sonido) Sonido.fromMint(m);
     if (window.Cajon) Cajon.paint();
     paint();
     const box = $('#acunar-vas');

@@ -55,6 +55,16 @@
     '</ol>',
     '<p>Montar: <kbd>M</kbd> o <kbd>E</kbd>, o el botón <b>Montar</b>. <b>Bajarse del caballo</b> aparece mientras vas montado. A caballo no se entra a la casa.</p>',
     '</section>',
+    '<section class="inst-card inst-wide">',
+    '<h2>Café y cacao en Las Palmas</h2>',
+    '<p>Plantas en una parcela.</p>',
+    '<p>Cosechas cuando está maduro.</p>',
+    '<p>En el taller procesas el fruto.</p>',
+    '<p>Vendes el bulto si la casa tiene monedas.</p>',
+    '<p>El café está junto al cacao. Veinte minutos reales son un día de juego.</p>',
+    '<p>En el café despulpas, secas y tuestas. En el cacao fermentas y secas. Diez cosechas dan dos bultos.</p>',
+    '<p>El Libro mayor muestra los kilos y los bultos. No dice quién.</p>',
+    '</section>',
     '<p class="inst-actions"><button type="button" id="instructivo-saltar">Entendido</button></p>',
   ].join('');
 

@@ -1,0 +1,62 @@
+{
+  "buyer": "casa_de_contratacion",
+  "buyerName": "Casa de Contratación de Aburrá",
+  "seedSimoncoin": "2000",
+  "dailySellCapBags": 4,
+  "realSecondsPerGameDay": 1200,
+  "stepSeconds": 8,
+  "harvestsPerBatch": 10,
+  "bagsPerBatch": 2,
+  "greenAfterDays": 1,
+  "ripeAfterDays": 2,
+  "plots": { "cafe": 8, "cacao": 8 },
+  "edu": {
+    "phases": ["siembra", "crecimiento", "floracion", "fruto", "cosecha"],
+    "cafe": [
+      { "id": "despulpado", "label": "Despulpado" },
+      { "id": "fermentacion", "label": "Fermentación" },
+      { "id": "lavado", "label": "Lavado" },
+      { "id": "secado", "label": "Secado" },
+      { "id": "trilla", "label": "Trilla" },
+      { "id": "bulto", "label": "Bulto" }
+    ],
+    "cacao": [
+      { "id": "quiebre", "label": "Quiebre" },
+      { "id": "fermentacion", "label": "Fermentación en cajones" },
+      { "id": "secado", "label": "Secado" },
+      { "id": "seleccion", "label": "Selección" },
+      { "id": "libro", "label": "Kilos al Libro Mayor" }
+    ]
+  },
+  "crops": {
+    "cafe": {
+      "name": "Café",
+      "kgPerHarvest": 1,
+      "harvestItem": "cafe_cereza",
+      "harvestName": "Café cereza",
+      "product": "Café tostado",
+      "bagKg": 70,
+      "serialPrefix": "CAF",
+      "steps": [
+        { "id": "despulpado", "label": "Despulpar" },
+        { "id": "secado", "label": "Secar" },
+        { "id": "tostado", "label": "Tostar" }
+      ],
+      "prices": { "simoncoin": "0.05", "simonplata": "2", "simonchis": 80 }
+    },
+    "cacao": {
+      "name": "Cacao",
+      "kgPerHarvest": 2,
+      "harvestItem": "cacao_baba",
+      "harvestName": "Cacao en baba",
+      "product": "Cacao seco",
+      "bagKg": 50,
+      "serialPrefix": "CAC",
+      "steps": [
+        { "id": "fermentado", "label": "Fermentar" },
+        { "id": "secado", "label": "Secar" }
+      ],
+      "prices": { "simoncoin": "0.04", "simonplata": "1.5", "simonchis": 60 }
+    }
+  }
+}

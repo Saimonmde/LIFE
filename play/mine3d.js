@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Independent underground map, built from the same collision grid used by movement.
+import {attachFinca} from './finca3d.js?v=sara-r1';
 export function buildMine(T,W){
  const map=W.caveDefinition,scene=new T.Scene();scene.background=new T.Color('#130e0b');scene.fog=new T.Fog('#1c130e',38,100);scene.add(new T.HemisphereLight(0xe6bf83,0x503c27,.95));const fill=new T.DirectionalLight(0xe4c79b,.75);fill.position.set(20,45,25);scene.add(fill);
  const pick=[],resources=new Map(),materials=new Map();const mat=c=>{if(!materials.has(c))materials.set(c,new T.MeshLambertMaterial({color:c,flatShading:true}));return materials.get(c);};
@@ -26,5 +27,6 @@ export function buildMine(T,W){
  // Timber supports and a wooden mine cart echo the supplied low-poly references.
  for(const x of [9,61]){box(x,2.3,27,.6,4.6,.6,'#3d291b');box(x,4.6,27,5,.5,.6,'#67472b');}
  box(22,.7,37,2.2,1.1,1.5,'#493b2e');for(const x of [21.2,22.8])for(const z of [36.3,37.7])mesh(new T.CylinderGeometry(.3,.3,.15,8),'#282626',x,.25,z).rotation.x=Math.PI/2;
- return {scene,pick,update(state,time){for(const [id,r] of resources){if(r.veins){const active=state.nodes.get(id)?.state==='active';for(const v of r.veins)v.visible=active;r.g.scale.y=active?1:.48;}if(r.light){r.light.intensity=(time<state.forgeUntil?75:48)+Math.sin(time*.012)*4;r.fire.color.set(time<state.forgeUntil?'#ffd25b':'#ff8b28');}}}};
+ const finca=attachFinca(T,scene,{x:30,y:0,z:46,pick,lamp:true});
+ return {scene,pick,finca,update(state,time){for(const [id,r] of resources){if(r.veins){const active=state.nodes.get(id)?.state==='active';for(const v of r.veins)v.visible=active;r.g.scale.y=active?1:.48;}if(r.light){r.light.intensity=(time<state.forgeUntil?75:48)+Math.sin(time*.012)*4;r.fire.color.set(time<state.forgeUntil?'#ffd25b':'#ff8b28');}}}};
 }

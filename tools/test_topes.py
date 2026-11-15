@@ -19,15 +19,25 @@ class ConversionTests(unittest.TestCase):
     def test_daily_cap_beats_a_full_bag(self):
         quote = topes.cotizar(100, 5, 0.25, 21_000_000)
         self.assertEqual(quote['alcanzan'], 20)
-        self.assertEqual(quote['gastas'], 1)
-        self.assertAlmostEqual(quote['recibes'], 0.2)
-        self.assertEqual(quote['sobran'], 99)
+        self.assertAlmostEqual(quote['recibes'], 0.25)
+        self.assertAlmostEqual(quote['gastas'], 1.25)
+        self.assertAlmostEqual(quote['sobran'], 98.75)
+
+    def test_two_nuggets_fill_the_quarter_cap(self):
+        quote = topes.cotizar(2, 5, 0.25, 21_000_000)
+        self.assertAlmostEqual(quote['recibes'], 0.25)
+        self.assertAlmostEqual(quote['gastas'], 1.25)
 
     def test_global_cap_can_stop_the_mint(self):
-        quote = topes.cotizar(100, 5, 6.25, 0.1)
+        quote = topes.cotizar(100, 5, 6.25, 0)
         self.assertEqual(quote['gastas'], 0)
         self.assertEqual(quote['recibes'], 0)
         self.assertEqual(quote['sobran'], 100)
+
+    def test_a_small_global_remainder_is_still_mintable(self):
+        quote = topes.cotizar(100, 5, 6.25, 0.1)
+        self.assertAlmostEqual(quote['recibes'], 0.1)
+        self.assertAlmostEqual(quote['gastas'], 0.5)
 
     def test_silver_and_copper_use_their_rates(self):
         silver = topes.cotizar(8, topes.DEFAULT_PLATA_POR_MONEDA, 5, 84_000_000, pieces=8)

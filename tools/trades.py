@@ -194,8 +194,18 @@ def apply_exchange(econ, vault, chain, seed, name_a, name_b, offer_a, offer_b, t
             'items': purses.inventory(vault, name),
         }
 
-    if not _covers(holdings(name_a), offer_a) or not _covers(holdings(name_b), offer_b):
+    balance_a, balance_b = holdings(name_a), holdings(name_b)
+    if not _covers(balance_a, offer_a) or not _covers(balance_b, offer_b):
         raise TradeError('Saldo insuficiente')
+    # Validate final quantities, including the space released by the recipient's
+    # own offer. purses.credit caps a stack and would silently discard excess.
+    for balance, outgoing, incoming in (
+        (balance_a, offer_a, offer_b), (balance_b, offer_b, offer_a),
+    ):
+        for item, qty in incoming['items'].items():
+            final = int(balance['items'].get(item) or 0) - outgoing['items'].get(item, 0) + qty
+            if final > purses.MAX_STACK:
+                raise TradeError('No hay espacio para todos los objetos. Ajusten las ofertas.')
     for name, offer in ((name_a, offer_a), (name_b, offer_b)):
         if offer['smc'] and not economy.debit(econ, name, offer['smc']):
             raise TradeError('Saldo insuficiente')
@@ -212,10 +222,14 @@ def apply_exchange(econ, vault, chain, seed, name_a, name_b, offer_a, offer_b, t
     for item, qty in offer_a['items'].items():
         if not purses.debit(vault, name_a, item, qty):
             raise TradeError('Saldo insuficiente')
-        purses.credit(vault, name_b, item, qty)
     for item, qty in offer_b['items'].items():
         if not purses.debit(vault, name_b, item, qty):
             raise TradeError('Saldo insuficiente')
+    # Remove both offers before crediting either side: a simultaneous exchange
+    # must not overflow temporarily when both stacks started at capacity.
+    for item, qty in offer_a['items'].items():
+        purses.credit(vault, name_b, item, qty)
+    for item, qty in offer_b['items'].items():
         purses.credit(vault, name_a, item, qty)
     records = []
     for origin, dest, amount in (

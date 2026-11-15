@@ -69,7 +69,20 @@ REASONS = {
 }
 
 
-def reason_text(code):
+def reason_text(code, seconds=None):
+    if code == 'cooldown':
+        left = int(seconds or 0)
+        if left > 0:
+            return f'Espera {left} s para volver a acuñar.'
+        return 'Espera un momento para volver a acuñar.'
+    if code == 'activity':
+        return 'Muévete un poco dentro de la mina antes de acuñar.'
+    if code == 'wallet':
+        return 'Esta billetera se creó en otro aparato. Puedes jugar, pero no acuñar con ese nombre.'
+    if code == 'cap':
+        return 'Llegaste al tope de hoy. Mañana se abre otro tramo.'
+    if code == 'rate':
+        return REASONS['rate']
     return REASONS.get(code, 'No se pudo emitir SMC.')
 
 
