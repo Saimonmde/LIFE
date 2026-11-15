@@ -4,23 +4,33 @@
   'use strict';
   const html = [
     '<header><strong>Cómo se juega</strong><button type="button" id="instructivo-cerrar" aria-label="Cerrar">✕</button></header>',
-    '<p class="inst-lead">Una idea por línea. El botón <b>?</b> abre esto otra vez.</p>',
+    '<p class="inst-lead">Este texto sale la primera vez. Lo podés saltar. Si lo necesitás después, tocá <b>?</b> o buscalo en la rueda <b>⚙</b>.</p>',
     '<section class="inst-card inst-wide" id="inst-web">',
-    '<h2>El juego</h2>',
+    '<h2>En la computadora</h2>',
     '<p class="inst-aqui" hidden>Estás aquí.</p>',
-    '<p>🏙 Saimon City. Valle de Aburrá. El año es 1777.</p>',
-    '<p>⛏ Ve a la mina. Pica el metal.</p>',
-    '<p>🪙 En el horno, Acuñar guarda las monedas en tu inventario. Así armas tu reserva.</p>',
-    '<p>🏠 <b>Descansar</b> / Ir a casa. Tu mascota te espera.</p>',
+    '<p>Para caminar en <span>/play/</span>, usá <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> o las flechas. La flecha hacia arriba avanza hacia el fondo de la pantalla. También podés hacer clic en el suelo.</p>',
+    '<p>Abajo a la izquierda hay un palito redondo: arrastralo y también camina.</p>',
+    '<p>Para mirar, arrastrá el mouse. <kbd>Shift</kbd> y las flechas giran o inclinan. <kbd>Z</kbd> y arriba acerca. <kbd>Z</kbd> y abajo aleja.</p>',
+    '<p>Para usar algo, hacé clic en la puerta, el árbol, la roca o la persona. Si está lejos, caminás hasta allá.</p>',
     '</section>',
     '<section class="inst-card inst-wide" id="inst-movil">',
-    '<h2>Cómo moverte</h2>',
+    '<h2>En el celular</h2>',
     '<p class="inst-aqui" hidden>Estás aquí.</p>',
-    '<p>🖥 En <span>/play/</span>: clic en el suelo, o <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd>.</p>',
-    '<p>📱 En <span>/movil/</span>: arrastra el joystick.</p>',
-    '<p>🏃 En el celular no hay un botón de correr. Con teclado, mantén <kbd>X</kbd> y camina.</p>',
-    '<p>🚪 <b>Salir al Parque</b> te deja fuera. La puerta de la casa hace lo mismo.</p>',
-    '<p>👋 <b>Cerrar sesión</b> está en ⚙ y dentro de la casa. Pregunta antes de salir.</p>',
+    '<p>En <span>/movil/</span>, arrastrá el joystick, el palito redondo de abajo a la izquierda. O tocá el suelo para caminar hasta ese punto.</p>',
+    '<p>🏃 En el celular no hay un botón de correr. Con teclado, mantené <kbd>X</kbd> y una tecla de caminar. A caballo no se corre con <kbd>X</kbd>.</p>',
+    '<p>Arrastrá un dedo para girar la vista. Pellizcá para acercar o alejar. Tocá la puerta, el árbol, la roca o la persona.</p>',
+    '<p>El botón <b>Chat</b> abre el chat. El botón <b>☰ Menú</b> muestra las herramientas. <b>Amigos</b> está bajo la rueda o dentro de <b>⚙</b>.</p>',
+    '</section>',
+    '<section class="inst-card inst-wide">',
+    '<h2>Salir con calma</h2>',
+    '<p>🏠 Tocá <b>Descansar</b> para guardar y volver a la entrada. Tu mascota te espera en casa.</p>',
+    '<p>🚪 <b>Salir al Parque</b> te deja en el Parque de Envigado. La puerta de la casa hace lo mismo. El botón <b>Casa</b> te devuelve.</p>',
+    '<p>👋 Si entraste con cuenta, <b>Cerrar sesión</b> está en <b>⚙</b> y dentro de la casa. Cierra la sesión y no borra la cuenta. Pregunta antes de salir.</p>',
+    '<p>Para montar, usá <kbd>M</kbd> o <kbd>E</kbd>, o el botón <b>Montar</b>. A caballo no se entra a la casa.</p>',
+    '</section>',
+    '<section class="inst-card inst-wide" id="inst-monedas">',
+    '<h2>Tus primeras monedas</h2>',
+    '<p>No son dinero real. No se venden ni se canjean por plata de verdad. Los números del día los dice el letrero de la mina.</p>',
     '</section>',
     '<section class="inst-card inst-wide">',
     '<h2>Café y cacao</h2>',
@@ -70,8 +80,32 @@
       document.querySelector('#inst-movil .inst-aqui').hidden = true;
     }
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
-  else mount();
+  function paintMonedas(board) {
+    const box = document.getElementById('inst-monedas');
+    if (!box || !board || !Array.isArray(board.lines) || !board.lines.length) return;
+    const title = box.querySelector('h2');
+    box.replaceChildren();
+    if (title) box.append(title);
+    const note = document.createElement('p');
+    note.textContent = 'No son dinero real. No se venden ni se canjean por plata de verdad.';
+    box.append(note);
+    board.lines.forEach((line) => {
+      const p = document.createElement('p');
+      p.textContent = line;
+      box.append(p);
+    });
+    const more = document.createElement('p');
+    more.textContent = 'La tecla L abre el Libro Mayor.';
+    box.append(more);
+  }
+  function loadMonedas() {
+    fetch('/reglas-mina', { cache: 'no-store', credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then(paintMonedas)
+      .catch(() => {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { mount(); loadMonedas(); });
+  else { mount(); loadMonedas(); }
   new MutationObserver(() => {
     const menu = document.getElementById('hud-gear-menu');
     if (menu && !document.getElementById('cajon-instructivo') && document.getElementById('instructivo')) {

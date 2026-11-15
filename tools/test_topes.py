@@ -86,8 +86,13 @@ class LetreroTests(unittest.TestCase):
         import cobre
         board = topes.letrero()
         text = '\n'.join(board['lines'])
-        self.assertIn('Puedes picar todo el mineral que quieras.', text)
-        self.assertIn('Lo que tiene tope diario es convertirlo en monedas.', text)
+        self.assertIn('Picar no tiene tope.', text)
+        self.assertIn('Podés picar las veces que quieras.', text)
+        self.assertIn('vuelve en ' + topes._cantidad(topes.VEIN_ORO_S) + ' segundos.', text)
+        self.assertIn('La plata vuelve en ' + topes._cantidad(topes.VEIN_PLATA_S) + ' segundos', text)
+        self.assertIn('el cobre en ' + topes._cantidad(topes.VEIN_COBRE_S) + ' segundos.', text)
+        game = open(os.path.join(os.path.dirname(__file__), '..', 'play', 'game.js'), encoding='utf-8').read()
+        self.assertIn("respawnMs:metal==='oro'?%d:%d" % (topes.VEIN_ORO_S * 1000, topes.VEIN_PLATA_S * 1000), game)
         self.assertIn(str(topes.rate('simoncoin')) + ' oros crudos hacen 1 Simoncoin.', text)
         self.assertIn(str(topes.rate('simonplata')) + ' de plata cruda hacen 1 Simonplata.', text)
         self.assertIn(str(topes.rate('simonchis')) + ' de cobre crudo hacen 1 Simonchis.', text)
@@ -101,7 +106,9 @@ class LetreroTests(unittest.TestCase):
         self.assertIn(topes._cantidad(economy.MAX_SUPPLY), text)
         self.assertIn(topes._cantidad(plata.MAX_SUPPLY), text)
         self.assertIn(topes._cantidad(cobre.MAX_SUPPLY), text)
-        self.assertIn('Bitcoin', text)
+        self.assertIn('sube hasta ' + topes._cantidad(top) + ' con recompensas', text)
+        self.assertIn('más bonos:', text)
+        self.assertIn('Con esos bonos sube hasta ' + topes._cantidad(topes.simonplata_daily_sph(60 * 86400, 40 * 3600, 10) / topes.SUBS), text)
         self.assertNotIn('21.000.000', '\n'.join(open(os.path.join(os.path.dirname(__file__), '..', 'play', 'letrero.js'), encoding='utf-8').read().split('fetch')[0]))
 
     def test_sign_follows_an_env_change_and_shows_what_is_left_today(self):

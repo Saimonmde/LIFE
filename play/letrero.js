@@ -66,7 +66,7 @@
     panel.hidden = true;
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', 'Reglas de la mina');
-    panel.innerHTML = '<header><strong>Reglas de la mina</strong><button type="button" id="letrero-cerrar" aria-label="Cerrar">✕</button></header><p id="letrero-cuenta"></p><div id="letrero-hoy"></div><div id="letrero-texto"></div><div id="letrero-pasos"></div>';
+    panel.innerHTML = '<header><strong>Reglas de la Mina de Las Palmas</strong><button type="button" id="letrero-cerrar" aria-label="Cerrar">✕</button></header><p id="letrero-cuenta"></p><div id="letrero-hoy"></div><div id="letrero-texto"></div><div id="letrero-pasos"></div>';
     document.body.append(panel);
     panel.querySelector('#letrero-cerrar').onclick = () => close();
     return panel;

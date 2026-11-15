@@ -131,7 +131,7 @@
     const feed = [].concat(finca.feed || [], data.extraFeed || []).slice(0, 12);
     const feedHtml = feed.length ? feed.map(line => `<li>${esc(line)}</li>`).join('') : '<li>Todavía no hay movimientos. El libro te lo dice con calma.</li>';
     return `<div class="libro-publico-cuerpo">` +
-      `<p class="libro-lead">Este libro es la memoria de las monedas del juego. Las monedas no son dinero real. El libro público no dice quién.</p>` +
+      `<p class="libro-lead">Este libro es la memoria de las monedas del juego. Acá ves lo que se acuñó. Es una simulación. Las monedas no son dinero real. No se retiran ni se canjean por plata de verdad. El libro público no dice quién.</p>` +
       `<div class="libro-grid">${cropHtml}</div>` +
       `<div class="libro-grid">${coinHtml}</div>` +
       ingotHtml +
