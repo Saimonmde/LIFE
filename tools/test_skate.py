@@ -38,6 +38,15 @@ class SkateTests(unittest.TestCase):
         self.assertIn('El Poblado', stage['box'])
         self.assertTrue(self._reaches(stand, (50, 267)))
         self.assertTrue(self._reaches(stand, (51, 267)))
+        hogares = load('data/hogares.json')
+        envigado = next(item for item in hogares['casas'] if item['id'] == 'envigado')
+        door = (envigado['x'], envigado['y'])
+        self.assertEqual(door, (94, 267))
+        self.assertEqual(self.world['collision'][door[1]][door[0]], 0)
+        self.assertNotIn(tiles[str(self.world['ground'][door[1]][door[0]])]['kind'], ('water', 'creek'))
+        self.assertIn('Hogar.stand(S.me.municipio)', self.game)
+        self.assertIn('Casa.PARK_STAND', self.game)
+        self.assertTrue(self._reaches(door, (50, 267)))
 
     def test_skate_park_uses_the_osm_node_and_stays_clear(self):
         cfg = json.loads(subprocess.check_output(
@@ -60,6 +69,10 @@ class SkateTests(unittest.TestCase):
                 self.assertNotIn(kind, ('water', 'creek', 'bridge'), (x, y))
         church = next(mark for mark in self.world['landmarks'] if mark['id'] == 'itagui')
         self.assertTrue(box['y'] + box['h'] <= church['y'] or box['y'] >= church['y'] + church['h'])
+        with open(os.path.join(ROOT, 'play', 'bridge4sur.js'), encoding='utf-8') as handle:
+            bridge = handle.read()
+        self.assertIn('const X0 = 82, X1 = 138, Y0 = 238, Y1 = 242', bridge)
+        self.assertTrue(box['y'] + box['h'] <= 238 or box['y'] >= 242 or box['x'] + box['w'] <= 82 or box['x'] >= 138)
         self.assertIn("name:'Patinaje'", self.game.replace(' ', ''))
         self.assertIn('patineta', self.game)
         self.assertIn('S.skating ? 1.9', self.game)
