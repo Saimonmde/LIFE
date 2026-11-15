@@ -58,22 +58,32 @@ export function attachFinca(T, parent, opt) {
     g.add(sprite);
     return sprite;
   }
-  function standUrl(key) {
-    const file = pack.stand && pack.stand[key];
-    if (!file) return '';
-    return (pack.base || 'assets/cafe-cacao/') + (pack.v2 || 'v2/') + file;
+  const rev = pack.rev || 'v2-r1';
+  function withRev(url) {
+    return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'v=' + rev;
   }
-  function tryStand(key, x, z, h, id) {
+  // Ancla del pie: (256, 504) px en el PNG de 512, UV (0.5, 0.9844).
+  // En un Sprite el centro es (0.5, 1 - 0.9844) = (0.5, 0.0156).
+  const foot = { x: 0.5, y: 0.0156 };
+  const stands = [];
+  function standUrl(key) {
+    const file = (pack.icons && pack.icons[key]) || (pack.stand && pack.stand[key]);
+    if (!file) return '';
+    return withRev((pack.base || 'assets/cafe-cacao/') + file);
+  }
+  function tryStand(key, x, z, id, hide) {
     const url = standUrl(key);
     if (!url) return null;
     const material = new T.SpriteMaterial({ transparent: true, depthWrite: false });
     const sprite = new T.Sprite(material);
+    sprite.center.set(foot.x, foot.y);
     const baseY = ground(x, z);
-    sprite.position.set(x, baseY + h / 2, z);
-    sprite.scale.set(h * 0.7, h, 1);
+    sprite.position.set(x, baseY, z + 0.2);
+    sprite.scale.set(3.2, 3.2, 1);
     sprite.visible = false;
     if (id) { sprite.userData.id = id; pick.push(sprite); }
     g.add(sprite);
+    stands.push(sprite);
     new T.TextureLoader().load(url, (loaded) => {
       const image = loaded.image || {};
       const width = image.width || 0;
@@ -82,10 +92,21 @@ export function attachFinca(T, parent, opt) {
       loaded.colorSpace = T.SRGBColorSpace;
       material.map = loaded;
       material.needsUpdate = true;
-      sprite.scale.set(h * (width / height), h, 1);
+      sprite.center.set(foot.x, foot.y);
       sprite.visible = true;
+      for (const part of hide || []) part.visible = false;
     });
     return sprite;
+  }
+  // v2/anclas.json trae el UV del pie. Si no llega, queda (0.5, 0.0156).
+  if (typeof fetch === 'function' && pack.anchors) {
+    fetch(withRev((pack.base || 'assets/cafe-cacao/') + pack.anchors)).then((res) => res.ok ? res.json() : null).then((doc) => {
+      const uv = doc && doc.cafe && doc.cafe['512'] && doc.cafe['512'].anchor_uv;
+      if (!uv || uv.length < 2) return;
+      foot.x = Number(uv[0]);
+      foot.y = 1 - Number(uv[1]);
+      for (const sprite of stands) sprite.center.set(foot.x, foot.y);
+    }).catch(() => {});
   }
   function shade(x, z) {
     const y0 = ground(x, z);
@@ -153,7 +174,7 @@ export function attachFinca(T, parent, opt) {
     const holder = new T.Group();
     holder.position.set(x, y0, z);
     g.add(holder);
-    tryStand(kind === 'cafe' ? 'workshopCafe' : 'workshopCacao', x, z + 0.15, 2.2, id);
+    tryStand(kind === 'cafe' ? 'workshopCafe' : 'workshopCacao', x, z, id, [wall, roof]);
     label(kind === 'cafe' ? 'TALLER DE CAFÉ' : 'TALLER DE CACAO', x, z + 0.2, id);
     models.push({ holder, sprite: null, crop: kind, station, hide: [wall, roof] });
   }

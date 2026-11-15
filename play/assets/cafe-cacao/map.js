@@ -1,10 +1,9 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Mapa único del arte de Sara para café, cacao, talleres y el Libro Mayor.
    El juego pide estos nombres. Para cambiar un dibujo, se reemplaza el archivo.
-   Sara deja en v2/ los mismos nombres, de pie y sin texto:
-   v2/taller_cafe_lite.png, v2/taller_cacao_lite.png, v2/kg_cosechados.svg.
-   Si el archivo no está, o si sigue siendo una hoja apaisada, se usa el de ahora.
-   Las hojas 16:9 quedan en hojas/. */
+   Los talleres de pie y el kg legible ya están en estos nombres (512×512, fondo
+   transparente). Las anclas del pie están en v2/anclas.json. Las hojas 16:9
+   viejas quedan en hojas/. El lingote no cambió. */
 (function (root, factory) {
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -13,7 +12,9 @@
   return {
     base: 'assets/cafe-cacao/',
     v2: 'v2/',
+    rev: 'v2-r1',
     credit: 'Sara',
+    anchors: 'v2/anclas.json',
     stand: {
       workshopCafe: 'taller_cafe_lite.png',
       workshopCacao: 'taller_cacao_lite.png',

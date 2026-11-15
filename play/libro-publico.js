@@ -67,11 +67,9 @@
     const file = map && map.icons && map.icons[kind];
     if (!file) return '';
     const base = map.base || 'assets/cafe-cacao/';
-    const src = base + file;
-    const stand = map.stand && map.stand[kind];
-    if (!stand) return `<img class="libro-ico-img" src="${esc(src)}" alt="">`;
-    const next = base + (map.v2 || 'v2/') + stand;
-    return `<img class="libro-ico-img" src="${esc(next)}" alt="" data-fallback="${esc(src)}" onerror="this.onerror=null;this.src=this.dataset.fallback">`;
+    const rev = map.rev ? ('?v=' + map.rev) : '';
+    const src = base + file + rev;
+    return `<img class="libro-ico-img" src="${esc(src)}" alt="">`;
   }
 
   function stageRow(crop) {

@@ -31,6 +31,21 @@ for (const crop of ['cafe', 'cacao']) {
   }
 }
 assert.ok(fs.existsSync(path.join(dir, map.manifest)));
+assert.strictEqual(map.rev, 'v2-r1');
+const anchors = JSON.parse(fs.readFileSync(path.join(dir, map.anchors), 'utf8'));
+assert.deepStrictEqual(anchors.cafe['512'].anchor_uv, [0.5, 0.9844]);
+assert.deepStrictEqual(anchors.cacao['512'].anchor_uv, [0.5, 0.9844]);
+function pngSize(file) {
+  const buf = fs.readFileSync(file);
+  return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+}
+for (const name of ['taller_cafe_lite.png', 'taller_cacao_lite.png']) {
+  const size = pngSize(path.join(dir, name));
+  assert.deepStrictEqual(size, { w: 512, h: 512 }, name);
+}
+const kg = fs.readFileSync(path.join(dir, 'kg_cosechados.svg'), 'utf8');
+assert.ok(kg.includes('#0f170b'));
+assert.ok(kg.includes('#f6e7c4'));
 for (const file of Object.values(map.icons)) {
   const bytes = fs.statSync(path.join(dir, file)).size;
   assert.ok(bytes < 80000, file + ' pesa demasiado para el celular: ' + bytes);

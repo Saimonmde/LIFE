@@ -1,0 +1,116 @@
+{
+  "cafe": {
+    "512": {
+      "size": 512,
+      "content": [
+        20,
+        95,
+        492,
+        504
+      ],
+      "anchor_px": [
+        256.0,
+        504
+      ],
+      "anchor_uv": [
+        0.5,
+        0.9844
+      ],
+      "iso_tip_px": [
+        318.5,
+        503
+      ],
+      "iso_tip_uv": [
+        0.6221,
+        0.9844
+      ],
+      "pad_bottom_px": 8,
+      "scale": 0.5268
+    },
+    "1024": {
+      "size": 1024,
+      "content": [
+        41,
+        192,
+        983,
+        1008
+      ],
+      "anchor_px": [
+        512.0,
+        1008
+      ],
+      "anchor_uv": [
+        0.5,
+        0.9844
+      ],
+      "iso_tip_px": [
+        636.5,
+        1007
+      ],
+      "iso_tip_uv": [
+        0.6216,
+        0.9844
+      ],
+      "pad_bottom_px": 16,
+      "scale": 1.0513
+    },
+    "file": "/workspace/sara-saimon/v2/taller_cafe_lite.png"
+  },
+  "cacao": {
+    "512": {
+      "size": 512,
+      "content": [
+        20,
+        101,
+        492,
+        504
+      ],
+      "anchor_px": [
+        256.0,
+        504
+      ],
+      "anchor_uv": [
+        0.5,
+        0.9844
+      ],
+      "iso_tip_px": [
+        344.5,
+        503
+      ],
+      "iso_tip_uv": [
+        0.6729,
+        0.9844
+      ],
+      "pad_bottom_px": 8,
+      "scale": 0.5092
+    },
+    "1024": {
+      "size": 1024,
+      "content": [
+        41,
+        203,
+        983,
+        1008
+      ],
+      "anchor_px": [
+        512.0,
+        1008
+      ],
+      "anchor_uv": [
+        0.5,
+        0.9844
+      ],
+      "iso_tip_px": [
+        688.5,
+        1007
+      ],
+      "iso_tip_uv": [
+        0.6724,
+        0.9844
+      ],
+      "pad_bottom_px": 16,
+      "scale": 1.0162
+    },
+    "file": "/workspace/sara-saimon/v2/taller_cacao_lite.png"
+  }
+}
