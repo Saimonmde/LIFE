@@ -2062,7 +2062,17 @@ function rideHorseTo(place){
  else if((W.mapId||'city')!=='city')switchMap('city');
  mountAndGo(place.x,place.y);
 }
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel, summonPersonalHorse, rideHorseTo, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
+function goMine(){
+ if(!started)return;
+ if((W.mapId||'city')==='casa')exitHouse();
+ if((W.mapId||'city')==='mine'){const n=S.nodes.get('horno_cantera');if(n)goTo(n.def.x,n.def.y+1);game('Estás en la mina. Toca una veta con la pica.');return;}
+ const e=S.nodes.get('entrada_mina_palmas');
+ if(!e){game('No encuentro la entrada de la mina.','aviso');return;}
+ if((W.mapId||'city')!=='city')switchMap('city');
+ approach({kind:'node',n:e});
+ game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
+}
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel, summonPersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},

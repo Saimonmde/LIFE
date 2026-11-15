@@ -74,6 +74,7 @@
       '<p id="acunar-vas"></p>',
       '<input id="acunar-cantidad" type="range" min="0" value="0" aria-label="Cuánto metal gastar">',
       '<button type="button" class="grande" id="acunar-ok">Acuñar</button>',
+      '<button type="button" class="grande" id="acunar-ir" hidden>Ir a la mina / Picar</button>',
     ].join('');
     document.body.append(veil, box);
     veil.onclick = close;
@@ -83,6 +84,8 @@
     });
     $('#acunar-cantidad').addEventListener('input', (e) => { pieces = Number(e.target.value); paint(false); });
     $('#acunar-ok').onclick = send;
+    const ir = $('#acunar-ir');
+    if (ir) ir.onclick = () => { close(); if (window.LiveInk && LiveInk.goMine) LiveInk.goMine(); };
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !$('#acunar').hidden) { close(); e.preventDefault(); }
     });
@@ -103,7 +106,11 @@
     $('#acunar-tienes').textContent = `Tienes: ${num(shown.tienes)} ${row.metal}`;
     $('#acunar-alcanzan').textContent = `Con eso alcanzan: ${num(shown.alcanzan)} ${row.name}`;
     $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.)`;
-    $('#acunar-vas').textContent = `Vas a recibir: ${num(shown.recibes)} ${row.name} y gastas: ${num(shown.gastas)} ${row.metal}`;
+    $('#acunar-vas').textContent = have < 1
+      ? 'Ve a la mina a picar metal'
+      : `Vas a recibir: ${num(shown.recibes)} ${row.name} y gastas: ${num(shown.gastas)} ${row.metal}`;
+    const ir = $('#acunar-ir');
+    if (ir) ir.hidden = have > 0;
     const slider = $('#acunar-cantidad');
     slider.max = String(shown.maxPieces);
     slider.value = String(shown.gastas);
