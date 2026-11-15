@@ -238,15 +238,16 @@ def set_nick_and_password(doc, user, nick, password, confirm, now=None):
     _hit_rate(doc, 'clave:' + user['id'], now)
     if user.get('password_hash'):
         raise AuthError('Esta cuenta ya tiene contraseña.')
-    if simon_reserved(nick) and not is_owner(user):
-        raise AuthError('Ese apodo está reservado.')
-    nick = game_name(nick)
+    if simon_reserved(nick):
+        if not is_owner(user):
+            raise AuthError('Ese apodo está reservado.')
+        nick = 'Simon'
+    else:
+        nick = game_name(nick)
     if not nick:
         raise AuthError('Escribe un apodo de hasta 16 letras.')
     if simon_reserved(nick) and not is_owner(user):
         raise AuthError('Ese apodo está reservado.')
-    if is_owner(user) and simon_reserved(nick) and name_key(nick) != 'simon':
-        raise AuthError('El apodo del fundador es Simon.')
     if not isinstance(password, str) or password != confirm:
         raise AuthError('Las contraseñas no coinciden.')
     key = name_key(nick)

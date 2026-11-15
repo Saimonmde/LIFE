@@ -21,6 +21,8 @@ for (const line of ['Valle de Aburrá', '1777', 'Pica el metal', 'tu inventario'
   assert.ok(guide.includes(line), line);
 }
 const game = read('play/game.js');
+assert.ok(!game.includes("canClaimSimon ? 'Simon'"));
+assert.ok(game.includes('pareceSimon'));
 assert.ok(game.includes('irACasaAstral'));
 assert.ok(game.includes('1500'));
 assert.ok(!game.includes("createOscillator"));

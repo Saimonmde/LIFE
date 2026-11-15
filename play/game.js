@@ -26,6 +26,11 @@ function textoNombre(raw) {
   if (!text || text.includes('@')) return 'Viajero';
   return text.slice(0, 16);
 }
+function pareceSimon(text) {
+  const flat = String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const folded = flat.replace(/[^a-z0-9@$]/g, '').replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't').replace(/@/g, 'a').replace(/\$/g, 's');
+  return folded === 'simon';
+}
 function apodoCuenta(user) {
   const wallet = String((user && user.wallet_name) || '').trim();
   const email = String((user && user.email) || '').trim().toLowerCase();
@@ -217,8 +222,10 @@ function continuarSesion(sessionUser) {
     $('#login').hidden = true;
     const panel = $('#poner-clave');
     if (panel) panel.hidden = false;
-    const nick = sessionUser.canClaimSimon ? 'Simon' : apodoCuenta(sessionUser);
-    if ($('#p-nick') && nick !== 'Viajero') $('#p-nick').value = nick;
+    const propio = apodoCuenta(sessionUser);
+    const reservado = pareceSimon(propio);
+    const nick = (!sessionUser.canClaimSimon && reservado) || propio === 'Viajero' ? '' : propio;
+    if ($('#p-nick')) $('#p-nick').value = nick;
     return;
   }
   const panel = $('#poner-clave');
