@@ -72,7 +72,7 @@
     if (salir.parentElement !== menu) menu.append(salir, borrar, aviso);
     if (!salir.dataset.listo) {
       salir.dataset.listo = '1';
-      salir.onclick = cerrarSesion;
+      salir.onclick = pedirSalida;
       borrar.onclick = abrir;
     }
     return true;
@@ -109,6 +109,29 @@
       localStorage.removeItem(casa);
       localStorage.removeItem(token);
     } catch (e) {}
+  }
+
+  const salida = document.createElement('section');
+  salida.id = 'cerrar-sesion';
+  salida.hidden = true;
+  salida.setAttribute('role', 'dialog');
+  salida.setAttribute('aria-label', 'Cerrar sesión');
+  salida.innerHTML = '<h2>¿Cerrar sesión?</h2><p>Vuelves a la pantalla de entrada. Tu casa y tu mascota siguen en la cuenta.</p><p class="fila"><button type="button" id="cerrar-sesion-no">No</button><button type="button" id="cerrar-sesion-si">Sí, salir</button></p>';
+  document.body.append(salida);
+  const casaBtn = document.createElement('button');
+  casaBtn.type = 'button';
+  casaBtn.id = 'b-cerrar-casa';
+  casaBtn.textContent = 'Cerrar sesión';
+  casaBtn.onclick = pedirSalida;
+  document.body.append(casaBtn);
+  salida.querySelector('#cerrar-sesion-no').onclick = () => { salida.hidden = true; };
+  salida.querySelector('#cerrar-sesion-si').onclick = () => { salida.hidden = true; cerrarSesion(); };
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !salida.hidden) salida.hidden = true;
+  });
+  function pedirSalida() {
+    salida.hidden = false;
+    salida.querySelector('#cerrar-sesion-no').focus();
   }
 
   async function cerrarSesion() {
@@ -183,4 +206,5 @@
   new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sesion);
   else sesion();
+  window.Cuenta = { pedirSalida };
 })();

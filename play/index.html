@@ -5,9 +5,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=mochila-r1">
+<link rel="stylesheet" href="style.css?v=mascota-r1">
 <link rel="stylesheet" href="central.css?v=central-r1">
-<link rel="stylesheet" href="movil.css?v=vidrio-r1">
+<link rel="stylesheet" href="movil.css?v=mascota-r1">
 <link rel="stylesheet" href="hud-layout.css?v=casa-r1">
 <link rel="stylesheet" href="theme.css?v=vidrio-r1">
 <link rel="stylesheet" href="cuenta.css?v=nick-r1">
@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="economy.css?v=codex-trade-r1">
 <link rel="stylesheet" href="emotes.css?v=movimiento-r1">
 <link rel="stylesheet" href="login.css?v=simon-r1">
-<link rel="stylesheet" href="vida.css?v=guia-r2">
+<link rel="stylesheet" href="vida.css?v=mascota-r1">
 <link rel="stylesheet" href="acunar.css?v=acunar-r1">
 <link rel="stylesheet" href="finca.css?v=unidades-r1">
 <link rel="icon" href="../graphics/ui/saimon-logo-gold.png">
@@ -26,7 +26,8 @@
 </head>
 <body class="mapa-limpio">
 <canvas id="juego"></canvas>
-<button id="b-descansar" hidden>Descansar</button><div id="rest-status" role="alert"></div>
+<button id="b-descansar" hidden>Descansar / Ir a casa</button><div id="rest-status" role="alert"></div>
+<div id="astral" hidden><p>Vas a casa…</p><button type="button" id="astral-saltar">Saltar</button></div>
 
 <!-- ===== Marca + perfil (arriba izquierda) ===== -->
 <div id="hud-perfil" class="hud">
@@ -238,7 +239,14 @@
     <li><b>Simoncoin:</b> la moneda de oro. Sólo habrá 21.000.000. Se acuña en el horno de la mina, con cuenta. No se puede crear más ni copiarla.</li>
     <li><b>Simonplata:</b> la moneda de plata. Sólo habrá 84.000.000. Se acuña en el mismo horno. No se puede crear más ni copiarla.</li>
     <li><b>Simonchis:</b> las monedas de cobre. Habrá 333.000.000. Se acuñan en el horno con mineral de cobre.</li>
-    <li><b>Horno:</b> en la mina, Acuñar cambia el metal por Simoncoin, Simonplata o Simonchis. Esas tres monedas se guardan en el servidor y se detienen al llegar a su máximo.</li>
+    <li>🏙 <b>Saimon City.</b> Valle de Aburrá. El año del juego es 1777.</li>
+    <li>⛏ <b>Trabajo.</b> Ve a la mina. Pica el metal.</li>
+    <li>🪙 <b>Premio.</b> En el horno, Acuñar guarda las monedas en tu inventario. Así armas tu reserva.</li>
+    <li>🏠 <b>Casa.</b> Descansar / Ir a casa. Tu mascota te espera. Cerrar sesión pregunta antes de salir.</li>
+    <li>Plantas en una parcela.</li>
+    <li>Cosechas cuando está maduro.</li>
+    <li>En el taller procesas el fruto.</li>
+    <li>Vendes el bulto si la casa tiene monedas.</li>
     <li><b>Banco Central:</b> el edificio verde, junto a la Casa bancaria. Se ve desde la calle. La ventanilla interior no está abierta para una cuenta corriente.</li>
     <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
     <li><b>Café y cacao:</b> en Las Palmas, junto a la mina. Plantas en una parcela. Cosechas cuando está maduro. En el taller procesas el fruto. Vendes el bulto si la casa tiene monedas. El saco de café excelso es de 70 kg. El cajón de cacao rinde 150 kg secos. El Libro mayor no dice quién.</li>
@@ -334,17 +342,18 @@
 <script src="finca.js?v=unidades-r1"></script>
 <script src="motion.js?v=movimiento-r1"></script>
 <script src="caballo.js?v=caballo-r1"></script>
-<script src="game.js?v=central-r1"></script>
+<script src="game.js?v=mascota-r1"></script>
 <script src="emotes.js?v=movimiento-r1"></script>
 <script src="economy-ui.js?v=codex-trade-r1"></script>
-<script type="module" src="unified3d.js?v=central-r1"></script>
+<script type="module" src="unified3d.js?v=mascota-r1"></script>
+<script type="module" src="mascota-preview.js?v=mascota-r1"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
 <script src="hud-layout.js?v=monedas-r1"></script>
-<script src="cuenta.js?v=nick-r1"></script>
-<script src="cajon.js?v=finca-r1"></script>
+<script src="cuenta.js?v=mascota-r1"></script>
+<script src="cajon.js?v=mascota-r1"></script>
 <script src="acunar.js?v=raices-r1"></script>
-<script src="vida.js?v=vida-r1"></script>
-<script src="instructivo.js?v=unidades-r1"></script>
+<script src="vida.js?v=mascota-r1"></script>
+<script src="instructivo.js?v=mascota-r1"></script>
 </body>
 </html>

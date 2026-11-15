@@ -257,7 +257,16 @@ button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offse
 .player-name{position:absolute;transform:translate(-50%,-100%);padding:3px 7px;border-radius:5px;background:#17251ee6;border:1px solid #d5c49599;color:#fff;font:bold 12px/1.2 system-ui,sans-serif;white-space:nowrap;text-shadow:0 1px 2px #000;pointer-events:none}.player-name.bot-name{color:#d5d0b9;background:#28332dbb}
 
 /* Session controls stay visible even in Solo mundo. */
-#b-descansar{position:fixed;z-index:24;left:max(12px,env(safe-area-inset-left));right:auto;bottom:calc(12px + env(safe-area-inset-bottom));min-width:125px;min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 17px system-ui;cursor:pointer}
+#b-descansar{position:fixed;z-index:70;left:max(10px,env(safe-area-inset-left));right:auto;top:264px;bottom:auto;width:min(168px,calc(100vw - 20px));min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:14px;font:bold 15px/1.2 system-ui;cursor:pointer;padding:8px 10px;text-align:left}
+#astral{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(circle,#fff8e8d0,#1c140acc);color:#fff6e4;font:700 22px system-ui}
+#astral[hidden]{display:none!important}
+#astral button{min-height:44px;border:0;border-radius:12px;background:#f0d18b;color:#251c12;font:700 16px system-ui;padding:8px 16px}
+#cerrar-sesion{position:fixed;z-index:96;left:50%;top:30%;transform:translateX(-50%);width:min(360px,calc(100vw - 24px));padding:16px;border-radius:16px;background:#2a2118;color:#fff6e8;border:3px solid #e7c27a;font:16px/1.4 system-ui}
+#cerrar-sesion[hidden]{display:none!important}
+#cerrar-sesion .fila{display:flex;gap:8px}
+#cerrar-sesion button{min-height:44px;border:0;border-radius:12px;background:#e2b23c;color:#1c1208;font:700 15px system-ui;padding:8px 12px}
+#b-cerrar-casa{display:none;position:fixed;z-index:24;left:max(10px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom));min-height:44px;border:0;border-radius:12px;background:#3a2a1c;color:#f6e7c4;font:700 14px system-ui;padding:8px 12px}
+body.in-game.in-casa #b-cerrar-casa{display:block}
 #b-bajar{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
 html.movil #b-bajar{left:auto;right:max(10px,env(safe-area-inset-right));bottom:calc(340px + env(safe-area-inset-bottom));min-height:56px;min-width:200px;font-size:17px}
 #banquito{position:fixed;z-index:18;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:14px 16px}

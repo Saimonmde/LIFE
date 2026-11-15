@@ -15,7 +15,7 @@ html.movil.movil-menu-abierto #objetivo { display: none; }
 html.movil #hud-derecha { top: 186px !important; max-width: 200px; }
 html.movil #hotbar { transform: translateX(-50%) scale(.8); transform-origin: bottom center; max-width: calc(125vw - 20px); }
 html.movil #hud-recursos { transform: scale(.8); transform-origin: bottom right; }
-html.movil #b-descansar { transform: scale(.75); transform-origin: bottom right; left: auto !important; right: max(10px, env(safe-area-inset-right)) !important; bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+html.movil #b-descansar { transform: none; left: max(10px, env(safe-area-inset-left)) !important; right: auto !important; top: 264px !important; bottom: auto !important; }
 html.movil #city-joystick { width: 120px; height: 120px; bottom: calc(150px + env(safe-area-inset-bottom)); left: max(14px, env(safe-area-inset-left)); opacity: .7; }
 html.movil #city-joystick span { left: 39px; top: 39px; width: 42px; height: 42px; }
 html.movil #chat-toggle { transform: scale(.85); transform-origin: bottom left; }
