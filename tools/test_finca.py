@@ -287,6 +287,11 @@ class FincaTests(unittest.TestCase):
         planted = {'crop': 'cafe', 'stage': 'planted'}
         finca.migrate_plot(planted, self.now, self.config)
         self.assertEqual(finca.phase_of(planted, self.now, self.config), 'siembra')
+        self.assertEqual(finca.legacy_phase('planted'), 'siembra')
+        self.assertEqual(finca.legacy_phase('grown'), 'cosecha')
+        self.assertEqual(finca.legacy_phase('growing'), 'crecimiento')
+        self.assertEqual(finca.legacy_phase('flowering'), 'floracion')
+        self.assertEqual(finca.legacy_phase('fruiting'), 'fruto')
         self.assertNotEqual(finca.stage_of(planted, self.now, self.config), 'maduro')
         empty = {'crop': 'cafe', 'stage': 'empty'}
         finca.migrate_plot(empty, self.now, self.config)

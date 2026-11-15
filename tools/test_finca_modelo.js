@@ -24,7 +24,10 @@ const far = modelo.visualFor(withGlb, { group: 'plant', crop: 'cafe', id: 'fruto
 assert.strictEqual(far.lod, 'far');
 assert.ok(far.url.endsWith('cafe_fruto_lejano.glb'));
 const hand = modelo.visualFor(withGlb, { group: 'plant', crop: 'cafe', id: 'fruto', distance: 4, mobile: true });
-assert.strictEqual(hand.kind, 'flat');
+assert.strictEqual(hand.kind, 'glb');
+assert.strictEqual(hand.lod, 'far');
+assert.strictEqual(hand.lazy, true);
+assert.ok(hand.url.endsWith('cafe_fruto_lejano.glb'));
 
 assert.deepStrictEqual(modelo.PHASES, ['siembra', 'crecimiento', 'floracion', 'fruto', 'cosecha']);
 const html = fs.readFileSync(path.join(__dirname, '../play/index.html'), 'utf8');
@@ -36,4 +39,32 @@ assert.ok(scene.includes('plotCafePlanton') && scene.includes('plotCafeVerde') &
 assert.ok(scene.includes('Sprite'));
 assert.ok(scene.includes('opt.height'));
 assert.ok(scene.includes('v2/'));
+assert.ok(scene.includes('manifest.json'));
+
+const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../play/assets/cafe-cacao/sara/manifest.json'), 'utf8'));
+const art = map;
+const planted = modelo.choiceFromManifest(manifest, { crop: 'cafe', id: 'planted', distance: 4, art });
+assert.strictEqual(planted.lod, 'near');
+assert.ok(planted.url.endsWith('cafe_siembra_near.glb'));
+assert.ok(planted.flat.endsWith('cafe_siembra_64.png'));
+const grown = modelo.choiceFromManifest(manifest, { crop: 'cacao', id: 'grown', distance: 4, art });
+assert.ok(grown.url.endsWith('cacao_cosecha_near.glb'));
+const growing = modelo.choiceFromManifest(manifest, { crop: 'cafe', id: 'growing', distance: 4, art });
+assert.ok(growing.url.endsWith('cafe_crecimiento_near.glb'));
+const flowering = modelo.choiceFromManifest(manifest, { crop: 'cafe', id: 'flowering', distance: 30, art });
+assert.strictEqual(flowering.lod, 'far');
+assert.ok(flowering.url.endsWith('cafe_floracion_far.glb'));
+const fruiting = modelo.choiceFromManifest(manifest, { crop: 'cacao', id: 'fruiting', distance: 4, art });
+assert.ok(fruiting.url.endsWith('cacao_fruto_near.glb'));
+const phoneStage = modelo.choiceFromManifest(manifest, { crop: 'cafe', id: 'cosecha', mobile: true, distance: 2, art });
+assert.strictEqual(phoneStage.lod, 'far');
+assert.strictEqual(phoneStage.lazy, true);
+assert.ok(phoneStage.url.endsWith('cafe_cosecha_far.glb'));
+assert.ok(phoneStage.flat.endsWith('cafe_cosecha_64.png'));
+const station = modelo.stationFromManifest(manifest, { crop: 'cafe', id: 'despulpado', mobile: true, art });
+assert.strictEqual(station.lazy, true);
+assert.ok(station.url.endsWith('cafe_estacion_01_despulpado.glb'));
+assert.ok(fs.existsSync(path.join(__dirname, '../play', planted.url)));
+assert.ok(fs.existsSync(path.join(__dirname, '../play', phoneStage.url)));
+assert.ok(fs.existsSync(path.join(__dirname, '../play', station.url)));
 console.log('finca modelo ok');

@@ -297,8 +297,8 @@ _LEGACY_PHASE = {
     '': 'vacio', 'empty': 'vacio', 'vacio': 'vacio',
     'planted': 'siembra', 'planton': 'siembra', 'siembra': 'siembra',
     'growing': 'crecimiento', 'verde': 'crecimiento', 'crecimiento': 'crecimiento',
-    'floracion': 'floracion', 'flower': 'floracion',
-    'fruto': 'fruto',
+    'floracion': 'floracion', 'flower': 'floracion', 'flowering': 'floracion',
+    'fruto': 'fruto', 'fruiting': 'fruto',
     'grown': 'cosecha', 'maduro': 'cosecha', 'cosecha': 'cosecha',
 }
 

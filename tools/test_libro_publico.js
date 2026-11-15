@@ -49,6 +49,9 @@ const weighed = libro.render({
 assert.ok(weighed.includes('sacos de 70 kg de excelso'));
 assert.ok(weighed.includes('cajones de 150 kg secos'));
 assert.ok(weighed.includes('café cereza'));
+assert.ok(html.includes('cafe_01_siembra.png'));
+assert.ok(html.includes('cacao_05_cosecha.png'));
+assert.ok(html.includes('cafe_siembra_64.png'));
 assert.ok(!html.includes('CuentaAnaPrivada'));
 assert.ok(html.includes('Lingotes'));
 assert.ok(html.includes('lingote.svg'));

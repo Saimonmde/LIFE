@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+
+<rect x="40.00" y="130.00" width="130.00" height="90.00" rx="6.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="40.00" y="130.00" width="130.00" height="90.00" rx="6.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="40.00" y="130.00" width="130.00" height="90.00" rx="6.00" fill="#8A5A32"/>
+<rect x="54.00" y="144.00" width="102.00" height="40.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="54.00" y="144.00" width="102.00" height="40.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="54.00" y="144.00" width="102.00" height="40.00" fill="#7A4E14"/>
+<rect x="86.00" y="62.00" width="130.00" height="80.00" rx="6.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="86.00" y="62.00" width="130.00" height="80.00" rx="6.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="86.00" y="62.00" width="130.00" height="80.00" rx="6.00" fill="#C4A070"/>
+<rect x="100.00" y="78.00" width="102.00" height="36.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="100.00" y="78.00" width="102.00" height="36.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="100.00" y="78.00" width="102.00" height="36.00" fill="#8A4A30"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="#C45A2A"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<polygon points="218.20,225.74 222.48,223.45 227.87,223.62 232.58,230.41 224.78,233.13 220.32,230.11" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="218.20,225.74 222.48,223.45 227.87,223.62 232.58,230.41 224.78,233.13 220.32,230.11" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="218.20,225.74 222.48,223.45 227.87,223.62 232.58,230.41 224.78,233.13 220.32,230.11" fill="#FFF8EE"/>
+<path d="M220.9,225.6 L230.8,229.4" fill="none" stroke="#fffaf3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.800"/>
+</svg>
