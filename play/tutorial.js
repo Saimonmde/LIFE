@@ -25,7 +25,7 @@
     const t = event.target;
     if (!(t instanceof Element)) return;
     if (t.id === 'tutorial-cerrar' || t.id === 'tutorial-saltar' || t.id === 'instructivo-cerrar' || t.id === 'instructivo-saltar') close(true);
-    if (t.id === 'b-tutorial' || t.id === 'cajon-instructivo') open();
+    if (t.id === 'b-tutorial' || t.id === 'cajon-instructivo' || t.id === 'b-ayuda-izq') open();
   });
   window.Tutorial = { open, close, afterFly };
 })();

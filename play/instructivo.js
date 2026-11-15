@@ -67,6 +67,15 @@
     panel.setAttribute('aria-label', 'Cómo se juega');
     panel.innerHTML = html;
     document.body.append(panel);
+    if (!document.getElementById('b-ayuda-izq')) {
+      const help = document.createElement('button');
+      help.type = 'button';
+      help.id = 'b-ayuda-izq';
+      help.textContent = '?';
+      help.setAttribute('aria-label', 'Cómo se juega');
+      help.title = 'Cómo se juega';
+      document.body.append(help);
+    }
     const web = document.documentElement.classList.contains('movil');
     const mark = panel.querySelector(web ? '#inst-movil .inst-aqui' : '#inst-web .inst-aqui');
     if (mark) mark.hidden = false;

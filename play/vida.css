@@ -75,7 +75,18 @@ body:not(.in-game) #amigos-barra, body:not(.in-game) #amigos-panel { display: no
   font: 15px/1.45 system-ui, sans-serif;
 }
 #instructivo[hidden] { display: none !important; }
-#instructivo header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+#instructivo header {
+  position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between;
+  align-items: center; margin: -14px -14px 8px; padding: 12px 14px; background: #f6f1e6;
+}
+#instructivo header strong { color: #1c1208; font-size: 22px; font-weight: 800; }
+#b-ayuda-izq {
+  position: fixed; z-index: 70; left: max(10px, env(safe-area-inset-left));
+  top: 148px; width: 48px; height: 48px; border: 0; border-radius: 14px;
+  background: #e2b23c; color: #1c1208; font: 800 22px/1 system-ui, sans-serif;
+  box-shadow: 0 3px 10px #0007;
+}
+#b-ayuda-izq[hidden], body:not(.in-game) #b-ayuda-izq { display: none !important; }
 #instructivo h2 { font-size: 18px; margin: 0 0 6px; }
 #instructivo h2 span { font-weight: 600; color: #8a5a32; font-size: 14px; }
 #instructivo h3 { margin: 8px 0 2px; font-size: 14px; }
