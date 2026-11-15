@@ -133,6 +133,17 @@ def filas(state):
                 'legs': legs,
             })
             continue
+        if tx.get('type') == 'ficha':
+            rows.append({
+                'ts': int(ts),
+                'type': 'ficha',
+                'label': 'Ficha coleccionable',
+                'amountSubs': int(tx.get('amountSubs') or 0) if tx.get('metal') == 'simoncoin' else 0,
+                'account': 'reservado',
+                'balanceSubs': 0,
+                'note': 'Ficha coleccionable. Las partes no se publican.',
+            })
+            continue
         if amount == 0:
             continue
         kind, label = _label(tx.get('type'))

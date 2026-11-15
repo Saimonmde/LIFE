@@ -41,6 +41,7 @@ import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
 import caballo_cuenta as CABALLO
+import fichas as FICHAS
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -2318,7 +2319,8 @@ async def handle(reader, writer):
     body = b''
     simon_post = method == 'POST' and path.startswith('/api/simon')
     vida_post = method == 'POST' and path.startswith('/api/vida')
-    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post):
+    fichas_path = path == '/ficha' or path.startswith('/ficha/') or path.startswith('/api/fichas')
+    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post or (fichas_path and os.environ.get('FICHAS_FISICAS', '').strip() == '1')):
         try:
             cap = 80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000
             length = min(int(headers.get('content-length') or 0), cap)
@@ -2326,6 +2328,30 @@ async def handle(reader, writer):
             length = 0
         if length:
             body = await reader.readexactly(length)
+    if fichas_path:
+        if os.environ.get('FICHAS_FISICAS', '').strip() != '1':
+            writer.write(b'HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+            await writer.drain(); writer.close(); return
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))
+        account = user.get('id') if user else None
+        try:
+            payload = json.loads(body.decode('utf-8') or '{}') if body else {}
+        except Exception:
+            payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
+        code, data, kind = FICHAS.responder(ECON, method, path, query, payload, account)
+        if code == 200:
+            save_econ()
+        encoded = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False)
+        raw = encoded.encode('utf-8')
+        mime = 'text/html; charset=utf-8' if kind == 'html' else 'application/json; charset=utf-8'
+        status = {200: 'OK', 400: 'Bad Request', 404: 'Not Found'}.get(code, 'OK')
+        writer.write(f'HTTP/1.1 {code} {status}\r\nContent-Type: {mime}\r\nCache-Control: no-store\r\nContent-Length: {len(raw)}\r\nConnection: close\r\n\r\n'.encode())
+        if method != 'HEAD':
+            writer.write(raw)
+        await writer.drain(); writer.close(); return
     if path.startswith('/api/apartamentos') or path in APARTMENT_API.AGENT_PATHS:
         # El rastreo nunca se ejecuta desde una petición pública ni bloquea el bucle del juego.
         result = await asyncio.to_thread(APARTMENT_API.dispatch, method, path, target, body)
