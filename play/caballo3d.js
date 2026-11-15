@@ -156,11 +156,11 @@ function geometries(T, low) {
     body: loft(T, low ? body.filter((_, i) => i % 2 === 0 || i === body.length - 1) : body, radial),
     neck: loft(T, neck, low ? 5 : 7),
     head: loft(T, head, low ? 5 : 7),
-    ear: new T.ConeGeometry(0.045, 0.18, 4),
+    ear: new T.ConeGeometry(0.055, 0.22, 4),
     eye: new T.SphereGeometry(0.038, low ? 5 : 6, low ? 4 : 5),
-    upper: new T.CylinderGeometry(low ? 0.07 : 0.085, 0.055, upperH, low ? 5 : 7),
-    lower: new T.CylinderGeometry(0.042, 0.034, lowerH, low ? 5 : 6),
-    hoof: new T.BoxGeometry(0.09, 0.1, 0.11),
+    upper: new T.CylinderGeometry(low ? 0.08 : 0.1, 0.07, upperH, low ? 5 : 7),
+    lower: new T.CylinderGeometry(0.05, 0.04, lowerH, low ? 5 : 6),
+    hoof: new T.BoxGeometry(0.11, 0.1, 0.13),
     upperH: upperH,
     lowerH: lowerH,
   };
@@ -202,15 +202,16 @@ function leg(T, geo, mats, low, side, kind) {
 
 function mane(T, mats, low) {
   const group = new T.Group();
-  const count = low ? 3 : 7;
+  const count = low ? 4 : 8;
   const locks = [];
   for (let i = 0; i < count; i++) {
-    const t = i / (count - 1 || 1);
+    const t = i / Math.max(1, count - 1);
     const lock = new T.Group();
-    const length = 0.16 + t * 0.22;
-    const mesh = add(lock, new T.BoxGeometry(0.05, length, 0.07), mats.points, 'points', 0.04, -length / 2, 0);
-    mesh.rotation.z = -0.35;
-    lock.position.set(0.02, 0.16 + t * 0.34, 0.06 + t * 0.42);
+    const length = 0.26 + t * 0.22;
+    add(lock, new T.BoxGeometry(0.07, length, 0.1 + t * 0.04), mats.points, 'points', 0, -length * 0.42, 0);
+    lock.position.set(0.05, 0.1 + t * 0.4, 0.02 + t * 0.5);
+    lock.rotation.z = -1.05;
+    lock.rotation.x = 0.45 + t * 0.15;
     group.add(lock);
     locks.push(lock);
   }
@@ -220,13 +221,13 @@ function mane(T, mats, low) {
 
 function tail(T, mats, low) {
   const root = new T.Group();
-  const lengths = low ? [0.34, 0.4] : [0.22, 0.26, 0.28, 0.3];
+  const lengths = low ? [0.36, 0.42] : [0.28, 0.32, 0.36, 0.34];
   const segments = [];
   let parent = root;
   lengths.forEach((len, i) => {
     const seg = new T.Group();
-    const wide = Math.max(0.035, 0.09 - i * 0.015);
-    add(seg, new T.BoxGeometry(wide, len, wide * 0.7), mats.points, 'points', 0, -len * 0.5, -0.02);
+    const wide = Math.max(0.06, 0.16 - i * 0.03);
+    add(seg, new T.BoxGeometry(wide, len, wide * 0.55), mats.points, 'points', 0, -len * 0.5, 0);
     if (i > 0) seg.position.y = -lengths[i - 1];
     parent.add(seg);
     segments.push(seg);
@@ -272,6 +273,8 @@ function buildRig(T, mats, low) {
   const geo = geometries(T, low);
   const rig = new T.Group();
   add(rig, geo.body, mats.body, 'body', 0, 0, 0);
+  add(rig, new T.SphereGeometry(low ? 0.2 : 0.24, low ? 6 : 8, low ? 5 : 6), mats.body, 'body', 0, 1.02, 0.48);
+  add(rig, new T.SphereGeometry(low ? 0.18 : 0.22, low ? 6 : 8, low ? 5 : 6), mats.deep, 'deep', 0, 1.08, -0.42);
   const neck = new T.Group();
   neck.position.set(0, 1.40, 0.28);
   rig.add(neck);
@@ -286,9 +289,10 @@ function buildRig(T, mats, low) {
   const blaze = add(head, new T.BoxGeometry(0.045, 0.16, 0.08), mats.blaze, 'blaze', 0, -0.01, 0.3);
   blaze.rotation.x = 0.5;
   for (const side of [-1, 1]) {
-    const ear = add(head, geo.ear, mats.body, 'body', side * 0.06, 0.12, 0.04);
-    ear.rotation.z = side * -0.35;
-    ear.rotation.x = -0.2;
+    const ear = add(head, geo.ear, mats.deep, 'deep', side * 0.07, 0.16, 0.02);
+    ear.rotation.z = side * -0.4;
+    ear.rotation.x = -0.15;
+    ear.scale.set(1.15, 1.25, 1);
     const eye = add(head, geo.eye, mats.eye, 'eye', side * 0.09, 0.02, 0.18);
     if (!low) add(head, new T.SphereGeometry(0.012, 4, 3), mats.eyeWhite, 'eyeWhite', side * 0.1, 0.03, 0.2);
   }
@@ -298,7 +302,8 @@ function buildRig(T, mats, low) {
     head.add(bridle(T, mats));
   }
   const tailGroup = tail(T, mats, low);
-  tailGroup.position.set(0, 1.22, -0.92);
+  tailGroup.position.set(0, 1.34, -0.72);
+  tailGroup.rotation.x = 0.85;
   rig.add(tailGroup);
   const legs = {};
   for (const side of [-1, 1]) {
@@ -364,11 +369,12 @@ function poseRig(rig, gait, phase, time) {
   bones.neck.rotation.x = idle ? -0.12 + Math.sin(time * 1.25) * 0.05 : gait === 'gallop' ? -0.38 + Math.sin(phase * Math.PI * 2) * 0.08 : -0.18;
   bones.head.rotation.x = idle ? Math.sin(time * 1.25 + 0.6) * 0.1 : gait === 'gallop' ? -0.12 : 0.02;
   bones.head.rotation.y = idle ? Math.sin(time * 0.7) * 0.12 : 0;
+  bones.tail.rotation.x = gait === 'gallop' ? 0.35 : gait === 'trot' ? 0.6 : 0.85;
   const segments = bones.tail.userData.segments || [];
   segments.forEach((seg, i) => {
-    const swish = Math.sin(time * (idle ? 1.4 : 2.2) + i * 0.5);
-    seg.rotation.y = swish * (gait === 'gallop' ? 0.28 : 0.2);
-    seg.rotation.x = -0.25 - i * 0.06 + (gait === 'gallop' ? -0.25 : 0);
+    const swish = Math.sin(time * (idle ? 1.4 : 2.4) + i * 0.45);
+    seg.rotation.y = swish * (gait === 'gallop' ? 0.34 : 0.18);
+    seg.rotation.x = 0.08 + i * 0.05;
   });
   for (const lock of bones.mane.userData.locks || []) {
     lock.rotation.z = Math.sin(time * 2.1 + lock.position.z) * (gait === 'gallop' ? 0.18 : 0.05);

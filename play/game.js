@@ -80,8 +80,9 @@ async function init() {
   const bLibro = $('#b-libro'), bLibroMovil = $('#b-libro-movil'), bMontar = $('#b-montar'), bBajar = $('#b-bajar');
   if (bLibro) bLibro.onclick = () => Simulacion.toggleLibro();
   if (bLibroMovil) bLibroMovil.onclick = () => Simulacion.toggleLibro();
-  const toggleMount = () => { if (S.mounted) Simulacion.dismount(); else Simulacion.mountHorse(Simulacion.nearestMount()); };
+  const toggleMount = () => { if (S.mounted) Simulacion.dismount(); else Simulacion.summonAndMount(); };
   if (bMontar) bMontar.onclick = toggleMount;
+  const bMontarBarra = $('#b-montar-barra'); if (bMontarBarra) bMontarBarra.onclick = toggleMount;
   if (bBajar) bBajar.onclick = () => { if (S.mounted) Simulacion.dismount(); };
   tileset = await loadImg(W.tileset.image);
   sheets.default = await loadImg(W.player.image);
@@ -1045,6 +1046,7 @@ function connect() {
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
     else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
+    else if (m.t === 'move_correct') { const rider = S.player; rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
     else if (m.t === 'chat') {
       const mine = m.fromId === S.net.id;
@@ -1709,6 +1711,7 @@ function update(dt) {
   const running = S.keys.has('x') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k => S.keys.has(k));
   const sprinting = running && !S.mounted && !S.sprintLock && S.energy > 0;
   if (S.houseEdit) { p.path = []; S.dest = null; }
+  else if (S.rideAuto && S.mounted && S.keys.size && !S.dialog) { p.path = []; S.dest = null; S.rideAuto = false; }
   else if (!p.path.length && S.keys.size && !S.dialog) {
     let dx = 0, dy = 0; const K = S.keys;
     if (K.has('w') || K.has('arrowup')) dy = -1; if (K.has('s') || K.has('arrowdown')) dy = 1;
@@ -2148,9 +2151,11 @@ function mountAndGo(x,y,after){
  horse.x=horse.fx=S.player.x;horse.y=horse.fy=S.player.y;
  if(window.Simulacion){
   if(S.mounted&&S.mounted!==horse)Simulacion.dismount();
-  if(!S.mounted)Simulacion.mountHorse(horse);
+  if(!S.mounted)Simulacion.mountHorse(horse, true);
  }
+ S.rideAuto=true;
  goTo(spot[0],spot[1]);
+ game('El caballo sigue el camino. WASD, las flechas o el joystick lo desvían.','juego');
  if(after){
   const watch=setInterval(()=>{if(!S.player.path.length&&cheb(S.player.x,S.player.y,spot[0],spot[1])<=1){clearInterval(watch);after();}},500);
   setTimeout(()=>clearInterval(watch),180000);
@@ -2179,7 +2184,7 @@ function goMine(){
  approach({kind:'node',n:e});
  game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
 }
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},

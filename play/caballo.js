@@ -366,7 +366,7 @@
     const tryMount = () => mountPicker();
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryMount);
     else tryMount();
-    setInterval(tryMount, 1500);
+    if (document.getElementById('login') || document.getElementById('hud-gear')) setInterval(tryMount, 1500);
     pullCoat();
   }
   if (typeof document !== 'undefined') boot();

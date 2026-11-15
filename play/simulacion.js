@@ -188,8 +188,11 @@ const $ = (s) => document.querySelector(s);
 function walletName() { return api.S.me.name || 'Viajero'; }
 function walletSubs(name) { return (api.S.econ && api.S.econ.wallets && api.S.econ.wallets[name]) || 0; }
 function syncButton() {
+  const label = api.S.mounted ? 'Bajar' : 'Montar';
   const b = $('#b-montar');
-  if (b) b.textContent = api.S.mounted ? 'Bajar' : 'Montar';
+  if (b) b.textContent = label;
+  const bar = $('#b-montar-barra');
+  if (bar) bar.textContent = label;
   const down = $('#b-bajar');
   if (down) down.hidden = !api.S.mounted;
   document.body.classList.toggle('mounted', !!api.S.mounted);
@@ -593,7 +596,7 @@ function dismount() {
   syncButton();
   api.game('Bajas del caballo.', 'juego');
 }
-function mountHorse(horse) {
+function mountHorse(horse, quiet) {
   if (api.S.mounted) return dismount();
   const h = horse || nearestMount();
   if (!h || h.ridden) { api.game('Acércate a un caballo del establo (tecla M o el botón Montar).', 'aviso'); return; }
@@ -603,7 +606,22 @@ function mountHorse(horse) {
   h.ridden = true;
   h.x = h.fx = p.x; h.y = h.fy = p.y;
   syncButton();
-  api.game('Montas el <b>caballo</b>. Vas a 2,2 veces la marcha a pie. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
+  if (!quiet) api.game('Montas el <b>caballo</b>. Vas a 2,2 veces la marcha a pie. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
+}
+function summonAndMount() {
+  if ((api.W().mapId || 'city') !== 'city') { api.game('Los caballos esperan fuera, en el parque.', 'aviso'); return; }
+  if (api.S.mounted) return;
+  const near = nearestMount();
+  if (near) { mountHorse(near); return; }
+  const horse = window.LiveInk && LiveInk.ensurePersonalHorse && LiveInk.ensurePersonalHorse();
+  if (!horse) { api.game('No hay un caballo a la mano.', 'aviso'); return; }
+  const p = api.S.player;
+  horse.ridden = false;
+  horse.called = false;
+  horse.x = horse.fx = p.x;
+  horse.y = horse.fy = p.y;
+  mountHorse(horse, true);
+  api.game('El caballo acude. Vas a 2,2 veces la marcha a pie. WASD, flechas o el joystick lo guían. El botón Bajar desmonta.', 'juego');
 }
 function blocksTile(W, x, y) {
   if (!api.S.mounted) return false;
@@ -969,7 +987,7 @@ function speedMul() { return api.S.mounted ? ((window.Caballo && Caballo.MOUNT_S
 
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
-  mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
+  mountHorse, dismount, summonAndMount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
   rememberSupply, rememberPlata, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
