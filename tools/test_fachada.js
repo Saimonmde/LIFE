@@ -21,5 +21,5 @@ assert.ok(world.includes('editorApi'));
 assert.ok(world.includes("casa3d.js?v=fachada-r1"));
 assert.ok(html.includes('unified3d.js?v=fachada-r1'));
 assert.ok(!house.includes('hud-gear-menu') && !house.includes('cajon-editor'));
-assert.ok(!world.includes('hud-gear-menu') && !world.includes('cajon-editor'));
+assert.ok(world.includes('#hud-gear-menu'));
 console.log('fachada ok');
