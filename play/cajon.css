@@ -86,6 +86,28 @@ body.mapa-limpio #hud-gear {
   box-sizing: border-box;
   touch-action: pan-y;
 }
+#cajon-cerrar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  float: right;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 0 8px 8px;
+  border: 1px solid #e7c27a;
+  border-radius: 12px;
+  background: #f3e2b8;
+  color: #3a2a16;
+  font: 700 18px/1 var(--sans);
+}
+#cajon-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  border: 0;
+  background: rgba(12, 8, 4, .45);
+}
+#cajon-fondo[hidden] { display: none !important; }
 #hud-gear-menu h2 {
   margin: 0 0 8px;
   font: 650 18px/1.2 var(--sans);

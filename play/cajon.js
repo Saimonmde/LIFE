@@ -177,7 +177,27 @@
       '<button type="button" id="cajon-ajustes">Ajustes de la pantalla</button>',
       '<div id="cajon-panel"></div>',
     ].join('');
+    const closer = document.createElement('button');
+    closer.type = 'button';
+    closer.id = 'cajon-cerrar';
+    closer.textContent = '✕';
+    closer.setAttribute('aria-label', 'Cerrar menú');
+    closer.onclick = (e) => { e.stopPropagation(); closeDrawer(); };
+    block.prepend(closer);
     menu.prepend(block);
+    if (!document.getElementById('cajon-fondo')) {
+      const veil = document.createElement('button');
+      veil.type = 'button';
+      veil.id = 'cajon-fondo';
+      veil.hidden = true;
+      veil.setAttribute('aria-label', 'Cerrar menú');
+      veil.onclick = () => closeDrawer();
+      document.body.append(veil);
+      new MutationObserver(() => { veil.hidden = menu.hidden; }).observe(menu, { attributes: true, attributeFilter: ['hidden'] });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !menu.hidden) { closeDrawer(); e.preventDefault(); }
+      });
+    }
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
     $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
