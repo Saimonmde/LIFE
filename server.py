@@ -10,6 +10,7 @@
 import secrets, sys, uuid
 import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, socket, struct, time, urllib.parse
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server'))
 import economy as ECO
 import supply as SUP
 import plata as PLATA
@@ -43,6 +44,7 @@ import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
 import caballo_cuenta as CABALLO
+import world_edits as EDITS
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -118,6 +120,27 @@ def save_finca():
 
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
+
+WORLD_EDITS_PATH = os.path.join(ROOT, 'state', EDITS.storage_filename())
+WORLD_EDITS = EDITS.normalize(PERSIST.load_named(EDITS.storage_name(), WORLD_EDITS_PATH), env=EDITS.env_name())
+
+def save_world_edits():
+    PERSIST.save_named(EDITS.storage_name(), WORLD_EDITS_PATH, WORLD_EDITS)
+
+def world_edit_packet(user):
+    return EDITS.packet(WORLD_EDITS, user, role_of=SOCIAL.role_of)
+
+def world_edit_request(user, message, save=True, announce=True):
+    """Escribe la capa de ediciones. Un no-admin recibe code 403 y no cambia nada."""
+    global WORLD_EDITS
+    result = EDITS.apply_request(WORLD_EDITS, user, message, role_of=SOCIAL.role_of)
+    if result.get('ok') and result.get('changed'):
+        WORLD_EDITS = result['stored']
+        if save:
+            save_world_edits()
+        if announce:
+            broadcast({'t': 'world_edits', 'worldEdits': EDITS.packet(WORLD_EDITS)})
+    return result
 
 def save_libro(records):
     if not records:
@@ -1857,6 +1880,7 @@ def handle_client_message(c, m, t):
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                  'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
+        welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
         send(c, welcome)
         if c.place not in MUNDOS.PRIVATE:
             broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
@@ -2012,6 +2036,10 @@ def handle_client_message(c, m, t):
         withdraw_item(c, m.get('item'), m.get('qty'))
     elif t == 'finca' and c.hello:
         finca_msg(c, m)
+    elif t == 'world_edit' and c.hello:
+        result = world_edit_request(getattr(c, 'user', None), m)
+        send(c, {'t': 'world_edit_result', 'ok': result.get('ok'), 'code': result.get('code'),
+                 'error': result.get('error') or '', 'worldEdits': result.get('doc'), 'package': result.get('package')})
     elif vida_try(c, m, t):
         return
 
@@ -2445,9 +2473,10 @@ async def handle(reader, writer):
     body = b''
     simon_post = method == 'POST' and path.startswith('/api/simon')
     vida_post = method == 'POST' and path.startswith('/api/vida')
-    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post):
+    world_post = method == 'POST' and path.startswith('/api/world-edits')
+    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post or world_post):
         try:
-            cap = 80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000
+            cap = 1500000 if world_post else (80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000)
             length = min(int(headers.get('content-length') or 0), cap)
         except ValueError:
             length = 0
@@ -2460,6 +2489,27 @@ async def handle(reader, writer):
         labels = {200: 'OK', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed', 503: 'Service Unavailable'}
         encoded = json.dumps(payload, ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
+        if method != 'HEAD':
+            writer.write(encoded)
+        await writer.drain(); writer.close(); return
+    if path.startswith('/api/world-edits'):
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))
+        if method == 'GET':
+            code, payload = 200, world_edit_packet(user)
+        elif method == 'POST':
+            try:
+                message = json.loads(body.decode() or '{}')
+            except Exception:
+                message = {}
+            result = world_edit_request(user, message if isinstance(message, dict) else {})
+            code = int(result.get('code') or (200 if result.get('ok') else 400))
+            payload = {'ok': result.get('ok'), 'code': code, 'error': result.get('error') or '',
+                       'worldEdits': result.get('doc'), 'package': result.get('package')}
+        else:
+            code, payload = 405, {'ok': False, 'error': 'Método no permitido.'}
+        labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found', 405: 'Method Not Allowed', 409: 'Conflict'}
+        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
             writer.write(encoded)
         await writer.drain(); writer.close(); return
