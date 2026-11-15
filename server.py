@@ -25,6 +25,9 @@ import fusion as FUSION
 import historia as HISTORIA
 import apartment_api as APARTMENT_API
 import simon_api as SIMON_API
+import reloj as RELOJ
+import cobre as COBRE
+import monedas as MONEDAS
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -72,6 +75,9 @@ QUEST_GRANTS = {'primeros_pasos': 250, 'el_libro_mayor': 50}
 
 def save_econ():
     ECO.save_state(ECON_PATH, ECON)
+
+if RELOJ.anchor(ECON)[1]:
+    save_econ()
 
 def save_nft():
     NFT.save_chain(NFT_PATH, NFT_CHAIN)
@@ -213,6 +219,8 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     pview['balanceSph'] = 0 if locked or not who else PLATA.balance_of(ECON, who)
     m['plata'] = pview
     m['balanceSph'] = pview['balanceSph']
+    m['reloj'] = RELOJ.payload(ECON)
+    m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
     return m
 
 def token_matches(stored, presented):
@@ -538,42 +546,117 @@ def wallet_ready(sender):
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     return True
 
-def smelt_for(sender, ore, batches, proof=None):
-    recipe = FOUNDRY.get(str(ore or ''))
-    if not recipe or getattr(sender, 'zone', 'city') != 'mine':
-        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Hay que fundir dentro de la cantera.'})
+COIN_QTY = {'mineral_cobre': 4, 'mineral_plata': 3, 'mineral_oro': 2, 'pepita_oro': 2}
+METAL = {'mineral_cobre': 'cobre', 'mineral_plata': 'plata', 'mineral_oro': 'oro', 'pepita_oro': 'oro'}
+
+def _lotes(batches):
     try:
         batches = int(batches)
     except (TypeError, ValueError):
-        batches = 0
+        return 0
     if batches < 1 or batches > 30:
-        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'La cantidad de lotes no es válida.'})
+        return 0
+    return batches
+
+def _en_la_mina(sender):
+    if getattr(sender, 'zone', 'city') != 'mine':
+        return False
+    sender.activity_tiles = max(int(getattr(sender, 'activity_tiles', 0) or 0), 8)
+    sender.last_activity_at = time.time()
+    return True
+
+def _smelt_fail(sender, reason):
+    send(sender, {'t': 'smelt_result', 'ok': False, 'reason': reason, 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
+
+def fundir_lingotes(sender, ore, batches):
+    metal = METAL.get(ore)
+    if not metal:
+        return _smelt_fail(sender, 'Ese mineral no se funde.')
+    qty = batches
+    item = 'lingote_' + metal
+    MONEDAS.anotar_lingotes(ECON, sender.name, item, qty)
+    save_econ()
+    note = f'El horno guardó {qty} lingote{"s" if qty != 1 else ""} de {metal}.'
+    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'ingot', 'ore': ore, 'batches': batches, 'item': item, 'qty': qty, 'reason': note, 'ledger': MONEDAS.ledger(ECON, sender.name)})
+    send(sender, {'t': 'system', 'text': note})
+
+def fundir_simonchis(sender, ore, batches, proof):
+    profile = account_profile(sender)
+    if not profile.get('account'):
+        return _smelt_fail(sender, 'Entra con una cuenta para acuñar Simonchis.')
+    want = COIN_QTY.get(ore, 4) * batches
+    context = f'{ore}:{batches}'
+    if not proof:
+        opened = COBRE.open_challenge(ECON, profile['account'], context)
+        save_econ()
+        if not opened.get('ok'):
+            reason = 'Ya no se pueden crear más Simonchis. El tope es 333.000.000.' if opened.get('reason') == 'supply' else 'No se pudo empezar la acuñación.'
+            return _smelt_fail(sender, reason)
+        send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'smelt', 'ore': ore, 'batches': batches, 'mode': 'simonchis'}, 'coin': 'Simonchis'})
+        send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': True, 'mode': 'simonchis', 'reason': 'Calculando la prueba. El mineral sigue en la mochila.'})
+        return
+    result = COBRE.redeem(ECON, profile['account'], context, proof, want, purse=sender.name)
+    save_econ()
+    if not result.get('ok'):
+        if result.get('reason') == 'supply':
+            return _smelt_fail(sender, 'Ya no se pueden crear más Simonchis. El tope es 333.000.000.')
+        if result.get('reason') == 'cap':
+            return _smelt_fail(sender, 'Hoy ya acuñaste las Simonchis de este día.')
+        return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
+    qty = int(result['qty'])
+    note = f'Se acuñaron {qty} Simonchis. No es dinero real.'
+    view = MONEDAS.ledger(ECON, sender.name, profile['account'])
+    broadcast_econ()
+    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonchis', 'ore': ore, 'batches': batches, 'qty': qty, 'coin': 'Simonchis', 'reason': note, 'ledger': view})
+    send(sender, {'t': 'system', 'text': note})
+
+def fundir_simonplata(sender, ore, batches, proof):
+    """La plata del horno acuña Simonplata. El tope de 84.000.000 lo aplica el libro de plata."""
+    result = mint_plata(sender, proof)
+    if result and result.get('pending'):
+        send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Calculando la prueba de Simonplata. El mineral sigue en la mochila.'})
+    elif result and result.get('ok'):
+        send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
+
+def smelt_for(sender, ore, batches, proof=None, mode=None):
+    ore = str(ore or '')
+    recipe = FOUNDRY.get(ore)
+    if not recipe or not _en_la_mina(sender):
+        return _smelt_fail(sender, 'Hay que fundir dentro de la mina.')
+    batches = _lotes(batches)
+    if not batches:
+        return _smelt_fail(sender, 'La cantidad de lotes no es válida.')
     if not wallet_ready(sender):
-        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Billetera de otro aparato.'})
-    _ore, coins = recipe
-    want = ECO.smc_to_smh(coins * batches)
+        return _smelt_fail(sender, 'Esta billetera se creó en otro aparato.')
+    mode = str(mode or 'simoncoin')
+    if mode == 'ingot':
+        return fundir_lingotes(sender, ore, batches)
+    if mode == 'simonchis':
+        return fundir_simonchis(sender, ore, batches, proof)
+    if mode == 'simonplata':
+        return fundir_simonplata(sender, ore, batches, proof)
     context = f'{ore}:{batches}'
     result = take_proof(
         sender, 'fundicion', context, proof,
-        {'t': 'smelt', 'ore': ore, 'batches': batches},
-        want_smh=want, exact=True,
+        {'t': 'smelt', 'ore': ore, 'batches': batches, 'mode': 'simoncoin'},
         room_smh=min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
     )
     if not result.get('ok'):
         return
     granted, token, libro_pub = emitir(
-        sender, result['smh'], f'Fundición de {ore} en la cantera', 'fundicion',
+        sender, result['smh'], f'Acuñación de Simoncoin en la mina ({ore})', 'fundicion',
         'fundidora', 'horno_cantera', 'Fundidora de la cantera',
     )
     if granted <= 0:
-        return send(sender, {'t': 'smelt_result', 'ok': False, 'reason': 'Se alcanzó el tope de 21.000.000 SMC.', 'grantedSmh': 0})
+        return _smelt_fail(sender, 'Ya no se puede crear más Simoncoin. El tope es 21.000.000.')
     kept = int(getattr(sender, 'kept_smh', granted) or 0)
     pooled = int(getattr(sender, 'pool_smh', 0) or 0)
-    note = f'La fundidora acreditó {ECO.format_pair(kept)} a tu billetera.'
+    note = f'Se acuñó {ECO.format_smc(kept).replace(" SMC", " Simoncoin")}.'
     if pooled:
-        note += f' El fondo de cambio apartó {ECO.format_pair(pooled)}.'
-    send(sender, {'t': 'smelt_result', 'ok': True, 'grantedSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_pair(kept), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view')})
-    send(sender, {'t': 'system', 'text': note})
+        note += ' Una parte quedó en el fondo de cambio.'
+    view = MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))
+    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simoncoin', 'grantedSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_smc(kept), 'ore': ore, 'batches': batches, 'certificate': token, 'libro': libro_pub, 'supply': result.get('view'), 'ledger': view, 'reason': note})
+    send(sender, {'t': 'system', 'text': note + ' No es dinero real.'})
 
 def swing_for(sender, mineral, proof=None):
     mineral = str(mineral or '')
@@ -1114,7 +1197,8 @@ def handle_client_message(c, m, t):
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''
         send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
-                 'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
+                 'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
+                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON)})
         if c.zone != 'casa':
             broadcast({'t': 'join', 'player': c.public()}, exclude=c)
             broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a El Jardín.'}, exclude=c)
@@ -1178,7 +1262,7 @@ def handle_client_message(c, m, t):
             return
         pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
     elif t == 'smelt' and c.hello:
-        smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'))
+        smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'), m.get('mode'))
     elif t == 'swing' and c.hello:
         swing_for(c, m.get('mineral'), m.get('proof'))
     elif t == 'migrate' and c.hello:
@@ -1503,6 +1587,16 @@ async def handle(reader, writer):
             loc = 'https://github.com/Saimonmde/LIFE'
             writer.write(f'HTTP/1.1 302 Found\r\nLocation: {loc}\r\nCache-Control: no-store\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'.encode())
             await writer.drain(); writer.close(); return
+    if path in ('/api/reloj', '/api/reloj/') and method in ('GET', 'HEAD'):
+        body = json.dumps(RELOJ.payload(ECON), ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
+    if path in ('/api/contadores', '/api/contadores/') and method in ('GET', 'HEAD'):
+        body = json.dumps(MONEDAS.ledger(ECON), ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
     if path == '/session.json' and method in ('GET', 'HEAD'):
         body = json.dumps({'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                            'revision': os.environ.get('RENDER_GIT_COMMIT') or None,
