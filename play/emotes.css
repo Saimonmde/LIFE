@@ -1,0 +1,7 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+#b-emote{position:fixed;left:max(16px,env(safe-area-inset-left));bottom:max(200px,calc(env(safe-area-inset-bottom) + 188px));z-index:16;min-width:72px;min-height:40px;padding:8px 12px;border:1px solid #b59656;border-radius:999px;background:#1c3028ee;color:#f4e8cc;font:13px/1 system-ui;cursor:pointer}
+#emote-wheel{position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(248px,calc(env(safe-area-inset-bottom) + 236px));z-index:17;display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(240px,calc(100vw - 24px));padding:8px;border:1px solid #b59656;border-radius:12px;background:#172620f4;color:#f4e8cc}
+#emote-wheel[hidden]{display:none}
+#emote-wheel button{min-height:42px;padding:8px;border:1px solid #75806b;border-radius:8px;background:#30473b;color:#f4e8cc;font:13px/1.2 system-ui;text-align:left;cursor:pointer}
+body:not(.in-game) #b-emote,body:not(.in-game) #emote-wheel{display:none!important}
+@media(max-width:700px){#b-emote{min-height:44px;font-size:14px}#emote-wheel{width:min(220px,calc(100vw - 20px))}}

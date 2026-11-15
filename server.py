@@ -1543,6 +1543,12 @@ def handle_client_message(c, m, t):
     elif t == 'ping':
         TRADES.expire()
         send(c, {'t': 'pong', 'c': m.get('c')})
+    elif t == 'emote' and c.hello:
+        emote = str(m.get('emote') or '')
+        if emote not in ('wave', 'bow', 'dance', 'clap', 'laugh', 'sit', 'point', 'bacano'):
+            return
+        near = lambda o, me=c: o.zone == 'city' and me.zone == 'city' and (o.x - me.x) ** 2 + (o.y - me.y) ** 2 <= 225
+        broadcast({'t': 'emote', 'id': c.id, 'emote': emote}, who=near, exclude=c)
     elif isinstance(t, str) and t.startswith('trade_') and c.hello:
         try:
             TRADES.handle(c, m)
