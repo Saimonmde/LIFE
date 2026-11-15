@@ -11,7 +11,7 @@ const mando = read('play/mando.css');
 const movil = read('play/movil.js');
 
 assert.equal(page.split('id="b-montar"').length - 1, 1);
-assert.ok(page.includes('mando.css?v=finca-hud'));
+assert.ok(page.includes('mando.css?v=joystick-v1'));
 assert.ok(theme.includes('radial-gradient(1.4px 1.4px at 8% 12%'));
 assert.ok(theme.includes('#e39a62 92%'));
 assert.ok(theme.includes('linear-gradient(#6ea4cc'));

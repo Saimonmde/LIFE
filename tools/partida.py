@@ -8,6 +8,8 @@ import re
 
 import caballo_cuenta
 import casa_cuenta
+import corral
+import gallos
 import mascotas
 import muebles
 
@@ -201,7 +203,7 @@ def pack(raw):
     raw = raw if isinstance(raw, dict) else {}
     data = {
         'v': 1,
-        'inv': _inv(raw.get('inv')),
+        'inv': gallos.clamp_inv(_inv(raw.get('inv'))),
         'xp': _xp(raw.get('xp')),
         'quest': _quest(raw.get('quest')),
         'libro': _libro(raw.get('libro')),
@@ -210,6 +212,8 @@ def pack(raw):
         'energy': round(_num(raw.get('energy'), 0, 100, 100), 2),
         'hud': _hud(raw.get('hud')),
     }
+    data['gallos'] = gallos.count_inv(data['inv'])
+    data['corral'] = corral.sanitize(raw.get('corral'))
     position = _position(raw.get('position'))
     if position:
         data['position'] = position
@@ -245,6 +249,7 @@ def remember(user, raw):
         casa_cuenta.apply(user, casa_payload)
     if data.get('coat'):
         caballo_cuenta.apply(user, data['coat'])
+    user['corral'] = data.get('corral') or corral.empty()
     return recall(user)
 
 

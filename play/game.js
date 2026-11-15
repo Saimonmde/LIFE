@@ -106,6 +106,19 @@ async function init() {
   if (profNpc) imgs._profesora = await loadImg(profNpc.sheet);
   await Promise.all(Object.entries(W.sprites).map(async ([k, s]) => { imgs[k] = await loadImg(s.image); }));
   await Promise.all(Object.values(W.items).map(async it => { imgs['icon:' + it.id] = await loadImg(it.icon['32']); }));
+  if (window.Gallos && !W.items.gallo) {
+    const icon = Gallos.icon();
+    W.items.gallo = { id: 'gallo', name: 'Gallo', stackable: true, maxStack: Gallos.CAP, icon: { '32': icon } };
+    const pic = new Image(); pic.src = icon; imgs['icon:gallo'] = pic;
+    Gallos.onTake = (bird) => {
+      if (!window.Corral) return;
+      const answer = Corral.catchWorld(bird || { species: 'gallo' });
+      if (!answer.ok) { game(answer.reason === 'protegida' ? 'La Guacharaca no se atrapa.' : 'No se pudo atrapar.', 'aviso'); return; }
+      save();
+      const name = answer.animal.species === 'gallina' ? 'gallina' : 'gallo';
+      game('Atrapaste un <b>' + name + '</b>. Quedó en tu corral. No se mata; el gallo sí se puede vender.', 'juego');
+    };
+  }
   for (const n of W.nodes) {
     if (n.type === 'animal') S.animals.push({ def: n, x: n.x, y: n.y, fx: n.x, fy: n.y, state: 'alive', until: 0, nextMove: now() + 1000 + Math.random() * 3000, frame: 0 });
     else S.nodes.set(n.id, { def: n, state: n.initialState, until: 0, crop: null });
@@ -830,6 +843,7 @@ function partidaSnapshot() {
     libro, studied: S.studied || {}, hp: S.hp, energy: S.energy,
     position: { mapId: W.mapId || 'city', x: S.player.x, y: S.player.y, dir: S.player.dir },
     hud, layout: window.Casa ? Casa.layout : null, pet: S.pet || null,
+    corral: window.Corral ? Corral.snapshot() : null,
     coat: window.Caballo ? Caballo.coat : '',
     horse: (() => {
       const mount = (S.mounts || []).find(item => item.personal);
@@ -853,6 +867,7 @@ function applyPartida(doc) {
   if (doc.pet && window.Vida && Vida.decorate) { S.pet = Vida.decorate(doc.pet); try { localStorage.setItem('lifeinc.mascota.v1', JSON.stringify(doc.pet)); } catch (e) {} }
   else if (doc.pet) S.pet = doc.pet;
   if (doc.layout && window.Casa && Casa.apply) Casa.apply(doc.layout);
+  if (doc.corral && window.Corral) Corral.apply(doc.corral);
   if (doc.coat && window.Caballo && Caballo.applyCoat) Caballo.applyCoat(doc.coat);
   if (doc.horse && Number.isFinite(Number(doc.horse.x)) && Number.isFinite(Number(doc.horse.y))) {
     const mount = ensurePersonalHorse();
@@ -1519,6 +1534,10 @@ function hunt(a) {
     game('La <b>Guacharaca</b> es fauna protegida. No se caza, no se captura y no se vende.', 'aviso');
     return;
   }
+  if (d.species === 'gallo' || d.species === 'gallina' || (window.Gallos && Gallos.killable && Gallos.killable(d.species))) {
+    game('No se mata. Se puede atrapar y, si es gallo, vender.', 'aviso');
+    return;
+  }
   if (!needTool(d.tool)) return; if (a.state !== 'alive') return;
   const got = [];
   for (const y of d.yield) if (Math.random() < y.chance) got.push([y.item, rnd(y.min, y.max)]);
@@ -1860,7 +1879,10 @@ function applyCircadian(announce) {
     const night = isNightPhase(st.name);
     if (S.night !== night) {
       S.night = night;
-      if (announce && started) game(S.night ? 'Anochece en El Jardín.' : 'Amanece en El Jardín.', 'juego');
+      if (announce && started) {
+        if (!S.night && window.Gallos) Gallos.onGameDawn(S.reloj);
+        else game(S.night ? 'Anochece en El Jardín.' : 'Amanece en El Jardín.', 'juego');
+      }
     }
   } else if (S.nightOverride == null) {
     S.night = isNightPhase(st.name);
@@ -1924,7 +1946,9 @@ function update(dt) {
     if ((dx || dy) && walkable(nx, ny)) { p.path = [[nx, ny]]; p.pending = null; S.dest = null; }
     else if (dx || dy) p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
   }
-  const cruise = SPEED * (S.mounted ? Simulacion.speedMul() : (sprinting ? 1.75 : 1));
+  const joy = S.keys.has('joystick');
+  const power = joy && window.LiveInk && LiveInk.stickPower ? Math.max(0.28, LiveInk.stickPower()) : 1;
+  const cruise = SPEED * (joy ? power : 1) * (S.mounted ? Simulacion.speedMul() : (sprinting ? 1.75 : 1));
   if (p.emote === 'sit' && t < (p.emoteUntil || 0)) p.path = [];
   const want = p.path.length ? cruise * (p.path.length <= 1 ? 0.62 : 1) : 0;
   p.speed = window.Motion ? Motion.approach(p.speed || 0, want, dt, sprinting ? 10 : 6.5, 12) : want;
@@ -1945,7 +1969,7 @@ function update(dt) {
           else if (tg.kind === 'animal' && tg.a.state === 'alive' && p.repaths++ < 4) approach(tg);
           else if (tg.kind === 'animal') game('El animal se alejó.', 'aviso');
           budget = 0;
-        } else if (S.mounted && budget > 1e-4 && !S.dialog && !S.houseEdit) {
+        } else if ((S.mounted || S.keys.has('joystick')) && budget > 1e-4 && !S.dialog && !S.houseEdit) {
           let mx = 0, my = 0; const K = S.keys;
           if (K.has('w') || K.has('arrowup')) my = -1; if (K.has('s') || K.has('arrowdown')) my = 1;
           if (K.has('a') || K.has('arrowleft')) mx = -1; if (K.has('d') || K.has('arrowright')) mx = 1;
@@ -1962,6 +1986,12 @@ function update(dt) {
   if (window.Simulacion) Simulacion.syncHorse();
   if (window.Caballo) Caballo.tick(dt, horseContext());
   if (window.Guacharaca) Guacharaca.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
+  if (window.Gallos) Gallos.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
+  if (window.Corral) {
+    const casa = (window.HOGARES && HOGARES.casas || []).find(item => item.id === (S.me && S.me.municipio));
+    Corral.tick(dt, casa || null);
+    paintAtrapar();
+  }
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId==='central' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
@@ -2312,6 +2342,42 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
+function paintAtrapar() {
+  let button = document.getElementById('atrapar-ave');
+  if (!button) {
+    button = document.createElement('button');
+    button.id = 'atrapar-ave';
+    button.type = 'button';
+    button.className = 'hud';
+    button.textContent = 'Atrapar';
+    button.style.cssText = 'position:fixed;left:50%;bottom:138px;transform:translateX(-50%);z-index:16';
+    button.onclick = () => {
+      const bird = (window.Gallos ? Gallos.birds() : []).find(item => item.id === button.dataset.id);
+      if (bird && window.Gallos) Gallos.touch(bird);
+    };
+    document.body.append(button);
+    const vender = document.createElement('button');
+    vender.id = 'vender-gallo';
+    vender.type = 'button';
+    vender.className = 'hud';
+    vender.textContent = 'Vender gallo';
+    vender.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:16';
+    vender.onclick = () => {
+      const animal = (Corral.animals() || []).find(item => item.species === 'gallo');
+      if (!animal) { game('No hay un gallo en tu corral.', 'aviso'); return; }
+      Corral.takeOut(animal.id);
+      if (invAdd('gallo', 1)) game('El gallo salió del corral. Ya se puede vender o cambiar. No se mata.', 'juego');
+      save();
+    };
+    document.body.append(vender);
+  }
+  const city = (W.mapId || 'city') === 'city';
+  const loose = city && window.Gallos ? Gallos.nearestLoose(S.player, Corral.caught()) : null;
+  button.hidden = !loose;
+  if (loose) button.dataset.id = loose.id;
+  const vender = document.getElementById('vender-gallo');
+  if (vender) vender.hidden = !(city && (Corral.animals() || []).some(item => item.species === 'gallo'));
+}
 function horseContext(){
  const avoid=new Set();
  if(window.Casa){avoid.add(Casa.PARK_DOOR.x+','+Casa.PARK_DOOR.y);avoid.add(Casa.PARK_STAND.x+','+Casa.PARK_STAND.y);}
