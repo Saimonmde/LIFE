@@ -230,6 +230,38 @@ class EmailLinkTests(unittest.TestCase):
             acc.claim_simon(doc, stranger, now=12_310)
         with self.assertRaises(acc.AuthError):
             acc.set_nick_and_password(doc, stranger, 'Simon', 'Secreto-largo-1', 'Secreto-largo-1', now=12_320)
+
+    def test_only_owner_email_can_save_simon_variants(self):
+        import os
+        old = os.environ.get('SIMON_OWNER_EMAIL')
+        os.environ['SIMON_OWNER_EMAIL'] = 'dueno@ejemplo.co'
+        try:
+            doc = acc.empty()
+            stranger = {
+                'id': 'minero', 'name': 'Minero', 'email': 'minero@ejemplo.co',
+                'password_hash': '', 'wallet_name': 'Minero',
+            }
+            owner = {
+                'id': 'dueno', 'name': 'Fundador', 'email': 'dueno@ejemplo.co',
+                'password_hash': '', 'wallet_name': 'Fundador',
+            }
+            doc['users'].extend([stranger, owner])
+            variants = ('Simon', 'simon', 'SIMON', 'Simón', 'S imon', '  símon  ', 'S1mon', '$imon')
+            for index, nick in enumerate(variants):
+                doc['rates'].pop('clave:minero', None)
+                with self.assertRaises(acc.AuthError) as blocked:
+                    acc.set_nick_and_password(doc, stranger, nick, 'Secreto-largo-1', 'Secreto-largo-1', now=13_000 + index)
+                self.assertIn('reservado', str(blocked.exception).lower())
+            self.assertEqual(stranger['name'], 'Minero')
+            self.assertEqual(stranger['password_hash'], '')
+            saved = acc.set_nick_and_password(doc, owner, 'Simón', 'Secreto-largo-1', 'Secreto-largo-1', now=13_100)
+            self.assertEqual(saved['name'], 'Simon')
+            self.assertEqual(saved['email'], 'dueno@ejemplo.co')
+        finally:
+            if old is None:
+                os.environ.pop('SIMON_OWNER_EMAIL', None)
+            else:
+                os.environ['SIMON_OWNER_EMAIL'] = old
         if old is None:
             os.environ.pop('SIMON_OWNER_EMAIL', None)
         else:
