@@ -177,7 +177,12 @@ export function createValleyView(T, opts) {
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const spanX = mapW * 2;
     const spanZ = mapH * 2;
-    return Math.max((spanZ / 2) / Math.tan(vFov / 2), (spanX / 2) / Math.tan(hFov / 2)) * 1.05;
+    const dist = Math.max((spanZ / 2) / Math.tan(vFov / 2), (spanX / 2) / Math.tan(hFov / 2)) * 1.05;
+    if (typeof narrow === 'function' && narrow()) {
+      const vertical = ((spanZ / 2) / Math.tan(vFov / 2)) * 1.22;
+      return Math.min(dist, Math.max(vertical, dist * 0.84));
+    }
+    return dist;
   }
   function clampDist(v) { return Math.max(36, Math.min(fitDist() * 1.45, v)); }
 
@@ -252,6 +257,8 @@ export function createValleyView(T, opts) {
       const h = label.kind === 'poi' ? 18 : 22;
       let left = (projected.x + 1) * width / 2 + nx - w / 2;
       let top = (1 - projected.y) * heightPx / 2 + ny;
+      left = Math.max(4, Math.min(width - w - 4, left));
+      top = Math.max(4, Math.min(heightPx - h - 4, top));
       let guard = 0;
       const hits = (a, b) => !(a.x + a.w + 4 <= b.x || b.x + b.w + 4 <= a.x || a.y + a.h + 3 <= b.y || b.y + b.h + 3 <= a.y);
       while (guard++ < 28 && placed.some(b => hits({ x: left, y: top, w, h }, b))) {

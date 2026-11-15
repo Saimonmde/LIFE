@@ -28,7 +28,7 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 #smc-pill img, #hud-recursos img.oro-coin { width: 22px; height: 22px; display: block; image-rendering: auto; filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
 #smc-pill-saldo { font-variant-numeric: tabular-nums; }
 body:not(.in-game) #smc-pill { display: none !important; }
-body.pantalla-limpia #smc-pill, .solo-mundo #smc-pill { display: inline-flex !important; }
+#smc-pill, body.pantalla-limpia #smc-pill, .solo-mundo #smc-pill { display: none !important; }
 @media (max-width: 820px) {
   #smc-pill { top: calc(max(6px, env(safe-area-inset-top)) + 92px); font-size: 13px; padding: 3px 8px 3px 3px; }
   #smc-pill img { width: 20px; height: 20px; }
@@ -320,8 +320,8 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 #mochila-llena button{min-height:44px;border:0;border-radius:12px;background:#e2b23c;color:#1c1208;font:700 15px/1 var(--sans);padding:8px 12px}
 #mochila-llena[hidden]{display:none!important}
 #b-salir-parque{left:50%;bottom:78px;transform:translateX(-50%);background:#6b3a22;color:#fff1c9;border-color:#e2b23c}
-body.in-casa #world-tools{top:auto!important;bottom:200px}
-body.in-casa #world-note{top:auto!important;bottom:150px}
+body.in-casa #world-tools{top:120px!important;bottom:auto!important}
+body.in-casa #world-note{top:168px!important;bottom:auto!important}
 body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-salir-parque,body:not(.in-game) #b-casa,body:not(.in-game) #b-editar-casa,body:not(.in-game) #b-salir-parque,body:not(.in-game) #casa-editor,body.in-casa #mine-route{display:none!important}
 #casa-editor{position:fixed;z-index:28;top:64px;left:max(10px,env(safe-area-inset-left));width:min(300px,calc(100vw - 20px));max-height:calc(100dvh - 80px);overflow:auto;background:#241c14f5;border:2px solid #b48a46;border-radius:10px;color:#f6e7c4;padding:10px 12px;font:14px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px #000a}
 #casa-editor header{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:#f5d27a;padding:0 0 6px;border:0}

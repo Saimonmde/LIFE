@@ -641,11 +641,52 @@ html.movil #pow-panel {
   html.movil #pow-panel { top: auto; bottom: 108px; max-height: 20dvh; }
 }
 html.movil #smc-pill {
-  top: max(6px, env(safe-area-inset-top));
-  left: auto;
-  right: 124px;
+  display: none !important;
+}
+
+/* Cielo del vuelo de entrada. En el celular el valle no llena el alto,
+   así que detrás va un degradado y no un color plano. La noche reutiliza
+   el cielo de la intro astral (PR #31), sin la posesión ni la guía. */
+#intro-cielo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 118%, rgba(214, 226, 196, .95), transparent 36%),
+    linear-gradient(#6ea4cc 0%, #b9d6e6 42%, #d7e6cf 100%);
+}
+#intro-cielo.noche {
+  background:
+    radial-gradient(ellipse at 50% 115%, rgba(86, 140, 170, .55), transparent 46%),
+    radial-gradient(ellipse at 20% 30%, rgba(120, 90, 190, .35), transparent 42%),
+    linear-gradient(#1a2748 0%, #070b16 70%, #03040a 100%);
+}
+#intro-cielo[hidden] { display: none !important; }
+
+/* Dentro de la casa los tres botones van en columna, debajo del mapa
+   y por encima de la barra. No se montan entre ellos ni sobre la barra. */
+body.in-game.in-casa #b-cerrar-casa,
+body.in-casa #b-editar-casa,
+body.in-casa #b-salir-parque {
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left));
+  right: auto;
   transform: none;
-  z-index: 60;
+  bottom: auto;
+  z-index: 12;
+  width: auto;
+  max-width: min(168px, 46vw);
+}
+body.in-game.in-casa #b-cerrar-casa {
+  display: block;
+  top: calc(max(8px, env(safe-area-inset-top)) + 336px);
+}
+body.in-casa #b-salir-parque {
+  top: calc(max(8px, env(safe-area-inset-top)) + 388px);
+}
+body.in-casa #b-editar-casa {
+  top: calc(max(8px, env(safe-area-inset-top)) + 440px);
 }
 
 #cambio-preview,
