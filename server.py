@@ -28,6 +28,7 @@ import simon_api as SIMON_API
 import reloj as RELOJ
 import cobre as COBRE
 import monedas as MONEDAS
+import finca as FINCA
 import persist as PERSIST
 import purses as PURSES
 import trades as TRADE
@@ -69,6 +70,9 @@ PLAY_PATH = os.path.join(ROOT, 'state', 'players.json')
 PLAYERS = PLAY.load(PLAY_PATH)
 VIDA_PATH = os.path.join(ROOT, 'state', 'vida.json')
 VIDA = SOCIAL.normalize(PERSIST.load_named('vida', VIDA_PATH))
+FINCA_PATH = os.path.join(ROOT, 'state', 'finca.json')
+FINCA_CONFIG = FINCA.load_config()
+FINCA_STATE = FINCA.load(FINCA_PATH)
 PLACES = MUNDOS.boxes(WORLD)
 ACCOUNTS_PATH = os.path.join(ROOT, 'state', 'accounts.json')
 ACCOUNTS = ACC.load(ACCOUNTS_PATH)
@@ -105,6 +109,9 @@ def save_play():
 
 def save_vida():
     PERSIST.save_named('vida', VIDA_PATH, VIDA)
+
+def save_finca():
+    FINCA.save(FINCA_PATH, FINCA_STATE)
 
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
@@ -1210,6 +1217,26 @@ def _trade_balances(name):
         'items': PURSES.inventory(VAULT_STATE, name),
     }
 
+def _mover_bultos_del_trueque(state, name_a, name_b, offer_a, offer_b):
+    """Pasa las series de los bultos. No crea monedas ni baja los kilos cosechados."""
+    offer_a = TRADE.normalize_offer(offer_a)
+    offer_b = TRADE.normalize_offer(offer_b)
+    now = time.time()
+    for src, dst, offer in ((name_a, name_b, offer_a), (name_b, name_a, offer_b)):
+        for item, qty in offer['items'].items():
+            crop = {'bolsa_cafe': 'cafe', 'bolsa_cacao': 'cacao'}.get(item)
+            if not crop or qty <= 0:
+                continue
+            serials = [
+                bag['serial'] for bag in state['bags'].values()
+                if bag.get('owner') == src and bag.get('crop') == crop and bag.get('place') == 'mochila'
+            ]
+            if len(serials) < qty:
+                raise TRADE.TradeError('No hay tantos bultos con serie.')
+            for serial in serials[:qty]:
+                FINCA.handoff_bag(state, serial, src, dst, now)
+
+
 def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
     """Las dos patas se escriben juntas. Si el guardado falla, la memoria no cambia."""
     import copy
@@ -1219,6 +1246,8 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
     records = TRADE.apply_exchange(
         candidate, vault, chain, NFT_SEED, name_a, name_b, offer_a, offer_b, trade_id,
     )
+    finca_copy = copy.deepcopy(FINCA_STATE)
+    _mover_bultos_del_trueque(finca_copy, name_a, name_b, offer_a, offer_b)
     PERSIST.save_bundle(
         [
             ('economy', ECON_PATH, candidate),
@@ -1228,10 +1257,13 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
         [record['id'] for record in records],
         os.path.dirname(LIBRO_PATH),
     )
+    FINCA.save(FINCA_PATH, finca_copy)
     _volcar(ECON, candidate)
     _volcar(VAULT_STATE, vault)
     _volcar(LIBRO_CHAIN, chain)
+    _volcar(FINCA_STATE, finca_copy)
     broadcast_econ()
+    broadcast({'t': 'libro_publico', 'contadores': public_counters()})
 
 TRADES = TRADE.Trades(clients, send, _trade_balances, commit_trade)
 
@@ -1547,6 +1579,129 @@ async def handle_ws(reader, writer, cookie='', ip=''):
         try: writer.close()
         except Exception: pass
 
+class FincaPurse:
+    """Mueve monedas que ya existen. No toca la acuñación ni los lingotes."""
+
+    def balance(self, coin, name):
+        if coin == 'simoncoin':
+            return int((ECON.get('wallets') or {}).get(name) or 0)
+        if coin == 'simonplata':
+            return PLATA.balance_of(ECON, name)
+        if coin == 'simonchis':
+            return COBRE.balance_of(ECON, name)
+        return 0
+
+    def move(self, coin, src, dst, amount):
+        amount = int(amount)
+        if amount <= 0 or src == dst:
+            return False
+        if coin == 'simoncoin':
+            if not ECO.debit(ECON, src, amount):
+                return False
+            ECO.credit(ECON, dst, amount)
+            return True
+        if coin == 'simonplata':
+            PLATA.ensure(ECON)
+            if not PLATA.park(ECON, src, amount):
+                return False
+            if not PLATA.unpark(ECON, dst, amount):
+                PLATA.unpark(ECON, src, amount)
+                return False
+            return True
+        if coin == 'simonchis':
+            box = COBRE.ensure(ECON)
+            have = int((box.get('wallets') or {}).get(src) or 0)
+            if have < amount:
+                return False
+            box['wallets'][src] = have - amount
+            box['wallets'][dst] = int(box['wallets'].get(dst) or 0) + amount
+            return True
+        return False
+
+    def supply(self):
+        COBRE.ensure(ECON)
+        plata_box = ECON.get('plata') or {}
+        chis = ECON.get('simonchis') or {}
+        return {
+            'simoncoin': int(ECON.get('minedSmh') or 0),
+            'simonplata': int(plata_box.get('minedSph') or 0),
+            'simonchis': int(chis.get('minted') or 0),
+            'simoncoinSum': sum(int(v or 0) for v in (ECON.get('wallets') or {}).values()),
+            'simonplataSum': sum(int(v or 0) for v in (plata_box.get('wallets') or {}).values()),
+            'simonchisSum': sum(int(v or 0) for v in (chis.get('wallets') or {}).values()),
+            'foundry': dict(((ECON.get('foundry') or {}).get('minted') or {})),
+        }
+
+
+FINCA_PURSE = FincaPurse()
+
+
+def public_counters():
+    return FINCA.attach_public(MONEDAS.ledger(ECON), FINCA_STATE, FINCA_PURSE, FINCA_CONFIG)
+
+
+def finca_account(sender):
+    if getattr(sender, 'wallet_ok', False) and getattr(sender, 'name', ''):
+        return sender.name
+    return ''
+
+
+def finca_sync_purse(name):
+    """La mochila del intercambio cuenta los bultos en la mano. No crea monedas."""
+    if not name:
+        return False
+    changed = False
+    for crop, item in (('cafe', 'bolsa_cafe'), ('cacao', 'bolsa_cacao')):
+        want = sum(
+            1 for bag in FINCA_STATE['bags'].values()
+            if bag.get('owner') == name and bag.get('crop') == crop and bag.get('place') == 'mochila'
+        )
+        have = PURSES.count(VAULT_STATE, name, item)
+        if want > have:
+            PURSES.credit(VAULT_STATE, name, item, want - have)
+            changed = True
+        elif have > want and PURSES.debit(VAULT_STATE, name, item, have - want):
+            changed = True
+    return changed
+
+
+def finca_here(sender):
+    zone = getattr(sender, 'zone', 'city')
+    if zone == 'mine':
+        return True
+    if zone != 'city':
+        return False
+    spot = next((w for w in WORLD.get('waypoints') or [] if w.get('id') == 'las_palmas'), None)
+    if not spot:
+        return False
+    try:
+        return max(abs(float(sender.x) - float(spot['x'])), abs(float(sender.y) - float(spot['y']))) <= 30
+    except (TypeError, ValueError):
+        return False
+
+
+def finca_msg(sender, message):
+    op = str((message or {}).get('op') or 'ver')
+    account = finca_account(sender)
+    if op != 'ver' and not account:
+        if not wallet_ready(sender):
+            return
+        account = finca_account(sender)
+    if op in ('depositar', 'retirar') and getattr(sender, 'zone', '') == 'banco':
+        present = True
+    else:
+        present = op == 'ver' or finca_here(sender)
+    result = FINCA.act(FINCA_STATE, FINCA_PURSE, FINCA_CONFIG, account, op, message, time.time(), present=present)
+    if result.get('changed'):
+        if finca_sync_purse(account):
+            save_vault()
+        save_finca()
+        if result.get('movedCoins'):
+            save_econ()
+        broadcast({'t': 'libro_publico', 'contadores': public_counters()})
+    send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'view': result.get('view')})
+
+
 def handle_client_message(c, m, t):
     if t == 'hello':
         if c.hello: return
@@ -1579,7 +1734,7 @@ def handle_client_message(c, m, t):
         c.wallet_token = owned or ''
         welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
-                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON)}
+                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         send(c, welcome)
         if c.place not in MUNDOS.PRIVATE:
@@ -1704,6 +1859,8 @@ def handle_client_message(c, m, t):
         deposit_item(c, m.get('item'), m.get('qty'))
     elif t == 'withdraw_item' and c.hello:
         withdraw_item(c, m.get('item'), m.get('qty'))
+    elif t == 'finca' and c.hello:
+        finca_msg(c, m)
     elif vida_try(c, m, t):
         return
 
@@ -2196,8 +2353,19 @@ async def handle(reader, writer):
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
-    if path in ('/api/contadores', '/api/contadores/') and method in ('GET', 'HEAD'):
-        body = json.dumps(MONEDAS.ledger(ECON), ensure_ascii=False).encode()
+    if path in ('/api/contadores', '/api/contadores/', '/api/finca', '/api/finca/') and method in ('GET', 'HEAD'):
+        body = json.dumps(public_counters(), ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
+    if path in ('/api/finca/privado', '/api/finca/privado/') and method in ('GET', 'HEAD'):
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session')) or {}
+        if not FINCA.can_see_private(user.get('email'), user.get('role')):
+            body = '{"error":"solo el dueno o cumplimiento"}'.encode()
+            writer.write(f'HTTP/1.1 403 Forbidden\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            if method == 'GET': writer.write(body)
+            await writer.drain(); writer.close(); return
+        body = json.dumps(FINCA.private_payload(FINCA_STATE), ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return

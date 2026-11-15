@@ -1,0 +1,81 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+#finca-open, #libro-open {
+  position: fixed;
+  z-index: 24;
+  left: 12px;
+  bottom: 148px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #c4a574;
+  background: #2a2118f2;
+  color: #f6e7c8;
+  font: 600 15px/1.2 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+#libro-open { bottom: 92px; }
+#finca-panel, #libro-publico {
+  position: fixed;
+  z-index: 40;
+  top: 72px;
+  right: 12px;
+  width: min(440px, calc(100vw - 24px));
+  max-height: calc(100dvh - 96px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #d7c4a2;
+  background: #1c1814f5;
+  color: #f7f1e6;
+  font: 16px/1.45 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  box-shadow: 0 16px 40px #0008;
+}
+#finca-panel[hidden], #libro-publico[hidden] { display: none; }
+#finca-panel header, #libro-publico header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+#finca-panel button, #libro-publico button, .finca-actions button {
+  min-height: 44px;
+  margin: 4px 4px 0 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #c4a574;
+  background: #3a2c20;
+  color: #fff6e4;
+  font: 600 15px/1.2 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+}
+#finca-panel h3, #libro-publico h3 { margin: 14px 0 6px; font-size: 16px; }
+.finca-plot, .finca-bag { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #3a3228; }
+.finca-note { color: #e7d3ae; margin: 6px 0; }
+.libro-lead, .libro-ingots p { color: #e7d3ae; }
+.libro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.libro-crop, .libro-coin, .libro-ingots, .libro-feed {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: #2a241c;
+}
+.libro-ico { display: flex; gap: 6px; }
+.libro-ico svg, .libro-ico img { width: 36px; height: 36px; object-fit: contain; }
+.libro-bar { height: 10px; border-radius: 99px; background: #3d3428; overflow: hidden; margin-top: 6px; }
+.libro-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #e2b23c, #f3e2b0); }
+.libro-feed ul, .libro-ingots ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 820px) {
+  #finca-panel, #libro-publico {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 72dvh;
+    border-radius: 18px 18px 0 0;
+  }
+  .libro-grid { grid-template-columns: 1fr; }
+  #finca-open { bottom: 168px; }
+  #libro-open { bottom: 112px; }
+}
