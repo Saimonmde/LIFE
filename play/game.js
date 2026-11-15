@@ -142,28 +142,20 @@ async function init() {
     if (window.Hogar && Hogar.migrate) {
       try { sessionUser = await Hogar.migrate(sessionUser) || sessionUser; } catch (e) {}
     }
-    S.sessionUser = sessionUser;
-    S.me.municipio = sessionUser.municipio || '';
-    window.SaimonSession = { id: sessionUser.id, municipio: S.me.municipio };
-    S.me.nick = apodoCuenta(sessionUser);
-    const wallet = String(sessionUser.wallet_name || '').trim();
-    if (wallet && !wallet.includes('@') && wallet.toLowerCase() !== String(sessionUser.email || '').trim().toLowerCase()) S.me.name = wallet.slice(0, 16);
-    if ($('#l-nombre')) $('#l-nombre').value = S.me.nick;
-    try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
-    if (!S.me.municipio && window.Hogar) {
-      $('#login').hidden = true;
-      document.body.classList.add('eligiendo-casa');
-      Hogar.openPicker(elegirCasa);
-      return;
-    }
-    startGame();
+    continuarSesion(sessionUser);
     return;
   }
   beginAtHome();
   $('#login').hidden = false;
   fetch('/auth/providers').then(r => r.json()).then(p => {
-    const g = $('#b-google'); if (g) g.hidden = !p.google;
-    const f = $('#b-facebook'); if (f) f.hidden = !p.facebook;
+    const g = $('#b-google'); if (g) { g.hidden = false; g.disabled = !p.google; }
+    const f = $('#b-facebook');
+    if (f) {
+      f.hidden = false;
+      f.disabled = !p.facebook;
+      const label = f.querySelector('span');
+      if (label) label.textContent = p.facebook ? 'Facebook' : 'Facebook disponible pronto';
+    }
     const reg = $('#b-registro'); if (reg) reg.hidden = !p.registro;
     const forgot = $('#b-olvide'); if (forgot) forgot.hidden = !p.reset;
     const again = $('#b-reenviar'); if (again) again.hidden = !p.registro;
@@ -205,7 +197,81 @@ function linkCookie() {
   document.cookie = 'life_link=' + encodeURIComponent(name + '|' + token) + '; Path=/; SameSite=Lax; Max-Age=600';
   document.cookie = 'life_return=' + encodeURIComponent(vueltaJuego()) + '; Path=/; SameSite=Lax; Max-Age=600';
 }
+function continuarSesion(sessionUser) {
+  S.sessionUser = sessionUser;
+  S.me.municipio = sessionUser.municipio || '';
+  window.SaimonSession = { id: sessionUser.id, municipio: S.me.municipio };
+  S.me.nick = apodoCuenta(sessionUser);
+  const wallet = String(sessionUser.wallet_name || '').trim();
+  if (wallet && !wallet.includes('@') && wallet.toLowerCase() !== String(sessionUser.email || '').trim().toLowerCase()) S.me.name = wallet.slice(0, 16);
+  if ($('#l-nombre')) $('#l-nombre').value = S.me.nick;
+  try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
+  if (sessionUser.needsPassword) {
+    $('#login').hidden = true;
+    const panel = $('#poner-clave');
+    if (panel) panel.hidden = false;
+    const nick = apodoCuenta(sessionUser);
+    if ($('#p-nick') && nick !== 'Viajero') $('#p-nick').value = nick;
+    return;
+  }
+  const panel = $('#poner-clave');
+  if (panel) panel.hidden = true;
+  if (!S.me.municipio && window.Hogar) {
+    $('#login').hidden = true;
+    document.body.classList.add('eligiendo-casa');
+    Hogar.openPicker(elegirCasa);
+    return;
+  }
+  startGame();
+}
+function fuerzaClave(text) {
+  const value = String(text || '');
+  let score = 0;
+  if (value.length >= 8) score += 1;
+  if (value.length >= 12) score += 1;
+  if (/[a-záéíóúñ]/.test(value) && /[A-ZÁÉÍÓÚÑ]/.test(value)) score += 1;
+  if (/\d/.test(value)) score += 1;
+  if (/[^0-9A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(value)) score += 1;
+  if (value.length < 8 || score < 3) return { label: 'Débil', cls: 'debil' };
+  if (score < 4) return { label: 'Regular', cls: 'media' };
+  return { label: 'Fuerte', cls: 'fuerte' };
+}
 $('#b-correo').onclick=()=>{ $('#correo-login').hidden=!$('#correo-login').hidden;$('#registro').hidden=true;$('#olvide').hidden=true; };
+const bEntrar = $('#b-entrar'); if (bEntrar) bEntrar.onclick = async () => {
+  if (bEntrar.disabled) return;
+  bEntrar.disabled = true;
+  try {
+    const response = await fetch('/auth/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nick: $('#e-nick').value.trim(), password: $('#e-clave').value }) });
+    const result = await response.json();
+    $('#e-clave').value = '';
+    if (!response.ok || !result.user) throw Error(result.error || 'Apodo o contraseña incorrectos.');
+    location.replace(vueltaJuego());
+  } catch (error) { $('#login-status').textContent = error.message; }
+  finally { bEntrar.disabled = false; }
+};
+const clave = $('#p-pass');
+if (clave) clave.addEventListener('input', () => {
+  const fuerza = fuerzaClave(clave.value);
+  const texto = $('#p-fuerza');
+  const barra = $('#p-barra');
+  if (texto) texto.textContent = clave.value ? fuerza.label : 'Escribe una contraseña.';
+  if (barra) barra.className = fuerza.cls;
+});
+const bGuardar = $('#p-guardar'); if (bGuardar) bGuardar.onclick = async () => {
+  if (bGuardar.disabled) return;
+  bGuardar.disabled = true;
+  try {
+    const response = await fetch('/auth/apodo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nick: $('#p-nick').value.trim(), password: $('#p-pass').value, confirm: $('#p-pass2').value }) });
+    const result = await response.json();
+    if (!response.ok || !result.user) throw Error(result.error || 'No se pudo guardar.');
+    $('#p-pass').value = '';
+    $('#p-pass2').value = '';
+    continuarSesion(result.user);
+  } catch (error) {
+    const box = $('#p-status');
+    if (box) box.textContent = error.message;
+  } finally { bGuardar.disabled = false; }
+};
 $('#b-correo-entrar').onclick=async()=>{
  const button=$('#b-correo-entrar');if(button.disabled)return;button.disabled=true;
  try{const response=await fetch('/auth/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#e-email').value.trim(),password:$('#e-password').value})});const result=await response.json();$('#e-password').value='';
@@ -229,7 +295,7 @@ const bRe = $('#b-reenviar'); if (bRe) bRe.onclick = () => {
 const bReset = $('#b-olvide-enviar'); if (bReset) bReset.onclick = () => {
   fetch('/auth/olvide', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:$('#o-email').value.trim()})}).then(r => r.json()).then(m => avisoLogin(m.error || 'Si esa cuenta existe, enviamos un enlace para la contraseña.'));
 };
-$('#login-form').onsubmit = (e) => { e.preventDefault(); };
+$('#login-form').onsubmit = (e) => { e.preventDefault(); if (bEntrar && $('#correo-login').hidden) bEntrar.click(); };
 async function elegirCasa(id) {
   const buttons = [...document.querySelectorAll('#hogar-lista button')];
   buttons.forEach(b => { b.disabled = true; });

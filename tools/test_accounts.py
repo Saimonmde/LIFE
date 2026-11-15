@@ -170,5 +170,45 @@ class EmailLinkTests(unittest.TestCase):
             acc.resend_verification(doc, 'nica@ejemplo.co', lambda email, raw: None, now=9_020)
 
 
+    def test_google_account_sets_nick_and_password_then_logs_in(self):
+        doc = acc.empty()
+        state = acc.start_oauth(doc, 'google', now=10_000)
+        made = acc.finish_oauth(doc, 'google', state, state, {'sub': 'g-ana', 'email': 'ana@gmail.com', 'name': 'Ana'}, now=10_010)
+        user = next(u for u in doc['users'] if u['id'] == made['user']['id'])
+        self.assertTrue(made['user']['needsPassword'])
+        self.assertNotIn('password_hash', made['user'])
+        self.assertIn('frase', acc.set_nick_and_password.__doc__)
+        with self.assertRaises(acc.AuthError):
+            acc.set_nick_and_password(doc, user, 'Ana', 'corta', 'corta', now=10_020)
+        with self.assertRaises(acc.AuthError):
+            acc.set_nick_and_password(doc, user, 'Ana', 'secreto-largo', 'otra-distinta', now=10_030)
+        shown = acc.set_nick_and_password(doc, user, 'ana', 'Secreto-largo-1', 'Secreto-largo-1', now=10_040)
+        self.assertFalse(shown['needsPassword'])
+        self.assertEqual(user['name'], 'ana')
+        self.assertTrue(user['password_hash'].startswith('scrypt$'))
+        self.assertNotIn('Secreto-largo-1', user['password_hash'])
+        entered = acc.login_nick(doc, 'Ana', 'Secreto-largo-1', now=10_050)
+        self.assertEqual(entered['user']['id'], user['id'])
+        with self.assertRaises(acc.AuthError) as wrong:
+            acc.login_nick(doc, 'Ana', 'clave-equivocada', now=10_060)
+        with self.assertRaises(acc.AuthError) as missing:
+            acc.login_nick(doc, 'Nadie', 'clave-equivocada', now=10_070)
+        self.assertEqual(str(wrong.exception), str(missing.exception))
+        other = acc.start_oauth(doc, 'google', now=10_200)
+        acc.finish_oauth(doc, 'google', other, other, {'sub': 'g-luz', 'email': 'luz@gmail.com', 'name': 'Luz'}, now=10_210)
+        luz = next(u for u in doc['users'] if u['email'] == 'luz@gmail.com')
+        with self.assertRaises(acc.AuthError):
+            acc.set_nick_and_password(doc, luz, 'Ana', 'Secreto-largo-1', 'Secreto-largo-1', now=10_220)
+
+    def test_nick_login_is_rate_limited(self):
+        doc = acc.empty()
+        for i in range(5):
+            with self.assertRaises(acc.AuthError):
+                acc.login_nick(doc, 'Ana', 'mala-clave', now=11_000 + i)
+        with self.assertRaises(acc.AuthError) as limited:
+            acc.login_nick(doc, 'Ana', 'mala-clave', now=11_010)
+        self.assertIn('Espera', str(limited.exception))
+
+
 if __name__ == '__main__':
     unittest.main()

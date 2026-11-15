@@ -26,19 +26,26 @@ Reglas, en SMH enteros (1 SMC = 100.000.000 SMH):
    mismo pase en el libro madre cuando ese origen tiene saldo ahí.
 6. La suma de billeteras + fondo + depósitos no cambia. minedSmh tampoco.
 """
+import os
 import time
 
 import economy as eco
 import vault as VAULT
 
 EMAIL = 'saimon888oficial@gmail.com'
+
+
+def owner_email():
+    """Correo del fundador. SIMON_OWNER_EMAIL gana; si falta, el valor de arriba."""
+    raw = str(os.environ.get('SIMON_OWNER_EMAIL') or '').strip().lower()
+    return raw or EMAIL
 NOTE = 'Fusión inicial a la cuenta del fundador'
 RESERVE = 'tesoro_genesis'
 POOL = 'fondo_cambio'
 
 
-def find_founder(accounts, email=EMAIL):
-    want = str(email or '').strip().lower()
+def find_founder(accounts, email=None):
+    want = owner_email() if email is None else str(email or '').strip().lower()
     if not want:
         return None
     for user in (accounts or {}).get('users') or []:
@@ -56,11 +63,11 @@ def wallet_of(user):
 def _record(state):
     rec = state.get('founderFusion')
     if not isinstance(rec, dict):
-        rec = {'status': 'pending', 'transfers': [], 'movedSmh': 0, 'email': EMAIL}
+        rec = {'status': 'pending', 'transfers': [], 'movedSmh': 0, 'email': owner_email()}
         state['founderFusion'] = rec
     rec.setdefault('transfers', [])
     rec.setdefault('movedSmh', 0)
-    rec.setdefault('email', EMAIL)
+    rec.setdefault('email', owner_email())
     return rec
 
 
@@ -106,7 +113,7 @@ def apply(econ, accounts, vault_state, now=None):
         if rec.get('status') == 'pending' and rec.get('reason'):
             return {'status': 'pending', 'already': True, 'fresh': [], 'record': rec, 'changed': False}
         rec['status'] = 'pending'
-        rec['email'] = EMAIL
+        rec['email'] = owner_email()
         rec['wallet'] = ''
         rec['reason'] = 'La cuenta del fundador aún no existe.'
         rec['ts'] = now
