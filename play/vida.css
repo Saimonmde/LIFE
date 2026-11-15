@@ -87,9 +87,9 @@ body:not(.in-game) #amigos-barra, body:not(.in-game) #amigos-panel { display: no
   box-shadow: 0 3px 10px #0007;
 }
 #b-ayuda-izq[hidden], body:not(.in-game) #b-ayuda-izq { display: none !important; }
-#instructivo h2 { font-size: 18px; margin: 0 0 6px; }
-#instructivo h2 span { font-weight: 600; color: #8a5a32; font-size: 14px; }
-#instructivo h3 { margin: 8px 0 2px; font-size: 14px; }
+#instructivo h2 { font-size: 18px; margin: 0 0 6px; color: #1c1208; }
+#instructivo h2 span { font-weight: 700; color: #3a2412; font-size: 14px; }
+#instructivo h3 { margin: 8px 0 2px; font-size: 14px; color: #1c1208; }
 #instructivo p, #instructivo li { margin: 4px 0; }
 #instructivo kbd {
   display: inline-block;
