@@ -10,7 +10,8 @@ Reglas, en SMH enteros (1 SMC = 100.000.000 SMH):
 
 1. Si founderFusion.status ya es «done», no se vuelve a mover nada.
 2. La cuenta destino es la de accounts.users cuyo email, sin distinguir
-   mayúsculas, es saimon888oficial@gmail.com. La billetera es wallet_name
+   mayúsculas, es SIMON_OWNER_EMAIL. Si esa variable no está puesta, se
+   usa el respaldo de este módulo. La billetera es wallet_name
    o, si falta, name. Si esa cuenta aún no existe, el estado queda
    «pending» y no se mueve un Simonchi.
 3. Se debita por completo, y se acredita a esa billetera, cada saldo SMC
@@ -36,7 +37,7 @@ EMAIL = 'saimon888oficial@gmail.com'
 
 
 def owner_email():
-    """Correo del fundador. SIMON_OWNER_EMAIL gana; si falta, el valor de arriba."""
+    """Correo del fundador. Sale de SIMON_OWNER_EMAIL; el respaldo sólo cubre un entorno sin esa variable."""
     raw = str(os.environ.get('SIMON_OWNER_EMAIL') or '').strip().lower()
     return raw or EMAIL
 NOTE = 'Fusión inicial a la cuenta del fundador'
@@ -203,7 +204,7 @@ def apply(econ, accounts, vault_state, now=None):
         vault_state['fusionSwept'] = sorted(swept)
     eco.seal_if_due(econ, now=now, force=True)
     rec['status'] = 'done'
-    rec['email'] = EMAIL
+    rec['email'] = owner_email()
     rec['wallet'] = dest
     rec['reason'] = ''
     rec['ts'] = now

@@ -13,9 +13,7 @@
   const MAP_H = 10;
 
   function markup(allowed) {
-    if (!allowed) {
-      return '<section id="banco-central" class="banco-central cerrado" role="dialog" aria-label="Banco Central"><header><h2>Banco Central</h2><button type="button" id="bc-cerrar" aria-label="Cerrar">✕</button></header><p>Esta ventanilla no está abierta para esta cuenta.</p></section>';
-    }
+    if (!allowed) return '';
     return [
       '<section id="banco-central" class="banco-central" role="dialog" aria-label="Banco Central">',
       '<header><img src="../graphics/mining/lingote_oro.svg" alt="" width="42" height="42"><h2>Banco Central</h2><button type="button" id="bc-cerrar" aria-label="Cerrar">✕</button></header>',
@@ -34,9 +32,7 @@
 
   function allowed() {
     const state = window.LiveInk && LiveInk.state;
-    if (state && state.canMintIngots) return true;
-    const role = state && state.sessionUser && state.sessionUser.role;
-    return role === 'simon' || role === 'staff' || role === 'admin';
+    return !!(state && state.canMintIngots);
   }
 
   function esc(text) {
@@ -124,6 +120,7 @@
   }
 
   function open() {
+    if (!allowed()) return;
     const old = document.getElementById('banco-central');
     if (old) old.remove();
     const holder = document.createElement('div');

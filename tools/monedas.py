@@ -67,7 +67,18 @@ def ledger(state, name=None, account=None):
             'max': SIMONCHIS_MAX,
         },
     ]
-    out = {'coins': coins, 'foundry': (state.get('foundry') or {}).get('minted') or {}}
+    box = state.get('foundry') if isinstance(state.get('foundry'), dict) else {}
+    minted = box.get('minted') if isinstance(box.get('minted'), dict) else {}
+    out = {
+        'coins': coins,
+        'foundry': minted,
+        'ingots': {
+            'oro': int(minted.get('lingote_oro') or 0),
+            'plata': int(minted.get('lingote_plata') or 0),
+            'cobre': int(minted.get('lingote_cobre') or 0),
+            'head': str(box.get('head') or ''),
+        },
+    }
     if name:
         chis_name = cobre.balance_of(state, name)
         chis_account = cobre.balance_of(state, account) if account else 0
