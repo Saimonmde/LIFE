@@ -869,6 +869,32 @@ def clean(s, n):
     s = re.sub(r'[\x00-\x1f\x7f<>]', '', str(s or '')).strip()
     return s[:n]
 
+def clamp_level(value, default=1):
+    """Un nivel absurdo o ilegible no tumba la conexión."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        try:
+            n = int(default)
+        except (TypeError, ValueError):
+            n = 1
+    if n < 1:
+        return 1
+    if n > 9999:
+        return 9999
+    return n
+
+def health_payload():
+    return {
+        'ok': True,
+        'service': 'saimon-city',
+        'playersOnline': sum(bool(c.hello and not c.bot) for c in clients.values()),
+        'sockets': len(clients),
+        'world': WORLD.get('name') or WORLD.get('id'),
+        'build': WORLD.get('build'),
+        'serverId': SERVER_ID,
+    }
+
 # ---------------- WebSocket mínimo (RFC 6455) ----------------
 def frame(text):
     data = text.encode('utf-8'); n = len(data)
@@ -1014,127 +1040,27 @@ async def handle_ws(reader, writer, cookie='', ip=''):
     try:
         while True:
             op, data = await asyncio.wait_for(read_frame(reader), 45)  # el cliente hace ping cada 3 s
-            if op == 8: break
+            if op == 8:
+                try:
+                    writer.write(struct.pack('!BB', 0x88, 0))
+                    await writer.drain()
+                except Exception:
+                    pass
+                break
             if op == 9: writer.write(struct.pack('!BB', 0x8A, len(data)) + data); continue
             if op != 1: continue
             try: m = json.loads(data.decode('utf-8'))
             except Exception: continue
+            if not isinstance(m, dict):
+                continue
             t = m.get('t')
-            if t == 'hello':
-                if c.hello: continue
-                c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'city') else 'city'
-                if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
-                else: c.x, c.y = arrival_position(m.get('resume'))
-                asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
-                token_src = c.user.get('wallet_token') if getattr(c, 'user', None) else m.get('walletToken')
-                c.name = unique_name(clean(asked, 16), c)
-                c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
-                c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
-                c.level = int(m.get('level') or 1);                 c.hello = True
-                presented = clean(token_src, 64)
-                owned = bind_wallet(c.name, presented)
-                c.wallet_ok = bool(owned)
-                c.wallet_token = owned or ''
-                send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
-                         'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
-                if c.zone != 'casa':
-                    broadcast({'t': 'join', 'player': c.public()}, exclude=c)
-                    broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
-                send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
-                if c.wallet_ok:
-                    send(c, {'t': 'playtime', **play_for(c.name, active=True)})
-                if not c.wallet_ok:
-                    send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
-            elif t == 'travel' and c.hello:
-                travel_for(c, m.get('id'))
-            elif t == 'move' and c.hello:
-                zone = m.get('zone')
-                if zone in ('casa', 'mine', 'banco'):
-                    if c.zone == 'city' and zone != 'city':
-                        broadcast({'t': 'leave', 'id': c.id}, exclude=c)
-                    c.zone = zone
-                    continue
-                was_casa = c.zone != 'city'
-                c.zone = 'city'
-                try:
-                    nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
-                except Exception: continue
-                step = max(abs(nx - c.x), abs(ny - c.y))
-                c.x, c.y = nx, ny
-                note_motion(c, step)
-                c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
-                c.moving = bool(m.get('moving')); c.level = int(m.get('level') or c.level)
-                if was_casa: broadcast({'t': 'join', 'player': c.public()}, exclude=c)
-                else: broadcast({'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2), 'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'}, exclude=c)
-            elif t == 'ping':
-                send(c, {'t': 'pong', 'c': m.get('c')})
-            elif t == 'chat' and c.hello:
-                chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
-            elif t == 'mint' and c.hello:
-                mint_for(c, clean(m.get('node'), 40), m.get('proof'))
-            elif t == 'mint_plata' and c.hello:
-                mint_plata(c, m.get('proof'))
-            elif t == 'exchange_plata' and c.hello:
-                try:
-                    if m.get('max'):
-                        exchange_plata(c, None)
-                    elif m.get('sph') is not None:
-                        exchange_plata(c, m.get('sph'))
-                    elif m.get('amount') is not None:
-                        exchange_plata(c, m.get('amount'))
-                    else:
-                        fail_plata(c, 'dust')
-                except (TypeError, ValueError, ECO.AmountError):
-                    fail_plata(c, 'dust')
-            elif t == 'ledger' and c.hello:
-                try:
-                    before = int(m.get('before'))
-                except (TypeError, ValueError):
-                    before = None
-                send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c)))
-            elif t == 'pay' and c.hello:
-                try:
-                    smh = leer_smh(m)
-                except (TypeError, ValueError, ECO.AmountError):
-                    continue
-                pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
-            elif t == 'smelt' and c.hello:
-                smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'))
-            elif t == 'swing' and c.hello:
-                swing_for(c, m.get('mineral'), m.get('proof'))
-            elif t == 'migrate' and c.hello:
-                migrate_for(c, m.get('amount'), m.get('proof'))
-            elif t == 'quest' and c.hello:
-                quest_for(c, m.get('id'), m.get('proof'))
-            elif t == 'heartbeat' and c.hello and c.wallet_ok:
-                send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
-            elif t == 'vault' and c.hello:
-                vault_for(c)
-            elif t == 'deposit_smc' and c.hello:
-                try:
-                    deposit_smc(c, leer_smh(m))
-                except (TypeError, ValueError, ECO.AmountError):
-                    pass
-            elif t == 'withdraw_smc' and c.hello:
-                try:
-                    withdraw_smc(c, leer_smh(m))
-                except (TypeError, ValueError, ECO.AmountError):
-                    pass
-            elif t == 'deposit_smp' and c.hello:
-                try:
-                    deposit_smp(c, leer_sph(m))
-                except (TypeError, ValueError, ECO.AmountError):
-                    send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
-            elif t == 'withdraw_smp' and c.hello:
-                try:
-                    withdraw_smp(c, leer_sph(m))
-                except (TypeError, ValueError, ECO.AmountError):
-                    send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
-            elif t == 'deposit_item' and c.hello:
-                deposit_item(c, m.get('item'), m.get('qty'))
-            elif t == 'withdraw_item' and c.hello:
-                withdraw_item(c, m.get('item'), m.get('qty'))
-            await writer.drain()
+            try:
+                handle_client_message(c, m, t)
+                await writer.drain()
+            except (asyncio.IncompleteReadError, ConnectionError, OSError, asyncio.TimeoutError):
+                raise
+            except Exception:
+                continue
     except (asyncio.IncompleteReadError, ConnectionError, OSError, asyncio.TimeoutError):
         pass
     finally:
@@ -1143,6 +1069,123 @@ async def handle_ws(reader, writer, cookie='', ip=''):
             broadcast({'t': 'leave', 'id': c.id}); broadcast({'t': 'system', 'text': f'{c.name} salió.'})
         try: writer.close()
         except Exception: pass
+
+def handle_client_message(c, m, t):
+    if t == 'hello':
+        if c.hello: return
+        c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'city') else 'city'
+        if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
+        else: c.x, c.y = arrival_position(m.get('resume'))
+        asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
+        token_src = c.user.get('wallet_token') if getattr(c, 'user', None) else m.get('walletToken')
+        c.name = unique_name(clean(asked, 16), c)
+        c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
+        c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
+        c.level = clamp_level(m.get('level'), 1); c.hello = True
+        presented = clean(token_src, 64)
+        owned = bind_wallet(c.name, presented)
+        c.wallet_ok = bool(owned)
+        c.wallet_token = owned or ''
+        send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
+                 'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
+        if c.zone != 'casa':
+            broadcast({'t': 'join', 'player': c.public()}, exclude=c)
+            broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
+        send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
+        if c.wallet_ok:
+            send(c, {'t': 'playtime', **play_for(c.name, active=True)})
+        if not c.wallet_ok:
+            send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
+    elif t == 'travel' and c.hello:
+        travel_for(c, m.get('id'))
+    elif t == 'move' and c.hello:
+        zone = m.get('zone')
+        if zone in ('casa', 'mine', 'banco'):
+            if c.zone == 'city' and zone != 'city':
+                broadcast({'t': 'leave', 'id': c.id}, exclude=c)
+            c.zone = zone
+            return
+        was_casa = c.zone != 'city'
+        c.zone = 'city'
+        try:
+            nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
+        except Exception: return
+        if nx != nx or ny != ny: return
+        step = max(abs(nx - c.x), abs(ny - c.y))
+        c.x, c.y = nx, ny
+        note_motion(c, step)
+        c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
+        c.moving = bool(m.get('moving')); c.level = clamp_level(m.get('level'), c.level)
+        if was_casa: broadcast({'t': 'join', 'player': c.public()}, exclude=c)
+        else: broadcast({'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2), 'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'}, exclude=c)
+    elif t == 'ping':
+        send(c, {'t': 'pong', 'c': m.get('c')})
+    elif t == 'chat' and c.hello:
+        chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
+    elif t == 'mint' and c.hello:
+        mint_for(c, clean(m.get('node'), 40), m.get('proof'))
+    elif t == 'mint_plata' and c.hello:
+        mint_plata(c, m.get('proof'))
+    elif t == 'exchange_plata' and c.hello:
+        try:
+            if m.get('max'):
+                exchange_plata(c, None)
+            elif m.get('sph') is not None:
+                exchange_plata(c, m.get('sph'))
+            elif m.get('amount') is not None:
+                exchange_plata(c, m.get('amount'))
+            else:
+                fail_plata(c, 'dust')
+        except (TypeError, ValueError, ECO.AmountError):
+            fail_plata(c, 'dust')
+    elif t == 'ledger' and c.hello:
+        try:
+            before = int(m.get('before'))
+        except (TypeError, ValueError):
+            before = None
+        send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c)))
+    elif t == 'pay' and c.hello:
+        try:
+            smh = leer_smh(m)
+        except (TypeError, ValueError, ECO.AmountError):
+            return
+        pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
+    elif t == 'smelt' and c.hello:
+        smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'))
+    elif t == 'swing' and c.hello:
+        swing_for(c, m.get('mineral'), m.get('proof'))
+    elif t == 'migrate' and c.hello:
+        migrate_for(c, m.get('amount'), m.get('proof'))
+    elif t == 'quest' and c.hello:
+        quest_for(c, m.get('id'), m.get('proof'))
+    elif t == 'heartbeat' and c.hello and c.wallet_ok:
+        send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
+    elif t == 'vault' and c.hello:
+        vault_for(c)
+    elif t == 'deposit_smc' and c.hello:
+        try:
+            deposit_smc(c, leer_smh(m))
+        except (TypeError, ValueError, ECO.AmountError):
+            pass
+    elif t == 'withdraw_smc' and c.hello:
+        try:
+            withdraw_smc(c, leer_smh(m))
+        except (TypeError, ValueError, ECO.AmountError):
+            pass
+    elif t == 'deposit_smp' and c.hello:
+        try:
+            deposit_smp(c, leer_sph(m))
+        except (TypeError, ValueError, ECO.AmountError):
+            send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
+    elif t == 'withdraw_smp' and c.hello:
+        try:
+            withdraw_smp(c, leer_sph(m))
+        except (TypeError, ValueError, ECO.AmountError):
+            send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
+    elif t == 'deposit_item' and c.hello:
+        deposit_item(c, m.get('item'), m.get('qty'))
+    elif t == 'withdraw_item' and c.hello:
+        withdraw_item(c, m.get('item'), m.get('qty'))
 
 def public_base(headers):
     env = os.environ.get('PUBLIC_URL', '').strip().rstrip('/')
@@ -1384,18 +1427,32 @@ async def handle(reader, writer):
     if answered is not None:
         writer.write(answered)
         await writer.drain(); writer.close(); return
-    if path == '/ws' and headers.get('upgrade', '').lower() == 'websocket':
+    if path.rstrip('/') == '/ws' and headers.get('upgrade', '').lower() == 'websocket':
         key = headers.get('sec-websocket-key', '')
         acc = base64.b64encode(hashlib.sha1((key + GUID).encode()).digest()).decode()
         writer.write(('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
                       f'Sec-WebSocket-Accept: {acc}\r\n\r\n').encode())
         await writer.drain()
         return await handle_ws(reader, writer, headers.get('cookie', ''), client_ip(headers, writer))
-    if path == '/healthz' and method in ('GET', 'HEAD'):
+    if path in ('/healthz', '/healthz/') and method in ('GET', 'HEAD'):
         body = b'ok'
         writer.write(b'HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: 2\r\nConnection: close\r\n\r\n')
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
+    if path in ('/health', '/health/') and method in ('GET', 'HEAD'):
+        body = json.dumps(health_payload()).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
+    if path == '/favicon.ico' and method in ('GET', 'HEAD'):
+        path = '/graphics/ui/saimon-logo-gold.png'
+    if path in ('/releases/saimoncity-fuente.zip', '/releases/saimoncity-fuente.zip/'):
+        archive = os.path.join(ROOT, 'releases', 'saimoncity-fuente.zip')
+        if not os.path.isfile(archive):
+            # El zip no va en git. La fuente correspondiente de la AGPL está en el repositorio público.
+            loc = 'https://github.com/Saimonmde/LIFE'
+            writer.write(f'HTTP/1.1 302 Found\r\nLocation: {loc}\r\nCache-Control: no-store\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'.encode())
+            await writer.drain(); writer.close(); return
     if path == '/session.json' and method in ('GET', 'HEAD'):
         body = json.dumps({'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                            'revision': os.environ.get('RENDER_GIT_COMMIT') or None,
@@ -1519,6 +1576,9 @@ async def main():
     # Chrome resuelve localhost a ::1 primero; si sólo escuchamos IPv4, la pestaña da ERR_CONNECTION_REFUSED.
     if a.host in ('0.0.0.0', '127.0.0.1', ''):
         hosts.append('::1')
+        # Otra red puede llegar por IPv6. Si el puerto ya quedó tomado, se avisa y sigue IPv4.
+        if a.host == '0.0.0.0':
+            hosts.append('::')
     servers = []
     for host in hosts:
         try:

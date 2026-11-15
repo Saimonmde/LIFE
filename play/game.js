@@ -176,7 +176,7 @@ $('#login-form').onsubmit = (e) => {
   localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me));
   $('#login').hidden = true; startGame();
 };
-let started = false, reconnectTimer = null;
+let started = false, reconnectTimer = null, reconnectDelay = 1000;
 function startGame() {
   if (started) return; started = true;
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
@@ -756,26 +756,37 @@ function chatLine(m, mine) {
 function bubble(id, text) { S.bubbles.set(id, { text: text.length > 60 ? text.slice(0, 58) + '…' : text, until: now() + 6000 }); }
 
 // ---------------- red (WebSocket) ----------------
+function scheduleReconnect() {
+  if (!started) return;
+  const wait = reconnectDelay;
+  reconnectDelay = Math.min(15000, Math.round(reconnectDelay * 1.7));
+  reconnectTimer = setTimeout(connect, wait);
+}
 function connect() {
   if (!started) return;
   clearTimeout(reconnectTimer);
   if (!/^https?:/.test(location.protocol)) { renderChat(); return; }
-  let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { return; }
+  let ws; try { ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'); } catch (e) { scheduleReconnect(); return; }
+  const rawSend = ws.send.bind(ws);
+  ws.send = (data) => { if (ws.readyState !== 1) return; try { rawSend(data); } catch (e) { S.net.ok = false; } };
   S.net.ws = ws;
+  S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
-    const m = JSON.parse(ev.data);
+    S.net.seen = performance.now();
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (!m || typeof m !== 'object') return;
     if (m.t === 'welcome') {
       S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; $('#mi-nombre').textContent = S.me.name;
       S.net.serverId = m.serverId || null;
       if (!S.net.hasJoined && W.mapId==='casa') placeAtHouseSpawn();
       S.net.hasJoined=true; S.others.clear();
-      for (const p of m.players) addOther(p);
+      for (const p of m.players || []) addOther(p);
       renderNearby();
       $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (window.Simulacion) Simulacion.onWelcome();
-    } else if (m.t === 'join') addOther(m.player);
+    } else if (m.t === 'join' && m.player) addOther(m.player);
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
     else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
@@ -789,11 +800,12 @@ function connect() {
     else if (window.Simulacion && Simulacion.onNet(m)) { /* SMC o resultado de pago */ }
     else if (m.t === 'pong') { S.net.ping = Math.round(performance.now() - m.c); $('#ping span').textContent = S.net.ping + ' ms'; }
   };
+  ws.onerror = () => { try { ws.close(); } catch (e) {} };
   ws.onclose = () => {
     if (S.net.ws!==ws) return;
-    if (S.net.ok) sys('Se perdió la conexión con el chat. Reintentando…');
-    S.net.ok = false; S.others.clear(); $('#ping').classList.remove('ok'); $('#ping span').textContent = 'sin conexión'; renderChat();
-    if(started) reconnectTimer=setTimeout(connect, 4000);
+    if (S.net.ok) sys('Se perdió la conexión. Reintentando…');
+    S.net.ok = false; S.others.clear(); $('#ping').classList.remove('ok'); $('#ping span').textContent = 'reconectando'; renderChat();
+    scheduleReconnect();
   };
 }
 function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
@@ -820,7 +832,12 @@ function sendMove(force) {
   S.net.sentKey = key; S.net.sentZone='city'; S.net.lastSent = performance.now();
   S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel() }));
 }
-setInterval(() => { if (S.net.ok) S.net.ws.send(JSON.stringify({ t: 'ping', c: performance.now() })); }, 3000);
+setInterval(() => {
+  const ws = S.net.ws;
+  if (!started || !ws || ws.readyState !== 1) return;
+  if (S.net.seen && performance.now() - S.net.seen > 12000) { try { ws.close(); } catch (e) {} return; }
+  ws.send(JSON.stringify({ t: 'ping', c: performance.now() }));
+}, 3000);
 addEventListener('pointerdown', () => { S.lastInput = now(); }, true);
 addEventListener('keydown', () => { S.lastInput = now(); }, true);
 setInterval(() => {
