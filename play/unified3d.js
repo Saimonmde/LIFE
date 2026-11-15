@@ -257,16 +257,25 @@ function boot(api){
  const speechLayer=document.createElement('div');speechLayer.id='speech-layer';speechLayer.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden';document.body.append(speechLayer);
  const floatLabels=new Map();const speech=new Map(),projected=new T.Vector3();
  const playerNames=new Map();
+ function placeName(el, mesh){
+  if(!mesh||!mesh.visible){el.hidden=true;return;}
+  projected.copy(mesh.position);projected.y+=2.7;projected.project(camera);
+  el.hidden=!api.started||projected.z<-1||projected.z>1||Math.abs(projected.x)>1.1||Math.abs(projected.y)>1.1;
+  if(el.hidden)return;
+  el.style.left=((projected.x+1)*innerWidth/2)+'px';el.style.top=((1-projected.y)*innerHeight/2)+'px';
+ }
  function drawPlayerNames(){
-  for(const [id,el] of playerNames)if(!S.others.has(id)){el.remove();playerNames.delete(id);}
+  for(const [id,el] of playerNames)if(id!=='self'&&!S.others.has(id)){el.remove();playerNames.delete(id);}
   for(const [id,p] of S.others){
    let el=playerNames.get(id);if(!el){el=document.createElement('div');el.className='player-name';speechLayer.append(el);playerNames.set(id,el);}
    el.textContent=window.nombreAjeno?window.nombreAjeno(p):p.name;el.classList.toggle('bot-name',!!p.bot);
-   const a=actorMap.get('peer'+id);if(!a){el.hidden=true;continue;}
-   projected.copy(a.position);projected.y+=2.7;projected.project(camera);
-   el.hidden=!api.started||projected.z< -1||projected.z>1||Math.abs(projected.x)>1.1||Math.abs(projected.y)>1.1;
-   el.style.left=((projected.x+1)*innerWidth/2)+'px';el.style.top=((1-projected.y)*innerHeight/2)+'px';
+   placeName(el, actorMap.get('peer'+id));
   }
+  let mine=playerNames.get('self');
+  if(!mine){mine=document.createElement('div');mine.className='player-name';speechLayer.append(mine);playerNames.set('self',mine);}
+  mine.textContent=window.nombrePropio?nombrePropio():((S.me&&(S.me.nick||S.me.name))||'Viajero');
+  mine.classList.remove('bot-name');
+  placeName(mine, actorMap.get('self'));
   const count=[...S.others.values()].filter(p=>!p.bot).length+(S.net.ok?1:0);
   const label=S.net.ok?'En línea: '+count:'Reconectando…';const b=document.querySelector('#online-players');if(b.textContent!==label)b.textContent=label;
  }
