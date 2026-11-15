@@ -1,0 +1,29 @@
+{
+  "documentos": [
+    {
+      "id": "rentocity-rol",
+      "title": "RentoCity es el motor y la renta corta",
+      "tags": ["rentocity", "arriendo", "venta", "renta", "corta", "dias", "semanas"],
+      "text": "RentoCity es el motor principal de búsqueda de apartamentos y la plataforma de renta corta. La renta puede ser por días, por semanas o por contratos de 3, 6 o 12 meses, sólo en las unidades que lo permiten. El sitio público rentocity.com.co presenta la administración de propiedades y a Simon I.O. BioCity Grand, en Envigado, es el primer cliente. Ese sitio no publica un catálogo: el índice usa RENTOCITY_FEED_URL cuando Jay la configura. No se consulta /api/ ni /panel."
+    },
+    {
+      "id": "valle",
+      "title": "Municipios del Valle de Aburrá",
+      "tags": ["valle", "medellin", "envigado", "sabaneta", "itagui", "bello"],
+      "text": "Simon busca apartamentos en Medellín, Envigado, Sabaneta, Itagüí, La Estrella, Caldas, Bello, Copacabana, Girardota y Barbosa. Cada resultado lleva el enlace original de la fuente, aunque la agencia no sea socia."
+    },
+    {
+      "id": "simon-ritmo",
+      "title": "Ritmo de Simon",
+      "tags": ["ritmo", "voz", "calma", "prisa"],
+      "text": "Simon responde al ritmo de la persona. Hay ajuste de velocidad de voz, pausa antes de seguir y respuestas por partes. El sistema se adapta a la escritura o al habla y no usa presión ni urgencia falsa."
+    }
+  ],
+  "pendientes": [
+    {"id": "feed-rentocity", "text": "Configurar RENTOCITY_FEED_URL, RENTOCITY_HOSTS y, si hace falta, RENTOCITY_FEED_TOKEN para que el catálogo de RentoCity entre al índice."},
+    {"id": "feed-aburra", "text": "Identificar el dominio de Arrendamientos del Valle de Aburrá y configurar ABURRA_FEED_URL y ABURRA_HOSTS. No se sustituye por otra agencia."},
+    {"id": "claves-busqueda", "text": "Para la búsqueda web completa, definir SIMON_WEB_SEARCH_PROVIDER y la clave (BRAVE_SEARCH_API_KEY, SERPER_API_KEY o GOOGLE_API_KEY con GOOGLE_CSE_ID). Sin clave queda el respaldo."},
+    {"id": "clave-memoria", "text": "En Render, definir SIMON_DATA_KEY y SIMON_ADMIN_TOKEN. Sin la clave de datos, el cifrado local no sobrevive al disco efímero."},
+    {"id": "sync", "text": "Ejecutar python3 tools/apartment_sync.py de forma periódica contra el mismo almacén. Una pasada con pocas páginas no recorre todo el inventario."}
+  ]
+}

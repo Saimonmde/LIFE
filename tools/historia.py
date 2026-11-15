@@ -112,6 +112,27 @@ def filas(state):
                 'note': str(tx.get('note') or ''),
             })
             continue
+        if tx.get('type') == 'trade':
+            legs = []
+            for leg in tx.get('legs') or []:
+                if not isinstance(leg, dict):
+                    continue
+                legs.append({
+                    'asset': str(leg.get('asset') or ''),
+                    'item': str(leg.get('item') or ''),
+                    'amount': int(leg.get('amount') or 0),
+                })
+            rows.append({
+                'ts': int(ts),
+                'type': 'intercambio',
+                'label': 'Intercambio',
+                'amountSubs': 0,
+                'account': 'reservado',
+                'balanceSubs': 0,
+                'note': 'Las partes no se publican.',
+                'legs': legs,
+            })
+            continue
         if amount == 0:
             continue
         kind, label = _label(tx.get('type'))

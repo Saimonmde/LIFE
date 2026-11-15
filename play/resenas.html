@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reseñas públicas · Simon</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="simon.css">
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <a href="/play/simon.html">Volver a Simon</a>
+    <h1>Reseñas públicas</h1>
+    <p>Sólo aparecen las reseñas que la persona dejó como públicas. Las privadas se quedan en el panel de administración.</p>
+  </div>
+</header>
+<section id="lista"></section>
+</main>
+<script type="module">
+const labels = {si: 'Encontró solución', parcialmente: 'Encontró una solución parcial', no: 'No encontró solución'};
+const res = await fetch('/api/simon/resenas');
+const data = await res.json();
+const host = document.getElementById('lista');
+const rows = data.reviews || [];
+if (!rows.length) {
+  const p = document.createElement('p');
+  p.className = 'panel';
+  p.textContent = 'Todavía no hay reseñas públicas.';
+  host.append(p);
+}
+for (const row of rows) {
+  const card = document.createElement('article');
+  card.className = 'card panel';
+  const h = document.createElement('h2');
+  h.textContent = (labels[row.resolution] || 'Reseña') + (row.rating ? ' · ' + row.rating + '/5' : '');
+  const when = document.createElement('p');
+  when.textContent = row.created_at ? new Date(row.created_at).toLocaleString('es-CO') : '';
+  const comment = document.createElement('p');
+  comment.textContent = row.comment || 'Sin comentario.';
+  card.append(h, when, comment);
+  host.append(card);
+}
+</script>
+</body>
+</html>

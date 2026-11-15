@@ -1,0 +1,88 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apartamentos · Saimon City</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="apartamentos.css">
+</head>
+<body>
+<main>
+<header>
+  <a href="/play/">Saimon City</a>
+  <span>VALLE DE ABURRÁ</span>
+</header>
+<section class="intro">
+  <p class="eyebrow">ARRIENDO, RENTA CORTA Y VENTA</p>
+  <h1>Apartamentos del valle, con el enlace original.</h1>
+  <p>RentoCity es el motor principal. También se leen portales y agencias, aunque no sean socios. La renta corta es por días, por semanas o por 3, 6 y 12 meses, sólo si la publicación lo permite.</p>
+  <p><a href="/play/simon.html">Hablar con Simon</a></p>
+</section>
+<section class="panel">
+<form id="search">
+  <div class="fields">
+    <label>Municipio
+      <select id="municipality" name="municipality"><option value="">Todos los municipios</option></select>
+    </label>
+    <label>Operación
+      <select name="operation">
+        <option value="">Todas</option>
+        <option value="arriendo">Arriendo</option>
+        <option value="renta_corta">Renta corta</option>
+        <option value="venta">Venta</option>
+      </select>
+    </label>
+    <label>Estancia
+      <select name="stay">
+        <option value="">Cualquiera</option>
+        <option value="dias">Días</option>
+        <option value="semanas">Semanas</option>
+        <option value="meses_3">3 meses</option>
+        <option value="meses_6">6 meses</option>
+        <option value="meses_12">12 meses</option>
+        <option value="mensual">Mes a mes</option>
+      </select>
+    </label>
+    <label>Presupuesto máximo (COP)<input name="max_price" type="number" min="0" inputmode="numeric" placeholder="2500000"></label>
+    <label>Habitaciones mínimas<input name="min_bedrooms" type="number" min="0" max="20"></label>
+    <label>Baños mínimos<input name="min_bathrooms" type="number" min="0" max="20"></label>
+    <label>Barrio<input name="neighborhood" maxlength="160" placeholder="Cualquier barrio"></label>
+    <label>Área mínima (m²)<input name="min_area_m2" type="number" min="0"></label>
+  </div>
+  <button>Buscar apartamentos</button>
+</form>
+<details>
+  <summary>Pedirlo en una frase a Simon IA o Simon IO</summary>
+  <p>Esta prueba usa la herramienta de búsqueda. La conversación completa está en Simon.</p>
+  <form id="agent">
+    <label>Agente
+      <select name="agent"><option value="simon-ia">Simon IA</option><option value="simon-io">Simon IO</option></select>
+    </label>
+    <label>Tu petición
+      <input name="message" required maxlength="2000" placeholder="Un arriendo en Envigado hasta 2,5 millones con 2 habitaciones">
+    </label>
+    <button>Encontrar apartamento</button>
+  </form>
+</details>
+</section>
+<section aria-live="polite" id="output">
+  <h2 id="result-title">Apartamentos publicados</h2>
+  <p id="message">Consulta el índice para ver publicaciones recientes.</p>
+  <p id="filters" class="filters"></p>
+  <div id="results"></div>
+  <button id="more" hidden>Ver más</button>
+</section>
+<details class="sources">
+  <summary>Fuentes y estado de actualización</summary>
+  <p>Un fallo de acceso no significa que no haya oferta.</p>
+  <ul id="sources"></ul>
+</details>
+<footer>Cada tarjeta abre la publicación original en una pestaña nueva. No copiamos fotos. Ver el anuncio no garantiza que siga disponible: confirma precio y plazo con quien lo publica. Los anuncios dejan de mostrarse si pasan más de 48 horas sin observarse.</footer>
+</main>
+<script type="module" src="apartamentos.js"></script>
+</body>
+</html>

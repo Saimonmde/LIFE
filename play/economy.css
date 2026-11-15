@@ -1,0 +1,40 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+#bank-dock{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(168px,env(safe-area-inset-bottom));z-index:20;display:flex;align-items:center;gap:10px;min-width:150px;max-width:220px;padding:10px 12px;border:1px solid #b59656;border-radius:10px;background:#1c3028f2;color:#f4e8cc;font:13px/1.35 system-ui;text-align:left;cursor:pointer}
+#bank-dock strong{display:block;font-size:15px;color:#f2ce79}
+.coin-medallion{display:inline-grid;place-items:center;flex-shrink:0;width:32px;height:32px;border-radius:50%;border:2px solid #fff0b2;background:#c4923a;color:#4b3115;font:bold 18px Georgia}
+.economy-dialog{width:min(640px,calc(100vw - 24px));max-height:88dvh;padding:0;overflow:auto;border:1px solid #a68b57;border-radius:12px;background:#172620;color:#eee8d7;font:14px/1.45 system-ui}
+.economy-dialog::backdrop{background:#07120ccc}
+.economy-dialog header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:#2c4036}
+.economy-dialog header small{letter-spacing:.12em;font-size:10px;color:#d7bd82}
+.economy-dialog h2{font:22px Georgia,serif;margin:2px 0}
+.economy-dialog button{cursor:pointer;padding:10px 12px;border:1px solid #75806b;border-radius:7px;background:#30473b;color:#f1e8d4;font:inherit}
+.economy-dialog button.primary{background:#d1ad60;color:#1b291e;border-color:#efd292;font-weight:700}
+.economy-dialog button:disabled{opacity:.45}
+.economy-body{padding:14px 16px}
+.trade-notice{background:#3e351c;border:1px solid #a28b46;border-radius:6px;padding:10px;color:#f2dfae;font-size:12px}
+.trade-steps{list-style:none;display:flex;padding:0;gap:8px;color:#9aab9c;font-size:12px}
+.trade-steps li{padding:6px 0;border-bottom:2px solid #4b6251}
+.trade-steps .current{color:#f4d68e;border-color:#d0af63}
+.trade-columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.trade-columns article{padding:12px;border:1px solid #66806a66;border-radius:8px;background:#21362c;min-width:0}
+.trade-columns h3{margin:0 0 6px;font:18px Georgia,serif}
+.trade-columns strong{display:block;margin:8px 0;color:#edcc80;overflow-wrap:anywhere}
+.trade-columns p,.economy-dialog label{font-size:12px;color:#d2d7c7}
+.economy-dialog label{display:block;margin:8px 0 4px}
+.economy-dialog input{box-sizing:border-box;width:100%;padding:10px;border:1px solid #849273;border-radius:6px;background:#101f18;color:#ffe6a3;font:18px system-ui}
+.economy-actions{display:flex;gap:8px;flex-wrap:wrap}
+.economy-actions button{flex:1}
+#trade-update{margin-top:10px}
+.player-name.can-trade{pointer-events:auto;cursor:pointer}
+#cercanos button{background:transparent;border:0;color:#f2d69f;text-align:left;font:inherit;cursor:pointer}
+#bank-state{color:#edcf8b}
+#bank-daily,.bank-local-note{color:#bac9b7;font-size:12px}
+#banquito-items button{display:inline-flex;align-items:center;gap:6px}
+#banquito-items img{width:32px;height:32px;image-rendering:pixelated}
+body:not(.in-game) #bank-dock{display:none}
+@media(max-width:700px){
+  #bank-dock{bottom:max(148px,env(safe-area-inset-bottom));min-width:0;padding:8px;font-size:12px}
+  #bank-dock strong{font-size:13px}
+  .trade-columns{grid-template-columns:1fr}
+  .economy-dialog h2{font-size:20px}
+}

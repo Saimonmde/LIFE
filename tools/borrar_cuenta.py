@@ -30,7 +30,7 @@ def alias_de(user_id):
 
 
 def es_fundador(user):
-    return str((user or {}).get('email') or '').strip().lower() == fusion.EMAIL
+    return str((user or {}).get('email') or '').strip().lower() == fusion.owner_email()
 
 
 def confirmacion_valida(user, confirm):

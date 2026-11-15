@@ -13,8 +13,8 @@
     ['hotbar', 'Barra rápida', 'hud'],
     ['hud-recursos', 'Bolsa, SMC y Plata', 'hud'],
     ['sai-legal', 'Aviso SMC', 'hud'],
-    ['pow-panel', 'Minado SMC', 'hud'],
-    ['plata-panel', 'Plata', 'hud'],
+    ['pow-panel', 'Simoncoin', 'hud'],
+    ['plata-panel', 'Simonplata', 'hud'],
     ['objetivo', 'Objetivo', 'hud'],
     ['aviso', 'Aviso', 'hud'],
     ['dialogo', 'Diálogo', 'hud'],
@@ -508,11 +508,11 @@
   }
   function paintClock() {
     const el = document.getElementById('reloj-ahora');
-    if (!el || !window.HudLayoutCore) return;
-    const now = new Date();
-    const zone = clockZone();
-    el.dateTime = now.toISOString();
-    el.textContent = window.HudLayoutCore.formatClock(now, zone);
+    if (!el) return;
+    const label = window.Cajon && Cajon.clockText && Cajon.clockText();
+    if (!label) return;
+    el.removeAttribute('datetime');
+    el.textContent = label;
   }
   function startClock() {
     paintClock();

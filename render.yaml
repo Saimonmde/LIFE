@@ -11,3 +11,66 @@ services:
     buildCommand: pip install -r requirements.txt && python3 tools/update_licensing.py --build-source-only
     startCommand: python3 server.py --host 0.0.0.0
     healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SIMON_DATA_KEY
+        sync: false
+      - key: SIMON_ADMIN_TOKEN
+        sync: false
+      - key: SIMON_COOKIE_SECURE
+        sync: false
+      - key: SIMON_WEB_SEARCH_PROVIDER
+        sync: false
+      - key: BRAVE_SEARCH_API_KEY
+        sync: false
+      - key: SERPER_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GOOGLE_CSE_ID
+        sync: false
+      - key: SIMON_LLM_API_KEY
+        sync: false
+      - key: SIMON_LLM_BASE_URL
+        sync: false
+      - key: SIMON_LLM_MODEL
+        sync: false
+      - key: SIMON_LIVE_SEARCH
+        sync: false
+      - key: RENTOCITY_FEED_URL
+        sync: false
+      - key: RENTOCITY_HOSTS
+        sync: false
+      - key: RENTOCITY_FEED_TOKEN
+        sync: false
+      - key: ABURRA_FEED_URL
+        sync: false
+      - key: ABURRA_HOSTS
+        sync: false
+      - key: GAME_CLOCK_EPOCH
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_APP_ID
+        sync: false
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false

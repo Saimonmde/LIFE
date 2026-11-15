@@ -16,6 +16,8 @@ import urllib.request
 from email.message import EmailMessage
 
 CODE_TTL = 600
+LINK_TTL = 60 * 60 * 24
+RESET_TTL = 60 * 60
 SESSION_TTL = 60 * 60 * 24 * 30
 OTP_PER_HOUR = 5
 MAX_ATTEMPTS = 5
@@ -28,7 +30,7 @@ class AuthError(Exception):
 
 
 def empty():
-    return {'users': [], 'sessions': {}, 'pending': {}, 'states': {}, 'rates': {}}
+    return {'users': [], 'sessions': {}, 'pending': {}, 'states': {}, 'rates': {}, 'resets': {}}
 
 
 def load(path):
@@ -54,8 +56,9 @@ def providers():
         'facebook': bool(os.environ.get('FACEBOOK_APP_ID') and os.environ.get('FACEBOOK_APP_SECRET')),
         'registro': email_ready(),
         'email_login': True,
+        'reset': email_ready(),
         'sms': sms_ready(),
-        'guest': True,
+        'guest': False,
     }
 
 
@@ -124,6 +127,27 @@ def name_key(name):
     return ' '.join(unicodedata.normalize('NFKC', str(name or '')).casefold().split())
 
 
+_SIMON_LEET = str.maketrans({'0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i'})
+
+
+def simon_key(text):
+    """Forma plana: sin acentos, sin símbolos, con los números que imitan letras."""
+    raw = unicodedata.normalize('NFKD', str(text or ''))
+    raw = ''.join(ch for ch in raw if not unicodedata.combining(ch))
+    raw = raw.casefold().translate(_SIMON_LEET)
+    return re.sub(r'[^a-z]', '', raw)
+
+
+def simon_reserved(text):
+    return simon_key(text) == 'simon'
+
+
+def is_owner(user):
+    import fusion
+    email = str((user or {}).get('email') or '').strip().lower()
+    return bool(email) and email == fusion.owner_email()
+
+
 def name_available(doc, name, email=None, user_id=None, now=None):
     key = name_key(name)
     if not key:
@@ -151,20 +175,119 @@ def login_password(doc, email, password, now=None, client_ip=None):
             raise AuthError('Demasiados intentos. Espera un rato.')
         recent.append(now)
     _hit_rate(doc, 'login:' + email, now)
+    pending = doc.get('pending', {}).get(email)
+    if pending and pending.get('password_hash') and verify_password(password, pending['password_hash']):
+        raise AuthError('Confirma el enlace del correo antes de entrar. Puedes pedir otro enlace.')
     user = _user_by(doc, email=email)
     stored = (user or {}).get('password_hash') or ('scrypt$' + '00' * 16 + '$' + '00' * 32)
     verified = verify_password(password, stored)
     if not user or not user.get('password_hash') or not verified:
         raise AuthError('Correo o contraseña incorrectos.')
+    if user.get('verified') is False:
+        raise AuthError('Confirma el enlace del correo antes de entrar. Puedes pedir otro enlace.')
     doc['rates'].pop('login:' + email, None)
     return open_session(doc, user, now)
 
 
+def _dummy_hash():
+    return 'scrypt$' + '00' * 16 + '$' + '00' * 32
+
+
+def _login_bucket(doc, key, now, client_ip):
+    if client_ip:
+        ip_key = 'login-ip:' + hashlib.sha256(str(client_ip).encode()).hexdigest()
+        recent = _prune_rates(doc, ip_key, now)
+        if len(recent) >= 30:
+            raise AuthError('Demasiados intentos. Espera un rato.')
+        recent.append(now)
+        doc['rates'][ip_key] = recent
+    _hit_rate(doc, key, now)
+
+
+def login_nick(doc, nick, password, now=None, client_ip=None):
+    """Entra con el apodo. El error es el mismo si el apodo no existe o la clave no sirve."""
+    now = _now(now)
+    nick = game_name(nick)
+    if not isinstance(password, str) or len(password) > 1024:
+        raise AuthError('Apodo o contraseña incorrectos.')
+    _login_bucket(doc, 'login-nick:' + (name_key(nick) or 'vacio'), now, client_ip)
+    user = None
+    key = name_key(nick)
+    if key:
+        for item in doc['users']:
+            if name_key(item.get('name')) == key or name_key(item.get('wallet_name')) == key:
+                user = item
+                break
+    stored = (user or {}).get('password_hash') or _dummy_hash()
+    verified = verify_password(password, stored) if password else False
+    if not user or not user.get('password_hash') or not verified:
+        raise AuthError('Apodo o contraseña incorrectos.')
+    doc['rates'].pop('login-nick:' + key, None)
+    return open_session(doc, user, now)
+
+
+def set_nick_and_password(doc, user, nick, password, confirm, now=None):
+    """Primera vez: apodo único y contraseña. El hash es el scrypt de siempre.
+
+    TODO: frase secreta de 12 palabras. Mostrarla una sola vez y guardar sólo
+    su hash lento. Todavía no está en este flujo.
+    """
+    now = _now(now)
+    if not user:
+        raise AuthError('Entra otra vez.')
+    _hit_rate(doc, 'clave:' + user['id'], now)
+    if user.get('password_hash'):
+        raise AuthError('Esta cuenta ya tiene contraseña.')
+    if simon_reserved(nick) and not is_owner(user):
+        raise AuthError('Ese apodo está reservado.')
+    nick = game_name(nick)
+    if not nick:
+        raise AuthError('Escribe un apodo de hasta 16 letras.')
+    if simon_reserved(nick) and not is_owner(user):
+        raise AuthError('Ese apodo está reservado.')
+    if is_owner(user) and simon_reserved(nick) and name_key(nick) != 'simon':
+        raise AuthError('El apodo del fundador es Simon.')
+    if not isinstance(password, str) or password != confirm:
+        raise AuthError('Las contraseñas no coinciden.')
+    key = name_key(nick)
+    for other in doc['users']:
+        if other.get('id') == user['id']:
+            continue
+        if name_key(other.get('name')) == key or name_key(other.get('wallet_name')) == key:
+            raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    if not name_available(doc, nick, user_id=user['id'], now=now):
+        raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    user['password_hash'] = hash_password(password)
+    user['name'] = 'Simon' if is_owner(user) and simon_reserved(nick) else nick
+    user['wallet_name'] = user['name']
+    return public_user(user)
+
+
+def claim_simon(doc, user, now=None):
+    """El fundador toma el apodo Simon gratis. No crea ni guarda una contraseña."""
+    now = _now(now)
+    if not user or not is_owner(user):
+        raise AuthError('Ese apodo está reservado.')
+    _hit_rate(doc, 'simon:' + user['id'], now)
+    for other in doc['users']:
+        if other.get('id') == user['id']:
+            continue
+        if simon_key(other.get('name')) == 'simon' or simon_key(other.get('wallet_name')) == 'simon':
+            raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    user['name'] = 'Simon'
+    user['wallet_name'] = 'Simon'
+    return public_user(user)
+
+
 def begin_signup(doc, name, email, phone, password, send_email, start_sms, now=None):
     now = _now(now)
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
     name = game_name(name)
     email = str(email or '').strip().lower()
     phone = str(phone or '').strip().replace(' ', '')
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
     if not name:
         raise AuthError('Escribe un nombre de hasta 16 letras.')
     if not EMAIL_RE.match(email) or len(email) > 254:
@@ -234,11 +357,36 @@ def open_session(doc, user, now=None):
 
 
 def public_user(user):
+    import casa_cuenta
+    shown = casa_cuenta.view(user)
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
-        'wallet_name': user.get('wallet_name') or user['name'],
+        'wallet_name': user.get('wallet_name') or '',
+        'needsPassword': not bool(user.get('password_hash')),
+        'canClaimSimon': is_owner(user) and simon_key(user.get('wallet_name') or user.get('name')) != 'simon',
         'avatar_id': 'avatar_' + user['id'],
+        'municipio': shown['municipio'],
+        'casa': shown,
     }
+
+
+def set_municipio(doc, user, municipio):
+    """Guarda el municipio dentro de la casa de la cuenta."""
+    import casa_cuenta
+    try:
+        casa_cuenta.apply(user, {'municipio': municipio})
+    except casa_cuenta.CasaError as exc:
+        raise AuthError(str(exc)) from exc
+    return public_user(user)
+
+
+def save_casa(user, payload, migrate=False):
+    import casa_cuenta
+    try:
+        casa_cuenta.apply(user, payload, migrate=migrate)
+    except casa_cuenta.CasaError as exc:
+        raise AuthError(str(exc)) from exc
+    return public_user(user)
 
 
 def session_user(doc, token, now=None):
@@ -280,6 +428,8 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             user.setdefault('providers', {})[provider] = sub
     if user is None:
         name = game_name(profile.get('name') or email.split('@')[0] or 'Jugador') or 'Jugador'
+        if (simon_reserved(profile.get('name')) or simon_reserved(name)) and not is_owner({'email': email}):
+            name = 'Jugador'
         base = name
         n = 2
         while not name_available(doc, name, email=email, now=now):
@@ -288,7 +438,7 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
         user = {
             'id': secrets.token_hex(8), 'name': name, 'email': email, 'phone': '',
             'password_hash': '', 'providers': {provider: sub},
-            'wallet_name': name, 'wallet_token': '', 'createdAt': now,
+            'wallet_name': name, 'wallet_token': '', 'createdAt': now, 'verified': True,
         }
         doc['users'].append(user)
     return open_session(doc, user, now)
@@ -319,9 +469,155 @@ def read_cookie(header, name):
     return ''
 
 
+def _token():
+    return secrets.token_urlsafe(32)
+
+
+def _token_hash(raw):
+    return hashlib.sha256(str(raw or '').encode('utf-8')).hexdigest()
+
+
+def begin_email_account(doc, name, email, password, send_link, now=None):
+    """Crea un registro pendiente. La cuenta no existe hasta abrir el enlace."""
+    now = _now(now)
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
+    name = game_name(name)
+    email = str(email or '').strip().lower()
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
+    if not name:
+        raise AuthError('Escribe un apodo de hasta 16 letras.')
+    if not EMAIL_RE.match(email) or len(email) > 254:
+        raise AuthError('El correo no parece válido.')
+    if _user_by(doc, email=email):
+        raise AuthError('Ese correo ya tiene cuenta. Entra o restablece la contraseña.')
+    if not name_available(doc, name, email=email, now=now):
+        raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    _hit_rate(doc, 'email:' + email, now)
+    raw = _token()
+    doc['pending'][email] = {
+        'name': name, 'email': email, 'phone': '',
+        'password_hash': hash_password(password),
+        'link_hash': _token_hash(raw),
+        'exp': now + LINK_TTL, 'attempts': 0,
+    }
+    try:
+        send_link(email, raw)
+    except AuthError:
+        doc['pending'].pop(email, None)
+        raise
+    except Exception:
+        doc['pending'].pop(email, None)
+        raise AuthError('No se pudo enviar el correo. Intenta más tarde.')
+    return {'email': email, 'exp': now + LINK_TTL}
+
+
+def _pending_by_link(doc, raw):
+    digest = _token_hash(raw)
+    if not raw or not digest:
+        return None, None
+    for email, row in doc.get('pending', {}).items():
+        stored = str(row.get('link_hash') or '')
+        if stored and secrets.compare_digest(stored, digest):
+            return email, row
+    return None, None
+
+
+def confirm_email_link(doc, raw, now=None):
+    """Gasta el enlace una sola vez y abre la sesión. Un segundo uso no sirve."""
+    now = _now(now)
+    email, pending = _pending_by_link(doc, raw)
+    if not pending or int(pending.get('exp') or 0) < now:
+        raise AuthError('El enlace caducó o ya se usó. Pide otro.')
+    doc['pending'].pop(email, None)
+    if _user_by(doc, email=email):
+        raise AuthError('Esa identidad ya tiene una cuenta.')
+    if not name_available(doc, pending['name'], email=email, now=now):
+        raise AuthError('Ese apodo ya no está disponible. Elige otro y pide un enlace nuevo.')
+    user = {
+        'id': secrets.token_hex(8),
+        'name': pending['name'],
+        'email': email,
+        'phone': '',
+        'password_hash': pending['password_hash'],
+        'providers': {},
+        'wallet_name': pending['name'],
+        'wallet_token': '',
+        'createdAt': now,
+        'verified': True,
+    }
+    doc['users'].append(user)
+    return open_session(doc, user, now)
+
+
+def resend_verification(doc, email, send_link, now=None):
+    now = _now(now)
+    email = str(email or '').strip().lower()
+    if not EMAIL_RE.match(email):
+        return
+    _hit_rate(doc, 'resend:' + email, now)
+    pending = doc.get('pending', {}).get(email)
+    if not pending:
+        return
+    raw = _token()
+    pending['link_hash'] = _token_hash(raw)
+    pending['exp'] = now + LINK_TTL
+    pending['attempts'] = 0
+    send_link(email, raw)
+
+
+def request_password_reset(doc, email, send_link, now=None):
+    now = _now(now)
+    email = str(email or '').strip().lower()
+    if not EMAIL_RE.match(email):
+        return
+    _hit_rate(doc, 'reset:' + email, now)
+    user = _user_by(doc, email=email)
+    if not user or not user.get('password_hash'):
+        return
+    raw = _token()
+    resets = doc.setdefault('resets', {})
+    for key, row in list(resets.items()):
+        if row.get('email') == email:
+            resets.pop(key, None)
+    resets[_token_hash(raw)] = {'email': email, 'exp': now + RESET_TTL}
+    send_link(email, raw)
+
+
+def reset_password(doc, raw, password, now=None):
+    now = _now(now)
+    resets = doc.setdefault('resets', {})
+    digest = _token_hash(raw)
+    row = None
+    found = None
+    for key, item in list(resets.items()):
+        if secrets.compare_digest(key, digest):
+            found = key
+            row = item
+            break
+    if found:
+        resets.pop(found, None)
+    if not row or int(row.get('exp') or 0) < now:
+        raise AuthError('El enlace caducó o ya se usó. Pide otro.')
+    user = _user_by(doc, email=row['email'])
+    if not user:
+        raise AuthError('Esa cuenta ya no está.')
+    user['password_hash'] = hash_password(password)
+    user['verified'] = True
+    for token, session in list(doc.get('sessions', {}).items()):
+        if session.get('user_id') == user['id']:
+            doc['sessions'].pop(token, None)
+    return {'ok': True, 'email': user['email']}
+
+
 def send_email(email, code):
     subject = 'Tu código de Saimon City'
     text = f'Tu código es {code}. Caduca en 10 minutos. Si no pediste entrar, ignora este mensaje.'
+    send_message(email, subject, text)
+
+
+def send_message(email, subject, text):
     sender = os.environ.get('EMAIL_FROM') or os.environ.get('SMTP_FROM') or ''
     if os.environ.get('RESEND_API_KEY'):
         payload = json_dumps({'from': sender, 'to': [email], 'subject': subject, 'text': text})

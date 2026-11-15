@@ -1,0 +1,71 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simon · Saimon City</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="simon.css">
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <a href="/play/">Saimon City</a>
+    <h1>Simon</h1>
+    <p>IA e IO, con calma. Busca arriendos, renta corta y ventas en el Valle de Aburrá y responde con las fuentes a la vista.</p>
+  </div>
+  <label>Agente
+    <select id="agente">
+      <option value="simon-ia">Simon IA</option>
+      <option value="simon-io">Simon IO</option>
+    </select>
+  </label>
+</header>
+<section class="panel aviso" id="aviso"></section>
+<section class="panel">
+  <div id="log" role="log" aria-live="polite"></div>
+  <form id="enviar" class="fila">
+    <input id="texto" maxlength="2000" autocomplete="off" placeholder="Por ejemplo: un arriendo en Envigado hasta 2,5 millones" aria-label="Mensaje para Simon">
+    <button type="submit">Enviar</button>
+    <button type="button" id="oir">Escuchar</button>
+    <button type="button" id="cerrar">Cerrar conversación</button>
+  </form>
+</section>
+<section class="panel ritmo">
+  <label>Velocidad de voz <input id="voz" type="range" min="0.7" max="1.15" step="0.01" value="0.92"></label>
+  <label>Pausa (ms) <input id="pausa" type="number" min="0" max="4000" value="800"></label>
+  <label class="linea"><input id="partes" type="checkbox" checked> Responder por partes</label>
+  <label class="linea"><input id="adaptar" type="checkbox" checked> Adaptarme a tu ritmo</label>
+  <button type="button" id="guardar-ritmo">Guardar ritmo</button>
+</section>
+<section class="panel" id="feedback" hidden>
+  <h2>Al cerrar</h2>
+  <p id="feedback-texto"></p>
+  <form id="feedback-form">
+    <p>¿Abriste algún enlace externo?</p>
+    <label class="linea"><input type="radio" name="declared_opened" value="si" required> Sí</label>
+    <label class="linea"><input type="radio" name="declared_opened" value="no"> No</label>
+    <p>¿Encontraste una solución?</p>
+    <label class="linea"><input type="radio" name="resolution" value="si" required> Sí</label>
+    <label class="linea"><input type="radio" name="resolution" value="parcialmente"> Parcialmente</label>
+    <label class="linea"><input type="radio" name="resolution" value="no"> No</label>
+    <p>Valoración, si quieres</p>
+    <div class="stars" id="stars"></div>
+    <label>Comentario opcional<textarea id="comentario" maxlength="800" rows="3"></textarea></label>
+    <p>¿La reseña puede mostrarse?</p>
+    <label class="linea"><input type="radio" name="visibility" value="privada" checked> Privada, sólo administración</label>
+    <label class="linea"><input type="radio" name="visibility" value="publica"> Pública</label>
+    <label class="linea" id="aceptar-fila"><input id="aceptar" type="checkbox"> Acepto que se guarde, según el aviso</label>
+    <button type="submit">Enviar reseña</button>
+  </form>
+  <p id="feedback-estado" role="status"></p>
+</section>
+<p><a href="/play/apartamentos.html">Ver el buscador</a> · <a href="/play/resenas.html">Reseñas públicas</a> · <a href="/privacidad">Privacidad</a></p>
+</main>
+<script type="module" src="simon.js"></script>
+</body>
+</html>

@@ -112,7 +112,7 @@ La base es Postgres 17 (Basic, Virginia), en la red interna del servicio `lifein
 | `TWILIO_AUTH_TOKEN` | para SMS | Token de Twilio. |
 | `TWILIO_VERIFY_SERVICE_SID` | para SMS | Servicio Verify (`VA…`). |
 
-El botón de cada proveedor aparece sólo si sus variables están puestas. Si no hay ninguna, la pantalla sigue dejando entrar con el nombre, como hasta ahora. Crear cuenta pide correo y teléfono a la vez: hace falta un emisor de correo (Resend o SMTP) y Twilio Verify.
+El botón de Google o de Facebook aparece sólo si sus variables están puestas. Entrar con correo sigue disponible para las cuentas que ya tienen contraseña. Crear cuenta, reenviar el enlace y restablecer la contraseña necesitan Resend o SMTP. No hay entrada de invitado. La cuenta nueva no sirve hasta abrir el enlace, que caduca a las 24 horas y sólo sirve una vez.
 
 URIs de redirección, exactas:
 
@@ -150,7 +150,7 @@ Resend: verifica un dominio, crea una API key y define `RESEND_API_KEY` y `EMAIL
 
 O SMTP: `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD` y `SMTP_FROM`.
 
-El código del correo también caduca a los 10 minutos. Quien ya jugaba con un nombre y un `X-Wallet-Token` puede escribir el mismo nombre: la cuenta nueva se ata a esa billetera y no pierde las SMC.
+El enlace de confirmación caduca a las 24 horas. El de contraseña nueva caduca a la hora. Los dos se gastan al usarlos. Quien ya jugaba con un nombre y un token de billetera puede usar el mismo apodo al crear la cuenta: se ata a esa billetera.
 
 ## Libro madre y Simonchis
 
@@ -167,3 +167,15 @@ Lectura pública:
 - `GET /api/libro/verificar`
 
 `LIBRO_DIFICULTAD` (1 a 20, por defecto 12) es cuántos bits en cero pide la prueba de trabajo. Si tarda, el servidor baja un bit para no frenar la partida.
+
+## Simon y apartamentos
+
+Simon IA y Simon IO viven en este repositorio (`/play/simon.html`). Buscan arriendo, renta corta y venta en el Valle de Aburrá con la herramienta `search_apartments`, y pueden consultar la web si hay clave. RentoCity es el motor principal y la plataforma de renta corta (días, semanas o 3, 6 y 12 meses, sólo si la unidad lo permite). El sitio rentocity.com.co no publica catálogo: hace falta `RENTOCITY_FEED_URL`.
+
+La conversación se cifra en reposo y sólo se guarda con consentimiento (Ley 1581 de 2012). Hay borrado, ritmo de respuesta y reseñas. El panel de administración está en `/play/admin/resenas.html` y pide `SIMON_ADMIN_TOKEN`. Las reseñas privadas no salen en `/play/resenas.html`.
+
+El mismo `SIMON_ADMIN_TOKEN` abre `/play/admin/vida.html`: el feedback del juego y el poste del Parque de Envigado. Para responder el poste desde la cuenta, dentro del juego, define `SIMON_OWNER_EMAIL` con el correo de esa cuenta. Sin esa variable, el poste se modera desde el panel con la clave. Los papeles `staff` y `admin` existen, pero hoy sólo `simon` responde y oculta. El cambio de nick queda marcado como acción de pago (`nick_change_paid`); no hay cobro y el nombre no cambia.
+
+Los mundos 1 a 333 están reservados. Al publicar abren el 1 al 5. Quienes comparten mundo y lugar público se ven por el WebSocket que ya sirve `/ws`. No hace falta otro servicio. Sin `DATABASE_URL`, mascotas, casas, amigos, feedback y notas viven en `state/vida.json` y se pierden si Render recicla el disco.
+
+No se copian fotos: cada ficha abre el enlace original. El índice se actualiza con `python3 tools/apartment_sync.py` (no desde el navegador). Detalle, variables y límites: [docs/SIMON.md](docs/SIMON.md). Esta entrega no autoriza merge ni despliegue: hace falta el sí explícito de Jay.

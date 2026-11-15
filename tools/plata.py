@@ -20,6 +20,7 @@ import time
 
 import economy as eco
 import supply as sup
+import topes as TOPES
 
 SUBS = eco.SUBS
 MAX_SUPPLY = 84_000_000
@@ -65,8 +66,8 @@ REASONS = {
     'supply': 'Se alcanzó el tope de 84.000.000 SMP.',
     'activity': 'Muévete y juega un poco antes de reclamar Plata.',
     'cooldown': 'Espera un momento para volver a intentarlo.',
-    'rate': 'Demasiados intentos. Esta cuenta o esta red queda en pausa un rato.',
-    'anomaly': 'Se detectó un ritmo anómalo. Esta cuenta o esta red queda en pausa un rato.',
+    'rate': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
+    'anomaly': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
     'pool': 'El fondo de oro se está llenando; vuelve cuando se mine más SMC',
     'exchange_cap': 'Llegaste al tope de cambio de hoy.',
     'slice': 'Hoy ya tomaste tu parte del fondo. Mañana hay otro tramo.',
@@ -107,11 +108,8 @@ def issuance_room(state):
 
 
 def daily_cap_sph(age_seconds, play_seconds, quests):
-    """Tope del día UTC, en SPH. Crece con la cuenta, el tiempo jugado y las misiones."""
-    days = min(AGE_DAYS, max(0, int(age_seconds)) // sup.DAY)
-    hours = min(PLAY_HOURS, max(0, int(play_seconds)) // 3600)
-    done = min(QUEST_CAP, max(0, int(quests)))
-    return BASE_DAILY_SPH + days * AGE_SPH + hours * PLAY_SPH + done * QUEST_SPH
+    """Tope del día UTC, en SPH. Los números viven en topes.py."""
+    return TOPES.simonplata_daily_sph(age_seconds, play_seconds, quests)
 
 
 def exchange_cap_smh(age_seconds, play_seconds, quests):
@@ -429,7 +427,10 @@ def open_challenge(state, profile, action, context, now=None):
         return {'ok': False, 'reason': why, 'view': view}
     acc['challenges'] = _prune(acc.get('challenges'), now, 600)
     row['challenges'] = _prune(row.get('challenges'), now, 600)
-    if len(acc['challenges']) >= sup.CHALLENGES_PER_10MIN or len(row['challenges']) >= sup.IP_CHALLENGES_PER_10MIN:
+    if len(acc['challenges']) >= sup.CHALLENGES_PER_10MIN:
+        acc['penaltyUntil'] = max(int(acc.get('penaltyUntil') or 0), int(now) + sup.PENALTY)
+        return {'ok': False, 'reason': 'rate', 'view': _view(state, profile, now)}
+    if len(row['challenges']) >= sup.IP_CHALLENGES_PER_10MIN:
         code = _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': code, 'view': _view(state, profile, now)}
     personal, _recent = _personal(acc, now, 'claims')
@@ -474,7 +475,7 @@ def _read_proof(proof):
         return None
 
 
-def redeem(state, profile, action, context, proof, now=None):
+def redeem(state, profile, action, context, proof, now=None, want_sph=None, pay_request=False):
     """Verifica la prueba y acredita SPH. No escribe billeteras SMC."""
     ensure(state, now=now)
     now = int(now if now is not None else time.time())
@@ -525,7 +526,12 @@ def redeem(state, profile, action, context, proof, now=None):
     personal_left = max(0, cap - earned)
     room = issuance_room(state)
     epoch_left = max(0, _ceiling(reward) - int(box.get('epochSubs') or 0))
-    grant = min(reward, personal_left, room, epoch_left)
+    if pay_request:
+        grant = min(personal_left, room)
+        if want_sph is not None:
+            grant = min(grant, max(0, int(want_sph)))
+    else:
+        grant = min(reward, personal_left, room, epoch_left)
     if grant <= 0:
         if room <= 0 or reward <= 0:
             code = 'supply'

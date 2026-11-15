@@ -1,0 +1,96 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reseñas y feedback · Simon</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../simon.css">
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <a href="/play/simon.html">Simon</a>
+    <h1>Reseñas y feedback</h1>
+    <p><a href="/play/admin/vida.html">Feedback del juego y poste del parque</a></p>
+    <p>Aquí se ven todas las reseñas, públicas y privadas. Las privadas no salen en la página de quienes usan Simon.</p>
+  </div>
+</header>
+<section class="panel">
+  <form id="clave" class="fila">
+    <label>Clave de administración
+      <input id="token" type="password" autocomplete="current-password" placeholder="SIMON_ADMIN_TOKEN">
+    </label>
+    <button type="submit">Entrar</button>
+  </form>
+  <p id="estado" role="status"></p>
+</section>
+<section class="panel" id="stats" hidden></section>
+<section class="panel">
+  <form id="filtros" class="fila">
+    <label>Visibilidad
+      <select name="visibility"><option value="">Todas</option><option value="publica">Públicas</option><option value="privada">Privadas</option></select>
+    </label>
+    <label>Solución
+      <select name="solved"><option value="">Todas</option><option value="si">Sí</option><option value="parcialmente">Parcialmente</option><option value="no">No</option><option value="resuelto">Resuelto</option><option value="no_resuelto">No resuelto</option></select>
+    </label>
+    <label>Valoración
+      <select name="rating"><option value="">Todas</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+    </label>
+    <label>Desde <input name="desde" type="date"></label>
+    <label>Hasta <input name="hasta" type="date"></label>
+    <button type="submit">Filtrar</button>
+  </form>
+</section>
+<section id="lista"></section>
+</main>
+<script type="module">
+const $ = id => document.getElementById(id);
+const tokenKey = 'simon-admin-token';
+if (sessionStorage.getItem(tokenKey)) $('token').value = sessionStorage.getItem(tokenKey);
+function pct(value) { return value == null ? '—' : Math.round(value * 100) + ' %'; }
+function paint(data) {
+  const s = data.stats || {};
+  $('stats').hidden = false;
+  $('stats').innerHTML = `<p><b>Tasa de resueltos:</b> ${pct(s.solved_rate)}</p><p><b>Valoración media:</b> ${s.average_rating == null ? '—' : s.average_rating.toFixed(2)}</p><p><b>Chats con un enlace abierto:</b> ${pct(s.link_share)} (${s.chats_with_link || 0} de ${s.chats || 0})</p><p>${s.reviews || 0} reseñas en total. La lista de abajo respeta los filtros.</p>`;
+  $('lista').replaceChildren();
+  for (const row of data.reviews || []) {
+    const card = document.createElement('article');
+    card.className = 'card panel';
+    const h = document.createElement('h3');
+    h.textContent = (row.visibility === 'publica' ? 'Pública' : 'Privada') + ' · ' + (row.resolution || '') + (row.rating ? ' · ' + row.rating + '/5' : '');
+    const when = document.createElement('p');
+    when.textContent = row.created_at ? new Date(row.created_at).toLocaleString('es-CO') : '';
+    const comment = document.createElement('p');
+    comment.textContent = row.comment || 'Sin comentario.';
+    const links = document.createElement('p');
+    links.textContent = 'Enlaces abiertos: ' + ((row.links_opened || []).join(' · ') || 'ninguno') + (row.declared_opened ? ' · la persona dijo que abrió un enlace' : '');
+    card.append(h, when, comment, links);
+    $('lista').append(card);
+  }
+  if (!(data.reviews || []).length) {
+    const empty = document.createElement('p');
+    empty.textContent = 'No hay reseñas con esos filtros.';
+    $('lista').append(empty);
+  }
+}
+async function load(filters) {
+  const token = $('token').value.trim();
+  sessionStorage.setItem(tokenKey, token);
+  const res = await fetch('/api/simon/admin/resenas?' + new URLSearchParams(filters), {headers: {'X-Simon-Admin': token}});
+  const data = await res.json();
+  if (!res.ok) { $('estado').textContent = data.error || 'No se pudo entrar'; $('stats').hidden = true; $('lista').replaceChildren(); return; }
+  $('estado').textContent = 'Listo.';
+  paint(data);
+}
+$('clave').addEventListener('submit', e => { e.preventDefault(); load({}); });
+$('filtros').addEventListener('submit', e => {
+  e.preventDefault();
+  const filters = Object.fromEntries([...new FormData(e.currentTarget)].filter(([, v]) => v));
+  load(filters);
+});
+</script>
+</body>
+</html>

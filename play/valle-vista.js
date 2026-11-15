@@ -103,6 +103,51 @@ export function createValleyView(T, opts) {
   pinGroup.add(pinPole, pinGem, pinRing);
   pinGroup.visible = false;
   scene.add(pinGroup);
+  const ufo = new T.Group();
+  const saucer = new T.Mesh(new T.CylinderGeometry(2.5, 2.9, 0.42, 8), new T.MeshBasicMaterial({ color: '#f4efe2' }));
+  const dome = new T.Mesh(new T.SphereGeometry(1.15, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), new T.MeshBasicMaterial({ color: '#8fd4e8' }));
+  dome.position.y = 0.28;
+  const rim = new T.Mesh(new T.CylinderGeometry(1.15, 1.35, 0.22, 8), new T.MeshBasicMaterial({ color: '#c4a574' }));
+  rim.position.y = 0.16;
+  ufo.add(saucer, rim, dome);
+  for (let i = 0; i < 4; i++) {
+    const light = new T.Mesh(new T.BoxGeometry(0.28, 0.16, 0.16), new T.MeshBasicMaterial({ color: i % 2 ? '#ffdf29' : '#7fd3c1' }));
+    const a = i * Math.PI / 2;
+    light.position.set(Math.cos(a) * 1.9, -0.16, Math.sin(a) * 1.9);
+    ufo.add(light);
+  }
+  ufo.visible = false;
+  scene.add(ufo);
+  let ride = null;
+  let deck = null;
+  function ridePoint(spec) {
+    const t = Math.max(0, Math.min(1, spec.t || 0));
+    const glide = Math.min(1, t / 0.74);
+    const e = glide * glide * (3 - 2 * glide);
+    const drop = t <= 0.74 ? 0 : Math.min(1, (t - 0.74) / 0.2);
+    const de = drop * drop * (3 - 2 * drop);
+    const sx = mapW * 0.42;
+    const sz = mapH * 0.86;
+    const x = sx + (spec.x - sx) * e;
+    const z = sz + (spec.y - sz) * e;
+    const ground = lift(spec.x, spec.y);
+    const high = 78 + ground * 0.15;
+    const h = high + (ground + 7 - high) * e;
+    const landed = h + (ground + 1.4 - h) * de;
+    const liftOff = t > 0.94 ? (t - 0.94) / 0.06 : 0;
+    return { x, z, h: landed + liftOff * 10, glide: e, drop: de, t };
+  }
+  function heliPoint(spec) {
+    const t = Math.max(0, Math.min(1, spec.t || 0));
+    const e = t * t * (3 - 2 * t);
+    const sx = mapW * 0.08;
+    const sz = mapH * 1.05;
+    const ground = lift(spec.x, spec.y);
+    const x = sx + (spec.x - sx) * e;
+    const z = sz + (spec.y - sz) * e;
+    const h = (ground + 96) + (ground + 5 - (ground + 96)) * e;
+    return { x, z, h, t, e, drop: e };
+  }
   const raycaster = new T.Raycaster();
   const ndc = new T.Vector2();
   let pin = null;
@@ -153,7 +198,7 @@ export function createValleyView(T, opts) {
     geo.setIndex(index);
   }
 
-  function overviewOn() { return open || (flyT != null && flyT < 0.84); }
+  function overviewOn() { return open || !!ride || (flyT != null && flyT < 0.84); }
 
   function labels() {
     return (W.mapLabels || []).filter(item => item && item.name != null && Number.isFinite(item.x) && Number.isFinite(item.y));
@@ -365,6 +410,15 @@ export function createValleyView(T, opts) {
   }
 
   function pose() {
+    if (ride) {
+      const heli = ride.mode === 'heli';
+      const p = heli ? heliPoint(ride) : ridePoint(ride);
+      posedTarget.set(p.x * 2 + 1, p.h, p.z * 2 + 1);
+      const yaw = heli ? 0.55 * (1 - p.e) + 0.15 : 0.35 + Math.sin(p.t * Math.PI) * 0.25;
+      const pitch = heli ? 1.15 - p.e * 0.15 : 0.95 - p.drop * 0.12;
+      const distance = heli ? 88 - p.e * 60 : 78 - p.drop * 48;
+      return { target: posedTarget, yaw, pitch, distance };
+    }
     if (open) {
       posedTarget.copy(focus);
       return { target: posedTarget, yaw: mapYaw, pitch: mapPitch, distance: mapDist };
@@ -384,7 +438,7 @@ export function createValleyView(T, opts) {
   }
 
   function atmosphere() {
-    if (open || flyT != null) return { fogNear: 1800, fogFar: 5600, cameraFar: 6800 };
+    if (open || flyT != null || ride) return { fogNear: 1800, fogFar: 5600, cameraFar: 6800 };
     if (narrow()) return { fogNear: 90, fogFar: 460, cameraFar: 1400 };
     return { fogNear: 160, fogFar: 920, cameraFar: 2400 };
   }
@@ -397,8 +451,18 @@ export function createValleyView(T, opts) {
     const show = overviewOn();
     for (const holder of chunkMeshes.values()) holder.visible = !show;
     applyMask(show);
-    beacon.visible = show;
+    beacon.visible = show && !ride;
     beacon.position.set(here.x * 2 + 1, lift(here.x, here.y), here.y * 2 + 1);
+    if (ride && ride.mode !== 'heli') {
+      const p = ridePoint(ride);
+      ufo.visible = p.t < 0.98;
+      ufo.position.set(p.x * 2 + 1, p.h, p.z * 2 + 1);
+      ufo.rotation.y = p.t * 1.4;
+      deck = p.t < 0.9 ? { x: ufo.position.x, y: ufo.position.y + 0.85, z: ufo.position.z, yaw: ufo.rotation.y } : null;
+    } else {
+      ufo.visible = false;
+      deck = null;
+    }
     pinGroup.visible = show && !!pin;
     if (pin) pinGroup.position.set(pin.x * 2 + 1, lift(pin.x, pin.y), pin.y * 2 + 1);
     if (open) {
@@ -503,6 +567,8 @@ export function createValleyView(T, opts) {
     open: openMap,
     close: closeMap,
     setFly(t) { flyT = t; },
+    setRide(spec) { ride = spec && Number.isFinite(spec.x) ? spec : null; if (!ride) { ufo.visible = false; deck = null; } },
+    deck() { return deck; },
     pose,
     atmosphere,
     sync,

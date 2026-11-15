@@ -1,0 +1,178 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+"""Mundos al estilo RuneScape y lugares públicos.
+
+La arquitectura reserva los mundos 1 a 333. Al publicar sólo abren el 1 al 5.
+Dos jugadores se ven si comparten mundo y lugar público. La casa es privada.
+"""
+import json
+import os
+
+CAP = 333
+PRIVATE = frozenset({'casa'})
+FIXED_NAMES = {
+    'valle': 'Valle de Aburrá',
+    'mina-palmas': 'Mina de Las Palmas',
+    'casa-bancaria': 'Casa bancaria',
+    'casa': 'Tu casa',
+}
+_CATALOG = None
+
+
+def catalog_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'data', 'vida.json')
+
+
+def catalog():
+    global _CATALOG
+    if _CATALOG is None:
+        with open(catalog_path(), encoding='utf-8') as handle:
+            _CATALOG = json.load(handle)
+    return _CATALOG
+
+
+def open_ids():
+    values = []
+    for raw in catalog()['worlds']['open']:
+        number = int(raw)
+        if 1 <= number <= CAP and number not in values:
+            values.append(number)
+    return tuple(values)
+
+
+def known(number):
+    try:
+        number = int(number)
+    except (TypeError, ValueError):
+        return False
+    return 1 <= number <= CAP
+
+
+def normalize(value):
+    """Un mundo jugable ahora, o None si está cerrado o no existe."""
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    if number in open_ids():
+        return number
+    return None
+
+
+def boxes(world):
+    """Lugares con nombre. El Parque de Envigado del catálogo gana al área corta del mapa."""
+    found = []
+    seen = set()
+    for raw in catalog().get('places') or []:
+        box = {
+            'id': str(raw['id']),
+            'name': str(raw.get('name') or raw['id']),
+            'x': int(raw['x']), 'y': int(raw['y']), 'w': int(raw['w']), 'h': int(raw['h']),
+        }
+        found.append(box)
+        seen.add(box['id'])
+    for area in (world or {}).get('areas') or []:
+        aid = str(area.get('id') or '')
+        if not aid.startswith('parque_'):
+            continue
+        pid = aid.replace('_', '-')
+        if pid in seen:
+            continue
+        found.append({
+            'id': pid,
+            'name': str(area.get('name') or pid),
+            'x': int(area['x']), 'y': int(area['y']), 'w': int(area['w']), 'h': int(area['h']),
+        })
+        seen.add(pid)
+    return found
+
+
+def place_of(x, y, zone, boxes_):
+    if zone == 'casa':
+        return 'casa'
+    if zone == 'mine':
+        return 'mina-palmas'
+    if zone == 'banco':
+        return 'casa-bancaria'
+    try:
+        ix, iy = int(float(x)), int(float(y))
+    except (TypeError, ValueError):
+        return 'valle'
+    for box in boxes_:
+        if box['x'] <= ix < box['x'] + box['w'] and box['y'] <= iy < box['y'] + box['h']:
+            return box['id']
+    return 'valle'
+
+
+def place_name(place, boxes_):
+    if place in FIXED_NAMES:
+        return FIXED_NAMES[place]
+    for box in boxes_:
+        if box['id'] == place:
+            return box['name']
+    return place or 'Valle de Aburrá'
+
+
+def poste():
+    raw = catalog().get('poste') or {}
+    return {
+        'id': str(raw.get('id') or 'poste-envigado'),
+        'place': str(raw.get('place') or 'parque-envigado'),
+        'name': str(raw.get('name') or 'Poste de notas'),
+        'x': int(raw.get('x') or 0),
+        'y': int(raw.get('y') or 0),
+    }
+
+
+def same_world(a, b):
+    return getattr(a, 'world', None) == getattr(b, 'world', None)
+
+
+def same_room(a, b):
+    """Misma sala pública. La casa nunca se comparte."""
+    if getattr(a, 'world', None) != getattr(b, 'world', None):
+        return False
+    place_a = getattr(a, 'place', '')
+    place_b = getattr(b, 'place', '')
+    if place_a in PRIVATE or place_b in PRIVATE:
+        return False
+    return bool(place_a) and place_a == place_b
+
+
+def counts(people):
+    opened = open_ids()
+    per = {number: 0 for number in opened}
+    total = 0
+    for person in people:
+        if not getattr(person, 'hello', False) or getattr(person, 'bot', False):
+            continue
+        total += 1
+        world = getattr(person, 'world', None)
+        if world in per:
+            per[world] += 1
+    return {
+        't': 'presence',
+        'total': total,
+        'worlds': {str(key): value for key, value in per.items()},
+        'cap': CAP,
+        'open': list(opened),
+    }
+
+
+def public_worlds(people):
+    body = counts(people)
+    worlds = []
+    for number in open_ids():
+        worlds.append({
+            'id': number,
+            'name': f'Mundo {number}',
+            'open': True,
+            'players': body['worlds'][str(number)],
+        })
+    return {
+        'cap': CAP,
+        'open': list(open_ids()),
+        'closedFrom': (max(open_ids()) + 1) if open_ids() else 1,
+        'closedTo': CAP,
+        'total': body['total'],
+        'worlds': worlds,
+    }

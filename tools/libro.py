@@ -17,6 +17,7 @@ import persist
 GENESIS = '0' * 64
 KINDS_MINT = ('acuñacion', 'genesis', 'migracion')
 KIND_MOVE = 'transferencia'
+KIND_TRADE = 'intercambio'
 DISCLAIMER = (
     'Libro madre de SaiMonCoins (SMC): simulación educativa. '
     'Cada acuñación es un registro único e irrepetible, como una pieza de minería. '
@@ -105,7 +106,7 @@ def balances(chain):
         got[name] = got.get(name, 0) + int(delta)
 
     for block in chain.get('blocks') or []:
-        if block.get('kind') == KIND_MOVE:
+        if block.get('kind') in (KIND_MOVE, KIND_TRADE):
             add(block.get('from'), -int(block.get('amountSmh') or 0))
             add(block.get('to'), int(block.get('amountSmh') or 0))
         else:
@@ -201,6 +202,22 @@ def acuñar(chain, seed, owner, amount_subs, location, ts=None, bits=None, presu
     )
 
 
+def intercambiar(chain, seed, origen, destino, amount_subs, ts=None):
+    """Pasa SMC entre dos billeteras. La vista pública no muestra quiénes son."""
+    amount_subs = int(amount_subs or 0)
+    if amount_subs <= 0:
+        raise LibroError('el intercambio tiene que ser mayor que cero')
+    if not origen or not destino or origen == destino:
+        raise LibroError('el intercambio necesita dos cuentas distintas')
+    have = balances(chain).get(origen, 0)
+    if have < amount_subs:
+        raise LibroError('el libro madre no tiene saldo para ese intercambio')
+    return _firmar(
+        chain, seed, KIND_TRADE, amount_subs, '', '', 'Intercambio',
+        origen, destino, ts, 0, 0.025,
+    )
+
+
 def transferir(chain, seed, origen, destino, amount_subs, note, ts=None):
     amount_subs = int(amount_subs or 0)
     if amount_subs <= 0:
@@ -261,7 +278,7 @@ def migrar(chain, seed, wallets, vault_accounts, ts=None, bits=None, presupuesto
 def publico(record):
     if not record:
         return None
-    return {
+    view = {
         'id': record.get('id'),
         'kind': record.get('kind'),
         'height': record.get('height'),
@@ -279,6 +296,14 @@ def publico(record):
         'hash': record.get('hash'),
         'sig': record.get('sig'),
     }
+    if record.get('kind') == KIND_TRADE:
+        view['from'] = ''
+        view['to'] = ''
+        view['owner'] = ''
+        view['miner'] = ''
+        view['location'] = 'Intercambio entre dos personas'
+        view['privateParties'] = True
+    return view
 
 
 def _payload(record):

@@ -281,7 +281,7 @@ class PlataTests(unittest.TestCase):
         self.assertIn('apartar', emitir)
         self.assertNotIn('def premine', open(os.path.join(ROOT, 'tools', 'plata.py'), encoding='utf-8').read())
         layout = open(os.path.join(ROOT, 'play', 'hud-layout.js'), encoding='utf-8').read()
-        self.assertIn("['plata-panel', 'Plata', 'hud']", layout)
+        self.assertIn("['plata-panel', 'Simonplata', 'hud']", layout)
         html = open(os.path.join(ROOT, 'play', 'index.html'), encoding='utf-8').read()
         self.assertIn('id="plata-panel" class="hud"', html)
         css = open(os.path.join(ROOT, 'play', 'style.css'), encoding='utf-8').read()

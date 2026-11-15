@@ -17,6 +17,7 @@ import secrets
 import time
 
 import economy as eco
+import topes as TOPES
 
 DAY = 86400
 TARGET_INTERVAL = 600
@@ -33,8 +34,8 @@ CHALLENGE_TTL = 180
 CLAIM_COOLDOWN = 60
 ACTIVITY_TILES = 8
 ACTIVITY_FRESH = 120
-CHALLENGES_PER_10MIN = 6
-IP_CHALLENGES_PER_10MIN = 12
+CHALLENGES_PER_10MIN = 24
+IP_CHALLENGES_PER_10MIN = 60
 IP_PROOFS_PER_HOUR = 8
 PENALTY = 900
 BASE_DAILY_SMH = eco.SUBS // 4          # 0,25 SMC
@@ -62,8 +63,8 @@ REASONS = {
     'supply': 'Se alcanzó el tope de 21.000.000 SMC.',
     'activity': 'Muévete y juega un poco antes de reclamar SMC.',
     'cooldown': 'Espera un momento para volver a reclamar.',
-    'rate': 'Demasiados intentos. Esta cuenta o esta red queda en pausa un rato.',
-    'anomaly': 'Se detectó un ritmo anómalo. Esta cuenta o esta red queda en pausa un rato.',
+    'rate': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
+    'anomaly': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
     'partial': 'Ese lote pide más SMC de las que una prueba puede pagar hoy. El mineral sigue en la mochila.',
 }
 
@@ -102,11 +103,8 @@ def ensure(state, now=None):
 
 
 def daily_cap_smh(age_seconds, play_seconds, quests):
-    """Tope del día UTC, en SMH. Crece con la cuenta, el tiempo jugado y las misiones."""
-    days = min(AGE_DAYS, max(0, int(age_seconds)) // DAY)
-    hours = min(PLAY_HOURS, max(0, int(play_seconds)) // 3600)
-    done = min(QUEST_CAP, max(0, int(quests)))
-    return BASE_DAILY_SMH + days * AGE_SMH + hours * PLAY_SMH + done * QUEST_SMH
+    """Tope del día UTC, en SMH. Los números viven en topes.py."""
+    return TOPES.simoncoin_daily_smh(age_seconds, play_seconds, quests)
 
 
 def quest_count(state, name):
@@ -366,7 +364,11 @@ def open_challenge(state, profile, action, context, now=None):
         return {'ok': False, 'reason': why, 'view': view}
     acc['challenges'] = _prune(acc.get('challenges'), now, 600)
     row['challenges'] = _prune(row.get('challenges'), now, 600)
-    if len(acc['challenges']) >= CHALLENGES_PER_10MIN or len(row['challenges']) >= IP_CHALLENGES_PER_10MIN:
+    if len(acc['challenges']) >= CHALLENGES_PER_10MIN:
+        acc['penaltyUntil'] = max(int(acc.get('penaltyUntil') or 0), int(now) + PENALTY)
+        _flag(box, now, profile['account'], profile['ip'], 'rate')
+        return {'ok': False, 'reason': 'rate', 'view': _view(state, profile, now)}
+    if len(row['challenges']) >= IP_CHALLENGES_PER_10MIN:
         code = _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': code, 'view': _view(state, profile, now)}
     personal, _recent = _personal(acc, now)
@@ -417,7 +419,7 @@ def _read_proof(proof):
         return None
 
 
-def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None):
+def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None, pay_request=False):
     """Verifica la prueba y reserva los SMH que caben. No escribe la billetera."""
     ensure(state, now=now)
     now = int(now if now is not None else time.time())
@@ -467,10 +469,10 @@ def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None,
     cap = daily_cap_smh(profile['age'], profile['play'], profile['quests'])
     earned = int(acc.get('earned') or 0)
     personal_left = max(0, cap - earned)
-    diminished = _diminished(reward, int(acc.get('proofs') or 0))
+    diminished = personal_left if pay_request else _diminished(reward, int(acc.get('proofs') or 0))
     room = eco.issuance_room(state) if room_smh is None else max(0, int(room_smh))
     grant = min(diminished, personal_left, room)
-    if counts_as_mint:
+    if counts_as_mint and not pay_request:
         epoch_left = max(0, _ceiling(reward) - int(box.get('epochSubs') or 0))
         grant = min(grant, epoch_left)
     if want_smh is not None:

@@ -1,5 +1,20 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Cuenta: cerrar sesión y eliminar. Fuente --sans (Inter / sistema). Vidrio oscuro. */
+/* Cuenta: cerrar sesión y eliminar, dentro del menú ⚙. Fuente --sans. */
+
+#cuenta-barra { display: none !important; }
+#hud-gear-menu #b-eliminar-cuenta {
+  background: #9d2424;
+  color: #fff;
+  border-color: #ff8d8d;
+}
+#cuenta-aviso {
+  margin: 0;
+  color: #ffb4b4;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.35;
+}
+#cuenta-aviso[hidden] { display: none !important; }
 
 #cuenta-barra {
   pointer-events: auto;
