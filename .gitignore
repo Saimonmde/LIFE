@@ -8,6 +8,9 @@ __pycache__/
 *.key
 releases/*.zip
 previews/
+# Las vistas previas del diseño de Sara sí van en el borrador de las fichas.
+!docs/fichas-fisicas/arte/previews/
+!docs/fichas-fisicas/arte/previews/*.png
 lifein.json
 state/
 restauracion/
