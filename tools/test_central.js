@@ -1,0 +1,40 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+require(path.join(root, 'play/central.js'));
+const Central = globalThis.Central;
+
+const locked = Central.markup(false);
+assert.ok(locked.includes('Banco Central'));
+assert.ok(locked.includes('no está abierta'));
+assert.ok(!locked.includes('bc-fundir'));
+assert.ok(!locked.includes('lingote'));
+assert.ok(!locked.includes('bc-metal'));
+
+const open = Central.markup(true);
+assert.ok(open.includes('Banco Central'));
+assert.ok(open.includes('id="bc-fundir"'));
+assert.ok(open.includes('Reserva de oro'));
+assert.ok(open.includes('id="bc-series"'));
+assert.ok(open.includes('Historial'));
+assert.ok(open.includes('lingote_oro.svg'));
+assert.ok(!open.includes('Acuñar Simoncoin'));
+
+const read = (name) => fs.readFileSync(path.join(root, name), 'utf8');
+const game = read('play/game.js');
+const html = read('play/index.html');
+const acunar = read('play/acunar.js');
+const cajon = read('play/cajon.js');
+assert.ok(!game.includes('forge-ingot'));
+assert.ok(!game.includes('Crear lingotes'));
+assert.ok(!game.includes('Hacer lingotes'));
+assert.ok(!game.includes('hace lingotes'));
+assert.ok(!html.includes('se vuelve lingotes'));
+assert.ok(!acunar.includes('lingote'));
+assert.ok(acunar.includes('data-coin="simoncoin"'));
+assert.ok(acunar.includes('data-coin="simonplata"'));
+assert.ok(acunar.includes('data-coin="simonchis"'));
+assert.ok(!cajon.includes('lingote'));
+assert.ok(!cajon.includes('Fundir'));
+console.log('banco central ok');

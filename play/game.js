@@ -471,6 +471,7 @@ function prepareCave(){
  W.homeDoor={x:home.x,y:home.y,standX:window.Casa.PARK_STAND.x,standY:window.Casa.PARK_STAND.y};
  if (window.EnvigadoPark) EnvigadoPark.block(W);
  if (window.Banco) Banco.stamp(W);
+ if (window.Central) Central.stamp(W);
 }
 function applyCasaLayout(){
  if((W.mapId||'city')!=='casa')return;
@@ -503,17 +504,20 @@ function switchMap(id,restored=false){
  if(id==='mine'){Object.assign(W,caveMap);W.mapId='mine';if(!caveNodes)caveNodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.nodes=caveNodes;S.animals=[];}
  else if(id==='casa'){casaMap=Casa.buildMap(Casa.layout);Object.assign(W,casaMap);W.mapId='casa';casaNodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.nodes=casaNodes;S.animals=[];}
  else if(id==='banco'){const bancoMap=Banco.buildMap();Object.assign(W,bancoMap);W.mapId='banco';S.nodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.animals=[];}
+ else if(id==='central'){const centralMap=Central.buildMap();Object.assign(W,centralMap);W.mapId='central';S.nodes=new Map(W.nodes.map(n=>[n.id,{def:n,state:n.initialState,until:0,crop:null}]));S.animals=[];}
  else {Object.assign(W,cityMap);W.mapId='city';S.nodes=cityNodes;S.animals=cityAnimals;id='city';}
  const p=S.player;
  let xy;
  if(id==='mine')xy=caveMap.spawn;
  else if(id==='casa')xy={x:Casa.SPAWN.x,y:Casa.SPAWN.y};
  else if(id==='banco')xy={x:Banco.SPAWN.x,y:Banco.SPAWN.y};
+ else if(id==='central')xy={x:Central.SPAWN.x,y:Central.SPAWN.y};
  else if(prev==='mine')xy=cityReturn||{x:W.mineEntrance.x,y:W.mineEntrance.y+1};
  else if(prev==='casa'){const home=window.Hogar&&Hogar.stand(S.me.municipio);xy=home?{x:home.x,y:home.y}:{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};}
  else if(prev==='banco')xy={x:Banco.OUTSIDE.x,y:Banco.OUTSIDE.y};
+ else if(prev==='central')xy={x:Central.OUTSIDE.x,y:Central.OUTSIDE.y};
  else xy={x:p.x,y:p.y};
- p.x=p.fx=xy.x;p.y=p.fy=xy.y;if(id==='casa')p.dir=Casa.SPAWN.dir;if(id==='banco')p.dir=Banco.SPAWN.dir;
+ p.x=p.fx=xy.x;p.y=p.fy=xy.y;if(id==='casa')p.dir=Casa.SPAWN.dir;if(id==='banco')p.dir=Banco.SPAWN.dir;if(id==='central')p.dir=Central.SPAWN.dir;
  p.path=[];p.pending=null;p.busyUntil=0;S.dest=null;S.keys.clear();S.sel=-1;
  for(const key of ['furnace-panel','world-routes','memories','city-map','aviso','objetivo']){const el=document.getElementById(key);if(el)el.hidden=true;}
  closeForgeChat();pendingFurnaceDrop=null;if(oreDrag||touchOre)endOreDrag();
@@ -521,9 +525,10 @@ function switchMap(id,restored=false){
  document.body.classList.toggle('in-mine',id==='mine');
  document.body.classList.toggle('in-casa',id==='casa');
  document.body.classList.toggle('in-banco',id==='banco');
+ document.body.classList.toggle('in-central',id==='central');
  document.body.dataset.zone=id;
  if(id!=='casa'&&window.Casa)Casa.setEditing(false);
- const zoneLabel=id==='casa'?'Tu casa · Medellín':id==='mine'?'Mina de Las Palmas · interior':id==='banco'?'Casa bancaria':null;
+ const zoneLabel=id==='casa'?'Tu casa · Medellín':id==='mine'?'Mina de Las Palmas · interior':id==='banco'?'Casa bancaria':id==='central'?'Banco Central':null;
  if(zoneLabel){$('#zona-nombre').textContent=zoneLabel;}
  drawMinimapBase();
  if(!restored){
@@ -534,6 +539,8 @@ function switchMap(id,restored=false){
   else if(id==='city'&&prev==='casa')game('Sales al <b>Parque de Envigado</b>. El botón Casa te devuelve a tu casa.');
   else if(id==='banco')game('Entras a la Casa bancaria. El mostrador atiende el banquero. El banquito guarda SMC y objetos: no se pierden si caes.');
   else if(id==='city'&&prev==='banco')game('Sales de la Casa bancaria, junto al Parque de Envigado.');
+  else if(id==='central')game('Entras al Banco Central.');
+  else if(id==='city'&&prev==='central')game('Sales del Banco Central.');
  }
  if(S.net.ok)sendMove(true);
 }
@@ -556,7 +563,7 @@ function prepareMining(){
  }
  W.skills.mining.learn='Usa la pica sobre vetas de cobre, plata y oro. Cada extracción da experiencia y los minerales se apilan en la mochila.';
  W.skills.mining.methods.terrestre.minerals=['piedra','cobre','plata','oro'];
- W.skills.smelting={name:'Fundición',verb:'Fundir minerales',learn:'En el horno, el mineral se vuelve lingotes o monedas de la mochila. Acreditar SMC lo hace sólo el libro mayor.'};
+ W.skills.smelting={name:'Fundición',verb:'Fundir minerales',learn:'En el horno, Acuñar cambia el mineral por Simoncoin, Simonplata o Simonchis. El libro mayor acredita el saldo.'};
  if(W.skills.order&&!W.skills.order.includes('smelting'))W.skills.order.push('smelting');
  W.sprites.rock_oro={...W.sprites.rock_cobre};W.sprites.furnace={...W.sprites.rock_piedra};
  const taken=new Set([...W.nodes,...W.npcs,...W.doors].map(n=>`${n.x},${n.y}`));
@@ -565,14 +572,14 @@ function prepareMining(){
 }
 let furnaceNode=null;
 function setupMiningUI(){
- const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno hace lingotes o acuña Simoncoin, Simonplata o Simonchis. Esas tres monedas se guardan en el servidor. No se puede pasar de 21.000.000, 84.000.000 ni 333.000.000.</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-ingot" type="button">Crear lingotes</button><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña Simoncoin, Simonplata o Simonchis. Esas tres monedas se guardan en el servidor. No se puede pasar de 21.000.000, 84.000.000 ni 333.000.000.</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
  for(const [id,r] of Object.entries(MiningRules.recipes)){const o=document.createElement('option');o.value=id;o.textContent=W.items[id].name;$('#forge-ore').append(o);}
  $('#furnace-close').onclick=()=>panel.hidden=true;
  $('#forge-ore').onchange=$('#forge-batches').oninput=renderForge;
  $('#forge-one').onclick=()=>{$('#forge-batches').value=1;renderForge();};$('#forge-all').onclick=()=>{const id=$('#forge-ore').value;$('#forge-batches').value=Math.max(1,Math.floor(invCount(id)/MiningRules.recipes[id].ore));renderForge();};
- $('#forge-ingot').onclick=()=>smelt('ingot');$('#forge-coin').onclick=()=>smelt('coin');$('#forge-coins').onclick=()=>smelt($('#forge-coins').dataset.mode||'coins');
+ $('#forge-coin').onclick=()=>smelt('coin');$('#forge-coins').onclick=()=>smelt($('#forge-coins').dataset.mode||'coins');
  const why=document.createElement('p');why.id='forge-mint-why';why.setAttribute('role','status');panel.querySelector('.forge-actions').before(why);
- for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.className='forge-recipe';li.innerHTML=`${itemImg(W.items[id],1,'ore-art')}${itemImg(W.items['lingote_'+r.metal],1,'ore-art')}${itemImg(W.items[r.coinItem],r.coinQty,'ore-art')}<span>${esc(r.name)}: ${r.ore} minerales → ${r.ingots} lingote, o ${r.coinQty} monedas (objeto). SMC del libro: ${r.coins}.</span>`;$('#forge-recipes').append(li);}
+ for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.className='forge-recipe';li.innerHTML=`${itemImg(W.items[id],1,'ore-art')}${itemImg(W.items[r.coinItem],r.coinQty,'ore-art')}<span>${esc(r.name)}: ${r.ore} minerales → ${r.coinQty} monedas. Simoncoin, Simonplata o Simonchis, según el metal.</span>`;$('#forge-recipes').append(li);}
  const intro=document.createElement('p');intro.className='bag-note';intro.textContent='60 casillas · pilas de 999 · arrastra mineral al horno';$('#inventario').before(intro);
  const modes=document.createElement('div');modes.id='bag-modes';modes.innerHTML='<button id="bag-summary" type="button">Resumen 4×6</button><button id="bag-full" type="button">Completo</button>';$('#w-inv header').append(modes);$('#bag-summary').onclick=()=>setBagMode('summary');$('#bag-full').onclick=()=>setBagMode('full');
  const pages=document.createElement('nav');pages.id='bag-pages';pages.setAttribute('aria-label','Páginas del inventario resumido');pages.innerHTML='<button type="button" id="bag-prev" aria-label="Página anterior del inventario">‹</button><span id="bag-page-label"></span><button type="button" id="bag-next" aria-label="Página siguiente del inventario">›</button>';$('#inventario').after(pages);$('#bag-prev').onclick=()=>{bagPage=Math.max(0,bagPage-1);renderInv();};$('#bag-next').onclick=()=>{bagPage=Math.min(Math.ceil(SLOTS/24)-1,bagPage+1);renderInv();};
@@ -584,16 +591,16 @@ function setupMiningUI(){
 function openFurnace(n){furnaceNode=n;if(pendingFurnaceDrop?.nodeId===n.def.id){pendingFurnaceDrop=null;}closeForgeChat();if(window.Acunar){Acunar.open();return;}const id=selected();if(MiningRules.recipes[id])$('#forge-ore').value=id;$('#forge-result').textContent='';$('#furnace-panel').hidden=false;renderForge();}
 let forgeTimer=0;
 function forgeWait(){return matchMedia('(prefers-reduced-motion: reduce)').matches?160:1100;}
-function showForgeProgress(mode){const box=$('#forge-progress');if(!box)return;box.hidden=false;const label=mode==='ingot'?'Fundiendo lingotes…':mode==='simonplata'?'Acuñando Simonplata…':mode==='simonchis'?'Acuñando Simonchis…':'Acuñando Simoncoin…';$('#forge-progress-label').textContent=label;$('#forge-progress-bar').innerHTML='<i></i>';}
+function showForgeProgress(mode){const box=$('#forge-progress');if(!box)return;box.hidden=false;const label=mode==='simonplata'?'Acuñando Simonplata…':mode==='simonchis'?'Acuñando Simonchis…':'Acuñando Simoncoin…';$('#forge-progress-label').textContent=label;$('#forge-progress-bar').innerHTML='<i></i>';}
 function hideForgeProgress(){const box=$('#forge-progress');if(box)box.hidden=true;}
-function forgeBagLine(){const parts=[];for(const id of ['lingote_cobre','lingote_plata','lingote_oro','moneda_cobre','moneda_plata','moneda_oro']){const n=invCount(id);if(n&&W.items[id])parts.push(n+' × '+W.items[id].name);}return parts.length?'En la mochila: '+parts.join(', ')+'.':'En la mochila todavía no hay lingotes ni monedas acuñadas.';}
+function forgeBagLine(){const parts=[];for(const id of ['moneda_cobre','moneda_plata','moneda_oro']){const n=invCount(id);if(n&&W.items[id])parts.push(n+' × '+W.items[id].name);}return parts.length?'En la mochila: '+parts.join(', ')+'.':'En la mochila todavía no hay monedas acuñadas.';}
 function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value,r=MiningRules.recipes[id],q=Number($('#forge-batches').value),max=Math.floor(invCount(id)/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
- const ingotQty=q*(r.ingots||1),coinQty=q*(r.coinQty||0),coinName=W.items[r.coinItem]?W.items[r.coinItem].name:'monedas';
+ const coinQty=q*(r.coinQty||0),coinName=W.items[r.coinItem]?W.items[r.coinItem].name:'monedas';
  $('#forge-stock').textContent=`En mochila: ${invCount(id)} · ${r.ore} minerales por lote · disponibles: ${max} lotes`;
- $('#forge-batches').max=Math.max(1,max);$('#forge-preview').innerHTML=valid?`${itemImg(W.items[id],q,'ore-art')} ${q*r.ore} minerales → ${itemImg(W.items['lingote_'+r.metal],ingotQty,'ore-art')} ${ingotQty} lingote${ingotQty===1?'':'s'} de ${esc(r.metal)}, o ${itemImg(W.items[r.coinItem],coinQty,'ore-art')} ${coinQty} ${esc(coinName)} (objeto de la mochila, no es <span class="smc">SMC</span>). Acreditar <span class="smc">SMC</span>: <span class="smc">${q*r.coins} SMC</span> del libro mayor.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
- const pair=$('#forge-pair'); if(pair) pair.innerHTML=`<figure>${itemImg(W.items['lingote_'+r.metal],Math.max(1,ingotQty))}<figcaption>${Math.max(0,ingotQty)} lingote${ingotQty===1?'':'s'}</figcaption></figure><figure>${itemImg(W.items[r.coinItem],Math.max(1,coinQty))}<figcaption>${Math.max(0,coinQty)} ${esc(coinName)}</figcaption></figure>`;
+ $('#forge-batches').max=Math.max(1,max); $('#forge-preview').innerHTML=valid?`${itemImg(W.items[id],q,'ore-art')} ${q*r.ore} minerales → ${itemImg(W.items[r.coinItem],coinQty,'ore-art')} ${coinQty} ${esc(coinName)}. El horno pide la prueba y el servidor guarda Simoncoin, Simonplata o Simonchis.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
+ const pair=$('#forge-pair'); if(pair) pair.innerHTML=`<figure>${itemImg(W.items[r.coinItem],Math.max(1,coinQty))}<figcaption>${Math.max(0,coinQty)} ${esc(coinName)}</figcaption></figure>`;
  const busy=!!forgeTimer;const blocked=!valid||busy;
- $('#forge-ingot').disabled=$('#forge-coin').disabled=blocked;
+ $('#forge-coin').disabled=blocked;
  const mint=$('#forge-coins');
  const coinBtn=$('#forge-coin'); if(coinBtn) coinBtn.hidden=true;
  const metal=r.metal;
@@ -609,8 +616,7 @@ function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value
    if(busy)why.textContent='El horno está trabajando.';
    else if(!valid){
      const have=invCount(id);
-     const ingots=invCount('lingote_'+r.metal);
-     why.textContent=ingots&&!have?`Tienes ${ingots} lingote${ingots===1?'':'s'} de ${r.metal}, pero faltan minerales. El horno funde el mineral, no el lingote.`:`Faltan minerales de ${r.name.toLowerCase()}. Hacen falta ${r.ore} y tienes ${have}.`;
+     why.textContent=`Faltan minerales de ${r.name.toLowerCase()}. Hacen falta ${r.ore} y tienes ${have}.`;
    }else why.textContent=`Acuñar ${mintName} gasta el mineral y guarda las monedas en el servidor. Si ya se llegó al máximo, no se crea ni una más.`;
  }
  if($('#forge-made'))$('#forge-made').textContent=forgeBagLine();
@@ -621,13 +627,13 @@ function applySmelt(id,q,mode,result){
  if(!save()){Object.assign(S,previous);return false;}
  S.forgeUntil=now()+1500;renderAll();renderForge();
  const r=MiningRules.recipes[id];
- const made=mode==='ingot'?`${result.qty} lingote${result.qty===1?'':'s'} de ${r.metal}`:`${mintNameOf(mode)} en tu saldo`;
- const message=mode==='ingot'?`Listo: ${made}. Quedaron guardados. +${result.xp} XP de Fundición.`:`Listo: entró ${made}. +${result.xp} XP de Fundición.`;
+ const made=`${mintNameOf(mode)} en tu saldo`;
+ const message=`Listo: entró ${made}. +${result.xp} XP de Fundición.`;
  const box=$('#forge-result'); if(box) box.textContent=message;
  return message;
 }
 function mintNameOf(mode){return mode==='simonplata'?'Simonplata':mode==='simonchis'?'Simonchis':'Simoncoin';}
-function netMintMode(mode){if(mode==='ingot')return 'ingot';if(mode==='simonplata'||mode==='simonchis'||mode==='simoncoin')return mode;if(mode==='coins')return 'simoncoin';return '';}
+function netMintMode(mode){if(mode==='ingot')return '';if(mode==='simonplata'||mode==='simonchis'||mode==='simoncoin')return mode;if(mode==='coins')return 'simoncoin';return '';}
 function finishForge(id,q,mode,result){
  forgeTimer=0;hideForgeProgress();
  const netMode=netMintMode(mode);
@@ -637,8 +643,8 @@ function finishForge(id,q,mode,result){
  const chat=$('#forge-chat-result'); if(chat&&chatForgeItem) chat.textContent=message||'';
  if(message)game(esc(message));
 }
-function smelt(mode){if(!started||!furnaceNode||forgeTimer)return;const d=furnaceNode.def;if(cheb(S.player.x,S.player.y,d.x,d.y)>1){$('#forge-result').textContent='Acércate al horno para fundir.';return;}
- const id=$('#forge-ore').value,q=Number($('#forge-batches').value),rulesMode=mode==='ingot'?'ingot':'coins',result=MiningRules.smelt(S.inv,W.items,id,q,rulesMode,SLOTS);if(result.error){$('#forge-result').textContent=result.error;return;}
+function smelt(mode){if(mode==='ingot'||!started||!furnaceNode||forgeTimer)return;const d=furnaceNode.def;if(cheb(S.player.x,S.player.y,d.x,d.y)>1){$('#forge-result').textContent='Acércate al horno para fundir.';return;}
+ const id=$('#forge-ore').value,q=Number($('#forge-batches').value),result=MiningRules.smelt(S.inv,W.items,id,q,'coins',SLOTS);if(result.error){$('#forge-result').textContent=result.error;return;}
  showForgeProgress(mode);renderForge();
  $('#forge-result').textContent=$('#forge-progress-label').textContent;
  const chat=$('#forge-chat-result'); if(chat) chat.textContent=$('#forge-progress-label').textContent;
@@ -659,7 +665,7 @@ function moveOreDrag(x,y){if(!oreDrag)return;const ghost=$('#ore-drag-ghost');gh
 function endOreDrag(){oreDrag=null;touchOre=null;window.LiveInk.draggedMineral=null;window.LiveInk.oreDropHovered=false;document.body.classList.remove('dragging-ore');const ghost=document.getElementById('ore-drag-ghost');if(ghost)ghost.hidden=true;suppressOreClickUntil=now()+350;}
 function dropOre(x,y){if(!oreDrag)return false;const item=oreDrag.item,id=window.LiveInk.furnaceAtScreen?.(x,y);endOreDrag();if(!id)return false;return requestFurnaceDrop(item,id);}
 function requestFurnaceDrop(item,nodeId){const n=S.nodes.get(nodeId);if(!started||n?.def.type!=='furnace'||!MiningRules.recipes[item]||!invCount(item))return false;pendingFurnaceDrop={item,nodeId};selectItem(item);approach({kind:'node',n});return true;}
-function wireMineralDrag(slot,item){if(!MiningRules.recipes[item])return;slot.draggable=true;slot.classList.add('draggable-ore');slot.setAttribute('aria-description','Arrastra este mineral al horno para elegir lingotes o SMC.');
+function wireMineralDrag(slot,item){if(!MiningRules.recipes[item])return;slot.draggable=true;slot.classList.add('draggable-ore');slot.setAttribute('aria-description','Arrastra este mineral al horno para acuñar.');
  slot.ondragstart=e=>{if(!beginOreDrag(item,e.clientX,e.clientY)){e.preventDefault();return;}e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('application/x-lifeinc-ore',item);e.dataTransfer.setData('text/plain',item);};slot.ondragend=endOreDrag;
  slot.onpointerdown=e=>{if(e.pointerType==='mouse'||!started)return;touchOre={item,id:e.pointerId,x:e.clientX,y:e.clientY,slot};slot.setPointerCapture(e.pointerId);};
  slot.onpointermove=e=>{if(!touchOre||touchOre.id!==e.pointerId)return;if(!oreDrag&&Math.hypot(e.clientX-touchOre.x,e.clientY-touchOre.y)>8)beginOreDrag(item,e.clientX,e.clientY);if(oreDrag){e.preventDefault();moveOreDrag(e.clientX,e.clientY);}};
@@ -669,17 +675,17 @@ function setupBagForge(){
  const ghost=document.createElement('div');ghost.id='ore-drag-ghost';ghost.hidden=true;document.body.append(ghost);
  document.addEventListener('dragover',e=>{if(!oreDrag)return;e.preventDefault();e.dataTransfer.dropEffect=window.LiveInk.furnaceAtScreen?.(e.clientX,e.clientY)?'copy':'none';moveOreDrag(e.clientX,e.clientY);});
  document.addEventListener('drop',e=>{if(!oreDrag)return;e.preventDefault();dropOre(e.clientX,e.clientY);});addEventListener('blur',()=>{if(oreDrag||touchOre)endOreDrag();});
- const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>Puedes hacer lingotes o acuñar Simoncoin, Simonplata o Simonchis.</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-ingot">Hacer lingotes</button><button type="button" id="forge-chat-coin">Acuñar monedas</button><button type="button" id="forge-chat-coins" class="forge-mint"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar Simoncoin</button></div><p id="forge-chat-result" role="status"></p>';
+ const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>Puedes acuñar Simoncoin, Simonplata o Simonchis.</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-coin">Acuñar monedas</button><button type="button" id="forge-chat-coins" class="forge-mint"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar Simoncoin</button></div><p id="forge-chat-result" role="status"></p>';
  $('#chat-form').before(card);$('#forge-chat-cancel').onclick=closeForgeChat;$('#forge-chat-batches').oninput=renderForgeChat;
  $('#forge-chat-max').onclick=()=>{if(!chatForgeItem)return;$('#forge-chat-batches').value=Math.max(1,Math.floor(invCount(chatForgeItem)/MiningRules.recipes[chatForgeItem].ore));renderForgeChat();};
- for(const [id,mode] of [['forge-chat-ingot','ingot'],['forge-chat-coin','coin'],['forge-chat-coins','coins']])$('#'+id).onclick=()=>{if(!chatForgeItem||mode==='coin')return;const metal=MiningRules.recipes[chatForgeItem].metal;const use=mode==='ingot'?'ingot':metal==='plata'?'simonplata':metal==='cobre'?'simonchis':'simoncoin';$('#forge-ore').value=chatForgeItem;$('#forge-batches').value=$('#forge-chat-batches').value;smelt(use);renderForgeChat();};const chatCoin=document.getElementById('forge-chat-coin');if(chatCoin)chatCoin.hidden=true;
+ for(const [id,mode] of [['forge-chat-coin','coin'],['forge-chat-coins','coins']])$('#'+id).onclick=()=>{if(!chatForgeItem||mode==='coin')return;const metal=MiningRules.recipes[chatForgeItem].metal;const use=metal==='plata'?'simonplata':metal==='cobre'?'simonchis':'simoncoin';$('#forge-ore').value=chatForgeItem;$('#forge-batches').value=$('#forge-chat-batches').value;smelt(use);renderForgeChat();};const chatCoin=document.getElementById('forge-chat-coin');if(chatCoin)chatCoin.hidden=true;
 }
 function closeForgeChat(){chatForgeItem=null;const card=document.getElementById('forge-chat-card');if(card)card.hidden=true;$('#hud-chat').classList.remove('forge-chat-open');}
-function openForgeChat(item){chatForgeItem=item;$('#furnace-panel').hidden=true;$('#forge-chat-card').hidden=false;$('#hud-chat').classList.add('forge-chat-open');$('#forge-chat-batches').value=1;$('#forge-chat-result').textContent='';renderForgeChat();game(`Horno: trajiste <b>${esc(W.items[item].name)}</b>. Puedes hacer lingotes, acuñar monedas o acreditar SMC del libro mayor.`);window.ChatUI?.setOpen(true);}
+function openForgeChat(item){chatForgeItem=item;$('#furnace-panel').hidden=true;$('#forge-chat-card').hidden=false;$('#hud-chat').classList.add('forge-chat-open');$('#forge-chat-batches').value=1;$('#forge-chat-result').textContent='';renderForgeChat();game(`Horno: trajiste <b>${esc(W.items[item].name)}</b>. Puedes acuñar Simoncoin, Simonplata o Simonchis.`);window.ChatUI?.setOpen(true);}
 function renderForgeChat(){if(!chatForgeItem)return;const r=MiningRules.recipes[chatForgeItem],have=invCount(chatForgeItem),q=Number($('#forge-chat-batches').value),max=Math.floor(have/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  $('#forge-chat-title').textContent='Horno · '+r.name;$('#forge-chat-stock').textContent=`Tienes ${have} minerales · ${r.ore} por lote`;
- $('#forge-chat-batches').max=Math.max(1,max);$('#forge-chat-preview').innerHTML=valid?`${itemImg(W.items[chatForgeItem],q,'ore-art')}${itemImg(W.items['lingote_'+r.metal],q*(r.ingots||1),'ore-art')}${itemImg(W.items[r.coinItem],q*r.coinQty,'ore-art')} ${q*r.ore} minerales → ${q*(r.ingots||1)} lingote${q===1?'':'s'}, o ${q*r.coinQty} monedas de ${esc(r.metal)} (objeto). <span class="smc">SMC</span> del libro: <span class="smc">${q*r.coins} SMC</span>. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;
- $('#forge-chat-ingot').disabled=$('#forge-chat-coin').disabled=$('#forge-chat-coins').disabled=!valid||!!forgeTimer;
+ $('#forge-chat-batches').max=Math.max(1,max); $('#forge-chat-preview').innerHTML=valid?`${itemImg(W.items[chatForgeItem],q,'ore-art')}${itemImg(W.items[r.coinItem],q*r.coinQty,'ore-art')} ${q*r.ore} minerales → ${q*r.coinQty} monedas de ${esc(r.metal)}. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;
+ $('#forge-chat-coin').disabled=$('#forge-chat-coins').disabled=!valid||!!forgeTimer;
 }
 
 // ---------------- inventario / xp / monedas ----------------
@@ -1022,12 +1028,13 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':W.mapId==='central'?'central':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+    if (window.Central && Central.onNet(m)) return;
     if (window.Finca) Finca.onNet(m);
     if (window.Vida && Vida.onNet(m)) return;
     if (m.t === 'welcome') {
@@ -1037,7 +1044,7 @@ function connect() {
       S.net.hasJoined=true; S.others.clear();
       for (const p of m.players || []) addOther(p);
       renderNearby();
-      $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
+      $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; S.canMintIngots = !!m.canMintIngots; if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
     } else if (m.t === 'crudo') {
       if (m.crudo) Object.keys(m.crudo).forEach(id => ponerMetal(id, m.crudo[id]));
       else if (m.item != null) ponerMetal(m.item, m.total);
@@ -1070,7 +1077,7 @@ function connect() {
 }
 function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; if(p.pet&&window.Vida&&Vida.decorate)p.pet=Vida.decorate(p.pet); S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
 function sendMove(force) {
-  if (W.mapId==='mine' || W.mapId==='banco' || W.mapId==='casa') {
+  if (W.mapId==='mine' || W.mapId==='banco' || W.mapId==='central' || W.mapId==='casa') {
     if (!S.net.ok) return;
     const zone = W.mapId;
     if (!force && S._zoneSent === zone) return;
@@ -1269,13 +1276,16 @@ function act(t) {
   p.busyUntil = now() + 450;
   if (t.kind === 'animal') return hunt(t.a);
   const n = t.n, d = n.def; const secs = () => Math.max(1, Math.ceil((n.until - now()) / 1000));
-  if (S.mounted && (d.type === 'mine_entrance' || d.type === 'mine_exit' || d.type === 'home_door' || d.type === 'bank_door')) return game('Baja del caballo para entrar a un edificio.', 'aviso');
+  if (S.mounted && (d.type === 'mine_entrance' || d.type === 'mine_exit' || d.type === 'home_door' || d.type === 'bank_door' || d.type === 'central_door')) return game('Baja del caballo para entrar a un edificio.', 'aviso');
   if(d.type==='mine_entrance')return switchMap('mine');
   if(d.type==='mine_exit')return switchMap('city');
   if(d.type==='home_door')return enterHouse();
   if(d.type==='casa_exit')return exitHouse();
   if(d.type==='bank_door')return switchMap('banco');
   if(d.type==='bank_exit')return switchMap('city');
+  if(d.type==='central_door')return switchMap('central');
+  if(d.type==='central_exit')return switchMap('city');
+  if(d.type==='central_vault'){ if(window.Central) Central.open(); return; }
   if(d.type==='banquito'||d.type==='banker'){ if(window.Banco) Banco.openPanel(); return game(d.type==='banker'?'El banquero abre el banquito. Lo que dejes aquí no se pierde si caes.':'El banquito es el mismo depósito que el baúl de tu casa.','juego'); }
   if(d.type==='fruit_stand')return Simulacion.buyStand();
   if(d.type==='furnace')return openFurnace(n);
@@ -1437,7 +1447,7 @@ function placeOnCity(x,y){
     if(prev==='casa') casaNodes=S.nodes;
     if(prev==='city'){cityNodes=S.nodes;cityAnimals=S.animals;}
     Object.assign(W,cityMap); W.mapId='city'; S.nodes=cityNodes; S.animals=cityAnimals;
-    document.body.classList.remove('in-mine','in-casa','in-banco');
+    document.body.classList.remove('in-mine','in-casa','in-banco','in-central');
     document.body.dataset.zone='city';
     if(window.Casa) Casa.setEditing(false);
     drawMinimapBase();
@@ -1699,7 +1709,7 @@ addEventListener('resize', resize);
 const SPEED = 4.2;
 let last = performance.now();
 function portalAt(x, y) {
-  const ids = W.mapId==='mine' ? ['salida_mina'] : W.mapId==='casa' ? ['puerta_salida'] : W.mapId==='banco' ? ['salida_banco'] : ['entrada_mina_palmas', 'puerta_casa', 'puerta_banco'];
+  const ids = W.mapId==='mine' ? ['salida_mina'] : W.mapId==='casa' ? ['puerta_salida'] : W.mapId==='banco' ? ['salida_banco'] : W.mapId==='central' ? ['salida_central'] : ['entrada_mina_palmas', 'puerta_casa', 'puerta_banco', 'puerta_central'];
   for (const id of ids) { const n = S.nodes.get(id); if (n && n.def.x===x && n.def.y===y) return n; }
   return null;
 }
@@ -1766,6 +1776,7 @@ function update(dt) {
   if (window.Caballo) Caballo.tick(dt, horseContext());
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
+  if(W.mapId==='central' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId!=='mine')sendMove(false);
   for (const n of S.nodes.values()) {
     if (!n.until || t < n.until) continue;
@@ -1986,6 +1997,17 @@ function drawMinimapBase() {
     c.fillStyle = '#f3ead7';
     for (const [x, y] of Banco.SOLIDS) c.fillRect(x*k, y*k, k, k);
   }
+  if ((W.mapId||'city')==='city' && window.Central) {
+    c.fillStyle = '#14382c';
+    for (const [x, y] of Central.SOLIDS) c.fillRect(x*k, y*k, k, k);
+  }
+  if (W.mapId==='central' && W.floor) {
+    for (let y = 0; y < W.height; y++) for (let x = 0; x < W.width; x++) {
+      const kind = W.floor.get(x+','+y);
+      c.fillStyle = kind==='vault' ? '#e2b23c' : kind==='door' ? '#f6e7a8' : kind==='wall' ? '#0c241c' : '#14382c';
+      c.fillRect(x*k, y*k, k, k);
+    }
+  }
   if (W.mapId==='banco' && W.floor) {
     for (let y = 0; y < W.height; y++) for (let x = 0; x < W.width; x++) {
       const kind = W.floor.get(x+','+y);
@@ -2165,7 +2187,7 @@ function rideHorseTo(place){
  if(!started||!place)return;
  if(place.id==='casa'){
   if((W.mapId||'city')==='mine'){game('Sal de la mina para volver a casa.','aviso');return;}
-  if((W.mapId||'city')==='banco')switchMap('city');
+  if((W.mapId||'city')==='banco'||(W.mapId||'city')==='central')switchMap('city');
   if((W.mapId||'city')==='casa'){game('Ya estás en casa.','juego');return;}
   mountAndGo(Casa.PARK_STAND.x,Casa.PARK_STAND.y,()=>{if(S.mounted&&window.Simulacion)Simulacion.dismount();enterHouse();});
   return;

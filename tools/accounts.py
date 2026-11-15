@@ -369,6 +369,7 @@ def public_user(user):
         'municipio': shown['municipio'],
         'casa': shown,
         'caballo': caballo_cuenta.view(user),
+        'role': __import__('social').role_of(user),
     }
 
 

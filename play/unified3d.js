@@ -6,6 +6,7 @@ import {enrichWorld} from './park3d.js?v=valle-hud-r5';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
 import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
+import {buildCentral, placeCentralHouse} from './central3d.js?v=central-r1';
 import {createValleyView} from './valle-vista.js?v=valle-geo-r2';
 import {attachVida} from './vida3d.js?v=vida-r1';
 import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
@@ -49,7 +50,7 @@ function boot(api){
  }
  const target=new T.Vector3();const ray=new T.Raycaster(),pointer=new T.Vector2(),pick=[];
  const height=(x,y)=>{
-  if(W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco')return 0;
+  if(W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco'||W.mapId==='central')return 0;
   if(W.bridge4Sur&&onBridge(W.bridge4Sur,Math.floor(x),Math.floor(y)))return bridgeHeight(W.bridge4Sur,x+.5);
   const px=Math.max(0,Math.min(W.width-.001,x+.5)),py=Math.max(0,Math.min(W.height-.001,y+.5)),ix=Math.floor(px),iy=Math.floor(py),u=px-ix,v=py-iy;
   const a=corner(ix,iy),b=corner(ix+1,iy),c=corner(ix,iy+1),d=corner(ix+1,iy+1);
@@ -241,6 +242,7 @@ function boot(api){
  placeEnvigadoProps(T,scene,height);
  const vida3d=attachVida(T,{scene,pick,height,material});
  placeBankHouse(T,scene,height);
+ placeCentralHouse(T,scene,height);
  for(const road of W.roads3d||[]){
   for(let i=0;i<road.points.length-1;i++){
    const a=road.points[i],b=road.points[i+1],dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz),nx=-dz/length,nz=dx/length;
@@ -256,12 +258,13 @@ function boot(api){
  const underground=buildMine(T,W);
  status.syncFinca=(view)=>{ if(surfaceFinca) surfaceFinca.sync(view); if(underground.finca) underground.finca.sync(view); };
  const bankView=buildBank(T);
+ const centralView=buildCentral(T);
  buildHomeMarker(T,scene,pick,height,material);
  const casaView=buildHouse(T);status.rebuildHouse=(layout)=>casaView.rebuild(layout||window.Casa.layout);
  function doorHit(list){return !!(list && (list.exitDoor || list.id==='puerta_salida'));}
- const indoors=()=>W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco';
- const activeScene=()=>W.mapId==='mine'?underground.scene:W.mapId==='casa'?casaView.scene:W.mapId==='banco'?bankView.scene:scene;
- const activePick=()=>W.mapId==='mine'?underground.pick:W.mapId==='casa'?casaView.pick:W.mapId==='banco'?bankView.pick:pick;
+ const indoors=()=>W.mapId==='mine'||W.mapId==='casa'||W.mapId==='banco'||W.mapId==='central';
+ const activeScene=()=>W.mapId==='mine'?underground.scene:W.mapId==='casa'?casaView.scene:W.mapId==='banco'?bankView.scene:W.mapId==='central'?centralView.scene:scene;
+ const activePick=()=>W.mapId==='mine'?underground.pick:W.mapId==='casa'?casaView.pick:W.mapId==='banco'?bankView.pick:W.mapId==='central'?centralView.pick:pick;
  const actorMap=new Map();
  const speechLayer=document.createElement('div');speechLayer.id='speech-layer';speechLayer.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden';document.body.append(speechLayer);
  const floatLabels=new Map();const speech=new Map(),projected=new T.Vector3();
@@ -364,7 +367,7 @@ function boot(api){
   legL.rotation.x=swing;legR.rotation.x=-swing;armL.rotation.x=-swing;armR.rotation.x=swing;
   if(mix.idle<1)g.position.y+=Math.abs(Math.sin(pace))*.06*(mix.walk+mix.run);
  }
- function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;}}else if(status._casaCam||status._bancoCam){status._casaCam=false;status._bancoCam=false;yaw=0;pitch=1.12;distance=36;}
+ function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='central'){if(!status._centralCam){yaw=-0.4;pitch=0.82;distance=14;status._centralCam=true;status._bancoCam=false;status._casaCam=false;}}else if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;status._centralCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;status._centralCam=false;}}else if(status._casaCam||status._bancoCam||status._centralCam){status._casaCam=false;status._bancoCam=false;status._centralCam=false;yaw=0;pitch=1.12;distance=36;}
  if(status.view){if(status.view.yaw!=null)yaw=status.view.yaw;if(status.view.pitch!=null)pitch=status.view.pitch;if(status.view.distance!=null)distance=status.view.distance;status.view=null;}
  if(status.ovni&&!valley.isOpen()){const t=Math.min(1,(performance.now()-status.ovni.t0)/status.ovni.dur);valley.setRide({mode:'ovni',t,x:status.ovni.x,y:status.ovni.y});if(t>=1){status.ovni=null;valley.setRide(null);yaw=0.2;pitch=1.05;distance=26;const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=true;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}window.Tutorial?.afterFly?.();}}
  else if(status.heli&&!valley.isOpen()){const t=Math.min(1,(performance.now()-status.heli.t0)/status.heli.dur);valley.setRide({mode:'heli',t,x:status.heli.x,y:status.heli.y});if(t>=1){status.heli=null;valley.setRide(null);yaw=0.15;pitch=1.08;distance=28;const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=true;window.Tutorial?.afterFly?.();}}
@@ -386,10 +389,10 @@ if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colo
  target.set(p.fx*2+1,height(p.fx,p.fy)+1,p.fy*2+1);let camYaw=yaw,camPitch=pitch,camDist=distance,camAt=target;const posed=valley.pose();if(posed){camYaw=posed.yaw;camPitch=posed.pitch;camDist=posed.distance;camAt=posed.target;}const snap=!!(posed||status.fly||valley.isOpen()||!camReady);if(snap){camFocus.copy(camAt);camReady=true;}else camFocus.lerp(camAt,1-Math.exp(-dt*8));const look=snap?camAt:camFocus;const mobile=narrow();if(snap){status._sy=camYaw;status._sp=camPitch;status._sd=camDist;}else{status._sy=window.Motion?Motion.turn(status._sy??camYaw,camYaw,dt,mobile?6:9):camYaw;status._sp=window.Motion?Motion.approach(status._sp??camPitch,camPitch,dt,mobile?6:9,mobile?6:9):camPitch;status._sd=window.Motion?Motion.approach(status._sd??camDist,camDist,dt,mobile?5:8,mobile?5:8):camDist;}const sy=snap?camYaw:status._sy,sp=snap?camPitch:status._sp,sd=snap?camDist:status._sd;camera.position.set(look.x+Math.sin(sy)*Math.cos(sp)*sd,look.y+Math.sin(sp)*sd,look.z+Math.cos(sy)*Math.cos(sp)*sd);if(mobile){const pr=renderer.getPixelRatio();camera.position.x=Math.round(camera.position.x*pr)/pr;camera.position.y=Math.round(camera.position.y*pr)/pr;camera.position.z=Math.round(camera.position.z*pr)/pr;}camera.up.set(-Math.sin(sy)*Math.sin(sp),Math.cos(sp),-Math.cos(sy)*Math.sin(sp));camera.lookAt(look);if(!valley.isOpen())syncCameraControls();
  sun.position.set(camAt.x-80,camAt.y+120,camAt.z+40);sun.target.position.copy(camAt);const dayView=!!posed;sun.intensity=dayView?2.4:(S.night?.12:2.2);ambient.intensity=dayView?2.4:(S.night?.28:2);ambient.color.set(!dayView&&S.night?'#8ca8dd':'#ffefd3');ambient.groundColor.set(!dayView&&S.night?'#182332':'#405336');scene.background.set(!dayView&&S.night?'#080f1c':'#a4c4bc');scene.fog.color.copy(scene.background);const air=valley.atmosphere();scene.fog.near=air.fogNear;scene.fog.far=air.fogFar;if(camera.far!==air.cameraFar){camera.far=air.cameraFar;camera.updateProjectionMatrix();}const wantShadow=!narrow()&&!posed;if(renderer.shadowMap.enabled!==wantShadow)renderer.shadowMap.enabled=wantShadow;cityLighting.update(S.night,camAt);
  for(const id of ['route-open','book'])document.getElementById(id).disabled=away;document.querySelector('#mine-route').textContent=W.mapId==='mine'?'♨ Horno central':'⛏ Mina de Las Palmas';
- const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='banco'?'Casa bancaria':region?.name||'Valle de Aburrá';
+ const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':region?.name||'Valle de Aburrá';
  for(const n of W.npcs)actor(n.id,n.x,n.y,'#ab8338');
  for(const m of W.memories){m.mesh.rotation.y+=.01;m.mesh.visible=!found.has(m.id);if(api.started&&!found.has(m.id)&&Math.hypot(p.fx-m.x,p.fy-m.y)<2){found.add(m.id);localStorage.setItem('lifeinc.aburra.memories.v1',JSON.stringify([...found]));document.querySelector('#book').style.outline='2px solid #edc76b';}}
- document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
+ document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
  status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(status.ovni||status.heli||window.LIFE_WANT_INTRO==='ovni'||window.LIFE_WANT_INTRO==='heli')return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:7000};};

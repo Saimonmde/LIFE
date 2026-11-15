@@ -13,6 +13,7 @@ FIXED_NAMES = {
     'valle': 'Valle de Aburrá',
     'mina-palmas': 'Mina de Las Palmas',
     'casa-bancaria': 'Casa bancaria',
+    'banco-central': 'Banco Central',
     'casa': 'Tu casa',
 }
 _CATALOG = None
@@ -93,6 +94,8 @@ def place_of(x, y, zone, boxes_):
         return 'mina-palmas'
     if zone == 'banco':
         return 'casa-bancaria'
+    if zone == 'central':
+        return 'banco-central'
     try:
         ix, iy = int(float(x)), int(float(y))
     except (TypeError, ValueError):

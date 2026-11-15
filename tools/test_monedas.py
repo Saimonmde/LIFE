@@ -158,14 +158,14 @@ class FurnaceMintTests(unittest.TestCase):
         self.assertEqual(chis['max'], 333_000_000)
         self.assertEqual(ok['ledger']['balances']['simonchis'], 4)
 
-    def test_ingot_is_saved_on_the_server(self):
+    def test_ingot_is_refused_at_the_furnace(self):
         who = self.player()
+        before = copy.deepcopy((self.server.ECON.get('foundry') or {}).get('minted') or {})
         self.server.smelt_for(who, 'mineral_oro', 2, mode='ingot')
         ok = next(item for item in self.sent if item.get('t') == 'smelt_result')
-        self.assertTrue(ok['ok'])
-        self.assertEqual(ok['item'], 'lingote_oro')
-        self.assertEqual(ok['qty'], 2)
-        self.assertEqual(self.server.ECON['foundry']['players'][who.name]['lingote_oro'], 2)
+        self.assertFalse(ok['ok'])
+        self.assertIn('horno', ok['reason'])
+        self.assertEqual((self.server.ECON.get('foundry') or {}).get('minted') or {}, before)
 
 
 if __name__ == '__main__':
