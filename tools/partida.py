@@ -16,7 +16,7 @@ _SKILL = re.compile(r'^[a-z0-9_]{1,24}$')
 _PANEL = re.compile(r'^[A-Za-z0-9_-]{1,40}$')
 BANNED_ITEMS = {
     'smc', 'smp', 'smh', 'sph', 'simoncoin', 'simonplata', 'simonchis',
-    'sai', 'plata', 'cobre_moneda',
+    'sai', 'plata', 'cobre_moneda', 'guacharaca', 'ortal',
 }
 MAPS = {'city', 'casa', 'mine', 'banco', 'central'}
 DIRS = {'up', 'down', 'left', 'right'}

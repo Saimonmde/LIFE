@@ -11,7 +11,7 @@ import {createValleyView} from './valle-vista.js?v=sara-hud';
 import {attachVida} from './vida3d.js?v=guardar-r1';
 import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
 import {createHorse, poseRider} from './caballo3d.js?v=afuera-r1';
-import {createGuacharaca} from './guacharaca3d.js?v=guacha-r1';
+import {createGuacharaca} from './guacharaca3d.js?v=guacha-r2';
 import {board as mineBoard} from './letrero3d.js?v=sara-cartel';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
@@ -335,7 +335,7 @@ function boot(api){
  let touches=new Map(),down=null,drag=false,pinch=0;
  cv.onpointerdown=e=>{if(status.editMode&&status.onEditPointer&&status.onEditPointer('down',e))return;if(valley.isOpen()){valley.pointerDown(e);return;}cv.setPointerCapture(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);down=[e.clientX,e.clientY];drag=false;pinch=0;};
  cv.onpointermove=e=>{if(status.editMode&&status.onEditPointer&&status.onEditPointer('move',e))return;if(valley.isOpen()){valley.pointerMove(e);return;}const hovering=()=>{if(W.mapId!=='casa'||drag){cv.style.cursor='';casaView.setDoorHover(false);return;}pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const over=doorHit(ray.intersectObjects(activePick(),false)[0]?.object.userData);cv.style.cursor=over?'pointer':'';casaView.setDoorHover(over);};if(!touches.has(e.pointerId)){hovering();return;}const prev=touches.get(e.pointerId);touches.set(e.pointerId,[e.clientX,e.clientY]);if(touches.size>1){const [a,b]=[...touches.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pinch)distance=Math.max(10,Math.min(distMax(),distance*pinch/d));pinch=d;drag=true;}else{if(down&&Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)drag=true;if(drag){yaw=clampYaw(yaw-(e.clientX-prev[0])*.008);pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+(e.clientY-prev[1])*.005));}}hovering();};
- cv.onpointerup=e=>{if(status.editMode&&status.onEditPointer&&status.onEditPointer('up',e))return;if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);if(!drag&&api.started){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const peers=(W.mapId||'city')==='city'?[...actorMap.entries()].filter(([id])=>String(id).startsWith('peer')&&!S.others.get(Number(String(id).slice(4)))?.bot).map(([,a])=>a):[];const person=peers.length?ray.intersectObjects(peers,true)[0]:null;if(person){let node=person.object;while(node&&!peers.includes(node))node=node.parent;const entry=[...actorMap.entries()].find(([,v])=>v===node);if(entry){window.TradeUI?.openTrade(Number(String(entry[0]).slice(4)));return;}}const hit=ray.intersectObjects(activePick(),false)[0];if(hit&&doorHit(hit.object.userData)){cv.style.cursor='';casaView.setDoorHover(false);api.exitHouse();return;}if(W.mapId==='casa'&&hit&&hit.object.userData.casaItem==='chest'&&!window.Casa?.editing){window.Banco?.openPanel();return;}if(W.mapId==='casa'&&window.Casa?.editing){if(hit)window.Casa.clickTile(Math.floor(hit.point.x/2),Math.floor(hit.point.z/2),hit.object.userData.casaItem||null);return;}if(hit){const d=hit.object.userData;if(d.poste){window.Vida?.openPoste();return;}if(d.id)api.interact(d.id);else if(d.memory){api.goTo(d.memory.x,d.memory.y);}else if(!d.casaItem){const x=Math.floor(hit.point.x/2),y=Math.floor(hit.point.z/2);if(api.walkable(x,y))api.goTo(x,y);}}}};cv.onpointercancel=e=>{if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);drag=true;};cv.onwheel=e=>{if(valley.isOpen()){valley.wheel(e);return;}e.preventDefault();distance=Math.max(10,Math.min(distMax(),distance+Math.sign(e.deltaY)*3));};cv.oncontextmenu=e=>e.preventDefault();
+ cv.onpointerup=e=>{if(status.editMode&&status.onEditPointer&&status.onEditPointer('up',e))return;if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);if(!drag&&api.started){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const peers=(W.mapId||'city')==='city'?[...actorMap.entries()].filter(([id])=>String(id).startsWith('peer')&&!S.others.get(Number(String(id).slice(4)))?.bot).map(([,a])=>a):[];const person=peers.length?ray.intersectObjects(peers,true)[0]:null;if(person){let node=person.object;while(node&&!peers.includes(node))node=node.parent;const entry=[...actorMap.entries()].find(([,v])=>v===node);if(entry){window.TradeUI?.openTrade(Number(String(entry[0]).slice(4)));return;}}const hit=ray.intersectObjects(activePick(),false)[0];if(hit&&doorHit(hit.object.userData)){cv.style.cursor='';casaView.setDoorHover(false);api.exitHouse();return;}if(W.mapId==='casa'&&hit&&hit.object.userData.casaItem==='chest'&&!window.Casa?.editing){window.Banco?.openPanel();return;}if(W.mapId==='casa'&&window.Casa?.editing){if(hit)window.Casa.clickTile(Math.floor(hit.point.x/2),Math.floor(hit.point.z/2),hit.object.userData.casaItem||null);return;}if(hit&&hit.object.userData.guacharaca){window.Guacharaca&&Guacharaca.touch(hit.object.userData.guacharaca);return;}if(hit){const d=hit.object.userData;if(d.poste){window.Vida?.openPoste();return;}if(d.id)api.interact(d.id);else if(d.memory){api.goTo(d.memory.x,d.memory.y);}else if(!d.casaItem){const x=Math.floor(hit.point.x/2),y=Math.floor(hit.point.z/2);if(api.walkable(x,y))api.goTo(x,y);}}}};cv.onpointercancel=e=>{if(valley.isOpen()){valley.pointerUp(e);return;}touches.delete(e.pointerId);drag=true;};cv.onwheel=e=>{if(valley.isOpen()){valley.wheel(e);return;}e.preventDefault();distance=Math.max(10,Math.min(distMax(),distance+Math.sign(e.deltaY)*3));};cv.oncontextmenu=e=>e.preventDefault();
  api.furnaceAtScreen=(x,y)=>{if(!api.started)return null;pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0],id=hit?.object.userData.id;return id&&S.nodes.get(id)?.def.type==='furnace'?id:null;};
  status.pickId=(x,y)=>{if(!api.started)return '';pointer.set(x/innerWidth*2-1,1-y/innerHeight*2);ray.setFromCamera(pointer,camera);const hit=ray.intersectObjects(activePick(),false)[0];return (hit&&hit.object.userData.id)||'';};
  const dropHalo=new T.Mesh(new T.RingGeometry(2.3,2.6,48),new T.MeshBasicMaterial({color:0xffd369,transparent:true,opacity:.9,depthWrite:false,side:T.DoubleSide}));dropHalo.rotation.x=-Math.PI/2;dropHalo.visible=false;
@@ -370,7 +370,8 @@ function boot(api){
   legL.rotation.x=swing;legR.rotation.x=-swing;armL.rotation.x=-swing;armR.rotation.x=swing;
   if(mix.idle<1)g.position.y+=Math.abs(Math.sin(pace))*.06*(mix.walk+mix.run);
  }
- const guachaMeshes=new Map();
+ const guachaMeshes=new Map();const guachaLabels=new Map();
+ const guachaStyle=document.createElement('style');guachaStyle.textContent='.guacha-nombre{position:absolute;transform:translate(-50%,-130%);background:#1c3324e6;color:#e7f6df;border:1px solid #7dcea0;border-radius:8px;padding:3px 7px;font:12px/1.25 system-ui;text-align:center;pointer-events:none;white-space:nowrap}.guacha-nombre small{display:block;color:#b7e2c3;font-size:10px}.guacha-nombre i{display:inline-block;width:8px;height:8px;margin-right:4px;background:#3f8f4a;border-radius:0 8px 0 8px;vertical-align:middle}';document.head.append(guachaStyle);
  function drawGuacharacas(away,time){
   if(!window.Guacharaca)return;
   const near=away?[]:Guacharaca.birds().filter(b=>Math.hypot(b.fx-S.player.fx,b.fy-S.player.fy)<36);
@@ -378,13 +379,20 @@ function boot(api){
   for(const b of near){
    ids.add(b.id);
    let g=guachaMeshes.get(b.id);
-   if(!g){g=createGuacharaca();scene.add(g.root);guachaMeshes.set(b.id,g);}
+   if(!g){g=createGuacharaca();g.root.traverse(mesh=>{if(mesh.isMesh||mesh.isSprite){mesh.userData.guacharaca=b.id;pick.push(mesh);}});scene.add(g.root);guachaMeshes.set(b.id,g);}
    g.root.visible=true;
-   const lift=b.perch&&b.mode!=='flee'?2.6:0;
+   const lift=b.mode==='fly'?1.7:(b.perch&&b.mode!=='flee'?2.6:0);
    g.root.position.set(b.fx*2+1,height(b.fx,b.fy)+lift,b.fy*2+1);
    g.pose(b,time);
+   const dist=Math.hypot(b.fx-S.player.fx,b.fy-S.player.fy);
+   let el=guachaLabels.get(b.id);
+   if(!el){el=document.createElement('div');el.className='guacha-nombre';speechLayer.append(el);guachaLabels.set(b.id,el);}
+   const close=dist<3.4||b.looked;
+   el.hidden=dist>7&&!b.looked;
+   if(!el.hidden){el.innerHTML='<i></i><b>Guacharaca</b>'+(close?'<small>Especie protegida</small>':'');projected.copy(g.root.position);projected.y+=1.35;projected.project(camera);el.hidden=projected.z<-1||projected.z>1||Math.abs(projected.x)>1.15||Math.abs(projected.y)>1.15;if(!el.hidden){el.style.left=((projected.x+1)*innerWidth/2)+'px';el.style.top=((1-projected.y)*innerHeight/2)+'px';}}
   }
   for(const [id,g] of guachaMeshes)if(!ids.has(id))g.root.visible=false;
+  for(const [id,el] of guachaLabels)if(!ids.has(id))el.hidden=true;
  }
  function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='central'){if(!status._centralCam){yaw=-0.4;pitch=0.82;distance=14;status._centralCam=true;status._bancoCam=false;status._casaCam=false;}}else if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;status._centralCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;status._centralCam=false;}}else if(status._casaCam||status._bancoCam||status._centralCam){status._casaCam=false;status._bancoCam=false;status._centralCam=false;yaw=0;pitch=1.12;distance=36;}
  if(status.view){if(status.view.yaw!=null)yaw=status.view.yaw;if(status.view.pitch!=null)pitch=status.view.pitch;if(status.view.distance!=null)distance=status.view.distance;status.view=null;}

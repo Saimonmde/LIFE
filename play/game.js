@@ -801,7 +801,7 @@ function elegirMochila(op) {
   game('Hace falta el servidor para vender. No se perdió nada.', 'aviso');
 }
 window.avisarMochilaLlena = avisarMochilaLlena;
-function invAdd(id,qty){const next=MiningRules.add(S.inv,W.items,id,qty,SLOTS);if(!next){avisarMochilaLlena();return false;}S.inv=next;save();renderInv();return true;}
+function invAdd(id,qty){if(window.Guacharaca&&Guacharaca.blockedItem(id)){game('La <b>Guacharaca</b> es fauna protegida. No se caza, no se captura y no se vende.','aviso');return false;}const next=MiningRules.add(S.inv,W.items,id,qty,SLOTS);if(!next){avisarMochilaLlena();return false;}S.inv=next;save();renderInv();return true;}
 function invRemove(id,qty){const next=MiningRules.remove(S.inv,id,qty);if(!next)return false;S.inv=next;if(!S.inv[S.sel])S.sel=-1;save();renderInv();if(window.Acunar)Acunar.paint();return true;}
 window.quitarDelInventario = invRemove;
 const selected = () => S.sel >= 0 && S.inv[S.sel] ? S.inv[S.sel].item : null;
@@ -1514,7 +1514,12 @@ function act(t) {
   }
 }
 function hunt(a) {
-  const d = a.def; if (!needTool(d.tool)) return; if (a.state !== 'alive') return;
+  const d = a.def;
+  if (d.protected || d.species === 'guacharaca' || (window.Guacharaca && Guacharaca.blockedItem(d.species))) {
+    game('La <b>Guacharaca</b> es fauna protegida. No se caza, no se captura y no se vende.', 'aviso');
+    return;
+  }
+  if (!needTool(d.tool)) return; if (a.state !== 'alive') return;
   const got = [];
   for (const y of d.yield) if (Math.random() < y.chance) got.push([y.item, rnd(y.min, y.max)]);
   const antes = S.inv.map(slot => slot ? { ...slot } : null);
