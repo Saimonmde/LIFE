@@ -34,8 +34,8 @@ CHALLENGE_TTL = 180
 CLAIM_COOLDOWN = 60
 ACTIVITY_TILES = 8
 ACTIVITY_FRESH = 120
-CHALLENGES_PER_10MIN = 6
-IP_CHALLENGES_PER_10MIN = 12
+CHALLENGES_PER_10MIN = 24
+IP_CHALLENGES_PER_10MIN = 60
 IP_PROOFS_PER_HOUR = 8
 PENALTY = 900
 BASE_DAILY_SMH = eco.SUBS // 4          # 0,25 SMC
@@ -63,8 +63,8 @@ REASONS = {
     'supply': 'Se alcanzó el tope de 21.000.000 SMC.',
     'activity': 'Muévete y juega un poco antes de reclamar SMC.',
     'cooldown': 'Espera un momento para volver a reclamar.',
-    'rate': 'Demasiados intentos. Esta cuenta o esta red queda en pausa un rato.',
-    'anomaly': 'Se detectó un ritmo anómalo. Esta cuenta o esta red queda en pausa un rato.',
+    'rate': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
+    'anomaly': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
     'partial': 'Ese lote pide más SMC de las que una prueba puede pagar hoy. El mineral sigue en la mochila.',
 }
 
@@ -364,7 +364,11 @@ def open_challenge(state, profile, action, context, now=None):
         return {'ok': False, 'reason': why, 'view': view}
     acc['challenges'] = _prune(acc.get('challenges'), now, 600)
     row['challenges'] = _prune(row.get('challenges'), now, 600)
-    if len(acc['challenges']) >= CHALLENGES_PER_10MIN or len(row['challenges']) >= IP_CHALLENGES_PER_10MIN:
+    if len(acc['challenges']) >= CHALLENGES_PER_10MIN:
+        acc['penaltyUntil'] = max(int(acc.get('penaltyUntil') or 0), int(now) + PENALTY)
+        _flag(box, now, profile['account'], profile['ip'], 'rate')
+        return {'ok': False, 'reason': 'rate', 'view': _view(state, profile, now)}
+    if len(row['challenges']) >= IP_CHALLENGES_PER_10MIN:
         code = _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': code, 'view': _view(state, profile, now)}
     personal, _recent = _personal(acc, now)
