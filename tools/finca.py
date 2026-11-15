@@ -192,6 +192,7 @@ def _days(planted_at, now):
 
 
 def stage_of(plot, now, config):
+    """Etapa que ya ve el juego: vacio, planton, verde, maduro. No cambia la cosecha."""
     if not plot or not plot.get('plantedAt'):
         return 'vacio'
     days = _days(plot['plantedAt'], now)
@@ -200,6 +201,48 @@ def stage_of(plot, now, config):
     if days >= float(config.get('greenAfterDays') or 1):
         return 'verde'
     return 'planton'
+
+
+PHASES = ('siembra', 'crecimiento', 'floracion', 'fruto', 'cosecha')
+_LEGACY_PHASE = {
+    '': 'vacio', 'empty': 'vacio', 'vacio': 'vacio',
+    'planted': 'siembra', 'planton': 'siembra', 'siembra': 'siembra',
+    'growing': 'crecimiento', 'verde': 'crecimiento', 'crecimiento': 'crecimiento',
+    'floracion': 'floracion', 'flower': 'floracion',
+    'fruto': 'fruto',
+    'grown': 'cosecha', 'maduro': 'cosecha', 'cosecha': 'cosecha',
+}
+
+
+def legacy_phase(token):
+    return _LEGACY_PHASE.get(str(token or '').strip().lower(), 'vacio')
+
+
+def migrate_plot(plot, now, config):
+    """Una parcela guardada como empty/planted/grown recibe reloj, sin tocar los kilos."""
+    if not isinstance(plot, dict) or plot.get('plantedAt'):
+        return plot
+    phase = legacy_phase(plot.get('phase') or plot.get('stage') or '')
+    if phase == 'vacio':
+        return plot
+    ripe = float(config.get('ripeAfterDays') or 2)
+    along = {'siembra': 0.05, 'crecimiento': ripe * 0.30, 'floracion': ripe * 0.55, 'fruto': ripe * 0.80, 'cosecha': ripe + 0.05}
+    plot['plantedAt'] = int(float(now) - along[phase] * reloj.REAL_SECONDS_PER_DAY)
+    plot['phase'] = phase
+    return plot
+
+
+def phase_of(plot, now, config):
+    """Cinco etapas de estudio. cosecha coincide con maduro: ahí se cosecha."""
+    if not plot or not plot.get('plantedAt'):
+        return legacy_phase((plot or {}).get('phase') or (plot or {}).get('stage') or '')
+    days = _days(plot['plantedAt'], now)
+    ripe = float(config.get('ripeAfterDays') or 2)
+    if days >= ripe:
+        return 'cosecha'
+    grown = ('siembra', 'crecimiento', 'floracion', 'fruto')
+    slot = int(days / ripe * len(grown)) if ripe else 0
+    return grown[min(len(grown) - 1, max(0, slot))]
 
 
 def _feed(state, text):
@@ -347,6 +390,7 @@ def plant(state, config, account, plot_id, now):
 def harvest(state, config, account, plot_id, now):
     box = _account(state, config, account)
     plot = box['plots'].get(plot_id)
+    migrate_plot(plot, now, config)
     if not plot or stage_of(plot, now, config) != 'maduro':
         raise FincaError('aún no está maduro')
     crop = plot['crop']
@@ -568,10 +612,12 @@ def player_view(state, config, account, purse, now):
     _tick_all(state, box, now, config, account)
     plots = []
     for plot_id, plot in box['plots'].items():
+        migrate_plot(plot, now, config)
         plots.append({
             'id': plot_id,
             'crop': plot['crop'],
             'stage': stage_of(plot, now, config),
+            'phase': phase_of(plot, now, config),
             'plantedAt': int(plot.get('plantedAt') or 0),
         })
     bags = []
@@ -622,6 +668,7 @@ def player_view(state, config, account, purse, now):
                 'name': spec['name'],
                 'harvestName': spec['harvestName'],
                 'steps': [step['label'] for step in _steps(spec)],
+                'eduSteps': [step.get('label') or step.get('id') for step in ((config.get('edu') or {}).get(crop) or [])],
                 'prices': spec.get('prices') or {},
             }
             for crop, spec in config['crops'].items()

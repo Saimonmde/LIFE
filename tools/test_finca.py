@@ -260,6 +260,41 @@ class FincaTests(unittest.TestCase):
         self.assertEqual(again['harvestedKg']['cacao'], 2)
         self.assertNotIn(SECRET, json.dumps(finca.public_payload(again, self.purse, self.config)))
 
+    def test_five_phases_keep_the_old_harvest_and_kilos(self):
+        plot = {'crop': 'cacao', 'plantedAt': self.now}
+        ripe = self.config['ripeAfterDays']
+        day = reloj.REAL_SECONDS_PER_DAY
+        seen = []
+        for fraction in (0.1, 0.6, 1.1, 1.6, 2.1):
+            moment = self.now + fraction * day
+            phase = finca.phase_of(plot, moment, self.config)
+            stage = finca.stage_of(plot, moment, self.config)
+            seen.append(phase)
+            self.assertEqual(phase == 'cosecha', stage == 'maduro')
+            if fraction < ripe:
+                self.assertNotEqual(stage, 'maduro')
+        self.assertEqual(seen, ['siembra', 'crecimiento', 'floracion', 'fruto', 'cosecha'])
+        plots = [row['id'] for row in self.act('ver')['view']['plots'] if row['crop'] == 'cacao']
+        old = {'crop': 'cacao', 'stage': 'grown'}
+        finca.migrate_plot(old, self.now, self.config)
+        self.assertEqual(finca.phase_of(old, self.now, self.config), 'cosecha')
+        self.assertEqual(finca.stage_of(old, self.now, self.config), 'maduro')
+        planted = {'crop': 'cafe', 'stage': 'planted'}
+        finca.migrate_plot(planted, self.now, self.config)
+        self.assertEqual(finca.phase_of(planted, self.now, self.config), 'siembra')
+        self.assertNotEqual(finca.stage_of(planted, self.now, self.config), 'maduro')
+        empty = {'crop': 'cafe', 'stage': 'empty'}
+        finca.migrate_plot(empty, self.now, self.config)
+        self.assertEqual(empty.get('plantedAt', 0), 0)
+        view = self.act('ver')['view']
+        self.assertEqual(view['crops']['cafe']['steps'], ['Despulpar', 'Secar', 'Tostar'])
+        self.assertEqual(view['crops']['cacao']['eduSteps'][-1], 'Kilos al Libro Mayor')
+        self.assertIn('Fermentación', view['crops']['cafe']['eduSteps'])
+        kg = self.state['harvestedKg']['cacao']
+        self.ripe(plots[0])
+        self.assertEqual(self.state['harvestedKg']['cacao'], kg + 2)
+        self.assertEqual(finca.supply_fingerprint(self.purse.supply()), self.mark)
+
     def test_guide_uses_short_sentences(self):
         with open(os.path.join(ROOT, 'play', 'instructivo.js'), encoding='utf-8') as handle:
             guide = handle.read()
