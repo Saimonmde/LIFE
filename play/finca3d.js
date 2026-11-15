@@ -134,14 +134,17 @@ export function attachFinca(T, parent, opt) {
     holder.add(sprite);
     models.push({ holder, sprite, crop, stageId });
   }
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 5; col++) addPlant('cafe', phases[(row + col) % 5], -6.2 + col * 1.05, -2.2 + row * 1.15);
+  for (let row = 0; row < 6; row++) {
+    for (let col = 0; col < 8; col++) addPlant('cafe', phases[(row + col) % 5], -9 + col * 2.2, -1.2 - row * 2.3);
   }
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) addPlant('cacao', phases[(row * 2 + col) % 5], 2.1 + col * 1.45, -1.6 + row * 1.45);
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) addPlant('cacao', phases[(row + col) % 5], 9 + col * 3, -1.2 - row * 3);
   }
-  shade(-7.2, -3.2);
-  shade(6.4, -3.2);
+  shade(-10, -2);
+  shade(6, -2);
+  shade(-10, -12);
+  shade(8, -12);
+  shade(18, -8);
   function label(text, x, z, id) {
     const y0 = ground(x, z);
     mesh(box, tone('signPost'), x, y0 + 1.7, z, 0.12, 3.2, 0.12, id);
