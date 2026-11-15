@@ -79,6 +79,26 @@ class ImportanciaTests(unittest.TestCase):
             [{'message': '[sin-respaldo] no'}], [], manual=True,
         ))
 
+    def test_el_commit_de_la_fusion_cuenta_aunque_la_lista_traiga_solo_la_rama(self):
+        evento = {
+            'commits': [{
+                'id': '0d4f779',
+                'message': 'Archiva cada fusión importante con la fecha de Bogotá.',
+            }],
+            'head_commit': {
+                'id': '7385ee8',
+                'message': 'Merge pull request #34 from Saimonmde/cursor/respaldos-saimon-c375\n\nArchiva cada fusión importante con fecha real, fecha de juego y copia cifrada',
+            },
+        }
+        commits = respaldos.commits_del_evento(evento, [])
+        self.assertTrue(respaldos.es_importante(commits, [], manual=False))
+        self.assertEqual(respaldos.numeros_pr(commits), ['34'])
+        self.assertTrue(respaldos.es_importante(
+            [{'message': 'Merge pull request #34 from a/b\n\nArchiva los respaldos'}],
+            [{'title': 'Archiva los respaldos', 'body': 'Escribe [sin-respaldo] en el título para saltarlo.', 'labels': []}],
+            False,
+        ))
+
     def test_el_resumen_sale_en_espanol_y_sin_secretos(self):
         prs = [{
             'title': 'Abre la casa colonial',

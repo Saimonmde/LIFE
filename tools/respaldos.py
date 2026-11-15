@@ -252,22 +252,34 @@ def numeros_pr(commits):
     return vistos
 
 
+def _linea_con_marca(texto, marca):
+    """La marca cuenta en el título o al inicio de una línea, no citada en un párrafo."""
+    for linea in (texto or '').splitlines():
+        limpia = linea.strip().lower()
+        if limpia.startswith(marca):
+            return True
+    return False
+
+
 def es_importante(commits, prs, manual=False):
     """Un pull request fusionado cuenta. [sin-respaldo] lo salta. [respaldo] lo pide."""
     if manual:
         return True
-    textos = []
     etiquetas = []
+    opt_out = False
+    opt_in = False
     for commit in commits or []:
-        textos.append(commit.get('message') or '')
+        mensaje = commit.get('message') or ''
+        opt_out = opt_out or _linea_con_marca(mensaje, _SKIP)
+        opt_in = opt_in or _linea_con_marca(mensaje, _FORCE)
     for pr in prs or []:
-        textos.append(pr.get('title') or '')
-        textos.append(pr.get('body') or '')
+        titulo = pr.get('title') or ''
+        opt_out = opt_out or _linea_con_marca(titulo, _SKIP)
+        opt_in = opt_in or _linea_con_marca(titulo, _FORCE)
         etiquetas.extend(etiquetas_de(pr))
-    blob = '\n'.join(textos).lower()
-    if _SKIP in blob or 'sin-respaldo' in etiquetas:
+    if opt_out or 'sin-respaldo' in etiquetas:
         return False
-    if _FORCE in blob or 'respaldo' in etiquetas:
+    if opt_in or 'respaldo' in etiquetas:
         return True
     if prs or numeros_pr(commits):
         return True
@@ -333,9 +345,9 @@ def resumen(prs, commits=None, manual='', limite=500):
     if not partes:
         texto = 'Actualización de main sin una descripción.'
     elif len(partes) == 1:
-        texto = 'Incluye: %s.' % partes[0]
+        texto = 'Incluye: %s.' % partes[0].rstrip('.')
     else:
-        texto = 'Entran %d cambios. Incluye: %s.' % (len(partes), '; '.join(partes))
+        texto = 'Entran %d cambios. Incluye: %s.' % (len(partes), '; '.join(parte.rstrip('.') for parte in partes))
     texto = re.sub(r'\s+', ' ', texto).strip()
     if len(texto) > limite:
         texto = texto[:limite - 1].rstrip() + '…'
@@ -1104,20 +1116,35 @@ def _commits_git(repo, antes, despues):
     if not antes or not despues or str(antes).startswith('0000000'):
         return []
     try:
-        raw = _git(repo, 'log', '--format=%H%x1f%s%x1f%b%x1e', '%s..%s' % (antes, despues))
+        raw = _git(repo, 'log', '--format=COMMIT %H%n%s%n%b%nENDCOMMIT', '%s..%s' % (antes, despues))
     except RuntimeError:
         return []
     commits = []
-    for bloque in raw.decode('utf-8', 'replace').split('\x1e'):
-        bloque = bloque.strip('\n')
-        if not bloque.strip():
+    for bloque in raw.decode('utf-8', 'replace').split('ENDCOMMIT'):
+        bloque = bloque.strip()
+        if not bloque.startswith('COMMIT '):
             continue
-        pedazos = bloque.split('\x1f')
-        sha = pedazos[0].strip() if pedazos else ''
-        sujeto = pedazos[1] if len(pedazos) > 1 else ''
-        cuerpo = pedazos[2] if len(pedazos) > 2 else ''
-        mensaje = sujeto + ('\n\n' + cuerpo if cuerpo.strip() else '')
+        lineas = bloque.splitlines()
+        sha = lineas[0][len('COMMIT '):].strip()
+        sujeto = lineas[1] if len(lineas) > 1 else ''
+        cuerpo = '\n'.join(lineas[2:]).strip()
+        mensaje = sujeto + ('\n\n' + cuerpo if cuerpo else '')
         commits.append({'id': sha, 'message': mensaje.strip()})
+    return commits
+
+
+def commits_del_evento(evento, desde_git):
+    """Incluye el commit de la fusión aunque el push sólo liste los commits de la rama."""
+    commits = list(desde_git or [])
+    if not commits:
+        for commit in (evento or {}).get('commits') or []:
+            commits.append({'id': commit.get('id') or '', 'message': commit.get('message') or ''})
+    cabeza = (evento or {}).get('head_commit') or {}
+    mensaje = cabeza.get('message') or ''
+    identificador = cabeza.get('id') or ''
+    if mensaje and not any(c.get('id') == identificador and identificador for c in commits):
+        if not any(c.get('message') == mensaje for c in commits):
+            commits.insert(0, {'id': identificador, 'message': mensaje})
     return commits
 
 
@@ -1130,6 +1157,29 @@ def _titulo_desde_commit(commit, numero):
         if len(lineas) > 1:
             return lineas[-1]
     return ''
+
+
+def pulls_del_commit(repo_slug, sha):
+    """El pull request fusionado, aunque el mensaje del push no lo diga."""
+    if not sha or not repo_slug:
+        return []
+    try:
+        raw = _ejecutar([
+            'gh', 'api', 'repos/%s/commits/%s/pulls' % (repo_slug, sha),
+            '-H', 'Accept: application/vnd.github+json',
+        ])
+        data = json.loads(raw.decode('utf-8'))
+    except (RuntimeError, json.JSONDecodeError, subprocess.TimeoutExpired, OSError):
+        return []
+    prs = []
+    for pr in data if isinstance(data, list) else []:
+        prs.append({
+            'number': pr.get('number'),
+            'title': pr.get('title') or '',
+            'body': pr.get('body') or '',
+            'labels': etiquetas_de(pr),
+        })
+    return prs
 
 
 def obtener_prs(numeros, commits):
@@ -1300,15 +1350,17 @@ def publicar(repo='.', sha='', manual=False, linea_base=False, solo_datos=False,
     if not manual and not solo_datos and evento_nombre not in ('push', 'workflow_dispatch'):
         raise RuntimeError('Nada que publicar. En GitHub esto corre al fusionar en main, o con --linea-base.')
     evento = _leer_evento(evento_path)
-    sha = (sha or evento.get('after') or '').strip()
+    sha = (sha or evento.get('after') or evento.get('head_commit', {}).get('id') or '').strip()
     if not sha or sha.startswith('0000000'):
         sha = _sha_head(repo)
-    commits = _commits_git(repo, evento.get('before'), evento.get('after'))
-    if not commits:
-        for commit in evento.get('commits') or []:
-            commits.append({'id': commit.get('id') or '', 'message': commit.get('message') or ''})
+    repo_slug = os.environ.get('GITHUB_REPOSITORY', '').strip() or REPO_DEFECTO
+    commits = commits_del_evento(evento, _commits_git(repo, evento.get('before'), evento.get('after')))
     numeros = numeros_pr(commits)
-    prs = obtener_prs(numeros, commits) if numeros and not solo_datos else []
+    prs = []
+    if not solo_datos:
+        prs = pulls_del_commit(repo_slug, sha)
+        if not prs and numeros:
+            prs = obtener_prs(numeros, commits)
     if not solo_datos and not es_importante(commits, prs, manual=manual or linea_base):
         print('Este push no pide respaldo: no es un pull request fusionado ni lleva [respaldo].')
         return 0
@@ -1331,7 +1383,6 @@ def publicar(repo='.', sha='', manual=False, linea_base=False, solo_datos=False,
         info['etiqueta'] = nombre
     else:
         nombre = info['etiqueta']
-    repo_slug = os.environ.get('GITHUB_REPOSITORY', '').strip() or REPO_DEFECTO
     manifiesto, cifrado, archivo = _preparar_cifrado(info, logico)
     info.update({
         'datos': manifiesto['datos'],
