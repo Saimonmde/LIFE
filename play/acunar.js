@@ -143,6 +143,7 @@
     if (!m || m.t !== 'acunar_result') return false;
     if (m.cupos && window.__ELJARDIN) __ELJARDIN.cupos = m.cupos;
     if (m.ledger && window.__ELJARDIN) __ELJARDIN.ledger = m.ledger;
+    if (m.ok && window.Sonido) Sonido.fromMint(m);
     if (m.ok && m.item && m.spent && window.quitarDelInventario) quitarDelInventario(m.item, m.spent);
     if (window.Cajon) Cajon.paint();
     paint();

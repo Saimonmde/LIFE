@@ -710,6 +710,7 @@ function onNet(m) {
       if (m.ok && m.t === 'plata_result' && api.applySmelt) api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
       else if (!m.ok) api.game(m.reason || 'No se acuñó Simonplata.', 'aviso');
     }
+    if (m.ok && m.t === 'plata_result' && window.Sonido) Sonido.fromMint(m);
     if (window.Cajon) Cajon.paint();
     return true;
   }
@@ -732,6 +733,7 @@ function onNet(m) {
     const pending = api.S.pendingSmelt;
     api.S.pendingSmelt = null;
     if (m.ledger) api.S.ledger = m.ledger;
+    if (m.ok && window.Sonido) Sonido.fromMint(m);
     if (m.ok && pending && api.applySmelt) {
       api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
       const done = document.getElementById('forge-result');
