@@ -1,0 +1,98 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback y poste · Simon</title>
+<link rel="stylesheet" href="../simon.css">
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <a href="/play/admin/resenas.html">Reseñas</a>
+    <h1>Feedback del juego y poste</h1>
+    <p>La misma clave <code>SIMON_ADMIN_TOKEN</code> del panel de reseñas. Aquí se lee todo el feedback y se responde el poste del Parque de Envigado.</p>
+  </div>
+</header>
+<section class="panel">
+  <form id="clave" class="fila">
+    <label>Clave de administración
+      <input id="token" type="password" autocomplete="current-password" placeholder="SIMON_ADMIN_TOKEN">
+    </label>
+    <button type="submit">Entrar</button>
+  </form>
+  <p id="estado" role="status"></p>
+</section>
+<section class="panel">
+  <h2>Feedback</h2>
+  <div id="feedback"></div>
+</section>
+<section class="panel">
+  <h2>Poste</h2>
+  <div id="poste"></div>
+</section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const tokenKey = 'simon-admin-token';
+if (sessionStorage.getItem(tokenKey)) $('token').value = sessionStorage.getItem(tokenKey);
+function headers() {
+  return { 'Content-Type': 'application/json', 'x-simon-admin': $('token').value.trim() };
+}
+function card(title, body) {
+  const el = document.createElement('article');
+  el.className = 'card panel';
+  const h = document.createElement('h3');
+  h.textContent = title;
+  const p = document.createElement('p');
+  p.textContent = body;
+  el.append(h, p);
+  return el;
+}
+async function load() {
+  const token = $('token').value.trim();
+  sessionStorage.setItem(tokenKey, token);
+  $('estado').textContent = 'Cargando…';
+  const feedback = await fetch('/api/vida/admin/feedback', { headers: headers() });
+  const poste = await fetch('/api/vida/admin/poste', { headers: headers() });
+  const fb = await feedback.json();
+  const board = await poste.json();
+  if (!feedback.ok) { $('estado').textContent = fb.error || 'No se pudo entrar.'; return; }
+  $('estado').textContent = (fb.feedback || []).length + ' mensajes de feedback.';
+  $('feedback').replaceChildren();
+  for (const row of fb.feedback || []) {
+    $('feedback').append(card((row.nick || 'Viajero') + ' · Mundo ' + (row.world || '—'), row.text || ''));
+  }
+  $('poste').replaceChildren();
+  if (!poste.ok) { $('poste').append(card('Poste', board.error || 'No se pudo leer.')); return; }
+  for (const note of (board.notes || []).concat(board.hiddenNotes || [])) {
+    const el = card(note.nick + (note.hidden ? ' · oculta' : ''), note.text + (note.answer ? ' · Simon: ' + note.answer : ''));
+    const reply = document.createElement('button');
+    reply.type = 'button';
+    reply.textContent = 'Responder';
+    reply.onclick = async () => {
+      const text = window.prompt('Respuesta');
+      if (!text) return;
+      await fetch('/api/vida/admin/poste', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'note', id: note.id, action: 'answer', text }) });
+      load();
+    };
+    const hide = document.createElement('button');
+    hide.type = 'button';
+    hide.textContent = 'Ocultar';
+    hide.onclick = async () => {
+      await fetch('/api/vida/admin/poste', { method: 'POST', headers: headers(), body: JSON.stringify({ kind: 'note', id: note.id, action: 'hide' }) });
+      load();
+    };
+    el.append(reply, hide);
+    $('poste').append(el);
+  }
+  for (const poll of (board.polls || []).concat(board.hiddenPolls || [])) {
+    $('poste').append(card(poll.question || 'Encuesta', (poll.options || []).map(o => o.text + ' ' + (o.votes || 0)).join(' · ')));
+  }
+}
+$('clave').onsubmit = (e) => { e.preventDefault(); load(); };
+</script>
+</body>
+</html>

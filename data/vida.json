@@ -1,0 +1,57 @@
+{
+  "v": 1,
+  "note": "Catálogo original de Saimon City. La lectura «estilo Jabo» se tomó como hipótesis: bajo poligonaje, chunky y amable, parecido a un Habbo isométrico. No hay modelos ni texturas de terceros.",
+  "worlds": { "cap": 333, "open": [1, 2, 3, 4, 5] },
+  "places": [
+    { "id": "parque-envigado", "name": "Parque de Envigado", "x": 90, "y": 260, "w": 28, "h": 22 }
+  ],
+  "poste": { "id": "poste-envigado", "place": "parque-envigado", "name": "Poste de notas", "x": 108, "y": 272 },
+  "limits": {
+    "chat": 160,
+    "note": 240,
+    "feedback": 400,
+    "pollQuestion": 80,
+    "pollOption": 24,
+    "nick": 16
+  },
+  "pets": {
+    "dog": [
+      { "id": "criollo", "name": "Criollo", "colors": ["#e0943a", "#f0d2a8", "#8a5a34"], "colorNames": ["caramelo", "crema", "café"] },
+      { "id": "labrador", "name": "Labrador", "colors": ["#2b2b2b", "#3e4a57", "#9aa3ab"], "colorNames": ["negro", "pizarra", "gris"] },
+      { "id": "golden", "name": "Golden", "colors": ["#e2b03a", "#f6e2a8", "#e8c98a"], "colorNames": ["dorado", "crema", "arena"] },
+      { "id": "pastor", "name": "Pastor Alemán", "colors": ["#2a241e", "#7a4030", "#e0b07a"], "colorNames": ["negro", "café", "canela"] },
+      { "id": "bulldog", "name": "Bulldog Francés", "colors": ["#5c4638", "#a89078", "#d9cbb8"], "colorNames": ["oscuro", "atigrado", "beige"] },
+      { "id": "beagle", "name": "Beagle", "colors": ["#d4843c", "#f7f4ee", "#2a2a2a"], "colorNames": ["canela", "blanco", "negro"] }
+    ],
+    "cat": [
+      { "id": "criollo", "name": "Criollo", "colors": ["#e88830", "#f6c99a", "#f3e2cc"], "colorNames": ["naranja", "durazno", "crema"] },
+      { "id": "siames", "name": "Siamés", "colors": ["#f4ead8", "#c8beb4", "#6a5348"], "colorNames": ["crema", "arena", "punto"] },
+      { "id": "persa", "name": "Persa", "colors": ["#f7f7f7", "#d5d5d5", "#b0b0b0"], "colorNames": ["blanco", "perla", "gris"] },
+      { "id": "atigrado", "name": "Atigrado", "colors": ["#8d949a", "#6a7278", "#c5ccd1"], "colorNames": ["gris", "humo", "plata"] },
+      { "id": "negro", "name": "Negro", "colors": ["#2a2a2a", "#3f3f3f", "#6e6e6e"], "colorNames": ["negro", "carbón", "grafito"] },
+      { "id": "calico", "name": "Calicó", "colors": ["#e88830", "#2c2c2c", "#f7f7f7"], "colorNames": ["naranja", "negro", "blanco"] }
+    ]
+  },
+  "furniture": {
+    "bed": { "name": "Cama", "w": 2, "h": 1, "solid": true, "variants": [
+      { "id": "colonial", "name": "Colonial" },
+      { "id": "nogal", "name": "Nogal" },
+      { "id": "hamaca", "name": "Hamaca" }
+    ]},
+    "altar": { "name": "Altar", "w": 1, "h": 1, "solid": true, "variants": [
+      { "id": "madera", "name": "Madera" },
+      { "id": "piedra", "name": "Piedra" },
+      { "id": "dorado", "name": "Dorado" }
+    ]},
+    "plant": { "name": "Matera", "w": 1, "h": 1, "solid": true, "variants": [
+      { "id": "barro", "name": "Barro" },
+      { "id": "blanca", "name": "Blanca" },
+      { "id": "colgante", "name": "Colgante" }
+    ]},
+    "stove": { "name": "Cocina", "w": 1, "h": 1, "solid": true, "variants": [
+      { "id": "fogon", "name": "Fogón" },
+      { "id": "lena", "name": "Leña" },
+      { "id": "mesa", "name": "Mesa" }
+    ]}
+  }
+}

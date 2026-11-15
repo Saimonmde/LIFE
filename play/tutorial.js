@@ -2,8 +2,8 @@
 /* Tutorial corto, se puede saltar y se recuerda. */
 (() => {
   'use strict';
-  const KEY = 'lifeinc.tutorial.v1';
-  function root() { return document.getElementById('tutorial'); }
+  const KEY = 'lifeinc.instructivo.v1';
+  function root() { return document.getElementById('instructivo') || document.getElementById('tutorial'); }
   function open() {
     const el = root();
     if (!el) return;
@@ -24,8 +24,8 @@
   document.addEventListener('click', (event) => {
     const t = event.target;
     if (!(t instanceof Element)) return;
-    if (t.id === 'tutorial-cerrar' || t.id === 'tutorial-saltar') close(true);
-    if (t.id === 'b-tutorial') open();
+    if (t.id === 'tutorial-cerrar' || t.id === 'tutorial-saltar' || t.id === 'instructivo-cerrar' || t.id === 'instructivo-saltar') close(true);
+    if (t.id === 'b-tutorial' || t.id === 'cajon-instructivo') open();
   });
   window.Tutorial = { open, close, afterFly };
 })();

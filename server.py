@@ -28,6 +28,10 @@ import simon_api as SIMON_API
 import reloj as RELOJ
 import cobre as COBRE
 import monedas as MONEDAS
+import persist as PERSIST
+import mundos as MUNDOS
+import social as SOCIAL
+import vida_api as VIDA_API
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -38,7 +42,7 @@ LEGAL_PAGES = {
 }
 PROX_TILES = 15           # 30 m con 2 m por casilla
 MAX_TEXT = 160
-CHANNELS = ('global', 'proximidad', 'clan', 'grupo')
+CHANNELS = ('global', 'proximidad', 'clan', 'grupo', 'lugar')
 SERVER_ID = uuid.uuid4().hex[:12]
 
 with open(os.path.join(ROOT, 'data', 'el-jardin.json'), encoding='utf-8') as f:
@@ -55,6 +59,9 @@ NFT_KEY_PATH = os.path.join(ROOT, 'state', 'nft-key.json')
 VAULT_PATH = os.path.join(ROOT, 'state', 'vault.json')
 PLAY_PATH = os.path.join(ROOT, 'state', 'players.json')
 PLAYERS = PLAY.load(PLAY_PATH)
+VIDA_PATH = os.path.join(ROOT, 'state', 'vida.json')
+VIDA = SOCIAL.normalize(PERSIST.load_named('vida', VIDA_PATH))
+PLACES = MUNDOS.boxes(WORLD)
 ACCOUNTS_PATH = os.path.join(ROOT, 'state', 'accounts.json')
 ACCOUNTS = ACC.load(ACCOUNTS_PATH)
 NFT_SEED = NFT.load_seed(NFT_KEY_PATH)
@@ -87,6 +94,9 @@ def save_vault():
 
 def save_play():
     PLAY.save(PLAY_PATH, PLAYERS)
+
+def save_vida():
+    PERSIST.save_named('vida', VIDA_PATH, VIDA)
 
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
@@ -946,9 +956,15 @@ class Client:
         self.name = f'Jugador{self.id}'; self.color = 'azul'; self.clan = 'LIFE INC'; self.group = ''
         self.x, self.y, self.dir, self.moving = float(SPAWN[0]), float(SPAWN[1]), 'down', False
         self.level = 1; self.hello = False; self.stamps = []; self.zone = 'city'
+        self.world = 1; self.place = 'valle'; self.pet = None; self.identity = ''
+        self.note_stamps = []; self.feedback_stamps = []
     def public(self):
+        pet = self.pet if isinstance(self.pet, dict) else None
+        if pet:
+            pet = {k: pet[k] for k in ('species', 'breed', 'variant', 'name') if k in pet}
         return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'nick': visible_nick(self), 'color': self.color, 'clan': self.clan, 'group': self.group,
-                'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone}
+                'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone,
+                'world': self.world, 'place': self.place, 'pet': pet}
 
 def clean(s, n):
     s = re.sub(r'[\x00-\x1f\x7f<>]', '', str(s or '')).strip()
@@ -1055,13 +1071,19 @@ def unique_name(name, me):
     while ACC.reserved_nickname(ACCOUNTS, n) or any(c is not me and ACC.name_key(c.name) == ACC.name_key(n) for c in clients.values()): n = f'{base[:12]}{k}'; k += 1
     return n
 
-def chat(sender, channel, text):
+def too_fast(sender):
     now = time.time()
     sender.stamps = [t for t in sender.stamps if now - t < 5]
     if len(sender.stamps) >= 6 and not sender.bot:
-        return send(sender, {'t': 'system', 'text': 'Vas muy rápido: espera unos segundos.'})
+        send(sender, {'t': 'system', 'text': 'Vas muy rápido: espera unos segundos.'})
+        return True
     sender.stamps.append(now)
-    text = clean(text, MAX_TEXT)
+    return False
+
+def chat(sender, channel, text):
+    if too_fast(sender):
+        return
+    text = SOCIAL.mask(clean(text, MAX_TEXT), MAX_TEXT)
     if not text: return
     if text.startswith('/'):
         raw = text[1:].strip()
@@ -1094,13 +1116,17 @@ def chat(sender, channel, text):
         return send(sender, {'t': 'system', 'text': 'Comandos: /grupo <nombre> · /clan <nombre> · /pagar <jugador> <monto>'})
     if channel not in CHANNELS: channel = 'proximidad'
     msg = {'t': 'chat', 'channel': channel, 'from': visible_nick(sender), 'fromId': sender.id, 'clan': sender.clan, 'text': text,
-           'ts': time.strftime('%H:%M'), 'bot': sender.bot}
-    if channel == 'global': broadcast(msg)
-    elif channel == 'proximidad': broadcast(msg, lambda c: dist(c, sender) <= PROX_TILES)
-    elif channel == 'clan': broadcast(msg, lambda c: c.clan.lower() == sender.clan.lower())
+           'ts': time.strftime('%H:%M'), 'bot': sender.bot, 'world': sender.world, 'place': sender.place}
+    if channel == 'global': broadcast(msg, lambda c: MUNDOS.same_world(c, sender))
+    elif channel == 'proximidad': broadcast(msg, lambda c: MUNDOS.same_world(c, sender) and dist(c, sender) <= PROX_TILES)
+    elif channel == 'lugar':
+        if sender.place in MUNDOS.PRIVATE:
+            return send(sender, {'t': 'system', 'text': 'En tu casa ese chat está cerrado.'})
+        broadcast(msg, lambda c: MUNDOS.same_room(c, sender))
+    elif channel == 'clan': broadcast(msg, lambda c: MUNDOS.same_world(c, sender) and c.clan.lower() == sender.clan.lower())
     elif channel == 'grupo':
         if not sender.group: return send(sender, {'t': 'system', 'text': 'No estás en un grupo. Escribe /grupo <nombre> para crear o unirte a uno.'})
-        broadcast(msg, lambda c: c.group and c.group.lower() == sender.group.lower())
+        broadcast(msg, lambda c: MUNDOS.same_world(c, sender) and c.group and c.group.lower() == sender.group.lower())
 
 def arrival_position(resume=None):
     # Start within the same connected spawn area, on an unoccupied walkable tile.
@@ -1122,6 +1148,140 @@ def arrival_position(resume=None):
                 seen.add(tile); queue.append(tile)
     return float(SPAWN[0]), float(SPAWN[1])
 
+class _Spot:
+    def __init__(self, world, place):
+        self.world = world
+        self.place = place
+
+def room_shift(c, old_world, old_place):
+    """Quien sale de la sala deja de verse. Quien entra aparece. En la misma sala, se mueve."""
+    previous = _Spot(old_world, old_place)
+    for other in list(clients.values()):
+        if other is c or not other.hello:
+            continue
+        before = MUNDOS.same_room(previous, other)
+        after = MUNDOS.same_room(c, other)
+        if before and not after:
+            send(other, {'t': 'leave', 'id': c.id})
+        elif after and not before:
+            send(other, {'t': 'join', 'player': c.public()})
+        elif after:
+            send(other, {'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2),
+                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'})
+
+def refresh_social(c, other_key=None):
+    send(c, {'t': 'social', 'social': SOCIAL.friend_view(VIDA, c.identity, ACCOUNTS, clients.values())})
+    if not other_key:
+        return
+    for other in clients.values():
+        if other.hello and getattr(other, 'identity', '') == other_key:
+            send(other, {'t': 'social', 'social': SOCIAL.friend_view(VIDA, other.identity, ACCOUNTS, clients.values())})
+
+def vida_privado(c, m):
+    if too_fast(c):
+        return
+    result = SOCIAL.private_message(VIDA, c.identity or SOCIAL.identity_of(c), visible_nick(c), m.get('to'), m.get('text'), ACCOUNTS)
+    if not result.get('ok'):
+        return send(c, {'t': 'vida_error', 'error': result.get('error')})
+    save_vida()
+    targets = set(result['targets'])
+    for other in clients.values():
+        if other.hello and getattr(other, 'identity', '') in targets:
+            send(other, result['message'])
+
+def vida_try(c, m, t):
+    if not c.hello:
+        return False
+    key = c.identity or SOCIAL.identity_of(c)
+    c.identity = key
+    if t == 'adoptar':
+        pet = SOCIAL.save_pet(VIDA, key, m.get('pet') or m)
+        if not pet:
+            send(c, {'t': 'vida_error', 'error': 'Esa mascota no está en el catálogo.'})
+            return True
+        c.pet = pet
+        save_vida()
+        send(c, {'t': 'pet', 'id': c.id, 'pet': pet})
+        broadcast({'t': 'pet', 'id': c.id, 'pet': pet}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+        return True
+    if t == 'hogar':
+        layout = SOCIAL.save_home(VIDA, key, m.get('layout'))
+        save_vida()
+        send(c, {'t': 'hogar', 'layout': layout})
+        return True
+    if t == 'mundo':
+        chosen = MUNDOS.normalize(m.get('id') if m.get('id') is not None else m.get('world'))
+        if not chosen:
+            send(c, {'t': 'vida_error', 'error': 'Ese mundo no está abierto.'})
+            return True
+        old_world, old_place = c.world, c.place
+        c.world = chosen
+        room_shift(c, old_world, old_place)
+        payload = MUNDOS.counts(clients.values())
+        send(c, {'t': 'mundo', 'world': chosen, 'presence': payload})
+        broadcast(payload)
+        return True
+    if t == 'amigo_buscar':
+        found = SOCIAL.search_nick(ACCOUNTS, m.get('nick'), [getattr(o, 'identity', '') for o in clients.values() if o.hello])
+        send(c, {'t': 'amigo', 'found': found, 'error': None if found else 'No hay una cuenta con ese nick.'})
+        return True
+    if t == 'amigo_pedir':
+        SOCIAL.request_friend(VIDA, key, m.get('key'))
+        save_vida()
+        refresh_social(c, m.get('key'))
+        return True
+    if t == 'amigo_aceptar':
+        SOCIAL.accept_friend(VIDA, key, m.get('key'))
+        save_vida()
+        refresh_social(c, m.get('key'))
+        return True
+    if t == 'amigo_hilo':
+        send(c, {'t': 'hilo', 'key': m.get('key'), 'messages': SOCIAL.thread_for(VIDA, key, m.get('key'))})
+        return True
+    if t == 'nick_cambio':
+        send(c, {'t': 'nick_quote', **SOCIAL.quote_nick(ACCOUNTS, getattr(c, 'user', None), m.get('name'))})
+        return True
+    if t == 'feedback':
+        if not SOCIAL.allow(c.feedback_stamps, time.time(), 3, 600):
+            send(c, {'t': 'feedback_result', 'ok': False, 'error': 'Espera un poco para enviar otro.'})
+            return True
+        result = SOCIAL.add_feedback(VIDA, visible_nick(c), m.get('text'), c.world, c.place)
+        if result.get('ok'):
+            save_vida()
+        send(c, {'t': 'feedback_result', **result})
+        return True
+    if t == 'poste_nota':
+        if not SOCIAL.allow(c.note_stamps, time.time(), 4, 60):
+            send(c, {'t': 'poste', 'error': 'Vas muy rápido.', **SOCIAL.public_notes(VIDA)})
+            return True
+        result = SOCIAL.add_note(VIDA, visible_nick(c), key, m.get('text'), c.place, c.world)
+        if result.get('ok'):
+            save_vida()
+        send(c, {'t': 'poste', **(result.get('board') or {}), 'error': result.get('error')})
+        return True
+    if t == 'poste_encuesta':
+        result = SOCIAL.add_poll(VIDA, visible_nick(c), key, m.get('question'), m.get('options'), c.place, c.world)
+        if result.get('ok'):
+            save_vida()
+        send(c, {'t': 'poste', **(result.get('board') or {}), 'error': result.get('error')})
+        return True
+    if t == 'poste_votar':
+        result = SOCIAL.vote_poll(VIDA, key, m.get('id'), m.get('option'))
+        if result.get('ok'):
+            save_vida()
+        send(c, {'t': 'poste', **(result.get('board') or {}), 'error': result.get('error')})
+        return True
+    if t == 'poste_ver':
+        send(c, {'t': 'poste', **SOCIAL.public_notes(VIDA)})
+        return True
+    if t == 'poste_moderar':
+        result = SOCIAL.moderate(VIDA, SOCIAL.role_of(getattr(c, 'user', None)), m.get('kind'), m.get('id'), m.get('action'), m.get('text') or '')
+        if result.get('ok'):
+            save_vida()
+        send(c, {'t': 'poste', **(result.get('board') or SOCIAL.public_notes(VIDA)), 'error': result.get('error')})
+        return True
+    return False
+
 TRAVEL_GATE = VIAJES.Gate()
 
 def travel_for(sender, dest_id):
@@ -1133,14 +1293,12 @@ def travel_for(sender, dest_id):
         return send(sender, {'t': 'travel_result', 'ok': False, 'reason': str(exc)})
     if not TRAVEL_GATE.allow(sender.id, now):
         return send(sender, {'t': 'travel_result', 'ok': False, 'reason': 'Espera un momento para volver a viajar.'})
-    was_hidden = sender.zone != 'city'
+    old_world, old_place = sender.world, getattr(sender, 'place', 'valle')
     sender.zone = 'city'
     sender.x, sender.y = float(dest['x']), float(dest['y'])
     sender.moving = False
-    if was_hidden:
-        broadcast({'t': 'join', 'player': sender.public()}, exclude=sender)
-    else:
-        broadcast({'t': 'move', 'id': sender.id, 'x': sender.x, 'y': sender.y, 'dir': sender.dir, 'moving': False, 'level': sender.level, 'zone': 'city'}, exclude=sender)
+    sender.place = MUNDOS.place_of(sender.x, sender.y, 'city', PLACES)
+    room_shift(sender, old_world, old_place)
     send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
 
 async def handle_ws(reader, writer, cookie='', ip=''):
@@ -1176,7 +1334,8 @@ async def handle_ws(reader, writer, cookie='', ip=''):
     finally:
         clients.pop(c.id, None)
         if c.hello:
-            broadcast({'t': 'leave', 'id': c.id}); broadcast({'t': 'system', 'text': f'{visible_nick(c)} salió.'})
+            broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_room(c, o))
+            broadcast(MUNDOS.counts(clients.values()))
         try: writer.close()
         except Exception: pass
 
@@ -1184,6 +1343,7 @@ def handle_client_message(c, m, t):
     if t == 'hello':
         if c.hello: return
         c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'city') else 'city'
+        c.world = MUNDOS.normalize(m.get('world')) or 1
         if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
         else: c.x, c.y = arrival_position(m.get('resume'))
         asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
@@ -1192,16 +1352,30 @@ def handle_client_message(c, m, t):
         c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
         c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
         c.level = clamp_level(m.get('level'), 1); c.hello = True
+        c.identity = SOCIAL.identity_of(c)
+        c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
+        stored = SOCIAL.pet_for(VIDA, c.identity)
+        if stored:
+            c.pet = stored
+        elif m.get('pet'):
+            adopted = SOCIAL.save_pet(VIDA, c.identity, m.get('pet'))
+            if adopted:
+                c.pet = adopted
+                save_vida()
         presented = clean(token_src, 64)
         owned = bind_wallet(c.name, presented)
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''
-        send(c, {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and o.zone != 'casa'],
+        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
-                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON)})
-        if c.zone != 'casa':
-            broadcast({'t': 'join', 'player': c.public()}, exclude=c)
-            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a El Jardín.'}, exclude=c)
+                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON)}
+        welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
+        send(c, welcome)
+        if c.place not in MUNDOS.PRIVATE:
+            broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+            place = MUNDOS.place_name(c.place, PLACES)
+            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+        broadcast(MUNDOS.counts(clients.values()))
         send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
         if c.wallet_ok:
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
@@ -1210,13 +1384,14 @@ def handle_client_message(c, m, t):
     elif t == 'travel' and c.hello:
         travel_for(c, m.get('id'))
     elif t == 'move' and c.hello:
+        old_world, old_place = c.world, c.place
         zone = m.get('zone')
         if zone in ('casa', 'mine', 'banco'):
-            if c.zone == 'city' and zone != 'city':
-                broadcast({'t': 'leave', 'id': c.id}, exclude=c)
             c.zone = zone
+            c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
+            if (old_world, old_place) != (c.world, c.place):
+                room_shift(c, old_world, old_place)
             return
-        was_casa = c.zone != 'city'
         c.zone = 'city'
         try:
             nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
@@ -1227,12 +1402,15 @@ def handle_client_message(c, m, t):
         note_motion(c, step)
         c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
         c.moving = bool(m.get('moving')); c.level = clamp_level(m.get('level'), c.level)
-        if was_casa: broadcast({'t': 'join', 'player': c.public()}, exclude=c)
-        else: broadcast({'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2), 'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'}, exclude=c)
+        c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
+        room_shift(c, old_world, old_place)
     elif t == 'ping':
         send(c, {'t': 'pong', 'c': m.get('c')})
     elif t == 'chat' and c.hello:
-        chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
+        if str(m.get('channel', 'proximidad')).lower() == 'privado':
+            vida_privado(c, m)
+        else:
+            chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
     elif t == 'mint' and c.hello:
         mint_for(c, clean(m.get('node'), 40), m.get('proof'))
     elif t == 'mint_plata' and c.hello:
@@ -1297,6 +1475,8 @@ def handle_client_message(c, m, t):
         deposit_item(c, m.get('item'), m.get('qty'))
     elif t == 'withdraw_item' and c.hello:
         withdraw_item(c, m.get('item'), m.get('qty'))
+    elif vida_try(c, m, t):
+        return
 
 def public_base(headers):
     env = os.environ.get('PUBLIC_URL', '').strip().rstrip('/')
@@ -1641,7 +1821,8 @@ async def handle(reader, writer):
     path = urllib.parse.unquote(urllib.parse.urlparse(target).path)
     body = b''
     simon_post = method == 'POST' and path.startswith('/api/simon')
-    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post):
+    vida_post = method == 'POST' and path.startswith('/api/vida')
+    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post):
         try:
             cap = 80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000
             length = min(int(headers.get('content-length') or 0), cap)
@@ -1670,6 +1851,16 @@ async def handle(reader, writer):
         if method != 'HEAD':
             writer.write(encoded)
         await writer.drain(); writer.close(); return
+    if path == '/api/mundos' or path.startswith('/api/vida'):
+        result = VIDA_API.dispatch(method, path, headers, body, {'state': VIDA, 'clients': clients, 'save': save_vida})
+        if result is not None:
+            code, payload = result
+            labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found'}
+            encoded = json.dumps(payload, ensure_ascii=False).encode()
+            writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
+            if method != 'HEAD':
+                writer.write(encoded)
+            await writer.drain(); writer.close(); return
     answered = await try_auth(method, path, target, headers, body, client_ip(headers, writer))
     if answered is not None:
         writer.write(answered)

@@ -174,4 +174,8 @@ Simon IA y Simon IO viven en este repositorio (`/play/simon.html`). Buscan arrie
 
 La conversación se cifra en reposo y sólo se guarda con consentimiento (Ley 1581 de 2012). Hay borrado, ritmo de respuesta y reseñas. El panel de administración está en `/play/admin/resenas.html` y pide `SIMON_ADMIN_TOKEN`. Las reseñas privadas no salen en `/play/resenas.html`.
 
+El mismo `SIMON_ADMIN_TOKEN` abre `/play/admin/vida.html`: el feedback del juego y el poste del Parque de Envigado. Para responder el poste desde la cuenta, dentro del juego, define `SIMON_OWNER_EMAIL` con el correo de esa cuenta. Sin esa variable, el poste se modera desde el panel con la clave. Los papeles `staff` y `admin` existen, pero hoy sólo `simon` responde y oculta. El cambio de nick queda marcado como acción de pago (`nick_change_paid`); no hay cobro y el nombre no cambia.
+
+Los mundos 1 a 333 están reservados. Al publicar abren el 1 al 5. Quienes comparten mundo y lugar público se ven por el WebSocket que ya sirve `/ws`. No hace falta otro servicio. Sin `DATABASE_URL`, mascotas, casas, amigos, feedback y notas viven en `state/vida.json` y se pierden si Render recicla el disco.
+
 No se copian fotos: cada ficha abre el enlace original. El índice se actualiza con `python3 tools/apartment_sync.py` (no desde el navegador). Detalle, variables y límites: [docs/SIMON.md](docs/SIMON.md). Esta entrega no autoriza merge ni despliegue: hace falta el sí explícito de Jay.
