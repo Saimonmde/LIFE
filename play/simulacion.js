@@ -198,7 +198,7 @@ function paintHud() {
   const el = $('#sai-saldo');
   if (!el || !api.S.econ) return;
   const subs = walletSubs(walletName());
-  const text = formatSai(subs);
+  const text = formatSai(subs).replace(/\s*SMC$/, ' Simoncoin');
   el.textContent = text;
   const pill = $('#smc-pill-saldo');
   if (pill) pill.textContent = text;
@@ -226,7 +226,7 @@ function paintHud() {
     bindUnit(chip);
   }
   const plata = (api.S.plata && api.S.plata.balanceSph) || 0;
-  const plataText = formatPlata(plata);
+  const plataText = formatPlata(plata).replace(/\s*SMP$/, ' Simonplata');
   const saldo = $('#plata-saldo');
   const saldoPanel = $('#plata-saldo-panel');
   if (saldo) saldo.textContent = plataText;
@@ -460,8 +460,11 @@ function applyServer(m) {
     api.S.plata = m.plata;
     if (m.balanceSph != null) api.S.plata.balanceSph = m.walletLocked ? 0 : m.balanceSph;
   }
+  if (m.reloj) api.S.reloj = m.reloj;
+  if (m.ledger) api.S.ledger = m.ledger;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
+  if (window.Cajon) Cajon.paint();
 }
 function blockOk(blocks, b) {
   if (!b) return false;
@@ -501,15 +504,22 @@ function renderLibro() {
       <td>${api.esc(row.account || '')}</td>
       <td class="num">${row.coin === 'SMP' ? api.esc(saldo(row)) : moneyHtml(saldo(row))}</td>
     </tr>`).join('') : '<tr><td colspan="5" class="libro-vacio">Todavía no hay movimientos de este tipo.</td></tr>';
-  el.innerHTML = `<aside class="libro-guia" aria-label="Cómo funcionan las monedas">
-      <div class="libro-par"><img src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><p><b>SMC</b> es la moneda de oro. Es escasa: habrá como máximo <b>21 millones</b> para siempre. Esa cantidad no crece, como el Bitcoin.</p></div>
-      <div class="libro-par"><img src="../graphics/mining/moneda_plata.svg?v=fusion-r1" alt=""><p><b>SMP</b> es la moneda de plata. Es más abundante: <b>84 millones</b>, y se mina más fácil.</p></div>
-      <div class="libro-cambio" aria-hidden="true"><img src="../graphics/mining/moneda_plata.svg?v=fusion-r1" alt=""><span>× 100</span><span class="flecha">→</span><img src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><span>× 1</span></div>
-      <p>Al cambiar, la plata se quema y el oro sale de un fondo que recibe 1/5 de cada SMC nuevo.</p>
-      <p>Cada cuenta tiene un tope al día para minar y para cambiar; cuando se acaba, toca esperar al día siguiente.</p>
+  const libroLine = (id, fallback) => {
+    const row = ((api.S.ledger && api.S.ledger.coins) || []).find(c => c.id === id);
+    if (!row) return fallback;
+    const minted = typeof row.minted === 'number' ? row.minted.toLocaleString('es-CO') : row.minted;
+    const max = Number(row.max || 0).toLocaleString('es-CO');
+    return `${row.name}: ${minted} de ${max}`;
+  };
+  el.innerHTML = `<aside class="libro-guia" aria-label="Las tres monedas">
+      <p><b>Simoncoin</b> es el oro. Habrá 21.000.000 y no más.</p>
+      <p><b>Simonplata</b> es la plata. Habrá 84.000.000 y no más.</p>
+      <p><b>Simonchis</b> son las monedas de cobre. Habrá 333.000.000.</p>
+      <p>Nadie puede crear de más, cambiar el máximo ni copiar una moneda.</p>
+      <p id="libro-totales">${api.esc(libroLine('simoncoin', 'Simoncoin: 0 de 21.000.000'))} · ${api.esc(libroLine('simonplata', 'Simonplata: 0 de 84.000.000'))} · ${api.esc(libroLine('simonchis', 'Simonchis: 0 de 333.000.000'))}</p>
     </aside>
-    <p class="aviso-legal">${api.esc(disc)} ${moneyHtml('1 SMC = 100.000.000 SMH')}.</p>
-    <p>Minadas: ${moneyHtml(formatSmc(api.S.econ.minedSmh || 0))} / ${moneyHtml(MAX_SUPPLY.toLocaleString('es-CO') + ' SMC')} · Premio de la era: ${moneyHtml(formatPair(rewardSmh(api.S.econ.minedSmh || 0)))}${api.S.supply && !api.S.supply.guest ? ` · Tope de hoy: ${moneyHtml(formatPair(api.S.supply.dailyCapSubs || 0))} · Quedan ${moneyHtml(formatPair(api.S.supply.remainingSubs || 0))}` : ''}</p>
+    <p class="aviso-legal">${api.esc(disc)}</p>
+    <p>${api.esc(libroLine('simoncoin', ''))}</p>
     <div class="libro-tabs" role="tablist">
       <button type="button" data-filtro="todo">Todo</button>
       <button type="button" data-filtro="minado">Minado</button>
@@ -689,8 +699,16 @@ function onNet(m) {
   if (m.t === 'issued' && m.libro && window.LibroMadre) LibroMadre.toast(m.libro);
   if (m.t === 'plata_result' || m.t === 'exchange_result') {
     if (m.plata) rememberPlata(m.plata);
+    if (m.ledger) api.S.ledger = m.ledger;
     const box = document.getElementById('cambio-result');
     if (box) box.textContent = m.reason || (m.ok ? 'Cambio hecho.' : 'No se pudo cambiar.');
+    const pending = api.S.pendingSmelt;
+    if (pending && pending.mode === 'simonplata') {
+      api.S.pendingSmelt = null;
+      if (m.ok && m.t === 'plata_result' && api.applySmelt) api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
+      else if (!m.ok) api.game(m.reason || 'No se acuñó Simonplata.', 'aviso');
+    }
+    if (window.Cajon) Cajon.paint();
     return true;
   }
   if (m.t === 'economy') {
@@ -711,13 +729,13 @@ function onNet(m) {
     }
     const pending = api.S.pendingSmelt;
     api.S.pendingSmelt = null;
+    if (m.ledger) api.S.ledger = m.ledger;
     if (m.ok && pending && api.applySmelt) {
       api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
-      if (m.amountText) {
-        const done = document.getElementById('forge-result');
-        if (done) done.textContent = `La fundidora acreditó ${m.amountText} tras la prueba de trabajo. No sale de las monedas de la mochila.`;
-      }
-    } else api.game(m.reason || 'La fundidora no acreditó las SMC.', 'aviso');
+      const done = document.getElementById('forge-result');
+      if (done) done.textContent = m.reason || (m.amountText ? `Entró ${m.amountText}.` : 'Listo.');
+    } else api.game(m.reason || 'No se acuñó nada. El mineral sigue en la mochila.', 'aviso');
+    if (window.Cajon) Cajon.paint();
     return true;
   }
   if (m.t === 'migrate_result') {
