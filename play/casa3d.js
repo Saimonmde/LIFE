@@ -266,6 +266,18 @@ export function buildHouse(T) {
   return { scene, pick, rebuild, setDoorHover(on) { for (const m of doorHovers) m.visible = !!on; } };
 }
 
+function gableRoof(T, width, depth, rise) {
+  const a = width / 2, b = depth / 2, positions = [];
+  const push = (...pts) => { for (const p of pts) positions.push(...p); };
+  const A = [-a, 0, b], B = [a, 0, b], C = [0, rise, b];
+  const D = [-a, 0, -b], E = [a, 0, -b], F = [0, rise, -b];
+  push(D, A, C, D, C, F, B, E, F, B, F, C, A, B, C, D, F, E);
+  const geo = new T.BufferGeometry();
+  geo.setAttribute('position', new T.Float32BufferAttribute(positions, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+
 export function buildHomeMarker(T, scene, pick, height, material) {
   const door = window.Casa.PARK_DOOR;
   const y = height(door.x, door.y);
@@ -273,21 +285,70 @@ export function buildHomeMarker(T, scene, pick, height, material) {
   g.position.set(door.x * 2 + 1, y, door.y * 2 + 1);
   g.rotation.y = Math.PI / 2;
   scene.add(g);
-  const mat = (c) => material(c);
-  function box(w, h, d, x, py, z, color) {
-    const m = new T.Mesh(new T.BoxGeometry(w, h, d), mat(color));
-    m.position.set(x, py, z); m.castShadow = m.receiveShadow = true; m.userData.id = 'puerta_casa';
-    g.add(m); pick.push(m); return m;
+  const shared = new Map();
+  const geo = (key, build) => { if (!shared.has(key)) shared.set(key, build()); return shared.get(key); };
+  const boxG = () => geo('box', () => new T.BoxGeometry(1, 1, 1));
+  const cyl = () => geo('cyl', () => new T.CylinderGeometry(1, 1, 1, 8));
+  const softCache = new Map();
+  function soft(color) {
+    if (!softCache.has(color)) softCache.set(color, new T.MeshLambertMaterial({ color, flatShading: false }));
+    return softCache.get(color);
   }
-  box(3.4, 3.2, 2.4, 0, 1.6, -0.4, '#f4f0e6');
-  box(3.8, 0.16, 2.8, 0, 3.25, -0.4, '#a86448');
-  box(0.2, 1.1, 3.1, -1.5, 3.7, -0.4, '#a86448');
-  box(0.2, 1.1, 3.1, 1.5, 3.7, -0.4, '#a86448');
-  box(3.2, 0.16, 0.2, 0, 4.15, -0.4, '#8d5438');
-  box(1.15, 2.15, 0.12, 0, 1.2, 0.82, '#6b4228');
-  box(1.5, 0.16, 0.16, 0, 2.35, 0.9, '#3d2918');
-  box(0.35, 0.5, 0.08, -1.15, 2.15, 0.9, '#7a5132');
-  box(0.55, 0.7, 0.08, 1.15, 2.15, 0.9, '#9ec4cf');
+  function add(mesh) {
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.userData.id = 'puerta_casa';
+    g.add(mesh); pick.push(mesh); return mesh;
+  }
+  function box(w, h, d, x, py, z, color) {
+    const m = new T.Mesh(boxG(), soft(color));
+    m.position.set(x, py, z); m.scale.set(w, h, d);
+    return add(m);
+  }
+  function post(x, py, z, r, h, color) {
+    const m = new T.Mesh(cyl(), soft(color));
+    m.position.set(x, py, z); m.scale.set(r, h, r);
+    return add(m);
+  }
+  const stucco = '#f4f0e6', tile = '#a86448', wood = '#6b4228', stone = '#b7a48a';
+  box(4.4, 0.28, 3.5, 0, 0.14, -0.25, stone);
+  box(3.4, 2.45, 2.45, 0, 1.5, -0.35, stucco);
+  for (const x of [-1.62, 1.62]) for (const z of [-1.48, 0.78]) post(x, 1.5, z, 0.1, 2.55, wood);
+  box(3.7, 0.12, 0.14, 0, 2.78, 0.9, wood);
+  const roofMat = soft(tile).clone();
+  roofMat.side = T.DoubleSide;
+  const roof = new T.Mesh(geo('gable', () => gableRoof(T, 4.5, 3.5, 1.25)), roofMat);
+  roof.position.set(0, 2.78, -0.3);
+  add(roof);
+  const ridge = new T.Mesh(cyl(), soft('#c47a52'));
+  ridge.rotation.x = Math.PI / 2; ridge.position.set(0, 4.08, -0.3); ridge.scale.set(0.1, 3.6, 0.1);
+  add(ridge);
+  box(0.42, 0.95, 0.42, 1.15, 3.55, -0.85, '#8d5438');
+  box(1.05, 1.85, 0.1, 0.35, 1.1, 0.92, '#5a3018');
+  box(1.28, 0.12, 0.14, 0.35, 2.08, 0.98, '#3d2918');
+  box(0.62, 0.72, 0.08, -0.85, 1.7, 0.96, wood);
+  box(0.4, 0.5, 0.05, -0.85, 1.7, 1.0, '#9ec4cf');
+  box(2.4, 0.1, 1.15, 0.2, 0.36, 1.2, '#cbb89a');
+  for (const x of [-0.75, 1.15]) post(x, 1.15, 1.55, 0.07, 1.55, wood);
+  box(2.5, 0.08, 0.85, 0.2, 1.95, 1.4, tile);
+  for (let i = 0; i < 4; i++) {
+    const step = new T.Mesh(cyl(), soft(i % 2 ? '#cfc3ae' : stone));
+    step.position.set(0.2, 0.05, 1.85 + i * 0.48);
+    step.scale.set(0.38, 0.07, 0.28);
+    add(step);
+  }
+  for (const z of [-1.85, 0.4]) {
+    for (const x of [-2.15, 2.15]) post(x, 0.55, z, 0.06, 0.95, wood);
+    box(4.2, 0.07, 0.07, 0, 0.82, z, '#8a6240');
+    box(4.2, 0.07, 0.07, 0, 0.42, z, '#8a6240');
+  }
+  for (const x of [-2.15, 2.15]) {
+    box(0.07, 0.07, 2.15, x, 0.82, -0.7, '#8a6240');
+    box(0.07, 0.07, 2.15, x, 0.42, -0.7, '#8a6240');
+  }
+  post(-0.55, 0.7, 2.05, 0.07, 1.25, '#5a3018');
+  post(0.72, 0.7, 2.05, 0.07, 1.25, '#5a3018');
+  box(0.38, 0.85, 0.06, -0.22, 0.58, 2.05, '#7a5132');
+  box(0.38, 0.85, 0.06, 0.4, 0.58, 2.05, '#7a5132');
   const c = document.createElement('canvas'); c.width = 512; c.height = 128;
   const x = c.getContext('2d');
   x.fillStyle = '#3a2412'; x.fillRect(0, 0, 512, 128);
@@ -295,9 +356,9 @@ export function buildHomeMarker(T, scene, pick, height, material) {
   x.fillStyle = '#fff1c9'; x.font = 'bold 54px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillText('CASA', 256, 64);
   const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
-  const board = new T.Mesh(new T.PlaneGeometry(2.4, 0.6), new T.MeshBasicMaterial({ map: tex }));
-  board.position.set(0, 3.55, 0.95); board.userData.id = 'puerta_casa'; g.add(board); pick.push(board);
+  const board = new T.Mesh(new T.PlaneGeometry(2.2, 0.55), new T.MeshBasicMaterial({ map: tex }));
+  board.position.set(0.2, 2.35, 1.55); board.userData.id = 'puerta_casa'; g.add(board); pick.push(board);
   const tag = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
-  tag.position.set(0, 5.1, 0); tag.scale.set(3.2, 0.8, 1); tag.userData.id = 'puerta_casa'; g.add(tag); pick.push(tag);
+  tag.position.set(0, 4.7, 0); tag.scale.set(3.2, 0.8, 1); tag.userData.id = 'puerta_casa'; g.add(tag); pick.push(tag);
   return g;
 }
