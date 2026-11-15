@@ -335,6 +335,18 @@ async function elegirCasa(id) {
     if (status) status.textContent = error.message;
   }
 }
+function launchRide(kind, x, y) {
+  const go = () => {
+    const view = window.LIVE3D;
+    if (!view) return false;
+    if (kind === 'ovni' && view.startOvni) { view.startOvni(x, y); return true; }
+    if (kind === 'heli' && view.startHeli) { view.startHeli(x, y); return true; }
+    return false;
+  };
+  const later = () => { if (!go()) { let n = 0; const id = setInterval(() => { n += 1; if (go() || n > 40) clearInterval(id); }, 100); } };
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(later));
+  else later();
+}
 function placeAtTown(spot) {
   if (!spot) return;
   if ((W.mapId || 'city') !== 'city' && cityMap) switchMap('city');
@@ -351,19 +363,28 @@ function startGame() {
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
   const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';
-  const ovni = !AUTOTEST && window.LIFE_WANT_INTRO === 'ovni' && window.LIFE_OVNI;
-  const heliSpot = !ovni && !AUTOTEST && mid && window.Hogar && Hogar.entryMode(false) === 'heli' && Hogar.stand(mid);
+  const home = mid && window.Hogar ? Hogar.stand(mid) : null;
+  const trip = (window.Llegada ? Llegada.plan({
+    autotest: AUTOTEST,
+    intro: window.LIFE_WANT_INTRO,
+    x: window.LIFE_OVNI && window.LIFE_OVNI.x,
+    y: window.LIFE_OVNI && window.LIFE_OVNI.y,
+    municipio: mid,
+    hx: home && home.x,
+    hy: home && home.y,
+    flew: !!localStorage.getItem('lifeinc.vuelo.v1'),
+  }) : { kind: 'none' });
+  const ovni = trip.kind === 'ovni';
+  const heliSpot = trip.kind === 'heli' ? { x: trip.x, y: trip.y } : null;
   let fly = false;
   if (ovni) {
-    placeAtTown(window.LIFE_OVNI);
-    try { localStorage.setItem('lifeinc.vuelo.v1', '1'); } catch (e) {}
-    if (window.LIVE3D && LIVE3D.startOvni) LIVE3D.startOvni(window.LIFE_OVNI.x, window.LIFE_OVNI.y);
+    placeAtTown({ x: trip.x, y: trip.y });
+    launchRide('ovni', trip.x, trip.y);
   } else if (heliSpot) {
     placeAtTown(heliSpot);
     window.LIFE_WANT_INTRO = 'heli';
     window.LIFE_HELI = heliSpot;
-    try { localStorage.setItem('lifeinc.vuelo.v1', '1'); } catch (e) {}
-    if (window.LIVE3D && LIVE3D.startHeli) LIVE3D.startHeli(heliSpot.x, heliSpot.y);
+    launchRide('heli', heliSpot.x, heliSpot.y);
   } else {
     fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
     if (fly) {

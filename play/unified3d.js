@@ -356,10 +356,10 @@ function boot(api){
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
  status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(status.ovni||status.heli||window.LIFE_WANT_INTRO==='ovni'||window.LIFE_WANT_INTRO==='heli')return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:7000};};
  status.startOvni=(x,y)=>{if(/autotest=1/.test(location.search)||status.ovni)return;status.fly=null;status.heli=null;valley.setFly(null);status.ovni={t0:performance.now(),dur:narrow()?5200:5600,x,y};const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=false;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}};
- status.startHeli=(x,y)=>{if(/autotest=1/.test(location.search)||status.heli||status.ovni)return;status.fly=null;valley.setFly(null);status.heli={t0:performance.now(),dur:narrow()?4200:4800,x,y};const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=false;};
- const endRide=(ride)=>{if(!ride)return false;if(performance.now()-ride.t0<450)return true;ride.t0=performance.now()-ride.dur;return true;};
- const skipRide=()=>{if(endRide(status.ovni)||endRide(status.heli))return;if(!status.fly)return;status.fly.t0=performance.now()-status.fly.dur;};
- addEventListener('keydown',skipRide);addEventListener('pointerdown',skipRide);
+ status.startHeli=(x,y)=>{if(/autotest=1/.test(location.search)||status.heli||status.ovni)return;status.fly=null;valley.setFly(null);status.heli={t0:performance.now(),dur:narrow()?4200:4800,x,y};const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=false;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}};
+ const endRide=(ride)=>{if(!ride)return false;if(performance.now()-ride.t0<1200)return true;ride.t0=performance.now()-ride.dur;return true;};
+ const skipRide=(e)=>{if(e&&e.target&&e.target.closest&&e.target.closest('button,a,input,textarea,select,#vida-puerta,#hogar,#poner-clave'))return;if(e&&e.key&&e.key!=='Escape'&&e.type==='keydown')return;if(endRide(status.ovni)||endRide(status.heli))return;if(!status.fly)return;status.fly.t0=performance.now()-status.fly.dur;};
+ addEventListener('keydown',skipRide);
  const skipBtn=document.getElementById('ovni-saltar');if(skipBtn)skipBtn.onclick=(e)=>{e.stopPropagation();if(status.ovni)status.ovni.t0=performance.now()-status.ovni.dur;if(status.heli)status.heli.t0=performance.now()-status.heli.dur;};
  if(window.LIFE_WANT_INTRO==='ovni'&&window.LIFE_OVNI)status.startOvni(window.LIFE_OVNI.x,window.LIFE_OVNI.y);
  else if(window.LIFE_WANT_INTRO==='heli'&&window.LIFE_HELI)status.startHeli(window.LIFE_HELI.x,window.LIFE_HELI.y);
