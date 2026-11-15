@@ -86,10 +86,13 @@
       ['cafe', 'Café', kg.cafe || 0, bags.cafe || 0],
       ['cacao', 'Cacao', kg.cacao || 0, bags.cacao || 0],
     ];
-    const cropHtml = crops.map(([id, name, kilos, count]) => (
-      `<article class="libro-crop"><div class="libro-ico">${icon(id)}${icon('kg')}${icon('bag')}</div>` +
-      `<h3>${name}</h3><p><b>${esc(formatEs(kilos))} kg</b> cosechados</p><p><b>${esc(formatEs(count))}</b> bultos procesados</p></article>`
-    )).join('');
+    const cropHtml = crops.map(([id, name, kilos, count]) => {
+      const spec = (finca.crops || {})[id] || {};
+      const fresh = spec.freshName ? ` de ${esc(spec.freshName)}` : '';
+      const unit = spec.unitCount ? esc(spec.unitCount) : 'bultos procesados';
+      return `<article class="libro-crop"><div class="libro-ico">${icon(id)}${icon('kg')}${icon('bag')}</div>` +
+        `<h3>${name}</h3><p><b>${esc(formatEs(kilos))} kg</b> cosechados${fresh}</p><p><b>${esc(formatEs(count))}</b> ${unit}</p></article>`;
+    }).join('');
     const coins = [
       ['simoncoin', 'oro', 'Simoncoin', 'Oro', 21000000],
       ['simonplata', 'plata', 'Simonplata', 'Plata', 84000000],

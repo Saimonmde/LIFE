@@ -2,8 +2,13 @@
 """Cafetal y cacaotal de Las Palmas.
 
 El café y el cacao crecen con el reloj del juego. El taller escribe cada
-bulto en el libro, con serie y hash. Los kilos cosechados son un total
-público: vender, guardar o pasar un bulto no los baja.
+saco o cajón en el libro, con serie y hash. Los kilos cosechados son fruto
+fresco y sólo suben: vender, guardar, pasar o procesar no los baja. El
+taller tampoco crea kilos. Café: 5 kg de cereza dan 1 kg de pergamino seco
+(Cenicafé, rango 4,7 a 5,3; se usa 5), 94 kg de pergamino dan un saco de
+70 kg de excelso, y una carga son 125 kg de pergamino (FNC). Cacao: un
+cajón de 1 × 1 × 0,9 m lleva 450 kg en baba y rinde 150 kg secos. Las
+citas están en data/finca.json y en docs/unidades-finca.md.
 
 Aquí no se acuñan monedas ni lingotes. Una venta sólo mueve monedas que
 ya existen, desde la Casa de Contratación. Si no le alcanzan, no compra.
@@ -27,6 +32,9 @@ SUPPLY_NUMS = (
     'simoncoinSum', 'simonplataSum', 'simonchisSum',
 )
 PRIVATE_ROLES = frozenset(('owner', 'admin', 'compliance'))
+# Pesos que ya estaban guardados antes de cuadrar el rendimiento.
+# No se reescriben: un saco viejo sigue pesando lo que decía su ficha.
+LEGACY_SACK_KG = {'cafe': 70, 'cacao': 50}
 
 
 class FincaError(ValueError):
@@ -64,6 +72,15 @@ def empty_state():
     }
 
 
+def _keep_saved_mass(bag):
+    """Un bulto ya guardado conserva sus kilos. No se inventan ni se bajan."""
+    row = dict(bag)
+    if not row.get('massRule'):
+        row['massRule'] = 'legado'
+        row['productKg'] = int(row.get('kg') or 0)
+    return row
+
+
 def normalize(state):
     base = empty_state()
     if not isinstance(state, dict):
@@ -77,13 +94,85 @@ def normalize(state):
         base['processedBags'][crop] = int((state.get('processedBags') or {}).get(crop) or 0)
         base['soldBags'][crop] = int((state.get('soldBags') or {}).get(crop) or 0)
         base['harvestPrev'][crop] = str((state.get('harvestPrev') or {}).get(crop) or '')
-    for key in ('accounts', 'bags'):
-        if isinstance(state.get(key), dict):
-            base[key] = state[key]
+    if isinstance(state.get('accounts'), dict):
+        base['accounts'] = state['accounts']
+        for box in base['accounts'].values():
+            if not isinstance(box, dict):
+                continue
+            for crop, batch in (box.get('batches') or {}).items():
+                if isinstance(batch, dict) and not batch.get('massRule'):
+                    batch['massRule'] = 'legado'
+                    batch['sackKg'] = LEGACY_SACK_KG.get(str(crop), int(batch.get('sackKg') or 0))
+    bags = state.get('bags')
+    if isinstance(bags, dict):
+        base['bags'] = {
+            serial: _keep_saved_mass(bag)
+            for serial, bag in bags.items()
+            if isinstance(bag, dict)
+        }
     for key in ('publicEvents', 'privateEvents', 'feed'):
         if isinstance(state.get(key), list):
             base[key] = state[key]
     return base
+
+
+def batch_balance(spec, config):
+    """Kilos frescos del lote y kilos secos que salen. No crea masa.
+
+    El tamaño de cada cosecha está elegido para llenar unidades reales
+    con las mismas 10 cosechas y los mismos 2 resultados. Café: 94 kg de
+    cereza por cosecha. Cacao: 90 kg en baba, un quinto de cajón.
+    """
+    need = int(config.get('harvestsPerBatch') or 0)
+    bags = int(config.get('bagsPerBatch') or 0)
+    per = int(spec.get('kgPerHarvest') or 0)
+    sack = int(spec.get('bagKg') or 0)
+    fresh = need * per
+    ratio = spec.get('yield') or {}
+    num = int(ratio.get('num') or 0)
+    den = int(ratio.get('den') or 0)
+    if min(need, bags, per, sack, num, den) <= 0:
+        raise FincaError('falta el rendimiento del cultivo')
+    if fresh * num % den:
+        raise FincaError('la conversión no da kilos enteros')
+    dry = fresh * num // den
+    if dry != bags * sack:
+        raise FincaError('el peso seco no cuadra con la unidad')
+    if fresh % bags:
+        raise FincaError('el peso fresco no se reparte')
+    out = {
+        'freshKg': fresh,
+        'dryKg': dry,
+        'sackKg': sack,
+        'freshEach': fresh // bags,
+        'bags': bags,
+    }
+    parchment = spec.get('parchment')
+    if parchment:
+        cherry = int(parchment.get('cherryKg') or 0)
+        per_sack = int(parchment.get('perSackKg') or 0)
+        carga = int(parchment.get('cargaKg') or 0)
+        if min(cherry, per_sack, carga) <= 0 or fresh % cherry:
+            raise FincaError('la cereza no da pergamino entero')
+        pergamino = fresh // cherry
+        if pergamino * sack % per_sack:
+            raise FincaError('la trilla no da sacos enteros')
+        excelso = pergamino * sack // per_sack
+        if excelso != dry:
+            raise FincaError('el excelso no cuadra con el pergamino')
+        out['pergaminoKg'] = pergamino
+        out['cargas'] = pergamino // carga
+        out['cargaRestoKg'] = pergamino % carga
+    box = spec.get('box')
+    if box:
+        baba = int(box.get('babaKg') or 0)
+        box_dry = int(box.get('dryKg') or 0)
+        if baba <= 0 or box_dry <= 0 or fresh != bags * baba or box_dry != sack:
+            raise FincaError('el lote no llena cajones enteros')
+        if baba * num // den != box_dry:
+            raise FincaError('el cajón no respeta la merma')
+        out['boxes'] = bags
+    return out
 
 
 def load(path):
@@ -335,15 +424,26 @@ def _tick(state, box, crop, now, config, account):
         return False
     harvests = list(batch.get('harvests') or [])
     made = []
+    kg = int(batch.get('sackKg') or 0)
+    if kg <= 0:
+        raise FincaError('el lote no tiene un peso')
+    name = 'café' if crop == 'cafe' else 'cacao'
+    if batch.get('massRule') == 'legado':
+        phrase = f'Se procesó 1 bulto de {name}'
+    else:
+        phrase = spec.get('processPhrase') or f'Se procesó 1 unidad de {kg} kg de {name}.'
     for _ in range(int(config.get('bagsPerBatch') or 2)):
         serial = _next(state, spec.get('serialPrefix') or crop[:3].upper())
         prev_bag = state.get('lastBagHash') or ''
         step_hashes = list(batch.get('stepHashes') or [])
-        bag_hash = _bag_hash(serial, crop, spec.get('bagKg') or 0, spec.get('product') or '', harvests, batch['id'], step_hashes, prev_bag)
+        bag_hash = _bag_hash(serial, crop, kg, spec.get('product') or '', harvests, batch['id'], step_hashes, prev_bag)
         bag = {
             'serial': serial,
             'crop': crop,
-            'kg': int(spec.get('bagKg') or 0),
+            'kg': kg,
+            'productKg': kg,
+            'freshKg': int(batch.get('freshKg') or 0),
+            'massRule': batch.get('massRule') or 'rendimiento',
             'product': spec.get('product') or '',
             'harvests': harvests,
             'batch': batch['id'],
@@ -358,8 +458,7 @@ def _tick(state, box, crop, now, config, account):
         state['bags'][serial] = bag
         state['lastBagHash'] = bag_hash
         state['processedBags'][crop] = int(state['processedBags'].get(crop) or 0) + 1
-        name = 'café' if crop == 'cafe' else 'cacao'
-        _log(state, 'proceso', account, now, f'Se procesó 1 bulto de {name}', crop=crop, serial=serial, prev=prev_bag, digest=bag_hash)
+        _log(state, 'proceso', account, now, phrase, crop=crop, serial=serial, prev=prev_bag, digest=bag_hash)
         made.append(serial)
     box['batches'].pop(crop, None)
     batch['made'] = made
@@ -432,6 +531,7 @@ def process(state, config, account, crop, now):
         _log(state, 'taller', account, now, f'El taller de {spec["name"].lower()} empezó: {label.lower()}.', crop=crop)
         return {'done': False, 'step': label}
     need = int(config.get('harvestsPerBatch') or 10)
+    balance = batch_balance(spec, config)
     item = spec['harvestItem']
     have = int(box['goods'].get(item) or 0)
     if have < need:
@@ -449,6 +549,9 @@ def process(state, config, account, crop, now):
         'harvests': used,
         'stepHashes': [],
         'hash': '',
+        'massRule': 'rendimiento',
+        'sackKg': balance['sackKg'],
+        'freshKg': balance['freshEach'],
     }
     _log(state, 'taller', account, now, f'El taller de {spec["name"].lower()} empezó: {steps[0]["label"].lower()}.', crop=crop)
     return {'done': False, 'step': steps[0]['label']}
@@ -561,6 +664,10 @@ def public_payload(state, purse, config):
         spec = config['crops'][crop]
         crops[crop] = {
             'name': spec['name'],
+            'freshName': spec.get('freshName') or spec.get('harvestName') or '',
+            'kgPerHarvest': int(spec.get('kgPerHarvest') or 0),
+            'sackKg': int(spec.get('bagKg') or 0),
+            'unitCount': spec.get('unitCount') or 'bultos procesados',
             'harvestedKg': int(state['harvestedKg'].get(crop) or 0),
             'processedBags': int(state['processedBags'].get(crop) or 0),
             'circulation': _circulation(state, crop),
@@ -663,10 +770,15 @@ def player_view(state, config, account, purse, now):
         'harvestsPerBatch': int(config.get('harvestsPerBatch') or 10),
         'bagsPerBatch': int(config.get('bagsPerBatch') or 2),
         'stepSeconds': int(config.get('stepSeconds') or 8),
+        'ripeningNote': ((config.get('ripening') or {}).get('note') or ''),
         'crops': {
             crop: {
                 'name': spec['name'],
                 'harvestName': spec['harvestName'],
+                'freshName': spec.get('freshName') or '',
+                'kgPerHarvest': int(spec.get('kgPerHarvest') or 0),
+                'bagKg': int(spec.get('bagKg') or 0),
+                'note': spec.get('note') or '',
                 'steps': [step['label'] for step in _steps(spec)],
                 'eduSteps': [step.get('label') or step.get('id') for step in ((config.get('edu') or {}).get(crop) or [])],
                 'prices': spec.get('prices') or {},
