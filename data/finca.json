@@ -10,6 +10,24 @@
   "greenAfterDays": 1,
   "ripeAfterDays": 2,
   "plots": { "cafe": 8, "cacao": 8 },
+  "edu": {
+    "phases": ["siembra", "crecimiento", "floracion", "fruto", "cosecha"],
+    "cafe": [
+      { "id": "despulpado", "label": "Despulpado" },
+      { "id": "fermentacion", "label": "Fermentación" },
+      { "id": "lavado", "label": "Lavado" },
+      { "id": "secado", "label": "Secado" },
+      { "id": "trilla", "label": "Trilla" },
+      { "id": "bulto", "label": "Bulto" }
+    ],
+    "cacao": [
+      { "id": "quiebre", "label": "Quiebre" },
+      { "id": "fermentacion", "label": "Fermentación en cajones" },
+      { "id": "secado", "label": "Secado" },
+      { "id": "seleccion", "label": "Selección" },
+      { "id": "libro", "label": "Kilos al Libro Mayor" }
+    ]
+  },
   "crops": {
     "cafe": {
       "name": "Café",
