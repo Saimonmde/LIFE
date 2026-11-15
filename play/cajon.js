@@ -88,7 +88,7 @@
   }
   function lugares() {
     const world = window.LiveInk && LiveInk.world;
-    const list = [{ id: 'casa', name: 'Casa' }];
+    const list = [{ id: 'casa', name: 'Casa' }, { id: 'mina', name: 'Mina de Las Palmas', mine: true }];
     if (window.Casa && Casa.PARK_STAND) list.push({ id: 'parque', name: 'Parque de Envigado', x: Casa.PARK_STAND.x, y: Casa.PARK_STAND.y });
     if (window.EnvigadoPark && EnvigadoPark.skateTiles) {
       const tile = EnvigadoPark.skateTiles()[0];
@@ -113,9 +113,10 @@
       name.textContent = place.name;
       const go = document.createElement('button');
       go.type = 'button';
-      go.textContent = 'Ir a caballo';
+      go.textContent = place.mine ? 'Ir a la mina / Picar' : 'Ir a caballo';
       go.onclick = () => {
-        if (window.LiveInk && LiveInk.rideHorseTo) LiveInk.rideHorseTo(place);
+        if (place.mine && window.LiveInk && LiveInk.goMine) LiveInk.goMine();
+        else if (window.LiveInk && LiveInk.rideHorseTo) LiveInk.rideHorseTo(place);
         closeDrawer();
       };
       row.append(name, go);
@@ -212,7 +213,18 @@
     try { paint(); } catch (e) { console.error(e); }
     try { paintPlaces(); } catch (e) { console.error(e); }
   }
+  function mountPicar() {
+    if (document.getElementById('b-picar')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'b-picar';
+    button.textContent = 'Picar';
+    button.title = 'Ir a la mina y picar';
+    button.onclick = () => { if (window.LiveInk && LiveInk.goMine) LiveInk.goMine(); };
+    document.body.append(button);
+  }
   function boot() {
+    mountPicar();
     document.body.classList.add('mapa-limpio');
     pullClock();
     fillDrawer();

@@ -174,6 +174,19 @@ class ProofTests(unittest.TestCase):
         self.assertEqual(done['credited'], 0)
 
 
+    def test_a_few_tries_do_not_pause_and_the_message_says_what_stops(self):
+        state = eco.empty_state()
+        who = profile()
+        now = 2_000_000
+        for i in range(8):
+            opened = sup.open_challenge(state, who, 'acunar', 'intento-' + str(i), now=now + i)
+            self.assertTrue(opened['ok'], opened.get('reason'))
+        text = sup.reason_text('anomaly')
+        self.assertIn('15 minutos', text)
+        self.assertIn('caminar', text)
+        self.assertNotIn('anómalo', text)
+
+
 class ServerMintTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

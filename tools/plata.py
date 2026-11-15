@@ -66,8 +66,8 @@ REASONS = {
     'supply': 'Se alcanzó el tope de 84.000.000 SMP.',
     'activity': 'Muévete y juega un poco antes de reclamar Plata.',
     'cooldown': 'Espera un momento para volver a intentarlo.',
-    'rate': 'Demasiados intentos. Esta cuenta o esta red queda en pausa un rato.',
-    'anomaly': 'Se detectó un ritmo anómalo. Esta cuenta o esta red queda en pausa un rato.',
+    'rate': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
+    'anomaly': 'La acuñación queda en pausa 15 minutos. Puedes caminar, hablar y recoger metal. No se crean monedas hasta que pase ese tiempo.',
     'pool': 'El fondo de oro se está llenando; vuelve cuando se mine más SMC',
     'exchange_cap': 'Llegaste al tope de cambio de hoy.',
     'slice': 'Hoy ya tomaste tu parte del fondo. Mañana hay otro tramo.',
@@ -427,7 +427,10 @@ def open_challenge(state, profile, action, context, now=None):
         return {'ok': False, 'reason': why, 'view': view}
     acc['challenges'] = _prune(acc.get('challenges'), now, 600)
     row['challenges'] = _prune(row.get('challenges'), now, 600)
-    if len(acc['challenges']) >= sup.CHALLENGES_PER_10MIN or len(row['challenges']) >= sup.IP_CHALLENGES_PER_10MIN:
+    if len(acc['challenges']) >= sup.CHALLENGES_PER_10MIN:
+        acc['penaltyUntil'] = max(int(acc.get('penaltyUntil') or 0), int(now) + sup.PENALTY)
+        return {'ok': False, 'reason': 'rate', 'view': _view(state, profile, now)}
+    if len(row['challenges']) >= sup.IP_CHALLENGES_PER_10MIN:
         code = _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': code, 'view': _view(state, profile, now)}
     personal, _recent = _personal(acc, now, 'claims')

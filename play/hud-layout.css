@@ -132,7 +132,8 @@ body.hud-editando .hud-pieza > header { cursor: grab; }
 .hud-pieza.hud-minimo { width: auto !important; max-width: 220px; min-height: 48px; overflow: hidden; }
 .hud-minimo .hud-escala, .hud-minimo .hud-asa { display: none !important; }
 @media (min-width: 701px) {
-  body.in-casa #b-casa, body.in-casa #b-editar-casa { top: 64px; }
+  body.in-casa #b-casa { top: 64px; }
+  body.in-casa #b-editar-casa { top: calc(max(8px, env(safe-area-inset-top)) + 112px); }
 }
 .hud-pieza.hud-minimo > :not(header) { display: none !important; }
 .hud-pieza.hud-cerrado { display: none !important; }
