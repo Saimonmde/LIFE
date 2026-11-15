@@ -28,6 +28,7 @@ import simon_api as SIMON_API
 import reloj as RELOJ
 import cobre as COBRE
 import monedas as MONEDAS
+import lingotes as LINGOTES
 import finca as FINCA
 import persist as PERSIST
 import purses as PURSES
@@ -749,16 +750,23 @@ def acunar_for(sender, coin, pieces, proof=None):
     })
 
 def fundir_lingotes(sender, ore, batches):
-    metal = METAL.get(ore)
-    if not metal:
-        return _smelt_fail(sender, 'Ese mineral no se funde.')
-    qty = batches
-    item = 'lingote_' + metal
-    MONEDAS.anotar_lingotes(ECON, sender.name, item, qty)
+    return _smelt_fail(sender, 'Los lingotes no se funden en el horno.')
+
+def lingote_for(sender, metal, qty):
+    reason = LINGOTES.rechazar(getattr(sender, 'user', None), getattr(sender, 'zone', ''))
+    if reason:
+        return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': reason})
+    try:
+        done = LINGOTES.fundir(ECON, sender.name, metal, qty, time.time())
+    except (TypeError, ValueError):
+        return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': 'Esa cantidad no se funde.'})
     save_econ()
-    note = f'El horno guardó {qty} lingote{"s" if qty != 1 else ""} de {metal}.'
-    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'ingot', 'ore': ore, 'batches': batches, 'item': item, 'qty': qty, 'reason': note, 'ledger': MONEDAS.ledger(ECON, sender.name)})
-    send(sender, {'t': 'system', 'text': note})
+    send(sender, {'t': 'lingote_result', 'ok': True, 'reason': 'Quedó en la reserva del Banco Central.', 'ledger': MONEDAS.ledger(ECON, sender.name), **done})
+
+def lingote_ver(sender):
+    if not LINGOTES.autorizado(getattr(sender, 'user', None)):
+        return send(sender, {'t': 'lingote_estado', 'ok': False, 'reason': 'Esta ventanilla no está abierta para esta cuenta.'})
+    send(sender, {'t': 'lingote_estado', 'ok': True, **LINGOTES.vista(ECON)})
 
 def fundir_simonchis(sender, ore, batches, proof):
     profile = account_profile(sender)
@@ -1711,7 +1719,7 @@ def finca_msg(sender, message):
 def handle_client_message(c, m, t):
     if t == 'hello':
         if c.hello: return
-        c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'city') else 'city'
+        c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'central', 'city') else 'city'
         c.world = MUNDOS.normalize(m.get('world')) or 1
         if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
         else: c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
@@ -1739,7 +1747,7 @@ def handle_client_message(c, m, t):
         owned = bind_wallet(c.name, presented)
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''
-        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
+        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                  'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
@@ -1760,7 +1768,7 @@ def handle_client_message(c, m, t):
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
         now_move = time.time()
-        if zone in ('casa', 'mine', 'banco'):
+        if zone in ('casa', 'mine', 'banco', 'central'):
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
             c.zone = zone
@@ -1845,6 +1853,10 @@ def handle_client_message(c, m, t):
         acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'))
     elif t == 'smelt' and c.hello:
         smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'), m.get('mode'))
+    elif t == 'lingote' and c.hello:
+        lingote_for(c, m.get('metal'), m.get('qty'))
+    elif t == 'lingote_ver' and c.hello:
+        lingote_ver(c)
     elif t == 'swing' and c.hello:
         swing_for(c, m.get('mineral'), m.get('qty'))
     elif t == 'lavar' and c.hello:
