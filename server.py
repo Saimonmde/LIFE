@@ -29,6 +29,9 @@ import reloj as RELOJ
 import cobre as COBRE
 import monedas as MONEDAS
 import persist as PERSIST
+import purses as PURSES
+import trades as TRADE
+import bridge4sur
 import mundos as MUNDOS
 import social as SOCIAL
 import topes as TOPES
@@ -50,6 +53,7 @@ SERVER_ID = uuid.uuid4().hex[:12]
 
 with open(os.path.join(ROOT, 'data', 'el-jardin.json'), encoding='utf-8') as f:
     WORLD = json.load(f)
+bridge4sur.install(WORLD)
 COLL = WORLD['collision']
 SPAWN = (WORLD['spawn']['x'], WORLD['spawn']['y'])
 _pl = next((a for a in WORLD.get('areas', []) if a['id'] == 'plaza'), None)
@@ -235,6 +239,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['reloj'] = RELOJ.payload(ECON)
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
     m['cupos'] = cupos_public(profile)
+    m['purse'] = PURSES.public(VAULT_STATE, who) if who and not locked else {'items': {}, 'catalog': dict(PURSES.CATALOG)}
     return m
 
 def token_matches(stored, presented):
@@ -1122,6 +1127,39 @@ def broadcast_econ():
         if c.hello and not c.bot:
             send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c)))
 
+def _trade_balances(name):
+    return {
+        'smc': int((ECON.get('wallets') or {}).get(name) or 0),
+        'smp': PLATA.balance_of(ECON, name),
+        'cobre': COBRE.balance_of(ECON, name),
+        'items': PURSES.inventory(VAULT_STATE, name),
+    }
+
+def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
+    """Las dos patas se escriben juntas. Si el guardado falla, la memoria no cambia."""
+    import copy
+    candidate = copy.deepcopy(ECON)
+    vault = copy.deepcopy(VAULT_STATE)
+    chain = copy.deepcopy(LIBRO_CHAIN)
+    records = TRADE.apply_exchange(
+        candidate, vault, chain, NFT_SEED, name_a, name_b, offer_a, offer_b, trade_id,
+    )
+    PERSIST.save_bundle(
+        [
+            ('economy', ECON_PATH, candidate),
+            ('libro_madre', LIBRO_PATH, chain),
+            ('vault', VAULT_PATH, vault),
+        ],
+        [record['id'] for record in records],
+        os.path.dirname(LIBRO_PATH),
+    )
+    _volcar(ECON, candidate)
+    _volcar(VAULT_STATE, vault)
+    _volcar(LIBRO_CHAIN, chain)
+    broadcast_econ()
+
+TRADES = TRADE.Trades(clients, send, _trade_balances, commit_trade)
+
 def dist(a, b):
     if a is b: return 0
     if getattr(a, 'zone', 'city') == 'casa' or getattr(b, 'zone', 'city') == 'casa': return 1e9
@@ -1426,6 +1464,7 @@ async def handle_ws(reader, writer, cookie='', ip=''):
     except (asyncio.IncompleteReadError, ConnectionError, OSError, asyncio.TimeoutError):
         pass
     finally:
+        TRADES.cancel(c.id, 'Intercambio cancelado por desconexión.')
         clients.pop(c.id, None)
         if c.hello:
             broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_room(c, o))
@@ -1502,7 +1541,13 @@ def handle_client_message(c, m, t):
         c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
         room_shift(c, old_world, old_place)
     elif t == 'ping':
+        TRADES.expire()
         send(c, {'t': 'pong', 'c': m.get('c')})
+    elif isinstance(t, str) and t.startswith('trade_') and c.hello:
+        try:
+            TRADES.handle(c, m)
+        except TRADE.TradeError as err:
+            send(c, {'t': 'trade_error', 'reason': str(err)})
     elif t == 'chat' and c.hello:
         if str(m.get('channel', 'proximidad')).lower() == 'privado':
             vida_privado(c, m)

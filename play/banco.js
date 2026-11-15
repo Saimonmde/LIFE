@@ -98,11 +98,49 @@
     const plataBtn = document.getElementById('banquito-unidad-plata');
     if (oroBtn && Simulacion.unidadActiva) oroBtn.textContent = Simulacion.unidadActiva() === 'SMH' ? 'Ver en SMC' : 'Ver en SMH';
     if (plataBtn && Simulacion.unidadPlata) plataBtn.textContent = Simulacion.unidadPlata() === 'SPH' ? 'Ver en SMP' : 'Ver en SPH';
+    const state = window.LiveInk && LiveInk.state;
+    const online = !!(state && state.net && state.net.ok && !state.walletLocked);
+    const status = document.getElementById('bank-state');
+    const daily = document.getElementById('bank-daily');
+    if (status) {
+      status.textContent = !state || !state.net || !state.net.ok
+        ? 'Sin conexión: saldos en caché. Reconecta para mover monedas u objetos.'
+        : state.walletLocked
+          ? 'Billetera bloqueada en este dispositivo. Recupera el acceso para operar.'
+          : 'Conectado. Billetera y depósito los valida el servidor. Lo pendiente de emitir no es saldo.';
+    }
+    if (daily) {
+      const supply = state && state.supply;
+      const chis = state && state.ledger && state.ledger.balances ? state.ledger.balances.simonchis : 0;
+      if (!supply) daily.textContent = 'Simonchis en la billetera: ' + chis + '.';
+      else if (supply.guest) daily.textContent = 'Inicia sesión para ver la emisión de hoy. Simonchis en la billetera: ' + chis + '.';
+      else {
+        const fmt = window.Simulacion && Simulacion.formatSai ? Simulacion.formatSai : (n) => n + ' SMH';
+        daily.textContent = 'Emisión disponible hoy: ' + fmt(supply.remainingSubs || 0)
+          + ' de un límite de ' + fmt(supply.dailyCapSubs || 0)
+          + '. Pendiente de emitir: ' + fmt(supply.owedSubs || 0)
+          + '. Simonchis en la billetera: ' + chis + '.';
+      }
+    }
+    const dockBalance = document.getElementById('bank-dock-balance');
+    if (dockBalance) dockBalance.textContent = online ? 'Depósito ' + texto : 'Ver depósito';
+    for (const id of ['banquito-depositar', 'banquito-retirar', 'banquito-depositar-plata', 'banquito-retirar-plata', 'banco-cambiar']) {
+      const button = document.getElementById(id);
+      if (button) button.disabled = !online;
+    }
     if (!items) return;
+    const world = window.LiveInk && LiveInk.world;
+    const face = (id, text) => {
+      const it = world && world.items && world.items[id];
+      const known = { bolsa_cafe: 'Bolsa de café', bolsa_cacao: 'Bolsa de cacao' };
+      const name = (it && it.name) || known[id] || id;
+      const icon = it && it.icon && it.icon['32'] ? '<img src="../' + esc(it.icon['32']) + '" alt="">' : '';
+      return icon + esc(text).replace(esc(id), esc(name));
+    };
     const rows = Object.entries(box.items || {});
-    const carried = (window.LiveInk && LiveInk.state && LiveInk.state.inv || []).filter(Boolean);
-    const deposit = carried.map(slot => `<button type="button" data-dep="${esc(slot.item)}" data-qty="1">Guardar 1 ${esc(slot.item)}</button>`).join(' ');
-    const withdraw = rows.map(([id, qty]) => `<button type="button" data-ret="${esc(id)}" data-qty="1">Retirar 1 ${esc(id)} (${qty})</button>`).join(' ');
+    const carried = (state && state.inv || []).filter(Boolean);
+    const deposit = carried.map(slot => `<button type="button" data-dep="${esc(slot.item)}" data-qty="1">${face(slot.item, 'Guardar 1 ' + slot.item)}</button>`).join(' ');
+    const withdraw = rows.map(([id, qty]) => `<button type="button" data-ret="${esc(id)}" data-qty="1">${face(id, 'Retirar 1 ' + id + ' (' + qty + ')')}</button>`).join(' ');
     items.innerHTML = (rows.length ? '' : '<p>No hay objetos en el depósito.</p>') + deposit + withdraw;
     items.querySelectorAll('[data-dep]').forEach(b => b.onclick = () => Simulacion.bankItem('in', b.dataset.dep, 1));
     items.querySelectorAll('[data-ret]').forEach(b => b.onclick = () => Simulacion.bankItem('out', b.dataset.ret, 1));
