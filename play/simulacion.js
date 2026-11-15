@@ -461,6 +461,8 @@ function applyServer(m) {
     if (m.balanceSph != null) api.S.plata.balanceSph = m.walletLocked ? 0 : m.balanceSph;
   }
   if (m.reloj) api.S.reloj = m.reloj;
+  if (m.cupos) api.S.cupos = m.cupos;
+  if (window.Acunar) Acunar.paint();
   if (m.ledger) api.S.ledger = m.ledger;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();

@@ -1,0 +1,67 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Ventana de acuñar. La X se queda arriba aunque el resto se desplace. */
+
+#acunar-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 84;
+  background: rgba(12, 8, 4, .55);
+}
+#acunar-fondo[hidden] { display: none !important; }
+#acunar {
+  position: fixed;
+  z-index: 85;
+  left: 50%;
+  top: max(12px, env(safe-area-inset-top));
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 16px));
+  max-height: min(86dvh, 720px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 0 14px 16px;
+  border-radius: 18px;
+  border: 3px solid #e7c27a;
+  background: #2a2118;
+  color: #fff6e8;
+  font-family: var(--sans);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .45);
+}
+#acunar[hidden] { display: none !important; }
+#acunar header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 -14px 10px;
+  padding: 12px 14px;
+  background: #3a2a1c;
+  border-bottom: 2px solid #e7c27a;
+}
+#acunar h2 { margin: 0; font-size: 20px; }
+#acunar .x {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e7c27a;
+  background: #f3e2b8;
+  color: #3a2a16;
+  font: 700 18px/1 var(--sans);
+}
+#acunar .metales { display: flex; gap: 8px; }
+#acunar .metales button, #acunar .grande {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #f3e2b8;
+  color: #3a2a16;
+  font: 700 16px/1.2 var(--sans);
+}
+#acunar .metales button { flex: 1; }
+#acunar .metales button.activa { background: #e2b23c; }
+#acunar p { margin: 8px 0; font-size: 16px; line-height: 1.35; }
+#acunar input[type="range"] { width: 100%; min-height: 44px; }
+#acunar .grande { width: 100%; margin-top: 8px; background: #e2b23c; font-size: 18px; }
+#acunar .grande:disabled { opacity: .45; }

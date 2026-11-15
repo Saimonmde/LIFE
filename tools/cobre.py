@@ -10,6 +10,8 @@ import re
 import secrets
 import time
 
+import topes as TOPES
+
 MAX_SUPPLY = 333_000_000
 DAY = 86400
 DAILY = 200
@@ -137,7 +139,7 @@ def redeem(state, account, context, proof, want, now=None, purse=None):
         return {'ok': False, 'reason': 'supply', 'qty': 0}
     key = _day_key(account, now)
     earned = int(box['earnedDay'].get(key) or 0)
-    today = max(0, DAILY - earned)
+    today = max(0, TOPES.simonchis_daily() - earned)
     grant = min(max(0, int(want or 0)), left, today)
     if grant <= 0:
         return {'ok': False, 'reason': 'cap', 'qty': 0}

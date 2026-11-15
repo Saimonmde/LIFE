@@ -20,6 +20,7 @@ import time
 
 import economy as eco
 import supply as sup
+import topes as TOPES
 
 SUBS = eco.SUBS
 MAX_SUPPLY = 84_000_000
@@ -107,11 +108,8 @@ def issuance_room(state):
 
 
 def daily_cap_sph(age_seconds, play_seconds, quests):
-    """Tope del día UTC, en SPH. Crece con la cuenta, el tiempo jugado y las misiones."""
-    days = min(AGE_DAYS, max(0, int(age_seconds)) // sup.DAY)
-    hours = min(PLAY_HOURS, max(0, int(play_seconds)) // 3600)
-    done = min(QUEST_CAP, max(0, int(quests)))
-    return BASE_DAILY_SPH + days * AGE_SPH + hours * PLAY_SPH + done * QUEST_SPH
+    """Tope del día UTC, en SPH. Los números viven en topes.py."""
+    return TOPES.simonplata_daily_sph(age_seconds, play_seconds, quests)
 
 
 def exchange_cap_smh(age_seconds, play_seconds, quests):
@@ -474,7 +472,7 @@ def _read_proof(proof):
         return None
 
 
-def redeem(state, profile, action, context, proof, now=None):
+def redeem(state, profile, action, context, proof, now=None, want_sph=None, pay_request=False):
     """Verifica la prueba y acredita SPH. No escribe billeteras SMC."""
     ensure(state, now=now)
     now = int(now if now is not None else time.time())
@@ -525,7 +523,12 @@ def redeem(state, profile, action, context, proof, now=None):
     personal_left = max(0, cap - earned)
     room = issuance_room(state)
     epoch_left = max(0, _ceiling(reward) - int(box.get('epochSubs') or 0))
-    grant = min(reward, personal_left, room, epoch_left)
+    if pay_request:
+        grant = min(personal_left, room)
+        if want_sph is not None:
+            grant = min(grant, max(0, int(want_sph)))
+    else:
+        grant = min(reward, personal_left, room, epoch_left)
     if grant <= 0:
         if room <= 0 or reward <= 0:
             code = 'supply'

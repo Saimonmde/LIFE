@@ -17,6 +17,7 @@ import secrets
 import time
 
 import economy as eco
+import topes as TOPES
 
 DAY = 86400
 TARGET_INTERVAL = 600
@@ -102,11 +103,8 @@ def ensure(state, now=None):
 
 
 def daily_cap_smh(age_seconds, play_seconds, quests):
-    """Tope del día UTC, en SMH. Crece con la cuenta, el tiempo jugado y las misiones."""
-    days = min(AGE_DAYS, max(0, int(age_seconds)) // DAY)
-    hours = min(PLAY_HOURS, max(0, int(play_seconds)) // 3600)
-    done = min(QUEST_CAP, max(0, int(quests)))
-    return BASE_DAILY_SMH + days * AGE_SMH + hours * PLAY_SMH + done * QUEST_SMH
+    """Tope del día UTC, en SMH. Los números viven en topes.py."""
+    return TOPES.simoncoin_daily_smh(age_seconds, play_seconds, quests)
 
 
 def quest_count(state, name):
@@ -417,7 +415,7 @@ def _read_proof(proof):
         return None
 
 
-def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None):
+def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None, pay_request=False):
     """Verifica la prueba y reserva los SMH que caben. No escribe la billetera."""
     ensure(state, now=now)
     now = int(now if now is not None else time.time())
@@ -467,10 +465,10 @@ def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None,
     cap = daily_cap_smh(profile['age'], profile['play'], profile['quests'])
     earned = int(acc.get('earned') or 0)
     personal_left = max(0, cap - earned)
-    diminished = _diminished(reward, int(acc.get('proofs') or 0))
+    diminished = personal_left if pay_request else _diminished(reward, int(acc.get('proofs') or 0))
     room = eco.issuance_room(state) if room_smh is None else max(0, int(room_smh))
     grant = min(diminished, personal_left, room)
-    if counts_as_mint:
+    if counts_as_mint and not pay_request:
         epoch_left = max(0, _ceiling(reward) - int(box.get('epochSubs') or 0))
         grant = min(grant, epoch_left)
     if want_smh is not None:

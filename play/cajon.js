@@ -158,9 +158,9 @@
       '<li>Entra a la mina y pica una veta con la pica. El mineral cae en la mochila.</li>',
       '<li>Acércate al horno del centro.</li>',
       '<li>Elige el mineral: oro, plata o cobre.</li>',
-      '<li>Pulsa Acuñar Simoncoin, Acuñar Simonplata o Acuñar Simonchis.</li>',
-      '<li>Espera un momento. Si todavía cabe, las monedas entran en tu saldo y en el libro de todos.</li>',
-      '<li>Si pulsas Crear lingotes, el horno guarda barras. Las barras no son estas tres monedas.</li>',
+      '<li>Picar y lavar sólo guarda metal en la mochila. Eso no crea monedas.</li>',
+      '<li>En el horno, Acuñar cambia el metal por monedas: 5 oros crudos hacen 1 Simoncoin, 4 platas crudas hacen 1 Simonplata y 3 cobres crudos hacen 1 Simonchis.</li>',
+      '<li>Hoy puedes acuñar hasta el tope del día. Se reinicia a las 7:00 p. m. (hora de Bogotá).</li>',
       '</ol>',
       '<p>Si el número ya llegó al máximo, el horno se detiene. No aparece ni una moneda de más.</p>',
       '</section>',
@@ -169,7 +169,7 @@
       '<button type="button" id="cajon-llamar">Llamar a mi caballo</button>',
       '<h3>Atajos</h3>',
       '<button type="button" id="cajon-perfil">Perfil</button>',
-      '<button type="button" id="cajon-minar">Minar</button>',
+      '<button type="button" id="cajon-minar">Acuñar monedas</button>',
       '<button type="button" id="cajon-plata">Simonplata</button>',
       '<button type="button" id="cajon-herramientas">Herramientas</button>',
       '<button type="button" id="cajon-barra">Barra rápida</button>',
@@ -180,7 +180,7 @@
     menu.prepend(block);
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
-    $('#cajon-minar').onclick = () => showPiece('pow-panel');
+    $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
     $('#cajon-plata').onclick = () => showPiece('plata-panel');
     $('#cajon-herramientas').onclick = () => showPiece('world-tools');
     $('#cajon-barra').onclick = () => showPiece('hotbar');

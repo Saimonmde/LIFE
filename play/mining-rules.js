@@ -10,7 +10,7 @@
   pepita_oro:{metal:'oro',name:'Oro fluvial',ore:5,ingots:1,coinItem:'moneda_oro',coinQty:2,coins:30,xp:24}
  };
  function count(inv,id){return inv.reduce((sum,s)=>sum+(s?.item===id?s.qty:0),0);}
- function add(inv,items,id,qty,slots){if(!items[id]||!Number.isSafeInteger(qty)||qty<=0)return null;const next=inv.map(s=>s?{...s}:null),it=items[id],max=it.stackable?(it.maxStack||999):1;let left=qty;
+ function add(inv,items,id,qty,slots){if(!items[id]||!Number.isSafeInteger(qty)||qty<=0)return null;const next=inv.map(s=>s?{...s}:null),it=items[id],metal=/^(mineral_|pepita_)/.test(id),max=metal?1e15:(it.stackable?(it.maxStack||999):1);let left=qty;
   for(const s of next)if(s?.item===id&&s.qty<max){const n=Math.min(left,max-s.qty);s.qty+=n;left-=n;if(!left)return next;}
   for(let i=0;i<slots&&left;i++)if(!next[i]){const n=Math.min(left,max);next[i]={item:id,qty:n};left-=n;}return left?null:next;
  }

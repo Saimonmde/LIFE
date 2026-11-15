@@ -31,6 +31,7 @@ import monedas as MONEDAS
 import persist as PERSIST
 import mundos as MUNDOS
 import social as SOCIAL
+import topes as TOPES
 import vida_api as VIDA_API
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -231,6 +232,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['balanceSph'] = pview['balanceSph']
     m['reloj'] = RELOJ.payload(ECON)
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
+    m['cupos'] = cupos_public(profile)
     return m
 
 def token_matches(stored, presented):
@@ -366,7 +368,7 @@ def fail_claim(sender, code, channel='system'):
         send(sender, {'t': 'system', 'text': text})
     return {'ok': False, 'reason': code, 'smh': 0}
 
-def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None):
+def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False):
     if getattr(sender, 'bot', False):
         return fail_claim(sender, 'guest', channel='smelt' if action == 'fundicion' else 'system')
     if not getattr(sender, 'wallet_ok', False):
@@ -377,6 +379,7 @@ def take_proof(sender, action, context, proof, resume, want_smh=None, exact=Fals
         result = SUP.redeem(
             ECON, profile, action, context, proof,
             want_smh=want_smh, room_smh=room_smh, exact=exact, counts_as_mint=counts_as_mint,
+            pay_request=pay_request,
         )
         save_econ()
         if not result.get('ok'):
@@ -578,6 +581,108 @@ def _en_la_mina(sender):
 def _smelt_fail(sender, reason):
     send(sender, {'t': 'smelt_result', 'ok': False, 'reason': reason, 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
+def _dia(account, box):
+    epoch = int(time.time()) // TOPES.DAY
+    acc = (box or {}).get(account or '') or {}
+    if int(acc.get('epoch') or -1) != epoch:
+        return 0
+    return int(acc.get('earned') or 0)
+
+def cupos_public(profile=None):
+    profile = profile or {}
+    age, play, quests = profile.get('age') or 0, profile.get('play') or 0, profile.get('quests') or 0
+    account = profile.get('account') or ''
+    oro_cap = TOPES.simoncoin_daily_smh(age, play, quests) / ECO.SUBS
+    oro_earned = _dia(account, (ECON.get('supply') or {}).get('accounts')) / ECO.SUBS
+    plata_cap = TOPES.simonplata_daily_sph(age, play, quests) / ECO.SUBS
+    plata_earned = _dia(account, (ECON.get('plata') or {}).get('accounts')) / ECO.SUBS
+    chis_cap = TOPES.simonchis_daily()
+    key = f'{account}:{int(time.time()) // TOPES.DAY}'
+    chis_earned = int(((ECON.get('simonchis') or {}).get('earnedDay') or {}).get(key) or 0)
+    coins = {}
+    for coin, cap, earned, room in (
+        ('simoncoin', oro_cap, oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
+        ('simonplata', plata_cap, plata_earned, PLATA.issuance_room(ECON) / ECO.SUBS),
+        ('simonchis', chis_cap, chis_earned, COBRE.room(ECON)),
+    ):
+        spec = TOPES.metal(coin)
+        coins[coin] = {
+            'name': spec['name'], 'metal': spec['metal'], 'item': spec['item'], 'rate': spec['rate'],
+            'cap': cap, 'left': max(0, cap - earned), 'room': room,
+        }
+    return {'reset': TOPES.RESET_LABEL, 'coins': coins}
+
+def acunar_for(sender, coin, pieces, proof=None):
+    spec = TOPES.metal(str(coin or ''))
+    if not spec or not _en_la_mina(sender) or not wallet_ready(sender):
+        return _smelt_fail(sender, 'Acuñar se hace en el horno de la mina, con tu cuenta.')
+    try:
+        pieces = int(pieces or 0)
+    except (TypeError, ValueError):
+        pieces = 0
+    row = cupos_public(account_profile(sender))['coins'].get(str(coin))
+    if not row:
+        return _smelt_fail(sender, 'Esa moneda no se acuña aquí.')
+    quote = TOPES.cotizar(pieces, row['rate'], row['left'], row['room'], pieces, whole=(coin == 'simonchis'))
+    if quote['recibes'] <= 0:
+        return _smelt_fail(sender, 'Hoy no alcanza para acuñar más, o no hay metal suficiente.')
+    profile = account_profile(sender)
+    whole = coin == 'simonchis'
+    if coin == 'simoncoin':
+        want = int(round(quote['recibes'] * ECO.SUBS))
+        result = take_proof(
+            sender, 'acunar', f'{coin}:{pieces}', proof,
+            {'t': 'acunar', 'coin': coin, 'pieces': pieces},
+            want_smh=want, pay_request=True,
+        )
+        if not result or not result.get('ok'):
+            return
+        granted, _token, _pub = emitir(
+            sender, result['smh'], 'Acuñación de Simoncoin con oros crudos', 'fundicion',
+            'fundidora', 'horno', 'Horno',
+        )
+        if granted <= 0:
+            return _smelt_fail(sender, 'Ya no se puede crear más Simoncoin.')
+        got = granted / ECO.SUBS
+    elif coin == 'simonplata':
+        want = int(round(quote['recibes'] * ECO.SUBS))
+        if not proof:
+            opened = PLATA.open_challenge(ECON, profile, 'acunar', f'{coin}:{pieces}')
+            save_econ()
+            if not opened.get('ok'):
+                return _smelt_fail(sender, 'No se pudo empezar la acuñación.')
+            send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'acunar', 'coin': coin, 'pieces': pieces}, 'coin': 'SMP'})
+            return
+        result = PLATA.redeem(ECON, profile, 'acunar', f'{coin}:{pieces}', proof, want_sph=want, pay_request=True)
+        save_econ()
+        if not result.get('ok'):
+            return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
+        got = int(result.get('sph') or 0) / ECO.SUBS
+        broadcast_econ()
+    else:
+        want = int(quote['recibes'])
+        if not proof:
+            opened = COBRE.open_challenge(ECON, profile.get('account'), f'{coin}:{pieces}')
+            save_econ()
+            if not opened.get('ok'):
+                return _smelt_fail(sender, 'Ya no se pueden crear más Simonchis.' if opened.get('reason') == 'supply' else 'No se pudo empezar la acuñación.')
+            send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'acunar', 'coin': coin, 'pieces': pieces}, 'coin': 'Simonchis'})
+            return
+        result = COBRE.redeem(ECON, profile.get('account'), f'{coin}:{pieces}', proof, want, purse=sender.name)
+        save_econ()
+        if not result.get('ok'):
+            return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
+        got = int(result.get('qty') or 0)
+        broadcast_econ()
+    done = TOPES.cotizar(quote['gastas'], row['rate'], got, got, quote['gastas'], whole=whole)
+    view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
+    send(sender, {
+        't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
+        'item': row['item'], 'spent': done['gastas'], 'recibes': done['recibes'],
+        'reason': f'Se acuñó {done["recibes"]} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
+        'ledger': view, 'cupos': cupos_public(profile),
+    })
+
 def fundir_lingotes(sender, ore, batches):
     metal = METAL.get(ore)
     if not metal:
@@ -669,48 +774,17 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
     send(sender, {'t': 'system', 'text': note + ' No es dinero real.'})
 
 def swing_for(sender, mineral, proof=None):
+    """Picar sólo deja mineral en la mochila. No acuña ni toca el libro."""
     mineral = str(mineral or '')
-    if mineral not in ('cobre', 'plata') or getattr(sender, 'zone', '') != 'mine':
+    if mineral not in ('cobre', 'plata', 'oro') or getattr(sender, 'zone', '') != 'mine':
         return
-    if not wallet_ready(sender):
+    now = time.time()
+    if now - getattr(sender, 'last_swing', 0) < 1:
         return
-    if not proof and not getattr(sender, 'shift_ready', False):
-        now = time.time()
-        if now - getattr(sender, 'last_swing', 0) < 1:
-            return
-        sender.last_swing = now
-        note_motion(sender, 1)
-        sender.swings = getattr(sender, 'swings', 0) + 1
-        if sender.swings < SHIFT_SWINGS:
-            return send(sender, {'t': 'shift', 'swings': sender.swings, 'need': SHIFT_SWINGS, 'left': SHIFT_SWINGS - sender.swings})
-        sender.shift_ready = True
-    if not getattr(sender, 'shift_ready', False):
-        return
-    result = take_proof(
-        sender, 'mina', mineral, proof,
-        {'t': 'swing', 'mineral': mineral},
-        want_smh=ECO.smc_to_smh(SHIFT_PAY),
-        room_smh=min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
-    )
-    if not result.get('ok'):
-        return
-    granted, token, _pub = emitir(
-        sender, result['smh'], 'Turno del capataz en la cantera (cobre o plata)', 'mina',
-        'mina', 'cantera', 'Cantera · turno',
-    )
-    sender.swings = 0
-    sender.shift_ready = False
-    try:
-        PAYOUT.ADAPTER.payout(sender.name, granted, 'USDT')
-    except RuntimeError:
-        pass
-    kept = int(getattr(sender, 'kept_smh', granted) or 0)
-    pooled = int(getattr(sender, 'pool_smh', 0) or 0)
-    shift_note = 'El turno paga sólo lo que cabe en el tope de hoy. No hay retiro a OnePay ni a USDT.'
-    if pooled:
-        shift_note = f'El turno acredita {ECO.format_pair(kept)}. El fondo de cambio aparta {ECO.format_pair(pooled)}. ' + shift_note
-    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': kept, 'mintedSmh': granted, 'pooledSmh': pooled, 'amountText': ECO.format_pair(kept), 'certificate': token,
-                  'note': shift_note, 'supply': result.get('view')})
+    sender.last_swing = now
+    note_motion(sender, 1)
+    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0,
+                  'note': 'El mineral quedó en la mochila. Las monedas se acuñan en el horno, con el tope del día.'})
 
 def migration_left(sender, amount):
     migrations = ECON.get('migrations') or {}
@@ -1439,6 +1513,8 @@ def handle_client_message(c, m, t):
         except (TypeError, ValueError, ECO.AmountError):
             return
         pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
+    elif t == 'acunar' and c.hello:
+        acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'))
     elif t == 'smelt' and c.hello:
         smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'), m.get('mode'))
     elif t == 'swing' and c.hello:
