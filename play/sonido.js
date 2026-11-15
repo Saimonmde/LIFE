@@ -65,6 +65,10 @@
       if (el && document.activeElement !== el) el.value = pct;
     });
   }
+  function live() {
+    if (!wanted() || !ctx || ctx.state !== 'running') return null;
+    return ctx;
+  }
   function ensure() {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC || !wanted()) return null;
@@ -166,5 +170,5 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
     else bind();
   }
-  return { wanted, volume, setWanted, setVolume, isRaw, metalOf, chaChing, clink, fromMint, bind, PITCH };
+  return { wanted, volume, setWanted, setVolume, isRaw, metalOf, chaChing, clink, fromMint, bind, live, PITCH };
 });

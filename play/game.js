@@ -1956,6 +1956,7 @@ function update(dt) {
   } else p.animT += dt * 0.2;
   if (window.Simulacion) Simulacion.syncHorse();
   if (window.Caballo) Caballo.tick(dt, horseContext());
+  if (window.Guacharaca) Guacharaca.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId==='central' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
