@@ -131,6 +131,15 @@
 <div id="tooltip" hidden></div>
 <div id="cargando" role="status" aria-live="polite"><div class="carga-caja"><div class="carga-marca"><img src="../graphics/ui/saimon-logo-gold.png" alt="Saimon City" width="980" height="532"><span class="carga-city">City</span></div><p class="carga-lugar">Medellín</p><div class="carga-pista" aria-hidden="true"><i id="carga-barra"></i></div><p id="carga-txt">Cargando el valle…</p></div></div>
 
+<section id="hogar" hidden aria-labelledby="hogar-titulo">
+  <div class="hogar-panel">
+    <h2 id="hogar-titulo">¿Dónde vives?</h2>
+    <p>Elige tu municipio. Ahí está tu casa, de sur a norte.</p>
+    <div id="hogar-lista" role="list"></div>
+    <p id="hogar-status" role="status"></p>
+  </div>
+</section>
+<button type="button" id="ovni-saltar" hidden>Saltar</button>
 <div id="login" hidden>
   <form id="login-form" autocomplete="off">
     <div class="simoncity-lockup">
@@ -275,14 +284,16 @@
 <script src="pow.js?v=vidrio-r1"></script>
 <script src="../data/el-jardin.js?v=fusion-r1"></script>
 <script src="mining-rules.js?v=valle-hud-r5"></script>
-<script src="casa.js?v=valle-hud-r5"></script>
+<script src="../data/hogares.js?v=hogar-r1"></script>
+<script src="hogar.js?v=hogar-r1"></script>
+<script src="casa.js?v=hogar-r1"></script>
 <script src="envigado-park.js?v=fusion-r1"></script>
 <script src="banco.js?v=vidrio-r1"></script>
 <script src="tutorial.js?v=valle-hud-r5"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
-<script src="game.js?v=entrada-r3"></script>
-<script type="module" src="unified3d.js?v=nick-r2"></script>
+<script src="game.js?v=hogar-r1"></script>
+<script type="module" src="unified3d.js?v=hogar-r1"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
 <script src="hud-layout.js?v=monedas-r1"></script>

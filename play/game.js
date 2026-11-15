@@ -101,6 +101,11 @@ async function init() {
     if (prof.color) S.me.color = prof.color;
   }
   Casa.playerName = () => S.me.name;
+  Casa.ownerKey = () => {
+    const id = S.sessionUser && S.sessionUser.id;
+    const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';
+    return id ? ('id:' + id + ':' + mid) : S.me.name;
+  };
   Casa.enter = () => { if (S.mounted) { game('Baja del caballo para entrar a un edificio.', 'aviso'); return; } enterHouse(); };
   Casa.exit = () => exitHouse();
   Casa.onEdit = (on) => { S.houseEdit = on; if (on) { S.player.path = []; S.player.pending = null; S.keys.clear(); } };
@@ -119,7 +124,6 @@ async function init() {
     S.player.x = S.player.fx = W.spawn.x; S.player.y = S.player.fy = W.spawn.y;
     startGame(); autotest(); return;
   }
-  beginAtHome();
   W.clientReady = true;
   if (prof && prof.name && $('#l-nombre')) { $('#l-nombre').value = textoNombre(prof.name); if (prof.color) S.me.color = prof.color; buildColorPicker(); }
   if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con ese proveedor. Intenta otra vez.';
@@ -135,15 +139,27 @@ async function init() {
     } catch (e) { sessionUser = null; }
   }
   if (sessionUser) {
+    if (window.Hogar && Hogar.migrate) {
+      try { sessionUser = await Hogar.migrate(sessionUser) || sessionUser; } catch (e) {}
+    }
     S.sessionUser = sessionUser;
+    S.me.municipio = sessionUser.municipio || '';
+    window.SaimonSession = { id: sessionUser.id, municipio: S.me.municipio };
     S.me.nick = apodoCuenta(sessionUser);
     const wallet = String(sessionUser.wallet_name || '').trim();
     if (wallet && !wallet.includes('@') && wallet.toLowerCase() !== String(sessionUser.email || '').trim().toLowerCase()) S.me.name = wallet.slice(0, 16);
     if ($('#l-nombre')) $('#l-nombre').value = S.me.nick;
     try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
+    if (!S.me.municipio && window.Hogar) {
+      $('#login').hidden = true;
+      document.body.classList.add('eligiendo-casa');
+      Hogar.openPicker(elegirCasa);
+      return;
+    }
     startGame();
     return;
   }
+  beginAtHome();
   $('#login').hidden = false;
   fetch('/auth/providers').then(r => r.json()).then(p => {
     const g = $('#b-google'); if (g) g.hidden = !p.google;
@@ -214,6 +230,35 @@ const bReset = $('#b-olvide-enviar'); if (bReset) bReset.onclick = () => {
   fetch('/auth/olvide', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:$('#o-email').value.trim()})}).then(r => r.json()).then(m => avisoLogin(m.error || 'Si esa cuenta existe, enviamos un enlace para la contraseña.'));
 };
 $('#login-form').onsubmit = (e) => { e.preventDefault(); };
+async function elegirCasa(id) {
+  const buttons = [...document.querySelectorAll('#hogar-lista button')];
+  buttons.forEach(b => { b.disabled = true; });
+  const status = document.getElementById('hogar-status');
+  try {
+    const response = await fetch('/auth/municipio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ municipio: id }) });
+    const result = await response.json();
+    if (!response.ok || !result.user) throw Error(result.error || 'No se pudo guardar tu casa.');
+    S.sessionUser = result.user;
+    S.me.municipio = result.user.municipio;
+    window.SaimonSession = { id: result.user.id, municipio: S.me.municipio };
+    const spot = result.home || (window.Hogar && Hogar.stand(id));
+    window.LIFE_OVNI = spot;
+    window.LIFE_WANT_INTRO = window.Hogar ? Hogar.entryMode(true) : 'ovni';
+    if (window.Hogar) Hogar.closePicker();
+    document.body.classList.remove('eligiendo-casa');
+    startGame();
+  } catch (error) {
+    buttons.forEach(b => { b.disabled = false; });
+    if (status) status.textContent = error.message;
+  }
+}
+function placeAtTown(spot) {
+  if (!spot) return;
+  if ((W.mapId || 'city') !== 'city' && cityMap) switchMap('city');
+  const p = S.player;
+  p.x = p.fx = spot.x; p.y = p.fy = spot.y; p.dir = 'down';
+  p.path = []; p.pending = null; p.busyUntil = 0; S.dest = null;
+}
 let started = false, reconnectTimer = null, reconnectDelay = 1000;
 function startGame() {
   if (started) return;
@@ -222,19 +267,31 @@ function startGame() {
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
-  const fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
-  if (fly) {
-    if ((W.mapId || 'city') === 'casa') switchMap('city');
-    const stand = window.Casa.PARK_STAND;
-    S.player.x = S.player.fx = stand.x; S.player.y = S.player.fy = stand.y; S.player.dir = 'up';
-    window.LIFE_WANT_FLY = true;
-    if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
-  } else beginAtHome();
+  const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';
+  const ovni = !AUTOTEST && window.LIFE_WANT_INTRO === 'ovni' && window.LIFE_OVNI;
+  let fly = false;
+  if (ovni) {
+    placeAtTown(window.LIFE_OVNI);
+    try { localStorage.setItem('lifeinc.vuelo.v1', '1'); } catch (e) {}
+    if (window.LIVE3D && LIVE3D.startOvni) LIVE3D.startOvni(window.LIFE_OVNI.x, window.LIFE_OVNI.y);
+  } else if (!AUTOTEST && mid && window.Hogar && Hogar.stand(mid)) {
+    placeAtTown(Hogar.stand(mid));
+    try { localStorage.setItem('lifeinc.vuelo.v1', '1'); } catch (e) {}
+  } else {
+    fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
+    if (fly) {
+      if ((W.mapId || 'city') === 'casa') switchMap('city');
+      const stand = window.Casa.PARK_STAND;
+      S.player.x = S.player.fx = stand.x; S.player.y = S.player.fy = stand.y; S.player.dir = 'up';
+      window.LIFE_WANT_FLY = true;
+      if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
+    } else beginAtHome();
+  }
   Casa.load(S.me.name);
-  if (!fly && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
+  if (!fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Bienvenido a Medellín, ${esc(nombrePropio())}.`);
   connect(); updateTutorial(true);
-  if (!fly && window.Tutorial) Tutorial.afterFly();
+  if (!fly && !ovni && window.Tutorial) Tutorial.afterFly();
   if (Q.has('forja')) showForgePreview();
 }
 function showForgePreview(){
@@ -332,7 +389,7 @@ function switchMap(id,restored=false){
  else if(id==='casa')xy={x:Casa.SPAWN.x,y:Casa.SPAWN.y};
  else if(id==='banco')xy={x:Banco.SPAWN.x,y:Banco.SPAWN.y};
  else if(prev==='mine')xy=cityReturn||{x:W.mineEntrance.x,y:W.mineEntrance.y+1};
- else if(prev==='casa')xy={x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};
+ else if(prev==='casa'){const home=window.Hogar&&Hogar.stand(S.me.municipio);xy=home?{x:home.x,y:home.y}:{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};}
  else if(prev==='banco')xy={x:Banco.OUTSIDE.x,y:Banco.OUTSIDE.y};
  else xy={x:p.x,y:p.y};
  p.x=p.fx=xy.x;p.y=p.fy=xy.y;if(id==='casa')p.dir=Casa.SPAWN.dir;if(id==='banco')p.dir=Banco.SPAWN.dir;
@@ -811,7 +868,7 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();

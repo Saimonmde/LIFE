@@ -135,11 +135,18 @@
 
   let layout = defaultLayout();
   let editing = false, armed = null, selected = null, variantPick = null;
-  const storageKey = (name) => 'lifeinc.casa.v1:' + encodeURIComponent(String(name || 'viajero').trim().toLowerCase().slice(0, 16) || 'viajero');
+  const legacyKey = (name) => 'lifeinc.casa.v1:' + encodeURIComponent(String(name || 'viajero').trim().toLowerCase().slice(0, 16) || 'viajero');
+  const storageKey = (name) => {
+    const owner = window.Casa.ownerKey ? window.Casa.ownerKey() : name;
+    return 'lifeinc.casa.v1:' + encodeURIComponent(String(owner || name || 'viajero').slice(0, 64));
+  };
   function load(name) {
     try {
-      const raw = JSON.parse(localStorage.getItem(storageKey(name)) || 'null');
-      layout = raw && Array.isArray(raw.items) ? sanitize(raw) : defaultLayout();
+      let raw = localStorage.getItem(storageKey(name));
+      const mid = window.SaimonSession && window.SaimonSession.municipio;
+      if (!raw && (!mid || mid === 'envigado')) raw = localStorage.getItem(legacyKey(name));
+      const parsed = raw ? JSON.parse(raw) : null;
+      layout = parsed && Array.isArray(parsed.items) ? sanitize(parsed) : defaultLayout();
     } catch (e) { layout = defaultLayout(); }
     selected = null;
     if (window.Casa.onLayout) window.Casa.onLayout();
