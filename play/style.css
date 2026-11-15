@@ -305,6 +305,11 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 #b-casa,#b-editar-casa,#b-salir-parque{position:fixed;z-index:26;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 15px system-ui,sans-serif;min-height:44px;padding:8px 16px;cursor:pointer;box-shadow:0 3px 10px #0007}
 #b-casa{top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%)}
 #b-editar-casa{top:calc(max(8px,env(safe-area-inset-top)) + 112px);left:50%;transform:translateX(-50%)}
+#mochila-llena{position:fixed;z-index:96;left:50%;top:28%;transform:translateX(-50%);width:min(420px,calc(100vw - 24px));padding:16px;border-radius:16px;border:3px solid #e7c27a;background:#2a2118;color:#fff6e8;font:16px/1.4 var(--sans)}
+#mochila-llena h2{margin:0 0 8px;font-size:20px}
+#mochila-llena .fila{display:flex;gap:8px;flex-wrap:wrap}
+#mochila-llena button{min-height:44px;border:0;border-radius:12px;background:#e2b23c;color:#1c1208;font:700 15px/1 var(--sans);padding:8px 12px}
+#mochila-llena[hidden]{display:none!important}
 #b-salir-parque{left:50%;bottom:78px;transform:translateX(-50%);background:#6b3a22;color:#fff1c9;border-color:#e2b23c}
 body.in-casa #world-tools{top:auto!important;bottom:200px}
 body.in-casa #world-note{top:auto!important;bottom:150px}

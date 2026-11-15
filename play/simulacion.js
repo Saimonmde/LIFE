@@ -418,6 +418,10 @@ function bankItem(dir, item, qty) {
   qty = Number(qty);
   if (!item || !(qty > 0)) return;
   if (api.S.net.ok) {
+    if (dir !== 'in' && window.MiningRules && !MiningRules.add(api.S.inv, api.W().items, item, qty, 60)) {
+      if (window.avisarMochilaLlena) window.avisarMochilaLlena();
+      return;
+    }
     api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty }));
     return;
   }
