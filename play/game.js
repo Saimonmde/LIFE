@@ -995,6 +995,7 @@ function connect() {
     S.net.seen = performance.now();
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+    if (window.Finca) Finca.onNet(m);
     if (window.Vida && Vida.onNet(m)) return;
     if (m.t === 'welcome') {
       S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; S.me.nick = m.you.nick ? textoNombre(m.you.nick) : (S.sessionUser ? 'Viajero' : textoNombre(m.you.name)); $('#mi-nombre').textContent = nombrePropio();
@@ -1074,7 +1075,7 @@ const dist = (o) => Math.hypot(o.fx - S.player.fx, o.fy - S.player.fy);
 function renderNearby() {
   const el = $('#cercanos'), list = [...S.others.values()].filter(o => !o.bot).sort((a, b) => dist(a) - dist(b));
   $('#n-cercanos').textContent = list.length;
-  el.innerHTML = list.length ? list.slice(0, 10).map(o => { const m = Math.round(dist(o) * (W.render.metersPerTile || 2)); return `<li class="${m > 30 ? 'lejos' : ''}"><span class="pt"></span><button type="button" data-trade-peer="${o.id}">${esc(nombreAjeno(o))} · Intercambiar</button><span class="m">${m} m</span></li>`; }).join('')
+  el.innerHTML = list.length ? list.slice(0, 10).map(o => { const m = Math.round(dist(o) * (W.render.metersPerTile || 2)); return `<li class="${m > 30 ? 'lejos' : ''}"><span class="pt"></span><button type="button" data-trade-peer="${o.id}">${esc(nombreAjeno(o))} · Comerciar</button><span class="m">${m} m</span></li>`; }).join('')
     : `<li class="vacio">${S.net.ok ? 'Nadie más conectado' : 'Sin conexión al servidor'}</li>`;
 }
 
@@ -2131,10 +2132,10 @@ function goMine(){
  approach({kind:'node',n:e});
  game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
 }
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel, summonPersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
- interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
+ interact(id){if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
 function autotest() {
