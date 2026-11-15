@@ -1,0 +1,89 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Saimon City
+Upstream-Contact: Juan Simón Barrera Jaramillo (Jay Montana)
+Source: https://github.com/Saimonmde/LIFE
+Disclaimer:
+ Este inventario describe las licencias que ya están en el repositorio.
+ No concede MIT ni CC BY 4.0. No modifica LICENSE.
+ La propuesta está en docs/LICENCIAS.md y no entra en vigor con este borrador.
+
+Files: LICENSE
+Copyright: 2007 Free Software Foundation, Inc.
+License: AGPL-3.0-or-later
+ La GNU Affero General Public License, versión 3 o posterior, es la licencia
+ vigente del código propio. El texto está en LICENSE.
+
+Files: server.py
+       jugar.sh
+       tools/*.py
+       play/*.js
+       play/*.css
+       play/*.html
+       movil/*.html
+       legal/*.html
+Copyright: 2026 Juan Simón Barrera Jaramillo (Jay Montana), sobre sus aportes; otros autores conservan los suyos
+License: AGPL-3.0-or-later
+
+Files: play/three.module.js
+       play/THREE-LICENSE.txt
+       LICENSES/Threejs-MIT.txt
+Copyright: 2010-2024 three.js authors
+License: MIT
+
+Files: play/PixelifySans.ttf
+       play/FUENTE-LICENCIA.txt
+       LICENSES/Pixelify-Sans-OFL-1.1.txt
+Copyright: 2021 The Pixelify Sans Project Authors
+License: OFL-1.1
+
+Files: play/fonts/AtkinsonHyperlegible-Regular.ttf
+       LICENSES/AtkinsonHyperlegible-OFL.txt
+Copyright: 2020 Braille Institute of America, Inc.
+License: OFL-1.1
+
+Files: play/fonts/Cinzel-wght.ttf
+       LICENSES/Cinzel-OFL.txt
+Copyright: 2020 The Cinzel Project Authors
+License: OFL-1.1
+
+Files: graphics/**
+       data/el-jardin.json
+       data/el-jardin.js
+       data/simulacion.json
+       data/parque-envigado-bloque.json
+       data/valle-offset.json
+Copyright: 2026 Juan Simón Barrera Jaramillo (Jay Montana), sobre los aportes propios designados; procedencia pendiente sigue sin concesión
+License: CC-BY-SA-4.0
+
+Files: graphics/models/caneca_envigado.glb
+Copyright: 2026 Juan Simón Barrera Jaramillo (Jay Montana). Escaneo propio de una caneca del Parque de Envigado.
+License: CC-BY-SA-4.0
+Comment:
+ El aviso histórico de NOTICE.md decía que la captura de Scaniverse no estaba
+ incorporada. El archivo sí está en el repo, con sidecar CC-BY-SA-4.0.
+ No se relicencia aquí. Hay que revisar las condiciones de Scaniverse antes
+ de ofrecer otra licencia.
+
+Files: data/valle-geo.json
+       data/valle-geo.js
+Copyright: colaboradores de OpenStreetMap, sobre los datos de lugares y del río; NASA, sobre el relieve SRTM
+License: ODbL-1.0
+Comment:
+ Centros, parques y el río simplificado: ODbL 1.0.
+ La rejilla de alturas dentro del mismo archivo viene de NASA SRTM (dominio público).
+ La atribución está en el campo attribution del propio JSON.
+
+Files: data/relieve-aburra.json
+Copyright: dominio público (NASA SRTM) en las alturas; 2026 Juan Simón Barrera Jaramillo sobre la disposición simplificada del juego
+License: CC-BY-SA-4.0 AND public-domain
+Comment:
+ La disposición del juego está marcada CC-BY-SA-4.0 en su sidecar.
+ Las alturas de origen no se apropian.
+
+Files: docs/**
+       data/simon/**
+Copyright: 2026 Juan Simón Barrera Jaramillo (Jay Montana)
+License: CC-BY-SA-4.0
+Comment:
+ Los textos propios siguen hoy la licencia de contenidos vigente (CC BY-SA 4.0).
+ La propuesta de pasarlos a CC BY 4.0 no se aplica en este borrador.
