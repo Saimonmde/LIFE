@@ -347,8 +347,10 @@ body.hud-editando #barra-monedas > header .hud-escala {
 
 @media (max-width: 820px) {
   #barra-monedas {
-    top: calc(max(6px, env(safe-area-inset-top)) + 62px);
-    max-width: min(230px, calc(100vw - 168px));
+    top: calc(max(6px, env(safe-area-inset-top)) + 108px);
+    left: max(8px, env(safe-area-inset-left));
+    max-width: min(220px, calc(100vw - 150px));
+    z-index: 26;
   }
   #barra-monedas img { width: 24px; height: 24px; }
   #barra-monedas .moneda { font-size: 12px; padding-right: 6px; }

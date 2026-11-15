@@ -66,8 +66,8 @@
 #b-direccion { display: none; }
 body.in-casa:not(.casa-visita) #b-direccion {
   display: inline-block; position: fixed; z-index: 26;
-  top: max(58px, calc(env(safe-area-inset-top) + 52px));
-  left: 50%; transform: translateX(-50%);
+  top: calc(max(8px, env(safe-area-inset-top)) + 52px);
+  left: 300px; transform: none;
 }
 body:not(.in-game) #b-mascotas,
 body:not(.in-game) #b-direccion,
@@ -115,43 +115,84 @@ body.in-casa #world-tools {
   top: 248px !important;
   left: max(8px, env(safe-area-inset-left)) !important;
   width: max-content !important;
-  max-width: 250px !important;
+  max-width: 248px !important;
   max-height: 150px;
 }
 body.in-casa #pow-panel {
   top: 248px !important;
-  left: 272px !important;
-  width: 248px !important;
+  left: 276px !important;
+  width: 240px !important;
   max-height: 280px;
 }
 body.in-casa #plata-panel {
   top: 248px !important;
-  left: 532px !important;
+  left: 536px !important;
   width: 280px !important;
   max-height: 420px;
 }
+body.in-casa.casa-editando #world-tools,
+body.in-casa.casa-editando #pow-panel,
+body.in-casa.casa-editando #plata-panel {
+  left: 332px !important;
+}
+body.in-casa.casa-editando #pow-panel { left: 332px !important; top: 248px !important; }
+body.in-casa.casa-editando #plata-panel { left: 588px !important; top: 248px !important; }
+body.in-casa.casa-editando #world-tools {
+  left: 332px !important;
+  top: 168px !important;
+  max-width: 540px !important;
+  max-height: 64px;
+}
 @media (max-width: 900px) {
-  html.movil body.in-casa #world-tools.hud-puesto,
+  html.movil body.in-casa.mapa-limpio #world-tools,
+  html.movil body.in-casa #world-tools,
+  body.in-casa.mapa-limpio #world-tools,
   body.in-casa #world-tools {
-    top: 148px !important;
-    left: max(8px, env(safe-area-inset-left)) !important;
-    width: min(230px, calc(100vw - 108px)) !important;
-    max-width: min(230px, calc(100vw - 108px)) !important;
-    max-height: 88px;
+    top: 172px !important;
+    left: 84px !important;
+    width: min(168px, calc(100vw - 210px)) !important;
+    max-width: min(168px, calc(100vw - 210px)) !important;
+    max-height: 72px;
   }
-  html.movil body.in-casa #pow-panel.hud-puesto,
+  html.movil body.in-casa #pow-panel,
+  body.in-casa.mapa-limpio #pow-panel,
   body.in-casa #pow-panel {
-    top: 246px !important;
-    left: max(8px, env(safe-area-inset-left)) !important;
-    width: min(230px, calc(100vw - 108px)) !important;
-    max-height: 150px;
+    top: 256px !important;
+    left: 84px !important;
+    width: min(168px, calc(100vw - 210px)) !important;
+    max-height: 140px;
   }
-  html.movil body.in-casa #plata-panel.hud-puesto,
+  html.movil body.in-casa #plata-panel,
+  body.in-casa.mapa-limpio #plata-panel,
   body.in-casa #plata-panel {
-    top: 406px !important;
-    left: max(8px, env(safe-area-inset-left)) !important;
-    width: min(230px, calc(100vw - 108px)) !important;
-    max-height: 190px;
+    top: 412px !important;
+    left: 84px !important;
+    width: min(168px, calc(100vw - 210px)) !important;
+    max-height: 180px;
+  }
+  body.in-casa #b-salir-parque {
+    left: auto !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    top: auto !important;
+    bottom: 112px !important;
+    transform: none !important;
+  }
+  body.in-casa #viaje-bar {
+    top: auto !important;
+    bottom: 168px !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    left: auto !important;
+  }
+  body.in-casa #touch-extra {
+    top: auto !important;
+    bottom: 340px !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    left: auto !important;
+  }
+  body.in-casa.casa-editando #world-tools,
+  body.in-casa.casa-editando #pow-panel,
+  body.in-casa.casa-editando #plata-panel {
+    display: none !important;
   }
 }
 
