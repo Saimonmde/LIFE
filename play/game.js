@@ -343,7 +343,15 @@ function launchRide(kind, x, y) {
     if (kind === 'heli' && view.startHeli) { view.startHeli(x, y); return true; }
     return false;
   };
-  const later = () => { if (!go()) { let n = 0; const id = setInterval(() => { n += 1; if (go() || n > 40) clearInterval(id); }, 100); } };
+  const later = () => {
+    if (go()) return;
+    let n = 0;
+    const id = setInterval(() => {
+      n += 1;
+      if (go()) { clearInterval(id); return; }
+      if (n > 40) { clearInterval(id); if (window.Tutorial) Tutorial.afterFly(); }
+    }, 100);
+  };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(later));
   else later();
 }
