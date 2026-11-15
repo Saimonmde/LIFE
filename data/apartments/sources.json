@@ -1,0 +1,166 @@
+[
+  {
+    "id": "rentocity",
+    "name": "Rentocity",
+    "priority": 0,
+    "kind": "feed",
+    "url_env": "RENTOCITY_FEED_URL",
+    "hosts_env": "RENTOCITY_HOSTS",
+    "note": "Motor principal y renta corta (días, semanas o 3, 6 y 12 meses sólo si la unidad lo permite). rentocity.com.co no publica catálogo: hace falta RENTOCITY_FEED_URL. No se rastrea /api/ ni /panel.",
+    "token_env": "RENTOCITY_FEED_TOKEN"
+  },
+  {
+    "id": "metrocuadrado",
+    "name": "Metro Cuadrado",
+    "priority": 10,
+    "kind": "web",
+    "hosts": [
+      "metrocuadrado.com",
+      "www.metrocuadrado.com"
+    ],
+    "seeds": [
+      "https://www.metrocuadrado.com/apartamentos/arriendo/medellin/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/envigado/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/sabaneta/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/itagui/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/la-estrella/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/caldas/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/bello/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/copacabana/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/girardota/",
+      "https://www.metrocuadrado.com/apartamentos/arriendo/barbosa/",
+      "https://www.metrocuadrado.com/apartamentos/venta/medellin/",
+      "https://www.metrocuadrado.com/apartamentos/venta/envigado/",
+      "https://www.metrocuadrado.com/apartamentos/venta/sabaneta/",
+      "https://www.metrocuadrado.com/apartamentos/venta/itagui/",
+      "https://www.metrocuadrado.com/apartamentos/venta/bello/"
+    ],
+    "detail_pattern": "/inmueble/"
+  },
+  {
+    "id": "fincaraiz",
+    "name": "Finca Raíz",
+    "priority": 20,
+    "kind": "web",
+    "hosts": [
+      "fincaraiz.com.co",
+      "www.fincaraiz.com.co"
+    ],
+    "seeds": [
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/medellin/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/envigado/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/sabaneta/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/itagui/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/la-estrella/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/caldas/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/bello/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/copacabana/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/girardota/antioquia",
+      "https://www.fincaraiz.com.co/arriendo/apartamentos/barbosa/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/medellin/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/envigado/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/sabaneta/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/itagui/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/bello/antioquia",
+      "https://www.fincaraiz.com.co/arriendo-temporal/apartamentos/medellin/antioquia",
+      "https://www.fincaraiz.com.co/arriendo-temporal/apartamentos/envigado/antioquia"
+    ],
+    "detail_pattern": "/apartamento-en-arriendo-"
+  },
+  {
+    "id": "arrendamientos-sur",
+    "name": "Arrendamientos del Sur / Panda Inmobiliaria",
+    "priority": 30,
+    "kind": "web",
+    "hosts": [
+      "pandainmobiliaria.com",
+      "www.pandainmobiliaria.com",
+      "pandainmobiliaria.inmo.co"
+    ],
+    "seeds": [
+      "https://pandainmobiliaria.inmo.co/s/apartamento/arriendos",
+      "https://pandainmobiliaria.inmo.co/s/apartamento/ventas"
+    ],
+    "detail_pattern": "(?i)apartamento-(venta|arriendo|alquiler)"
+  },
+  {
+    "id": "arrendamientos-valle-aburra",
+    "name": "Arrendamientos del Valle de Aburrá",
+    "priority": 40,
+    "kind": "feed",
+    "url_env": "ABURRA_FEED_URL",
+    "hosts_env": "ABURRA_HOSTS",
+    "note": "Falta identificar dominio exacto; no se sustituye por otra agencia."
+  },
+  {
+    "id": "survivienda",
+    "name": "Arrendamientos Sur Vivienda",
+    "priority": 50,
+    "kind": "web",
+    "hosts": [
+      "www.survivienda.com",
+      "survivienda.com"
+    ],
+    "seeds": [
+      "https://www.survivienda.com/Paginas/"
+    ],
+    "detail_pattern": "(?i)(inmueble|propiedad|detalle)"
+  },
+  {
+    "id": "espaciourbano",
+    "name": "Espacio Urbano (agencias externas)",
+    "priority": 60,
+    "kind": "web",
+    "hosts": [
+      "www.espaciourbano.com",
+      "espaciourbano.com"
+    ],
+    "seeds": [
+      "https://www.espaciourbano.com/listado_arriendos.asp"
+    ],
+    "detail_pattern": "(?i)Ficha\\.asp\\?xId="
+  },
+  {
+    "id": "panorama",
+    "name": "Arrendamientos Panorama",
+    "priority": 70,
+    "kind": "web",
+    "hosts": [
+      "arrendamientospanorama.com",
+      "www.arrendamientospanorama.com"
+    ],
+    "seeds": [
+      "https://arrendamientospanorama.com/listado_arriendos.asp"
+    ],
+    "detail_pattern": "(?i)Ficha\\.asp\\?xId="
+  },
+  {
+    "id": "ayura",
+    "name": "Arrendamientos Ayurá",
+    "priority": 80,
+    "kind": "web",
+    "hosts": [
+      "www.arrendamientosayura.com",
+      "arrendamientosayura.com"
+    ],
+    "seeds": [
+      "https://www.arrendamientosayura.com/"
+    ],
+    "detail_pattern": "(?i)(inmueble|propiedad|apartamento)"
+  },
+  {
+    "id": "delnorte",
+    "name": "Arrendamientos del Norte",
+    "priority": 90,
+    "kind": "web",
+    "hosts": [
+      "www.arrendamientosdelnorte.com",
+      "arrendamientosdelnorte.com"
+    ],
+    "seeds": [
+      "https://arrendamientosdelnorte.com/buscar/?concepto=Arriendo&tipo=Apartamento",
+      "https://arrendamientosdelnorte.com/buscar/?concepto=Venta&tipo=Apartamento"
+    ],
+    "detail_pattern": "(?i)(inmueble|propiedad|apartamento)"
+  }
+]

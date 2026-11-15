@@ -23,10 +23,12 @@ import viajes as VIAJES
 import accounts as ACC
 import fusion as FUSION
 import historia as HISTORIA
+import apartment_api as APARTMENT_API
+import simon_api as SIMON_API
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-BLOCKED = ('/references', '/tools', '/server.py', '/state')
+BLOCKED = ('/references', '/tools', '/server.py', '/state', '/.git', '/.env', '/tests')
 LEGAL_PAGES = {
     '/privacidad': 'legal/privacidad.html',
     '/terminos': 'legal/terminos.html',
@@ -1441,13 +1443,36 @@ async def handle(reader, writer):
     headers = {k.strip().lower(): v.strip() for k, _, v in (l.partition(':') for l in lines[1:] if l)}
     path = urllib.parse.unquote(urllib.parse.urlparse(target).path)
     body = b''
-    if method == 'POST' and path.startswith('/auth'):
+    simon_post = method == 'POST' and path.startswith('/api/simon')
+    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post):
         try:
-            length = min(int(headers.get('content-length') or 0), 20000)
+            cap = 80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000
+            length = min(int(headers.get('content-length') or 0), cap)
         except ValueError:
             length = 0
         if length:
             body = await reader.readexactly(length)
+    if path.startswith('/api/apartamentos') or path in APARTMENT_API.AGENT_PATHS:
+        # El rastreo nunca se ejecuta desde una petición pública ni bloquea el bucle del juego.
+        result = await asyncio.to_thread(APARTMENT_API.dispatch, method, path, target, body)
+        code, payload = result
+        labels = {200: 'OK', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed', 503: 'Service Unavailable'}
+        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
+        if method != 'HEAD':
+            writer.write(encoded)
+        await writer.drain(); writer.close(); return
+    if path.startswith('/api/simon'):
+        result = await asyncio.to_thread(SIMON_API.dispatch, method, path, target, headers, body)
+        code, payload, extra = result
+        labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found',
+                  405: 'Method Not Allowed', 409: 'Conflict', 503: 'Service Unavailable'}
+        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        cookie = ('Set-Cookie: ' + extra['Set-Cookie'] + '\r\n') if extra.get('Set-Cookie') else ''
+        writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\n{cookie}Content-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
+        if method != 'HEAD':
+            writer.write(encoded)
+        await writer.drain(); writer.close(); return
     answered = await try_auth(method, path, target, headers, body, client_ip(headers, writer))
     if answered is not None:
         writer.write(answered)

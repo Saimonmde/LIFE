@@ -1,0 +1,23 @@
+{
+  "name": "search_apartments",
+  "description": "Busca publicaciones reales recientes en el índice unificado del Valle de Aburrá. No inventes anuncios ni enlaces. Revisa applied_filters, sources y notice. Presenta original_url de cada resultado. Operaciones: renta_corta, arriendo y venta. La renta corta (días, semanas o contratos de 3, 6 y 12 meses) sólo cuenta si la unidad lo declara.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "municipality": {"type": "string", "enum": ["Medellín", "Envigado", "Sabaneta", "Itagüí", "La Estrella", "Caldas", "Bello", "Copacabana", "Girardota", "Barbosa"]},
+      "neighborhood": {"type": "string"},
+      "operation": {"type": "string", "enum": ["renta_corta", "arriendo", "venta"]},
+      "stay": {"type": "string", "enum": ["dias", "semanas", "meses_3", "meses_6", "meses_12", "mensual"]},
+      "price_basis": {"type": "string", "enum": ["day", "week", "month", "sale"]},
+      "min_price": {"type": "number", "minimum": 0},
+      "max_price": {"type": "number", "minimum": 0},
+      "min_area_m2": {"type": "number", "minimum": 0},
+      "min_bedrooms": {"type": "integer", "minimum": 0},
+      "min_bathrooms": {"type": "integer", "minimum": 0},
+      "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+      "offset": {"type": "integer", "minimum": 0, "maximum": 10000}
+    },
+    "additionalProperties": false
+  },
+  "transport": {"method": "GET", "path": "/api/apartamentos", "encoding": "query"}
+}

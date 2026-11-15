@@ -167,3 +167,11 @@ Lectura pública:
 - `GET /api/libro/verificar`
 
 `LIBRO_DIFICULTAD` (1 a 20, por defecto 12) es cuántos bits en cero pide la prueba de trabajo. Si tarda, el servidor baja un bit para no frenar la partida.
+
+## Simon y apartamentos
+
+Simon IA y Simon IO viven en este repositorio (`/play/simon.html`). Buscan arriendo, renta corta y venta en el Valle de Aburrá con la herramienta `search_apartments`, y pueden consultar la web si hay clave. RentoCity es el motor principal y la plataforma de renta corta (días, semanas o 3, 6 y 12 meses, sólo si la unidad lo permite). El sitio rentocity.com.co no publica catálogo: hace falta `RENTOCITY_FEED_URL`.
+
+La conversación se cifra en reposo y sólo se guarda con consentimiento (Ley 1581 de 2012). Hay borrado, ritmo de respuesta y reseñas. El panel de administración está en `/play/admin/resenas.html` y pide `SIMON_ADMIN_TOKEN`. Las reseñas privadas no salen en `/play/resenas.html`.
+
+No se copian fotos: cada ficha abre el enlace original. El índice se actualiza con `python3 tools/apartment_sync.py` (no desde el navegador). Detalle, variables y límites: [docs/SIMON.md](docs/SIMON.md). Esta entrega no autoriza merge ni despliegue: hace falta el sí explícito de Jay.
