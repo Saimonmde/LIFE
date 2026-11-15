@@ -1018,6 +1018,7 @@ function connect() {
       addLine(m.channel, chatLine(m, mine));
       if (mine || m.channel === 'proximidad' || m.channel === 'global') bubble(mine ? 0 : m.fromId, m.text);
     }
+    else if (m.t === 'emote') { const who = m.id === S.net.id ? S.player : S.others.get(m.id); if (who) { who.emote = m.emote; who.emoteUntil = now() + (m.emote === 'sit' ? 4200 : 2600); } }
     else if (window.TradeUI && TradeUI.onNet(m)) { /* intercambio entre dos personas */ }
     else if (m.t === 'system') sys(esc(m.text));
     else if (window.Acunar && Acunar.onNet(m)) { /* acuñar */ }
@@ -1586,6 +1587,7 @@ addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && started) { window.ChatUI.setOpen(true, true); e.preventDefault(); return; }
   if (S.dialog && (k === ' ' || k === 'enter')) return advanceDialog();
   if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','x'].includes(k)) { S.keys.add(k); e.preventDefault(); }
+  if (/^[1-8]$/.test(k) && window.Emotes && Emotes.isOpen()) { Emotes.play(Number(k)); e.preventDefault(); return; }
   if (/^[0-9]$/.test(k)) { const i = (+k + 9) % 10; if (S.inv[i]) { S.sel = i; renderInv(); } }
   if (k === '+' || k === '=') zoom = Math.min(2.5, zoom + 0.15);
   if (k === '-') zoom = Math.max(0.5, zoom - 0.15);
@@ -1684,8 +1686,12 @@ function update(dt) {
     if ((dx || dy) && walkable(nx, ny)) { p.path = [[nx, ny]]; p.pending = null; S.dest = null; }
     else if (dx || dy) p.dir = dx > 0 ? 'right' : dx < 0 ? 'left' : dy > 0 ? 'down' : 'up';
   }
+  const cruise = SPEED * (S.mounted ? Simulacion.speedMul() : (sprinting ? 1.75 : 1));
+  if (p.emote === 'sit' && t < (p.emoteUntil || 0)) p.path = [];
+  const want = p.path.length ? cruise * (p.path.length <= 1 ? 0.62 : 1) : 0;
+  p.speed = window.Motion ? Motion.approach(p.speed || 0, want, dt, sprinting ? 10 : 6.5, 12) : want;
   if (p.path.length) {
-    let budget = SPEED * (S.mounted ? Simulacion.speedMul() : (sprinting ? 2 : 1)) * dt;
+    let budget = Math.max(p.speed || 0, want > 0 && (p.speed || 0) < 0.35 ? 0.35 : 0) * dt;
     let guard = 0;
     while (p.path.length && budget > 1e-4 && guard++ < 40) {
       const [nx, ny] = p.path[0]; const ddx = nx - p.fx, ddy = ny - p.fy, d = Math.hypot(ddx, ddy);
@@ -1713,8 +1719,8 @@ function update(dt) {
         }
       }
     }
-    p.animT += dt * (S.mounted || running ? 2 : 1);
-  } else p.animT = 0;
+    p.animT += dt * (1 + (p.speed || 0) / SPEED);
+  } else p.animT += dt * 0.2;
   if (window.Simulacion) Simulacion.syncHorse();
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
@@ -1739,10 +1745,10 @@ function update(dt) {
       if (walkable(nx, ny) && !busy && cheb(nx, ny, a.def.x, a.def.y) <= a.def.wanderRadius && kind !== 'path' && kind !== 'cobble') { a.x = nx; a.y = ny; }
     }
   }
-  for (const o of S.others.values()) {   // interpolación de otros jugadores
-    const ddx = o.x - o.fx, ddy = o.y - o.fy, d = Math.hypot(ddx, ddy);
-    if (d > 6) { o.fx = o.x; o.fy = o.y; } else if (d > 0.01) { const st = Math.max(SPEED * dt, d * 0.2); if (d <= st) { o.fx = o.x; o.fy = o.y; } else { o.fx += ddx / d * st; o.fy += ddy / d * st; } }
-    o.walking = d > 0.02 || (o.moving && t - o.lastMove < 300);
+  for (const o of S.others.values()) {
+    const step = window.Motion ? Motion.follow(o.fx, o.fy, o.x, o.y, dt) : { x: o.x, y: o.y, speed: 0, moving: false };
+    o.fx = step.x; o.fy = step.y; o.speed = step.speed;
+    o.walking = step.moving || (o.moving && t - o.lastMove < 300);
   }
   if (S.animals.some(a => a.state === 'alive' && cheb(a.x, p.x, a.y, p.y) <= 1) && t > (S.biteUntil || 0)) {
     S.biteUntil = t + 1500;
