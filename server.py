@@ -32,6 +32,7 @@ import persist as PERSIST
 import mundos as MUNDOS
 import social as SOCIAL
 import vida_api as VIDA_API
+import hogar as HOGAR
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -1128,16 +1129,12 @@ def chat(sender, channel, text):
         if not sender.group: return send(sender, {'t': 'system', 'text': 'No estás en un grupo. Escribe /grupo <nombre> para crear o unirte a uno.'})
         broadcast(msg, lambda c: MUNDOS.same_world(c, sender) and c.group and c.group.lower() == sender.group.lower())
 
-def arrival_position(resume=None):
+def arrival_position(resume=None, user=None):
     # Start within the same connected spawn area, on an unoccupied walkable tile.
     occupied = [(c.x, c.y) for c in clients.values() if c.hello]
-    if isinstance(resume, dict):
-        try:
-            x, y = float(resume['x']), float(resume['y'])
-            if walkable(int(x), int(y)) and x >= 0 and y >= 0:
-                return x, y
-        except (KeyError, TypeError, ValueError, OverflowError):
-            pass
+    home = HOGAR.arrival(user, resume, walkable)
+    if home is not None:
+        return home
     seen = {SPAWN}; queue = [SPAWN]
     for x, y in queue:
         if walkable(x, y) and all(abs(x-ox) >= 0.9 or abs(y-oy) >= 0.9 for ox, oy in occupied):
@@ -1345,7 +1342,7 @@ def handle_client_message(c, m, t):
         c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'city') else 'city'
         c.world = MUNDOS.normalize(m.get('world')) or 1
         if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
-        else: c.x, c.y = arrival_position(m.get('resume'))
+        else: c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
         asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
         token_src = c.user.get('wallet_token') if getattr(c, 'user', None) else m.get('walletToken')
         c.name = unique_name(clean(asked, 16), c)
@@ -1776,6 +1773,17 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         except ACC.AuthError as exc:
             return auth_response('400 Bad Request', {'error': str(exc)}, headers)
         return auth_response('200 OK', {'ok': True, 'user': ACC.public_user(user)}, headers, [ 'Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)])
+    if path == '/auth/municipio' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para elegir tu casa.'}, headers)
+        try:
+            shown = ACC.set_municipio(ACCOUNTS, user, payload.get('municipio'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        spot = HOGAR.stand(shown['municipio'])
+        return auth_response('200 OK', {'ok': True, 'user': shown, 'home': {'x': spot[0], 'y': spot[1], 'name': HOGAR.NOMBRES[shown['municipio']]}}, headers)
     if path == '/auth/salir' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         ACCOUNTS['sessions'].pop(token, None)

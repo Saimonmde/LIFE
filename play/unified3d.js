@@ -5,7 +5,7 @@ import {enrichWorld} from './park3d.js?v=valle-hud-r5';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
 import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
 import {buildBank, placeBankHouse} from './banco3d.js?v=valle-hud-r5';
-import {createValleyView} from './valle-vista.js?v=mapa-fijo-r6';
+import {createValleyView} from './valle-vista.js?v=hogar-r1';
 import {attachVida} from './vida3d.js?v=vida-r1';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
@@ -331,8 +331,9 @@ function boot(api){
  function updateTilt(dt){pitch=Math.max(PITCH_MIN,Math.min(PITCH_MAX,pitch+((turning.has('ArrowUp')?1:0)-(turning.has('ArrowDown')?1:0))*dt*.8));}
  function frame(){requestAnimationFrame(frame);const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;}}else if(status._casaCam||status._bancoCam){status._casaCam=false;status._bancoCam=false;yaw=0;pitch=1.12;distance=36;}
  if(status.view){if(status.view.yaw!=null)yaw=status.view.yaw;if(status.view.pitch!=null)pitch=status.view.pitch;if(status.view.distance!=null)distance=status.view.distance;status.view=null;}
- if(status.fly&&!valley.isOpen()){const t=Math.min(1,(performance.now()-status.fly.t0)/status.fly.dur);valley.setFly(t);if(t>=1){status.fly=null;valley.setFly(null);yaw=0.12;pitch=1.08;distance=24;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}window.Tutorial?.afterFly?.();}}else if(!status.fly)valley.setFly(null);
- if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=valley.isOpen()?scene:activeScene();if(me.parent!==view)view.add(me);me.visible=!valley.isOpen();
+ if(status.ovni&&!valley.isOpen()){const t=Math.min(1,(performance.now()-status.ovni.t0)/status.ovni.dur);valley.setRide({t,x:status.ovni.x,y:status.ovni.y});if(t>=1){status.ovni=null;valley.setRide(null);yaw=0.2;pitch=1.05;distance=26;const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=true;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}window.Tutorial?.afterFly?.();}}else if(!status.ovni)valley.setRide(null);
+ if(status.fly&&!status.ovni&&!valley.isOpen()){const t=Math.min(1,(performance.now()-status.fly.t0)/status.fly.dur);valley.setFly(t);if(t>=1){status.fly=null;valley.setFly(null);yaw=0.12;pitch=1.08;distance=24;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}window.Tutorial?.afterFly?.();}}else if(!status.fly)valley.setFly(null);
+ if(status.lookAt){const dx=status.lookAt.x-p.fx,dz=status.lookAt.y-p.fy;yaw=Math.atan2(-dx,-dz);pitch=1.02;distance=40;status.lookAt=null;}const me=actor('self',p.fx,p.fy,colors[S.me.color]);const view=valley.isOpen()?scene:activeScene();if(me.parent!==view)view.add(me);me.visible=!valley.isOpen();const deck=valley.deck&&valley.deck();if(deck&&status.ovni){me.position.set(deck.x,deck.y,deck.z);me.rotation.y=deck.yaw||0;}
  if(!me.userData.pica){const tool=new T.Group();const handle=new T.Mesh(new T.CylinderGeometry(.045,.045,1.4,8),material('#90643c'));tool.add(handle);const head=new T.Mesh(new T.BoxGeometry(.9,.14,.15),material('#bdc7c9'));head.position.y=.6;tool.add(head);tool.position.set(.6,1,.2);me.add(tool);me.userData.pica=tool;}const tool=me.userData.pica;tool.visible=api.now()<(p.miningUntil||0);tool.rotation.z=-.7+Math.sin(time*.025)*.9;
  if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colors.azul);color=S.me.color;}me.rotation.y={up:Math.PI,down:0,left:-Math.PI/2,right:Math.PI/2}[p.dir]||0;
  if(S.mounted)me.position.y+=.95;
@@ -351,9 +352,12 @@ function boot(api){
  document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
- status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:7000};};
- const skipFly=()=>{if(!status.fly)return;status.fly.t0=performance.now()-status.fly.dur;};
- addEventListener('keydown',skipFly);addEventListener('pointerdown',skipFly);
- if(window.LIFE_WANT_FLY)status.startFly();
+ status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(status.ovni||window.LIFE_WANT_INTRO==='ovni')return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:7000};};
+ status.startOvni=(x,y)=>{if(/autotest=1/.test(location.search))return;status.fly=null;valley.setFly(null);status.ovni={t0:performance.now(),dur:narrow()?5200:5600,x,y};const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=false;try{localStorage.setItem('lifeinc.vuelo.v1','1');}catch{}};
+ const skipRide=()=>{if(status.ovni){if(performance.now()-status.ovni.t0<500)return;status.ovni.t0=performance.now()-status.ovni.dur;return;}if(!status.fly)return;status.fly.t0=performance.now()-status.fly.dur;};
+ addEventListener('keydown',skipRide);addEventListener('pointerdown',skipRide);
+ const skipBtn=document.getElementById('ovni-saltar');if(skipBtn)skipBtn.onclick=(e)=>{e.stopPropagation();if(status.ovni)status.ovni.t0=performance.now()-status.ovni.dur;};
+ if(window.LIFE_WANT_INTRO==='ovni'&&window.LIFE_OVNI)status.startOvni(window.LIFE_OVNI.x,window.LIFE_OVNI.y);
+ else if(window.LIFE_WANT_FLY)status.startFly();
  status.active=true;status.regions=W.regions.map(r=>r.id);status.ready=true;frame();
 }

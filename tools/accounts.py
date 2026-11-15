@@ -246,7 +246,18 @@ def public_user(user):
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or '',
         'avatar_id': 'avatar_' + user['id'],
+        'municipio': user.get('municipio') or '',
     }
+
+
+def set_municipio(doc, user, municipio):
+    """Guarda el municipio de la casa. Una cuenta vieja, sin el campo, sigue vacía."""
+    import hogar
+    key = str(municipio or '').strip().lower()
+    if key not in hogar.ORDEN:
+        raise AuthError('Ese municipio no está en el Valle de Aburrá.')
+    user['municipio'] = key
+    return public_user(user)
 
 
 def session_user(doc, token, now=None):

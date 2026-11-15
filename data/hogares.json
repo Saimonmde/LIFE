@@ -1,0 +1,16 @@
+{
+  "orden": ["caldas", "la_estrella", "sabaneta", "itagui", "envigado", "medellin", "bello", "copacabana", "girardota", "barbosa"],
+  "casas": [
+    {"id": "caldas", "name": "Caldas", "x": 49, "y": 362},
+    {"id": "la_estrella", "name": "La Estrella", "x": 81, "y": 352},
+    {"id": "sabaneta", "name": "Sabaneta", "x": 82, "y": 300},
+    {"id": "itagui", "name": "Itagüí", "x": 96, "y": 230},
+    {"id": "envigado", "name": "Envigado", "x": 94, "y": 267},
+    {"id": "medellin", "name": "Medellín", "x": 130, "y": 196},
+    {"id": "bello", "name": "Bello", "x": 122, "y": 130},
+    {"id": "copacabana", "name": "Copacabana", "x": 171, "y": 131},
+    {"id": "girardota", "name": "Girardota", "x": 223, "y": 103},
+    {"id": "barbosa", "name": "Barbosa", "x": 321, "y": 50}
+  ],
+  "note": "Casilla caminable de tu casa. Envigado es la llegada de la casa colonial (94, 267). Los demás son la plaza del municipio, suelo de adoquín."
+}
