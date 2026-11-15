@@ -40,6 +40,29 @@
     return { vacio: 'vacía', planton: 'plantón', verde: 'verde', maduro: 'maduro' }[stage] || stage;
   }
 
+  let textos = null;
+  const FASE = {
+    cafe: { fruto: 'cereza_madura' },
+    cacao: { fruto: 'mazorca' },
+  };
+  const PASO = {
+    cafe: { despulpado: 'despulpado', secado: 'secado', trilla: 'trilla' },
+    cacao: { fermentado: 'fermentacion_cajones', secado: 'secado' },
+  };
+  function esc(text) {
+    return String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function carta(crop, etapa) {
+    if (!textos || !etapa) return '';
+    const row = (textos[crop] || []).find(item => item.etapa === etapa);
+    if (!row) return '';
+    return `<details class="finca-carta"><summary>${esc(row.titulo)}</summary><p>${esc(row.texto)}</p><p><b>Dato.</b> ${esc(row.dato)}</p><p><a href="${esc(row.fuente)}" target="_blank" rel="noopener">Fuente</a></p></details>`;
+  }
+  function etapaDe(crop, phase) {
+    if (!phase || phase === 'vacio') return '';
+    return (FASE[crop] || {})[phase] || phase;
+  }
+
   function paintFarm() {
     const root = $('#finca-body');
     if (!root) return;
@@ -51,16 +74,19 @@
     const list = (crop) => plots.filter(row => row.crop === crop).map(row => {
       const action = row.stage === 'vacio' ? 'Plantar' : (row.stage === 'maduro' ? 'Cosechar' : '');
       const button = action ? `<button type="button" data-op="${action === 'Plantar' ? 'plantar' : 'cosechar'}" data-plot="${row.id}">${action}</button>` : '';
-      return `<div class="finca-plot"><span>${row.crop === 'cafe' ? 'Café' : 'Cacao'} · ${stageName(row.stage)}</span>${button}</div>`;
+      return `<div class="finca-plot"><span>${row.crop === 'cafe' ? 'Café' : 'Cacao'} · ${stageName(row.stage)}</span>${button}</div>${carta(crop, etapaDe(crop, row.phase))}`;
     }).join('');
     const goods = view.goods || {};
     const batches = view.batches || {};
     const workshop = (crop, title) => {
-      const steps = ((view.crops || {})[crop] || {}).steps || [];
+      const spec = (view.crops || {})[crop] || {};
+      const steps = spec.steps || [];
+      const ids = spec.stepIds || [];
       const batch = batches[crop];
       const buttons = steps.map(label => `<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`).join('');
+      const cards = ids.map(id => carta(crop, (PASO[crop] || {})[id] || id)).join('');
       const status = batch ? (batch.settled ? `Listo: ${batch.step}.` : `Trabajando: ${batch.step}.`) : 'El taller está libre.';
-      return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>`;
+      return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>${cards}`;
     };
     const kilos = (crop, count) => {
       const per = Number(((view.crops || {})[crop] || {}).kgPerHarvest) || 0;
@@ -221,6 +247,11 @@
     }, 4000);
   }
 
+  fetch('finca-textos.json?v=cierre-r1').then(res => res.ok ? res.json() : null).then(doc => {
+    if (!doc) return;
+    textos = doc;
+    paintFarm();
+  }).catch(() => {});
   window.Finca = { onNet, open, openPanel, openLibro, pull };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();

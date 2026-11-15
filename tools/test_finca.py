@@ -366,6 +366,21 @@ class FincaTests(unittest.TestCase):
         self.assertIn('bulto de ${bag.kg || 0} kg', panel)
         self.assertIn('kg de café cereza', panel)
         self.assertIn('kg de cacao en baba', panel)
+        self.assertIn('finca-carta', panel)
+        self.assertIn('cereza_madura', panel)
+        modelo = os.path.join(ROOT, 'play', 'finca-modelo.js')
+        with open(modelo, encoding='utf-8') as handle:
+            head = handle.read(40)
+        self.assertFalse(head.lstrip().lower().startswith('<'))
+        self.assertTrue(head.startswith('/*') or head.startswith('//') or head.startswith('(function'))
+        with open(os.path.join(ROOT, 'play', 'finca-textos.json'), encoding='utf-8') as handle:
+            cards = json.load(handle)
+        self.assertEqual(cards['cafe'][3]['etapa'], 'cereza_madura')
+        self.assertEqual(cards['cacao'][-1]['etapa'], 'kilos_libro_mayor')
+        self.assertEqual(self.config['crops']['cafe']['kgPerHarvest'], 94)
+        self.assertEqual(self.config['crops']['cacao']['kgPerHarvest'], 90)
+        self.assertEqual(self.config['crops']['cafe']['bagKg'], 70)
+        self.assertEqual(self.config['crops']['cacao']['bagKg'], 150)
 
 
 if __name__ == '__main__':
