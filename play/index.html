@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="theme.css?v=vidrio-r1">
 <link rel="stylesheet" href="cuenta.css?v=nick-r1">
 <link rel="stylesheet" href="cajon.css?v=monedas-r3">
+<link rel="stylesheet" href="login.css?v=entrada-r3">
 <link rel="icon" href="../graphics/ui/saimon-logo-gold.png">
 <link rel="stylesheet" href="shell.css?v=entrada-r1">
 <script src="shell.js?v=entrada-r1"></script>
@@ -138,34 +139,35 @@
       </h1>
       <div class="simoncity-rule" aria-hidden="true"></div>
       <div class="simoncity-place">Medellín</div>
-      <p class="simoncity-welcome">Bienvenido a Medellín</p>
+      <p class="simoncity-welcome">Entra para jugar</p>
       <p class="simoncity-online" id="login-red">Buscando el servidor…</p>
     </div>
-    <label>Nombre<input id="l-nombre" maxlength="16" required placeholder="Tu nombre"></label>
-    <div class="colores" id="l-colores"></div>
-    <button type="submit">Entrar como invitado</button>
-    <div id="login-cuentas" hidden>
-      <p class="login-o">o entra con una cuenta</p>
-      <button type="button" id="b-google" hidden>Entrar con Google</button>
-      <button type="button" id="b-facebook" hidden>Entrar con Facebook</button>
-      <button type="button" id="b-correo" hidden>Entrar con correo</button>
-      <button type="button" id="b-registro" hidden>Crear cuenta con correo</button>
+    <div id="login-cuentas">
+      <button type="button" id="b-google" hidden>Continuar con Google</button>
+      <button type="button" id="b-facebook" hidden>Continuar con Facebook</button>
+      <button type="button" id="b-correo">Continuar con correo</button>
+      <p id="login-nota" hidden></p>
     </div>
     <div id="correo-login" hidden>
-      <p>Una cuenta conserva su identidad. El nombre de invitado no reserva un nickname.</p>
       <label>Correo<input id="e-email" type="email" autocomplete="username"></label>
       <label>Contraseña<input id="e-password" type="password" autocomplete="current-password"></label>
-      <button type="button" id="b-correo-entrar">Entrar con mi cuenta</button>
-      <p>Tu nombre y avatar identifican tu cuenta; no sustituyen la contraseña. Si tu cuenta usa Google, entra con Google.</p>
+      <button type="button" id="b-correo-entrar">Entrar</button>
+      <button type="button" id="b-registro" hidden>Crear cuenta</button>
+      <button type="button" id="b-olvide" hidden>Olvidé mi contraseña</button>
     </div>
     <div id="registro" hidden>
+      <p>Elige un apodo. Te enviamos un enlace: la cuenta no sirve hasta que lo abras.</p>
+      <label>Apodo<input id="l-nombre" maxlength="16" autocomplete="nickname" placeholder="Cómo te verán"></label>
+      <div class="colores" id="l-colores"></div>
       <label>Correo<input id="r-email" type="email" autocomplete="email"></label>
-      <label id="r-phone-row" hidden>Teléfono opcional<input id="r-phone" inputmode="tel" placeholder="+573001112233" autocomplete="tel"></label>
       <label>Contraseña<input id="r-pass" type="password" minlength="8" maxlength="1024" autocomplete="new-password"></label>
-      <button type="button" id="b-pedir-codigo">Enviar código al correo</button>
-      <label>Código del correo<input id="r-email-code" inputmode="numeric" autocomplete="one-time-code"></label>
-      <label id="r-sms-row" hidden>Código del SMS<input id="r-phone-code" inputmode="numeric" autocomplete="one-time-code"></label>
-      <button type="button" id="b-verificar">Verificar y entrar</button>
+      <button type="button" id="b-pedir-codigo">Enviar enlace de confirmación</button>
+      <button type="button" id="b-reenviar" hidden>Reenviar enlace</button>
+    </div>
+    <div id="olvide" hidden>
+      <p>Te enviamos un enlace para elegir otra contraseña. Caduca en una hora.</p>
+      <label>Correo<input id="o-email" type="email" autocomplete="username"></label>
+      <button type="button" id="b-olvide-enviar">Enviar enlace</button>
     </div>
     <button type="button" id="b-sonido-titulo" aria-pressed="false">Sonido: apagado</button>
     <nav class="login-pie" aria-label="Avisos legales">
@@ -278,7 +280,7 @@
 <script src="tutorial.js?v=valle-hud-r5"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
-<script src="game.js?v=monedas-r1"></script>
+<script src="game.js?v=entrada-r3"></script>
 <script type="module" src="unified3d.js?v=nick-r2"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>

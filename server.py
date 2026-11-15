@@ -1323,6 +1323,48 @@ def settle_wallet(user, link_name, link_token):
             ACC.link_wallet(user, user.get('wallet_name') or user['name'], token)
 
 
+def _texto_enlace(frase, url):
+    return frase + '\n\n' + url + '\n\nSi no pediste este mensaje, ignóralo.'
+
+
+def _pagina_clave(token, error, done=False):
+    import html
+    safe = html.escape(token or '', quote=True)
+    aviso = html.escape(error or '')
+    if done:
+        cuerpo = '<p>La contraseña quedó guardada. Ya puedes entrar con el correo.</p><p><a href="/play/">Volver al juego</a></p>'
+    else:
+        cuerpo = (
+            '<p>Elige una contraseña nueva. El enlace sólo sirve una vez.</p>'
+            f'<p class="aviso">{aviso}</p>'
+            '<form method="post" action="/auth/restablecer">'
+            f'<input type="hidden" name="token" value="{safe}">'
+            '<label>Contraseña nueva<input type="password" name="password" minlength="8" required autocomplete="new-password"></label>'
+            '<button type="submit">Guardar contraseña</button></form>'
+        )
+    return (
+        '<!doctype html><html lang="es"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>Contraseña · Saimon City</title>'
+        '<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#12160f;color:#f7f4ea;'
+        'font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'
+        'main{width:min(420px,calc(100vw - 28px));padding:22px;border:1px solid rgba(255,255,255,.28);border-radius:16px;background:#1c2218}'
+        'label{display:flex;flex-direction:column;gap:6px;margin:12px 0}input,button{font:inherit;min-height:44px;border-radius:10px}'
+        'input{padding:8px 10px;border:1px solid #8d7a48;background:#10140e;color:#fff}'
+        'button{background:#2f6b3a;color:#fff;border:0}a{color:#f0d48a}.aviso{color:#ffb4b4}</style></head>'
+        f'<body><main><h1>Saimon City</h1>{cuerpo}</main></body></html>'
+    )
+
+
+def auth_html(status, html_text, headers, extra_headers=()):
+    raw = html_text.encode('utf-8')
+    lines = [f'HTTP/1.1 {status}\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(raw)}\r\n']
+    for item in extra_headers:
+        lines.append(item + '\r\n')
+    lines.append('Connection: close\r\n\r\n')
+    return ''.join(lines).encode() + raw
+
+
 def auth_response(status, body, headers, extra_headers=()):
     raw = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
     lines = [f'HTTP/1.1 {status}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(raw)}\r\n']
@@ -1467,12 +1509,83 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return auth_response('200 OK', {'ok': True, 'user': result['user']}, headers,
                              ['Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)])
     if path == '/auth/registro' and method == 'POST':
+        if not ACC.email_ready():
+            return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado. Entra con Google o Facebook.'}, headers)
         try:
-            ACC.begin_signup(ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('phone'), payload.get('password') or '', ACC.send_email, ACC.start_sms)
+            ACC.begin_email_account(
+                ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('password') or '',
+                lambda email, raw: ACC.send_message(email, 'Confirma tu cuenta de Saimon City', _texto_enlace(
+                    'Abre este enlace para activar la cuenta. Caduca en 24 horas y sólo sirve una vez.',
+                    base + '/auth/verificar?token=' + urllib.parse.quote(raw),
+                )),
+            )
             save_accounts()
         except ACC.AuthError as exc:
+            save_accounts()
             return auth_response('400 Bad Request', {'error': str(exc)}, headers)
         return auth_response('200 OK', {'ok': True}, headers)
+    if path == '/auth/reenviar' and method == 'POST':
+        if not ACC.email_ready():
+            return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado.'}, headers)
+        try:
+            ACC.resend_verification(
+                ACCOUNTS, payload.get('email'),
+                lambda email, raw: ACC.send_message(email, 'Confirma tu cuenta de Saimon City', _texto_enlace(
+                    'Este enlace nuevo sustituye al anterior. Caduca en 24 horas y sólo sirve una vez.',
+                    base + '/auth/verificar?token=' + urllib.parse.quote(raw),
+                )),
+            )
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True}, headers)
+    if path == '/auth/olvide' and method == 'POST':
+        if not ACC.email_ready():
+            return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado.'}, headers)
+        try:
+            ACC.request_password_reset(
+                ACCOUNTS, payload.get('email'),
+                lambda email, raw: ACC.send_message(email, 'Nueva contraseña de Saimon City', _texto_enlace(
+                    'Abre este enlace para elegir una contraseña nueva. Caduca en 1 hora y sólo sirve una vez.',
+                    base + '/auth/restablecer?token=' + urllib.parse.quote(raw),
+                )),
+            )
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True}, headers)
+    if path == '/auth/verificar' and method == 'GET':
+        token = (query.get('token') or [''])[0]
+        back = vuelta_pedida(query, cookie)
+        fallo = '/play/?movil=1&auth=enlace' if back.endswith('movil=1') else '/play/?auth=enlace'
+        try:
+            result = ACC.confirm_email_link(ACCOUNTS, token)
+            user = next(u for u in ACCOUNTS['users'] if u['id'] == result['user']['id'])
+            link = urllib.parse.unquote(ACC.read_cookie(cookie, 'life_link'))
+            link_name, _, link_token = link.partition('|')
+            settle_wallet(user, link_name or user.get('name') or '', link_token)
+            save_accounts()
+            maybe_fuse()
+        except ACC.AuthError:
+            save_accounts()
+            return redirect(fallo, headers, [])
+        return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure)])
+    if path == '/auth/restablecer' and method == 'GET':
+        token = (query.get('token') or [''])[0]
+        return auth_html('200 OK', _pagina_clave(token, ''), headers)
+    if path == '/auth/restablecer' and method == 'POST':
+        form = urllib.parse.parse_qs(body.decode('utf-8', 'replace') if body else '')
+        token = (form.get('token') or [payload.get('token') if isinstance(payload, dict) else ''])[0]
+        password = (form.get('password') or [payload.get('password') if isinstance(payload, dict) else ''])[0]
+        try:
+            ACC.reset_password(ACCOUNTS, token, password)
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_html('400 Bad Request', _pagina_clave(token, str(exc)), headers)
+        return auth_html('200 OK', _pagina_clave('', '', done=True), headers)
     if path == '/auth/verificar' and method == 'POST':
         try:
             result = ACC.verify_signup(ACCOUNTS, payload.get('email'), payload.get('email_code'), payload.get('phone_code'), ACC.check_sms)

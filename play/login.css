@@ -1,0 +1,44 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Entrada. Fuente del sistema. Sin invitado. */
+
+#login[hidden] { display: none !important; }
+#login-cuentas,
+#correo-login:not([hidden]),
+#registro:not([hidden]),
+#olvide:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#login-cuentas[hidden],
+#correo-login[hidden],
+#registro[hidden],
+#olvide[hidden],
+#b-google[hidden],
+#b-facebook[hidden],
+#b-registro[hidden],
+#b-olvide[hidden],
+#b-reenviar[hidden] { display: none !important; }
+#login button {
+  min-height: 44px;
+  border-radius: 12px;
+  font-family: var(--sans);
+  font-weight: 650;
+}
+#login input {
+  min-height: 44px;
+  border-radius: 12px;
+  font-family: var(--sans);
+}
+#registro p, #olvide p, #correo-login p, #login-nota {
+  margin: 0;
+  font: 14px/1.4 var(--sans);
+}
+#login-nota { color: #f0d48a; }
+#login .colores { display: flex; gap: 8px; }
+#login .colores button {
+  width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}

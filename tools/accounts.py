@@ -16,6 +16,8 @@ import urllib.request
 from email.message import EmailMessage
 
 CODE_TTL = 600
+LINK_TTL = 60 * 60 * 24
+RESET_TTL = 60 * 60
 SESSION_TTL = 60 * 60 * 24 * 30
 OTP_PER_HOUR = 5
 MAX_ATTEMPTS = 5
@@ -28,7 +30,7 @@ class AuthError(Exception):
 
 
 def empty():
-    return {'users': [], 'sessions': {}, 'pending': {}, 'states': {}, 'rates': {}}
+    return {'users': [], 'sessions': {}, 'pending': {}, 'states': {}, 'rates': {}, 'resets': {}}
 
 
 def load(path):
@@ -54,8 +56,9 @@ def providers():
         'facebook': bool(os.environ.get('FACEBOOK_APP_ID') and os.environ.get('FACEBOOK_APP_SECRET')),
         'registro': email_ready(),
         'email_login': True,
+        'reset': email_ready(),
         'sms': sms_ready(),
-        'guest': True,
+        'guest': False,
     }
 
 
@@ -151,11 +154,16 @@ def login_password(doc, email, password, now=None, client_ip=None):
             raise AuthError('Demasiados intentos. Espera un rato.')
         recent.append(now)
     _hit_rate(doc, 'login:' + email, now)
+    pending = doc.get('pending', {}).get(email)
+    if pending and pending.get('password_hash') and verify_password(password, pending['password_hash']):
+        raise AuthError('Confirma el enlace del correo antes de entrar. Puedes pedir otro enlace.')
     user = _user_by(doc, email=email)
     stored = (user or {}).get('password_hash') or ('scrypt$' + '00' * 16 + '$' + '00' * 32)
     verified = verify_password(password, stored)
     if not user or not user.get('password_hash') or not verified:
         raise AuthError('Correo o contraseña incorrectos.')
+    if user.get('verified') is False:
+        raise AuthError('Confirma el enlace del correo antes de entrar. Puedes pedir otro enlace.')
     doc['rates'].pop('login:' + email, None)
     return open_session(doc, user, now)
 
@@ -288,7 +296,7 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
         user = {
             'id': secrets.token_hex(8), 'name': name, 'email': email, 'phone': '',
             'password_hash': '', 'providers': {provider: sub},
-            'wallet_name': name, 'wallet_token': '', 'createdAt': now,
+            'wallet_name': name, 'wallet_token': '', 'createdAt': now, 'verified': True,
         }
         doc['users'].append(user)
     return open_session(doc, user, now)
@@ -319,9 +327,151 @@ def read_cookie(header, name):
     return ''
 
 
+def _token():
+    return secrets.token_urlsafe(32)
+
+
+def _token_hash(raw):
+    return hashlib.sha256(str(raw or '').encode('utf-8')).hexdigest()
+
+
+def begin_email_account(doc, name, email, password, send_link, now=None):
+    """Crea un registro pendiente. La cuenta no existe hasta abrir el enlace."""
+    now = _now(now)
+    name = game_name(name)
+    email = str(email or '').strip().lower()
+    if not name:
+        raise AuthError('Escribe un apodo de hasta 16 letras.')
+    if not EMAIL_RE.match(email) or len(email) > 254:
+        raise AuthError('El correo no parece válido.')
+    if _user_by(doc, email=email):
+        raise AuthError('Ese correo ya tiene cuenta. Entra o restablece la contraseña.')
+    if not name_available(doc, name, email=email, now=now):
+        raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    _hit_rate(doc, 'email:' + email, now)
+    raw = _token()
+    doc['pending'][email] = {
+        'name': name, 'email': email, 'phone': '',
+        'password_hash': hash_password(password),
+        'link_hash': _token_hash(raw),
+        'exp': now + LINK_TTL, 'attempts': 0,
+    }
+    try:
+        send_link(email, raw)
+    except AuthError:
+        doc['pending'].pop(email, None)
+        raise
+    except Exception:
+        doc['pending'].pop(email, None)
+        raise AuthError('No se pudo enviar el correo. Intenta más tarde.')
+    return {'email': email, 'exp': now + LINK_TTL}
+
+
+def _pending_by_link(doc, raw):
+    digest = _token_hash(raw)
+    if not raw or not digest:
+        return None, None
+    for email, row in doc.get('pending', {}).items():
+        stored = str(row.get('link_hash') or '')
+        if stored and secrets.compare_digest(stored, digest):
+            return email, row
+    return None, None
+
+
+def confirm_email_link(doc, raw, now=None):
+    """Gasta el enlace una sola vez y abre la sesión. Un segundo uso no sirve."""
+    now = _now(now)
+    email, pending = _pending_by_link(doc, raw)
+    if not pending or int(pending.get('exp') or 0) < now:
+        raise AuthError('El enlace caducó o ya se usó. Pide otro.')
+    doc['pending'].pop(email, None)
+    if _user_by(doc, email=email):
+        raise AuthError('Esa identidad ya tiene una cuenta.')
+    if not name_available(doc, pending['name'], email=email, now=now):
+        raise AuthError('Ese apodo ya no está disponible. Elige otro y pide un enlace nuevo.')
+    user = {
+        'id': secrets.token_hex(8),
+        'name': pending['name'],
+        'email': email,
+        'phone': '',
+        'password_hash': pending['password_hash'],
+        'providers': {},
+        'wallet_name': pending['name'],
+        'wallet_token': '',
+        'createdAt': now,
+        'verified': True,
+    }
+    doc['users'].append(user)
+    return open_session(doc, user, now)
+
+
+def resend_verification(doc, email, send_link, now=None):
+    now = _now(now)
+    email = str(email or '').strip().lower()
+    if not EMAIL_RE.match(email):
+        return
+    _hit_rate(doc, 'resend:' + email, now)
+    pending = doc.get('pending', {}).get(email)
+    if not pending:
+        return
+    raw = _token()
+    pending['link_hash'] = _token_hash(raw)
+    pending['exp'] = now + LINK_TTL
+    pending['attempts'] = 0
+    send_link(email, raw)
+
+
+def request_password_reset(doc, email, send_link, now=None):
+    now = _now(now)
+    email = str(email or '').strip().lower()
+    if not EMAIL_RE.match(email):
+        return
+    _hit_rate(doc, 'reset:' + email, now)
+    user = _user_by(doc, email=email)
+    if not user or not user.get('password_hash'):
+        return
+    raw = _token()
+    resets = doc.setdefault('resets', {})
+    for key, row in list(resets.items()):
+        if row.get('email') == email:
+            resets.pop(key, None)
+    resets[_token_hash(raw)] = {'email': email, 'exp': now + RESET_TTL}
+    send_link(email, raw)
+
+
+def reset_password(doc, raw, password, now=None):
+    now = _now(now)
+    resets = doc.setdefault('resets', {})
+    digest = _token_hash(raw)
+    row = None
+    found = None
+    for key, item in list(resets.items()):
+        if secrets.compare_digest(key, digest):
+            found = key
+            row = item
+            break
+    if found:
+        resets.pop(found, None)
+    if not row or int(row.get('exp') or 0) < now:
+        raise AuthError('El enlace caducó o ya se usó. Pide otro.')
+    user = _user_by(doc, email=row['email'])
+    if not user:
+        raise AuthError('Esa cuenta ya no está.')
+    user['password_hash'] = hash_password(password)
+    user['verified'] = True
+    for token, session in list(doc.get('sessions', {}).items()):
+        if session.get('user_id') == user['id']:
+            doc['sessions'].pop(token, None)
+    return {'ok': True, 'email': user['email']}
+
+
 def send_email(email, code):
     subject = 'Tu código de Saimon City'
     text = f'Tu código es {code}. Caduca en 10 minutos. Si no pediste entrar, ignora este mensaje.'
+    send_message(email, subject, text)
+
+
+def send_message(email, subject, text):
     sender = os.environ.get('EMAIL_FROM') or os.environ.get('SMTP_FROM') or ''
     if os.environ.get('RESEND_API_KEY'):
         payload = json_dumps({'from': sender, 'to': [email], 'subject': subject, 'text': text})
