@@ -32,6 +32,7 @@ import lingotes as LINGOTES
 import finca as FINCA
 import persist as PERSIST
 import purses as PURSES
+import mochila as MOCHILA
 import trades as TRADE
 import bridge4sur
 import mundos as MUNDOS
@@ -909,9 +910,9 @@ def swing_for(sender, mineral, qty=1):
         return
     sender.last_swing = now
     note_motion(sender, 1)
-    got = CRUDO.credit(ECON, account, item, qty)
-    save_econ()
-    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0, 'qty': got,
+    if not recibir(sender, item, qty, 'ore'):
+        return
+    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0, 'qty': int(qty or 1),
                   'note': 'El mineral quedó en tu cuenta. Las monedas se acuñan en el horno, con el tope del día.'})
     _avisar_crudo(sender, item)
 
@@ -927,10 +928,74 @@ def lavar_for(sender, qty=1):
         return
     sender.last_pan = now
     note_motion(sender, 1)
-    got = CRUDO.credit(ECON, account, 'pepita_oro', qty, cap=1)
-    save_econ()
-    send(sender, {'t': 'lavar_result', 'ok': True, 'qty': got})
+    if not recibir(sender, 'pepita_oro', 1, 'lavar'):
+        return
+    send(sender, {'t': 'lavar_result', 'ok': True, 'qty': 1})
     _avisar_crudo(sender, 'pepita_oro')
+
+SELL_SMH = {
+    'mineral_oro': 1_000_000,
+    'mineral_plata': 1_000_000,
+    'mineral_cobre': 1_000_000,
+    'pepita_oro': 1_000_000,
+    'bolsa_cafe': 5_000_000,
+    'bolsa_cacao': 5_000_000,
+}
+
+
+def recibir(sender, item, qty, kind):
+    """Mete algo en la mochila del servidor. Si no cabe, no toca nada."""
+    try:
+        qty = int(qty or 0)
+    except (TypeError, ValueError):
+        qty = 0
+    item = str(item or '')
+    qty = max(0, min(qty, 4))
+    if not sender.name or not item or qty <= 0:
+        return False
+    before = PURSES.count(VAULT_STATE, sender.name, item)
+    after = PURSES.credit(VAULT_STATE, sender.name, item, qty)
+    if after == before:
+        sender.pending_pick = {'item': item, 'qty': qty, 'kind': str(kind or '')}
+        send(sender, {'t': 'mochila_llena', 'item': item, 'qty': qty, 'reason': MOCHILA.FULL})
+        return False
+    sender.pending_pick = None
+    if item in CRUDO.CAPS:
+        account = _cuenta(sender)
+        if account:
+            CRUDO.credit(ECON, account, item, qty, cap=qty)
+            save_econ()
+    save_vault()
+    return True
+
+
+def mochila_op(sender, op):
+    """Banco, soltar o vender lo que no cupo. No duplica y no lo tira sin querer."""
+    pending = getattr(sender, 'pending_pick', None)
+    if not pending:
+        return send(sender, {'t': 'mochila_op', 'ok': False, 'reason': 'No hay nada esperando. No se perdió nada.'})
+    item = pending['item']
+    qty = int(pending['qty'])
+    op = str(op or '')
+    if op == 'soltar':
+        sender.pending_pick = None
+        return send(sender, {'t': 'mochila_op', 'ok': True, 'op': 'soltar', 'item': item, 'qty': qty, 'reason': 'Lo dejaste donde estaba.'})
+    if op == 'banco':
+        VAULT.add_item(VAULT.account(VAULT_STATE, sender.name), item, qty)
+        sender.pending_pick = None
+        save_vault()
+        return send(sender, {'t': 'mochila_op', 'ok': True, 'op': 'banco', 'item': item, 'qty': qty, 'reason': 'Quedó en el banco. La mochila no cambió.'})
+    if op == 'vender':
+        price = int(SELL_SMH.get(item) or 0) * qty
+        if price <= 0 or not ECO.debit(ECON, 'puesto_frutas', price):
+            return send(sender, {'t': 'mochila_op', 'ok': False, 'op': 'vender', 'item': item, 'qty': qty, 'reason': 'El puesto no tiene monedas para comprar esto. No se perdió nada.'})
+        ECO.credit(ECON, sender.name, price)
+        ECO.append_tx(ECON, {'type': 'trade', 'from': 'puesto_frutas', 'to': sender.name, 'amountSubs': price, 'note': 'Venta porque la mochila estaba llena'})
+        sender.pending_pick = None
+        save_econ()
+        return send(sender, {'t': 'mochila_op', 'ok': True, 'op': 'vender', 'item': item, 'qty': qty, 'paid': price, 'reason': 'El puesto lo compró. La mochila no cambió.'})
+    return send(sender, {'t': 'mochila_op', 'ok': False, 'reason': 'Esa opción no existe. No se perdió nada.'})
+
 
 def migrar_crudo(sender, counts):
     account = _cuenta(sender)
@@ -1903,6 +1968,12 @@ def handle_client_message(c, m, t):
         lingote_ver(c)
     elif t == 'swing' and c.hello:
         swing_for(c, m.get('mineral'), m.get('qty'))
+    elif t == 'recoger' and c.hello:
+        item = str(m.get('item') or '')
+        if recibir(c, item, m.get('qty'), m.get('kind') or 'recoger'):
+            send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0)})
+    elif t == 'mochila_op' and c.hello:
+        mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:
         lavar_for(c, m.get('qty') or 1)
     elif t == 'metal_migrar' and c.hello:

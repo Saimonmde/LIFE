@@ -13,6 +13,8 @@ Cualquier otro id que cumpla ^[a-z][a-z0-9_]{0,31}$ también se puede
 acreditar. No hace falta editar este archivo para sumar un objeto nuevo.
 """
 
+import mochila
+
 CATALOG = {
     'bolsa_cafe': 'Bolsa de café',
     'bolsa_cacao': 'Bolsa de cacao',
@@ -41,15 +43,25 @@ def count(state, name, item):
 
 
 def credit(state, name, item, qty):
-    """Suma objetos ya obtenidos. No crea moneda. Devuelve el nuevo total."""
+    """Suma objetos ya obtenidos. No crea moneda. Devuelve el nuevo total.
+
+    No recorta en silencio: si no cabe en la mochila o en el montón,
+    deja el saldo igual y devuelve lo que ya había.
+    """
     item = str(item or '')
     qty = int(qty or 0)
     name = str(name or '')
+    have = count(state, name, item)
     if not name or not item or qty <= 0:
-        return count(state, name, item)
-    bag = _box(state, name)
-    bag[item] = min(MAX_STACK, int(bag.get(item) or 0) + qty)
-    return bag[item]
+        return have
+    if have + qty > MAX_STACK:
+        return have
+    bag = inventory(state, name)
+    if not mochila.fits(bag, item, qty):
+        return have
+    stored = _box(state, name)
+    stored[item] = have + qty
+    return stored[item]
 
 
 def debit(state, name, item, qty):

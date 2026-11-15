@@ -48,6 +48,7 @@ import uuid
 import cobre
 import economy
 import libro
+import mochila
 import plata
 import purses
 
@@ -206,6 +207,15 @@ def apply_exchange(econ, vault, chain, seed, name_a, name_b, offer_a, offer_b, t
             final = int(balance['items'].get(item) or 0) - outgoing['items'].get(item, 0) + qty
             if final > purses.MAX_STACK:
                 raise TradeError('No hay espacio para todos los objetos. Ajusten las ofertas.')
+        projected = {
+            key: int(balance['items'].get(key) or 0) - int(outgoing['items'].get(key) or 0)
+            for key in set(balance['items']) | set(outgoing['items'])
+        }
+        projected = {key: qty for key, qty in projected.items() if qty > 0}
+        for item, qty in incoming['items'].items():
+            if not mochila.fits(projected, item, qty):
+                raise TradeError(mochila.FULL)
+            projected[item] = int(projected.get(item) or 0) + int(qty)
     for name, offer in ((name_a, offer_a), (name_b, offer_b)):
         if offer['smc'] and not economy.debit(econ, name, offer['smc']):
             raise TradeError('Saldo insuficiente')
@@ -379,6 +389,9 @@ class Trades:
                 if len(session['confirmed']) == 2:
                     try:
                         self.commit(a.name, b.name, left, right, session['id'])
+                    except TradeError as err:
+                        self.cancel(client.id, str(err))
+                        return
                     except Exception:
                         self.cancel(client.id, 'No se pudo guardar el intercambio. No se aplicaron cambios en memoria; reconecta para comprobar el saldo.')
                         return

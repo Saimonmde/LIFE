@@ -21,10 +21,13 @@ assert.strictEqual(stacked[0].qty, 5);
 
 const game = fs.readFileSync(path.join(__dirname, '../play/game.js'), 'utf8');
 const river = game.slice(game.indexOf("d.type === 'nodo_oro_fluvial'"), game.indexOf("d.type === 'mineral_rock'"));
-assert.ok(river.indexOf('if (!give(') < river.indexOf("t: 'lavar'"), 'el río no avisa al servidor si la mochila está llena');
+assert.ok(river.includes("kind: 'lavar'"), 'el río le pregunta al servidor antes de guardar la pepita');
+assert.ok(river.includes('if (!give('), 'sin servidor, la pepita no entra si la mochila está llena');
 assert.ok(game.includes('Tu mochila está llena'));
-assert.ok(game.includes('Dejarlo donde está'));
-assert.ok(game.includes('Abrir la mochila'));
+assert.ok(game.includes('Guardar en el banco'));
+assert.ok(game.includes('Soltar'));
+assert.ok(game.includes('Vender'));
 const rock = game.slice(game.indexOf("d.type === 'mineral_rock'"), game.indexOf('function hunt'));
-assert.ok(rock.includes('if(!invAdd(d.yield.item,q))return'));
+assert.ok(rock.includes('if (!invAdd(d.yield.item, q))'));
+assert.ok(rock.includes("t: 'recoger'"));
 console.log('mochila llena ok');
