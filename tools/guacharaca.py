@@ -21,10 +21,10 @@ OUT_JS = os.path.join(ROOT, 'data', 'guacharacas.js')
 
 DAWN_START = 4 * 60 + 30
 DAWN_END = 6 * 60
-FLOCKS = 10
+FLOCKS = 12
 FLOCK_GAP = 26
-REACH = {'quebrada': 3, 'arbol': 3, 'borde': 3, 'monte': 8}
-NATURAL = ('arbol', 'borde', 'quebrada', 'monte')
+REACH = {'quebrada': 3, 'arbol': 3, 'borde': 3, 'monte': 8, 'rio': 3}
+NATURAL = ('arbol', 'borde', 'quebrada', 'monte', 'rio')
 # La misma frase que arma el Web Audio del juego.
 SONG = {
     'syllables': [
@@ -81,6 +81,8 @@ def forbidden(world, homes):
             continue
         kind = 'finca' if region.get('id') == 'las_palmas' else 'casa'
         zones.append(_rect(region['x'], region['y'], region['w'], region['h'], kind))
+        if kind == 'casa':
+            zones.append(_rect(region['x'], region['y'], region['w'], region['h'], 'urbano'))
         if region.get('id') == 'las_palmas':
             zones.append(_rect(region['x'] - 2, region['y'] - 2, region['w'] + 4, region['h'] + 4, 'mina'))
     for area in world.get('areas') or []:
@@ -92,6 +94,7 @@ def forbidden(world, homes):
             zones.append(_rect(area['x'] - 1, area['y'] - 1, area['w'] + 2, area['h'] + 2, 'mina'))
         elif name in ('pueblo', 'plaza') or name.startswith('parque_'):
             zones.append(_rect(area['x'], area['y'], area['w'], area['h'], 'casa'))
+            zones.append(_rect(area['x'], area['y'], area['w'], area['h'], 'urbano'))
     for deco in world.get('decorations') or []:
         typ = deco.get('type') or ''
         if typ in ('building', 'casa_envigado'):
@@ -107,12 +110,18 @@ def forbidden(world, homes):
     return zones
 
 
-def inside(zones, x, y):
+def covered(zones, x, y):
     ix, iy = math.floor(x), math.floor(y)
+    found = set()
     for zone in zones:
         if zone['x'] <= ix < zone['x'] + zone['w'] and zone['y'] <= iy < zone['y'] + zone['h']:
-            return zone['kind']
-    return ''
+            found.add(zone['kind'])
+    return found
+
+
+def inside(zones, x, y):
+    found = covered(zones, x, y)
+    return next(iter(found), '')
 
 
 def _kind_at(world, x, y):
@@ -173,6 +182,13 @@ def place(world, homes):
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             add(x + dx, y + dy, 'quebrada', False)
 
+    rio = ((world.get('waterBodies') or {}).get('rio_medellin') or {}).get('tiles') or []
+    for index, (x, y) in enumerate(rio):
+        if index % 28:
+            continue
+        for dx, dy in ((2, 0), (-2, 0), (0, 2), (0, -2)):
+            add(x + dx, y + dy, 'rio', False)
+
     for y in range(2, height - 2, 6):
         for x in range(2, width - 2, 6):
             if ground_kind(x, y) != 'mountain':
@@ -194,7 +210,7 @@ def place(world, homes):
     flocks = []
     used = set()
     cursor = {name: 0 for name in NATURAL}
-    order = ('quebrada', 'arbol', 'monte', 'borde')
+    order = ('quebrada', 'arbol', 'monte', 'rio', 'borde')
     while len(flocks) < FLOCKS:
         grew = False
         for habitat in order:
@@ -251,7 +267,68 @@ def place(world, homes):
                 break
         if not grew:
             break
+    flocks = _with_palmas(world, zones, flocks)
     return {'flocks': flocks, 'zones': zones}
+
+
+def _with_palmas(world, zones, flocks):
+    """Un grupo junto a Las Palmas, afuera de la finca y de las parcelas."""
+    palmas = next((item for item in world.get('waypoints') or [] if item.get('id') == 'las_palmas'), None)
+    if not palmas:
+        return flocks
+    if any(max(abs(flock['x'] - palmas['x']), abs(flock['y'] - palmas['y'])) <= 22 for flock in flocks):
+        return flocks
+    width, height = world['width'], world['height']
+    ring = []
+    for y in range(palmas['y'] - 22, palmas['y'] + 23):
+        for x in range(palmas['x'] - 22, palmas['x'] + 23):
+            if not (0 <= x < width and 0 <= y < height):
+                continue
+            if not (12 <= max(abs(x - palmas['x']), abs(y - palmas['y'])) <= 22):
+                continue
+            if covered(zones, x, y):
+                continue
+            kind = _kind_at(world, x, y)
+            if kind == 'mountain':
+                habitat = 'monte'
+            elif kind.startswith('grass'):
+                habitat = 'borde'
+            else:
+                continue
+            ring.append({'x': x, 'y': y, 'habitat': habitat, 'perch': False})
+    ring.sort(key=lambda item: (item['habitat'] != 'monte', abs(item['x'] - palmas['x']) + abs(item['y'] - palmas['y'])))
+    group = []
+    spots = set()
+    for item in ring:
+        spot = (item['x'], item['y'])
+        if spot in spots:
+            continue
+        if group and max(abs(item['x'] - group[0]['x']), abs(item['y'] - group[0]['y'])) > 4:
+            continue
+        spots.add(spot)
+        group.append(item)
+        if len(group) == 4:
+            break
+    if len(group) < 2:
+        return flocks
+    birds = []
+    for index, item in enumerate(group):
+        birds.append({
+            'id': 'guacha-palmas-%d' % index,
+            'x': item['x'],
+            'y': item['y'],
+            'perch': bool(item['perch']),
+            'habitat': item['habitat'],
+        })
+    flocks.append({
+        'id': 'guacha-palmas',
+        'x': group[0]['x'],
+        'y': group[0]['y'],
+        'habitat': group[0]['habitat'],
+        'near': 'las_palmas',
+        'birds': birds,
+    })
+    return flocks
 
 
 def load():

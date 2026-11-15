@@ -40,4 +40,41 @@ assert.equal(Guacharaca.hearGain(2), 1);
 assert.equal(Guacharaca.hearGain(16), 0);
 assert.ok(Guacharaca.hearGain(10) < 1 && Guacharaca.hearGain(10) > 0);
 assert.deepEqual(Guacharaca.SONG.syllables.map(note => note.name), ['gua', 'cha', 'ra', 'ca']);
+assert.equal(Guacharaca.NAME, 'Guacharaca');
+assert.equal(Guacharaca.LABEL, 'Especie protegida');
+for (const call of [Guacharaca.capture, Guacharaca.sell, Guacharaca.keep, Guacharaca.hunt]) {
+  const answer = call();
+  assert.equal(answer.ok, false);
+  assert.equal(answer.protected, true);
+  assert.equal(answer.name, 'Guacharaca');
+}
+assert.equal(Guacharaca.blockedItem('guacharaca'), true);
+assert.equal(Guacharaca.blockedItem('carne'), false);
+const touched = Guacharaca.touch('nadie');
+assert.equal(touched.ok, false);
+assert.equal(touched.label, 'Especie protegida');
+
+const loner = {
+  id: 'solo', fx: 10, fy: 10, homeX: 10, homeY: 10, perch: false,
+  mode: 'walk', phase: 0, dir: 'down', walk: 0, clock: 0, turns: 1,
+  goalX: 10, goalY: 10, mates: [{ x: 14, y: 10 }],
+};
+for (let i = 0; i < 30; i++) Guacharaca.stepBird(loner, { x: 0, y: 10 }, 0.2, []);
+assert.ok(loner.fx > 7, 'no sigue al jugador');
+
+const pecker = {
+  id: 'pico', fx: 10, fy: 10, homeX: 10, homeY: 10, perch: false,
+  mode: 'walk', phase: 0, clock: 5, nextAct: 0, turns: 1, mates: [], goalX: 10, goalY: 10,
+};
+Guacharaca.stepBird(pecker, { x: 40, y: 40 }, 0.1, []);
+assert.equal(pecker.mode, 'peck');
+
+const flyer = {
+  id: 'vuelo', fx: 10, fy: 10, homeX: 10, homeY: 10, perch: false,
+  mode: 'walk', phase: 0, clock: 5, nextAct: 0, turns: 2,
+  mates: [{ x: 14, y: 10 }], goalX: 10, goalY: 10,
+};
+Guacharaca.stepBird(flyer, { x: 40, y: 40 }, 0.1, []);
+assert.equal(flyer.mode, 'fly');
+assert.ok(flyer.fx >= 10, 'el vuelo corto no va hacia el jugador');
 console.log('guacharaca ok');

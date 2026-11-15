@@ -38,7 +38,7 @@ class GuacharacaTests(unittest.TestCase):
     def test_flocks_stay_out_of_houses_and_corrals(self):
         flocks = self.doc['flocks']
         self.assertGreaterEqual(len(flocks), 4)
-        self.assertLessEqual(len(flocks), 10)
+        self.assertLessEqual(len(flocks), 14)
         birds = [bird for flock in flocks for bird in flock['birds']]
         self.assertGreaterEqual(len(birds), 8)
         for flock in flocks:
@@ -56,6 +56,45 @@ class GuacharacaTests(unittest.TestCase):
         self.assertEqual(saved['flocks'], self.doc['flocks'])
         for bird in (bird for flock in saved['flocks'] for bird in flock['birds']):
             self.assertEqual(guacharaca.inside(saved['zones'], bird['x'], bird['y']), '')
+
+    def test_mountain_trees_river_and_las_palmas(self):
+        flocks = self.doc['flocks']
+        habitats = {flock['habitat'] for flock in flocks}
+        self.assertIn('monte', habitats)
+        self.assertIn('arbol', habitats)
+        self.assertIn('quebrada', habitats)
+        self.assertIn('rio', habitats)
+        montes = [flock['y'] for flock in flocks if flock['habitat'] == 'monte']
+        self.assertGreaterEqual(len(montes), 2)
+        self.assertGreater(max(montes) - min(montes), 40)
+        palmas = next(item for item in self.world['waypoints'] if item['id'] == 'las_palmas')
+        near = [flock for flock in flocks if flock.get('near') == 'las_palmas']
+        self.assertEqual(len(near), 1)
+        spot = near[0]
+        gap = max(abs(spot['x'] - palmas['x']), abs(spot['y'] - palmas['y']))
+        self.assertGreaterEqual(gap, 12)
+        self.assertLessEqual(gap, 22)
+        urban = {'cobble', 'path', 'asphalt', 'pavement', 'bridge'}
+        tiles = self.world['tiles']
+        ground = self.world['ground']
+        for bird in (bird for flock in flocks for bird in flock['birds']):
+            kinds = guacharaca.covered(self.doc['zones'], bird['x'], bird['y'])
+            self.assertFalse(kinds & set(BANNED) | (kinds & {'urbano'}))
+            self.assertNotIn(tiles[str(ground[bird['y']][bird['x']])]['kind'], urban)
+
+    def test_cannot_capture_or_sell(self):
+        import partida
+        saved = partida.pack({'inv': [{'item': 'guacharaca', 'qty': 1}, {'item': 'pico', 'qty': 1}]})
+        self.assertEqual([row['item'] for row in saved['inv']], ['pico'])
+        with open(os.path.join(ROOT, 'play', 'game.js'), encoding='utf-8') as handle:
+            game = handle.read()
+        self.assertIn('Guacharaca.blockedItem', game)
+        self.assertIn('fauna protegida', game)
+        with open(os.path.join(ROOT, 'play', 'guacharaca3d.js'), encoding='utf-8') as handle:
+            model = handle.read()
+        self.assertIn('#6e6240', model)
+        self.assertIn('#8d9390', model)
+        self.assertIn('#c44536', model)
 
     def test_browser_clock_and_flee(self):
         run = subprocess.run(

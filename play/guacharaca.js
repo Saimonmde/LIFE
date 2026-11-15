@@ -6,6 +6,8 @@
   if (typeof window !== 'undefined') window.Guacharaca = api;
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
+  const NAME = 'Guacharaca';
+  const LABEL = 'Especie protegida';
   const FLEE = 2.6;
   const HOME = 5;
   const HEAR = 16;
@@ -78,29 +80,51 @@
           homeY: raw.y,
           perch: !!raw.perch,
           habitat: raw.habitat || flock.habitat,
+          name: NAME,
           mode: raw.perch ? 'perch' : 'walk',
           phase: (raw.x + raw.y) % 7 / 7,
           dir: 'down',
           walk: 0,
+          clock: 0,
           turns: raw.x % 5,
           goalX: raw.x,
           goalY: raw.y,
+          mates: (flock.birds || []).map(function (other) { return { x: other.x, y: other.y }; }),
+          looked: false,
         });
       }
     }
     return birds;
   }
 
+  function blockedItem(id) {
+    return /guacharaca|ortalis/i.test(String(id || ''));
+  }
+  function refuse(action) {
+    return { ok: false, name: NAME, label: LABEL, protected: true, action: action };
+  }
+  function hopTarget(bird) {
+    const mates = bird.mates || [];
+    for (let i = 0; i < mates.length; i++) {
+      const mate = mates[(bird.turns + i) % mates.length];
+      const dist = Math.hypot(mate.x - bird.fx, mate.y - bird.fy);
+      if (dist > 1.2 && dist < 6) return mate;
+    }
+    return null;
+  }
   function stepBird(bird, player, dt, list) {
     const walls = list || zones;
-    const dx = bird.fx - player.x;
-    const dy = bird.fy - player.y;
-    const dist = Math.hypot(dx, dy);
+    const hasPlayer = player && Number.isFinite(player.x) && Number.isFinite(player.y);
+    const dx = hasPlayer ? bird.fx - player.x : 0;
+    const dy = hasPlayer ? bird.fy - player.y : 0;
+    const dist = hasPlayer ? Math.hypot(dx, dy) : 99;
     let tx;
     let ty;
     let speed;
-    if (dist < FLEE) {
+    bird.clock = (bird.clock || 0) + dt;
+    if (hasPlayer && dist < FLEE) {
       bird.mode = 'flee';
+      bird.air = 0;
       const len = dist || 1;
       tx = bird.fx + (dx / len) * 1.6;
       ty = bird.fy + (dy / len) * 1.6;
@@ -112,31 +136,69 @@
         ty = bird.homeY + (hy / hd) * HOME;
       }
       speed = 3.4;
-    } else if (bird.perch) {
+    } else if (bird.mode === 'fly' && Number.isFinite(bird.flyX)) {
+      tx = bird.flyX;
+      ty = bird.flyY;
+      speed = 2.4;
+      bird.air = 1;
+      if (Math.hypot(bird.fx - tx, bird.fy - ty) < 0.25) {
+        bird.mode = 'perch';
+        bird.air = 0;
+        bird.perch = true;
+      }
+    } else if (bird.mode === 'peck') {
+      tx = bird.fx;
+      ty = bird.fy;
+      speed = 0;
+      bird.air = 0;
+      if (bird.clock > (bird.peckUntil || 0.6)) bird.mode = bird.perch ? 'perch' : 'walk';
+    } else if (bird.clock > (bird.nextAct || 2.4)) {
+      bird.clock = 0;
+      bird.turns = (bird.turns || 0) + 1;
+      bird.nextAct = 2.8 + (bird.turns % 3);
+      const hop = hopTarget(bird);
+      if (hop && bird.turns % 3 === 0) {
+        bird.mode = 'fly';
+        bird.flyX = hop.x;
+        bird.flyY = hop.y;
+        bird.air = 1;
+        tx = hop.x;
+        ty = hop.y;
+        speed = 2.4;
+      } else if (bird.turns % 2 === 0) {
+        bird.mode = 'peck';
+        bird.peckUntil = 0.7;
+        tx = bird.fx;
+        ty = bird.fy;
+        speed = 0;
+      } else {
+        bird.mode = 'walk';
+        bird.air = 0;
+        const ang = (bird.turns % 8) * Math.PI / 4;
+        tx = bird.homeX + Math.cos(ang) * 1.2;
+        ty = bird.homeY + Math.sin(ang) * 1.2;
+        if (insideZone(walls, tx, ty)) { tx = bird.homeX; ty = bird.homeY; }
+        bird.goalX = tx;
+        bird.goalY = ty;
+        speed = 0.7;
+      }
+    } else if (bird.perch && bird.mode !== 'walk') {
       bird.mode = 'perch';
       tx = bird.homeX;
       ty = bird.homeY;
-      speed = 1.6;
+      speed = 1.4;
+      bird.air = 0;
     } else {
-      bird.mode = 'walk';
+      bird.mode = bird.mode === 'peck' ? 'peck' : 'walk';
       bird.walk = (bird.walk || 0) + dt;
-      if (bird.walk > 4 || bird.goalX == null) {
-        bird.walk = 0;
-        bird.turns = (bird.turns || 0) + 1;
-        const ang = (bird.turns % 8) * Math.PI / 4;
-        const gx = bird.homeX + Math.cos(ang) * 1.2;
-        const gy = bird.homeY + Math.sin(ang) * 1.2;
-        if (insideZone(walls, gx, gy)) {
-          bird.goalX = bird.homeX;
-          bird.goalY = bird.homeY;
-        } else {
-          bird.goalX = gx;
-          bird.goalY = gy;
-        }
+      if (bird.goalX == null) {
+        bird.goalX = bird.homeX;
+        bird.goalY = bird.homeY;
       }
       tx = bird.goalX;
       ty = bird.goalY;
       speed = 0.7;
+      bird.air = 0;
     }
     if (insideZone(walls, tx, ty)) {
       tx = bird.fx;
@@ -235,10 +297,8 @@
   function tick(dt, ctx) {
     const city = !ctx || !ctx.mapId || ctx.mapId === 'city';
     const player = city && ctx ? { x: Number(ctx.x) || 0, y: Number(ctx.y) || 0 } : null;
-    for (const bird of birds) {
-      if (!player || Math.hypot(bird.fx - player.x, bird.fy - player.y) > 48) continue;
-      stepBird(bird, player, dt, zones);
-    }
+    const far = { x: -9999, y: -9999 };
+    for (const bird of birds) stepBird(bird, player || far, dt, zones);
     if (!player || typeof window === 'undefined') return birds;
     const now = Number(ctx.now) || Date.now();
     if (!singsAt(new Date(now)) || now < nextChorus) return birds;
@@ -254,13 +314,27 @@
     return birds;
   }
 
+  function touch(id) {
+    const bird = birds.find(function (item) { return item.id === id; });
+    if (bird) bird.looked = true;
+    return { ok: false, name: NAME, label: LABEL, protected: true, action: 'tocar', id: id || '' };
+  }
+
   if (typeof window !== 'undefined' && window.GUACHARACAS) boot(window.GUACHARACAS);
 
   return {
+    NAME: NAME,
+    LABEL: LABEL,
     SONG: SONG,
     FLEE: FLEE,
     singsAt: singsAt,
     insideZone: insideZone,
+    blockedItem: blockedItem,
+    capture: function () { return refuse('capturar'); },
+    sell: function () { return refuse('vender'); },
+    keep: function () { return refuse('inventario'); },
+    hunt: function () { return refuse('cazar'); },
+    touch: touch,
     boot: boot,
     stepBird: stepBird,
     hearGain: hearGain,
