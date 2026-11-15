@@ -3,6 +3,7 @@
 (() => {
   'use strict';
   const POSTE = { x: 108, y: 272, place: 'parque-envigado' };
+  const DEFAULT_WORLD = 3;
   const $ = (id) => document.getElementById(id);
   let catalog = null;
   let queued = null;
@@ -12,20 +13,21 @@
   let selected = null;
   let board = { notes: [], polls: [] };
   let applyingHome = false;
+  let favorite = null;
+  let presence = null;
+  sessionStorage.setItem('lifeinc.mundo', String(DEFAULT_WORLD));
 
   function skip() {
     const q = new URLSearchParams(location.search);
     return q.has('autotest') || q.has('sinlogin');
   }
   function world() {
-    const n = Number(sessionStorage.getItem('lifeinc.mundo') || 1);
-    return n >= 1 && n <= 5 ? n : 1;
+    const n = Number(sessionStorage.getItem('lifeinc.mundo') || DEFAULT_WORLD);
+    return n >= 1 && n <= 5 ? n : DEFAULT_WORLD;
   }
   function allowsConnect() {
     if (skip()) return true;
-    const worldOk = !!sessionStorage.getItem('lifeinc.mundo');
-    const petOk = !!localStorage.getItem('lifeinc.mascota.v1') || localStorage.getItem('lifeinc.mascota.skip') === '1';
-    return worldOk && petOk;
+    return !!localStorage.getItem('lifeinc.mascota.v1') || localStorage.getItem('lifeinc.mascota.skip') === '1';
   }
   function queueConnect(fn) {
     queued = fn;
@@ -53,16 +55,20 @@
     if (S) S.pet = withColors(pet);
   }
 
-  function paintCount(presence) {
-    if (!presence) return;
-    const total = presence.total || 0;
-    const mine = (presence.worlds && presence.worlds[String(world())]) || 0;
+  function paintCount(next) {
+    if (!next) return;
+    presence = next;
+    const total = next.total || 0;
+    const mine = (next.worlds && next.worlds[String(world())]) || 0;
     const bar = $('amigos-barra');
     if (bar) bar.textContent = total + ' en línea · ' + mine + ' en Mundo ' + world();
     const gear = $('cajon-amigos');
     if (gear) gear.textContent = 'Amigos · ' + total;
     const head = $('amigos-conteo');
     if (head) head.textContent = total + ' en línea · ' + mine + ' en tu mundo';
+    const tab = $('mundo-tab');
+    if (tab) tab.textContent = 'Mundo ' + world() + ' · ' + mine + ' en línea';
+    paintWorlds();
   }
 
   function finishGate() {
@@ -77,11 +83,9 @@
     const door = $('vida-puerta');
     if (!door) return;
     door.hidden = false;
-    const hasWorld = !!sessionStorage.getItem('lifeinc.mundo');
-    $('vida-paso-mundo').hidden = hasWorld;
-    $('vida-paso-mascota').hidden = !hasWorld;
-    if (!hasWorld) loadWorlds();
-    else paintBreeds();
+    const pet = $('vida-paso-mascota');
+    if (pet) pet.hidden = false;
+    paintBreeds();
   }
 
   async function loadCatalog() {
@@ -93,40 +97,61 @@
     return catalog;
   }
 
-  async function loadWorlds() {
-    const box = $('vida-mundos');
+  function worldRows() {
+    const counts = (presence && presence.worlds) || {};
+    const rows = [1, 2, 3, 4, 5].map(id => ({ id, players: counts[String(id)] || 0 }));
+    rows.sort((a, b) => (a.id === favorite ? -1 : 0) - (b.id === favorite ? -1 : 0) || a.id - b.id);
+    return rows;
+  }
+  function paintWorlds() {
+    const box = $('mundo-opciones');
     if (!box) return;
-    box.textContent = 'Contando jugadores…';
-    let data = null;
-    try {
-      const res = await fetch('/api/mundos', { cache: 'no-store' });
-      data = res.ok ? await res.json() : null;
-    } catch (e) { data = null; }
-    const worlds = (data && data.worlds) || [1, 2, 3, 4, 5].map(id => ({ id, name: 'Mundo ' + id, players: 0 }));
     box.replaceChildren();
-    for (const item of worlds) {
+    for (const item of worldRows()) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = (item.name || ('Mundo ' + item.id)) + ' · ' + (item.players || 0);
+      b.dataset.world = String(item.id);
+      if (item.id === world()) b.className = 'sel';
+      const star = item.id === favorite ? '⭐ ' : '';
+      b.textContent = star + 'Mundo ' + item.id + ' · ' + item.players;
       b.onclick = () => {
         sessionStorage.setItem('lifeinc.mundo', String(item.id));
-        const playing = state() && state().net && state().net.ok;
-        if (playing) {
-          send({ t: 'mundo', id: item.id });
-          $('vida-puerta').hidden = true;
-          return;
-        }
-        const petReady = !!localStorage.getItem('lifeinc.mascota.v1') || localStorage.getItem('lifeinc.mascota.skip') === '1';
-        if (petReady) { finishGate(); return; }
-        $('vida-paso-mundo').hidden = true;
-        $('vida-paso-mascota').hidden = false;
-        paintBreeds();
+        send({ t: 'mundo', id: item.id });
+        paintCount(presence || { total: 0, worlds: {} });
+        const list = $('mundo-lista');
+        if (list) list.hidden = true;
       };
       box.append(b);
     }
-    const note = document.createElement('p');
-    note.textContent = 'Los mundos 6 a 333 están reservados y todavía no abren. En el mismo mundo y el mismo lugar se ven. En otro mundo, no.';
-    box.append(note);
+  }
+  async function loadFavorite() {
+    try {
+      const res = await fetch('/auth/sesion', { cache: 'no-store', credentials: 'same-origin' });
+      const data = res.ok ? await res.json() : null;
+      favorite = data && data.user && data.user.favoriteWorld ? Number(data.user.favoriteWorld) : null;
+    } catch (e) { favorite = favorite || null; }
+    paintWorlds();
+  }
+  async function markFavorite() {
+    const note = $('mundo-nota');
+    const id = world();
+    try {
+      const res = await fetch('/auth/mundo-favorito', {
+        method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.user) {
+        if (note) note.textContent = (data && data.error) || 'Entra con tu cuenta para guardar el favorito.';
+        return;
+      }
+      favorite = Number(data.user.favoriteWorld) || null;
+      if (note) note.textContent = 'Favorito: Mundo ' + favorite + '. Al entrar sigues en el Mundo ' + DEFAULT_WORLD + '.';
+      paintWorlds();
+    } catch (e) {
+      if (note) note.textContent = 'No se pudo guardar el favorito.';
+    }
   }
 
   function paintBreeds() {
@@ -205,8 +230,23 @@
     door.hidden = true;
     door.innerHTML = [
       '<header><strong>Antes de entrar</strong></header>',
-      '<div id="vida-paso-mundo"><h2>Elige un mundo</h2><div id="vida-mundos"></div></div>',
-      '<div id="vida-paso-mascota" hidden><h2>Adopta un cachorro o un gatito</h2><p>Elige uno. Escribe su nombre. Se queda en tu casa.</p><div id="vida-razas"></div><p><button type="button" id="vida-sin-mascota">Ahora no</button> <button type="button" id="vida-feedback-puerta">Mandar feedback</button></p></div>',
+      '<div id="vida-paso-mascota"><h2>Adopta un cachorro o un gatito</h2><p>Elige uno. Escribe su nombre. Se queda en tu casa.</p><div id="vida-razas"></div><p><button type="button" id="vida-sin-mascota">Ahora no</button> <button type="button" id="vida-feedback-puerta">Mandar feedback</button></p></div>',
+    ].join('');
+    const tab = document.createElement('button');
+    tab.id = 'mundo-tab';
+    tab.type = 'button';
+    tab.textContent = 'Mundo ' + DEFAULT_WORLD + ' · 0 en línea';
+    tab.setAttribute('aria-expanded', 'false');
+    tab.setAttribute('aria-controls', 'mundo-lista');
+    const list = document.createElement('section');
+    list.id = 'mundo-lista';
+    list.hidden = true;
+    list.setAttribute('aria-label', 'Mundos');
+    list.innerHTML = [
+      '<header><strong>Mundos</strong><button type="button" id="mundo-cerrar" aria-label="Cerrar mundos">✕</button></header>',
+      '<div id="mundo-opciones"></div>',
+      '<p class="fila"><button type="button" id="mundo-favorito">Marcar como favorito</button></p>',
+      '<p id="mundo-nota">Entras al Mundo ' + DEFAULT_WORLD + '.</p>',
     ].join('');
     const feedback = document.createElement('section');
     feedback.id = 'vida-feedback';
@@ -220,7 +260,16 @@
     nick.id = 'vida-nick';
     nick.hidden = true;
     nick.innerHTML = '<header><strong>Cambiar nick</strong><button type="button" id="nick-cerrar">✕</button></header><p>Es una acción de pago. Todavía no hay cobro: el nombre no cambia.</p><input id="nick-nuevo" maxlength="16" placeholder="Nick nuevo"><p class="fila"><button type="button" id="nick-pedir">Apartar cambio</button></p><p id="nick-estado" role="status"></p>';
-    document.body.append(bar, panel, door, feedback, poste, nick);
+    document.body.append(bar, tab, list, panel, door, feedback, poste, nick);
+    tab.onclick = () => {
+      list.hidden = !list.hidden;
+      tab.setAttribute('aria-expanded', String(!list.hidden));
+      if (!list.hidden) paintWorlds();
+    };
+    $('mundo-cerrar').onclick = () => { list.hidden = true; tab.setAttribute('aria-expanded', 'false'); };
+    $('mundo-favorito').onclick = markFavorite;
+    paintWorlds();
+    loadFavorite();
     $('amigos-cerrar').onclick = () => { panel.hidden = true; };
     $('amigos-ir').onclick = search;
     $('amigos-buscar').addEventListener('keydown', (e) => { if (e.key === 'Enter') search(); });
@@ -233,8 +282,8 @@
     $('b-cambiar-nick').onclick = () => { nick.hidden = false; };
     $('nick-cerrar').onclick = () => { nick.hidden = true; };
     $('nick-pedir').onclick = () => send({ t: 'nick_cambio', name: $('nick-nuevo').value });
-    $('b-cambiar-mundo').onclick = () => { sessionStorage.removeItem('lifeinc.mundo'); panel.hidden = true; openGate(); };
-    $('b-adoptar-luego').onclick = () => { panel.hidden = true; $('vida-paso-mundo').hidden = true; $('vida-paso-mascota').hidden = false; door.hidden = false; paintBreeds(); };
+    $('b-cambiar-mundo').onclick = () => { panel.hidden = true; list.hidden = false; tab.setAttribute('aria-expanded', 'true'); paintWorlds(); };
+    $('b-adoptar-luego').onclick = () => { panel.hidden = true; door.hidden = false; paintBreeds(); };
     $('vida-sin-mascota').onclick = () => { localStorage.setItem('lifeinc.mascota.skip', '1'); finishGate(); };
     $('poste-cerrar').onclick = () => { poste.hidden = true; };
     $('poste-enviar').onclick = () => send({ t: 'poste_nota', text: $('poste-texto').value });
@@ -456,7 +505,11 @@
       $('poste-estado').textContent = m.error || '';
       return true;
     }
-    if (m.t === 'mundo' && m.presence) { paintCount(m.presence); return true; }
+    if (m.t === 'mundo' && m.presence) {
+      if (m.world) sessionStorage.setItem('lifeinc.mundo', String(m.world));
+      paintCount(m.presence);
+      return true;
+    }
     if (m.t === 'vida_error') { return true; }
     return false;
   }
@@ -475,7 +528,10 @@
     send({ t: 'poste_ver' });
   }
 
-  window.Vida = { allowsConnect, queueConnect, world, onNet, onLayout, openPoste, petPayload: petLocal, decorate: withColors };
+  window.Vida = {
+    allowsConnect, queueConnect, world, onNet, onLayout, openPoste, petPayload: petLocal, decorate: withColors, DEFAULT_WORLD,
+    rememberFavorite(n) { favorite = Number(n) || null; paintWorlds(); },
+  };
   loadCatalog();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();

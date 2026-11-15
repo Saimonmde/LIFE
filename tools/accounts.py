@@ -350,8 +350,30 @@ def verify_signup(doc, email, email_code, phone_code, check_sms, now=None):
     return open_session(doc, user, now)
 
 
+def ensure_owner_favorite(user):
+    """Si la cuenta del fundador aún no tiene favorito, queda el mundo 5. No toca la contraseña."""
+    import mundos
+    if not user or not is_owner(user):
+        return False
+    if mundos.normalize(user.get('favorite_world')):
+        return False
+    user['favorite_world'] = mundos.OWNER_FAVORITE_WORLD
+    return True
+
+
+def set_favorite_world(doc, user, world):
+    """Guarda el mundo favorito en la cuenta. No crea monedas ni cambia la clave."""
+    import mundos
+    number = mundos.normalize(world)
+    if not number:
+        raise AuthError('Ese mundo no está abierto.')
+    user['favorite_world'] = number
+    return public_user(user)
+
+
 def open_session(doc, user, now=None):
     now = _now(now)
+    ensure_owner_favorite(user)
     token = secrets.token_urlsafe(32)
     doc['sessions'][token] = {'user_id': user['id'], 'exp': now + SESSION_TTL}
     return {'token': token, 'user': public_user(user), 'max_age': SESSION_TTL}
@@ -368,6 +390,7 @@ def public_user(user):
         'canClaimSimon': is_owner(user) and simon_key(user.get('wallet_name') or user.get('name')) != 'simon',
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
+        'favoriteWorld': __import__('mundos').normalize(user.get('favorite_world')),
         'casa': shown,
         'caballo': caballo_cuenta.view(user),
         'role': __import__('social').role_of(user),

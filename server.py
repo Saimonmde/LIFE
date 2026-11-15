@@ -1851,7 +1851,7 @@ def handle_client_message(c, m, t):
     if t == 'hello':
         if c.hello: return
         c.zone = zona_pedida(c, m.get('zone'))
-        c.world = MUNDOS.normalize(m.get('world')) or 1
+        c.world = MUNDOS.normalize(m.get('world')) or MUNDOS.DEFAULT_WORLD
         if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
         else: c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
         asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
@@ -2213,7 +2213,19 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return auth_response('200 OK', ACC.providers(), headers)
     if path == '/auth/sesion' and method == 'GET':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if user and ACC.ensure_owner_favorite(user):
+            save_accounts()
         return auth_response('200 OK', {'user': ACC.public_user(user) if user else None}, headers)
+    if path == '/auth/mundo-favorito' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar el favorito.'}, headers)
+        try:
+            shown = ACC.set_favorite_world(ACCOUNTS, user, payload.get('id'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
     if path == '/auth/google' and method == 'GET':
         if not ACC.providers()['google']:
             return auth_response('404 Not Found', {'error': 'Google no está configurado.'}, headers)
