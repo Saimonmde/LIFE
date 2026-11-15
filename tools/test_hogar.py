@@ -41,7 +41,7 @@ class HogarTests(unittest.TestCase):
 
     def test_first_choice_is_the_ufo_and_the_next_entry_is_only_the_house(self):
         self.assertEqual(hogar.entry_mode(True), 'ovni')
-        self.assertEqual(hogar.entry_mode(False), 'casa')
+        self.assertEqual(hogar.entry_mode(False), 'heli')
 
     def test_saved_home_is_the_spawn_unless_a_live_session_resumes(self):
         doc = world()

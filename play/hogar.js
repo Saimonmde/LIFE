@@ -7,7 +7,7 @@
   const ORDEN = data.orden || [];
   const HOUSE = '<svg class="casa-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15 L16 5 L27 15 V27 H5 Z" fill="#f4efe2"/><path d="M3 16 L16 3 L29 16" fill="#8d5a42"/><path d="M7 16 L16 8 L25 16 V27 H7 Z" fill="#f7f1e4"/><rect x="13.5" y="18" width="5" height="9" fill="#6b4228"/></svg>';
 
-  function entryMode(justPicked) { return justPicked ? 'ovni' : 'casa'; }
+  function entryMode(justPicked) { return justPicked ? 'ovni' : 'heli'; }
   function casa(id) { return byId[String(id || '').toLowerCase()] || null; }
   function stand(id) {
     const item = casa(id);

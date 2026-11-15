@@ -19,8 +19,8 @@ NOMBRES = {item['id']: item['name'] for item in GEO['casas']}
 
 
 def entry_mode(just_picked):
-    """La elección del municipio es el viaje en ovni. Después no hay otra intro."""
-    return 'ovni' if just_picked else 'casa'
+    """La primera elección es el ovni. Cada entrada siguiente baja en helicóptero."""
+    return 'ovni' if just_picked else 'heli'
 
 
 def casa(municipio):
