@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
+import copy
 import json
 import os
 import sys
@@ -215,6 +216,50 @@ class TradeTests(unittest.TestCase):
         self.assertNotIn('Nica', json.dumps(views))
         self.assertEqual(libro.balances(chain)['Nica'], 4 * economy.SUBS)
         self.assertEqual(libro.balances(chain)['Teo'], 2 * economy.SUBS)
+
+    def test_full_bags_can_swap_the_same_item_without_loss(self):
+        econ = economy.empty_state()
+        seed = bytes(range(32))
+        chain = libro.empty(ed25519.publickey(seed).hex())
+        vault = {'purses': {'Ana': {'bolsa_cacao': purses.MAX_STACK},
+                            'Luis': {'bolsa_cacao': purses.MAX_STACK}}}
+        trades.apply_exchange(econ, vault, chain, seed, 'Ana', 'Luis',
+                              {'items': {'bolsa_cacao': 1}},
+                              {'items': {'bolsa_cacao': 1}}, 'full-swap')
+        self.assertEqual(purses.count(vault, 'Ana', 'bolsa_cacao'), purses.MAX_STACK)
+        self.assertEqual(purses.count(vault, 'Luis', 'bolsa_cacao'), purses.MAX_STACK)
+
+    def test_destination_overflow_rejects_before_any_changes(self):
+        for sender, recipient in [('Ana', 'Luis'), ('Luis', 'Ana')]:
+            with self.subTest(sender=sender):
+                econ = economy.empty_state()
+                econ['wallets'].update(Ana=100, Luis=100)
+                seed = bytes(range(32))
+                chain = libro.empty(ed25519.publickey(seed).hex())
+                libro.acuñar(chain, seed, 'Ana', 100, 'prueba', bits=1)
+                libro.acuñar(chain, seed, 'Luis', 100, 'prueba', bits=1)
+                plata.ensure(econ)
+                cobre.ensure(econ)
+                vault = {'purses': {sender: {'bolsa_cacao': 5},
+                                    recipient: {'bolsa_cacao': purses.MAX_STACK}}}
+                before = copy.deepcopy((econ, vault, chain))
+                offer = {'smc': 1, 'items': {'bolsa_cacao': 1}}
+                left, right = (offer, {}) if sender == 'Ana' else ({}, offer)
+                with self.assertRaisesRegex(TradeError, 'espacio'):
+                    trades.apply_exchange(econ, vault, chain, seed, 'Ana', 'Luis',
+                                          left, right, 'overflow')
+                self.assertEqual((econ, vault, chain), before)
+
+    def test_trade_can_fill_exactly_the_remaining_item_space(self):
+        econ = economy.empty_state()
+        seed = bytes(range(32))
+        chain = libro.empty(ed25519.publickey(seed).hex())
+        vault = {'purses': {'Ana': {'bolsa_cacao': 2},
+                            'Luis': {'bolsa_cacao': purses.MAX_STACK - 2}}}
+        trades.apply_exchange(econ, vault, chain, seed, 'Ana', 'Luis',
+                              {'items': {'bolsa_cacao': 2}}, {}, 'exact-fill')
+        self.assertEqual(purses.count(vault, 'Ana', 'bolsa_cacao'), 0)
+        self.assertEqual(purses.count(vault, 'Luis', 'bolsa_cacao'), purses.MAX_STACK)
 
 
 if __name__ == '__main__':
