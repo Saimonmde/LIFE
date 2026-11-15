@@ -18,10 +18,10 @@ class IdentityTests(unittest.TestCase):
   self.assertEqual(again['user']['wallet_name'],'LegacyWallet');self.assertEqual(user,original)
   with self.assertRaises(acc.AuthError):acc.login_password(doc,'ana@example.com',again['user']['avatar_id'],now=103)
  def test_pending_and_verified_names_are_case_insensitive(self):
-  doc=acc.empty();code=self.signup(doc,'Simón','one@example.com')
-  with self.assertRaises(acc.AuthError):self.signup(doc,'SIMÓN','two@example.com')
+  doc=acc.empty();code=self.signup(doc,'Nica','one@example.com')
+  with self.assertRaises(acc.AuthError):self.signup(doc,'NICA','two@example.com')
   acc.verify_signup(doc,'one@example.com',code,'',lambda *args:True,now=101)
-  with self.assertRaises(acc.AuthError):self.signup(doc,'simón','two@example.com',now=102)
+  with self.assertRaises(acc.AuthError):self.signup(doc,'nica','two@example.com',now=102)
   self.assertEqual(acc.name_key('  A  B '),acc.name_key('a b'))
   self.assertEqual(acc.game_name('Ｓｉｍｏｎ'), 'Simon')
   self.assertEqual(acc.game_name('Simo\u0301n'), 'Simón')

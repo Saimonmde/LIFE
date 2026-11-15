@@ -200,6 +200,41 @@ class EmailLinkTests(unittest.TestCase):
         with self.assertRaises(acc.AuthError):
             acc.set_nick_and_password(doc, luz, 'Ana', 'Secreto-largo-1', 'Secreto-largo-1', now=10_220)
 
+    def test_simon_is_reserved_for_the_owner_and_has_no_seeded_password(self):
+        import os
+        old = os.environ.pop('SIMON_OWNER_EMAIL', None)
+        self.assertTrue(acc.simon_reserved('Simon'))
+        self.assertTrue(acc.simon_reserved('s1mon'))
+        self.assertTrue(acc.simon_reserved('$imon'))
+        self.assertTrue(acc.simon_reserved('Simón'))
+        self.assertFalse(acc.simon_reserved('Minero'))
+        doc = acc.empty()
+        state = acc.start_oauth(doc, 'google', now=12_000)
+        made = acc.finish_oauth(doc, 'google', state, state, {
+            'sub': 'g-owner', 'email': 'saimon888oficial@gmail.com', 'name': 'Minero',
+        }, now=12_010)
+        owner = next(u for u in doc['users'] if u['id'] == made['user']['id'])
+        self.assertEqual(owner['password_hash'], '')
+        self.assertTrue(made['user']['canClaimSimon'])
+        other = acc.start_oauth(doc, 'google', now=12_100)
+        copied = acc.finish_oauth(doc, 'google', other, other, {'sub': 'g-copy', 'email': 'otro@gmail.com', 'name': 'S1mon'}, now=12_110)
+        self.assertNotEqual(acc.simon_key(copied['user']['name']), 'simon')
+        with self.assertRaises(acc.AuthError):
+            acc.begin_email_account(doc, '$imon', 'x@ejemplo.co', 'secreto-largo', lambda email, raw: None, now=12_200)
+        claimed = acc.claim_simon(doc, owner, now=12_300)
+        self.assertEqual(claimed['name'], 'Simon')
+        self.assertEqual(owner['password_hash'], '')
+        self.assertFalse(claimed['canClaimSimon'])
+        stranger = next(u for u in doc['users'] if u['email'] == 'otro@gmail.com')
+        with self.assertRaises(acc.AuthError):
+            acc.claim_simon(doc, stranger, now=12_310)
+        with self.assertRaises(acc.AuthError):
+            acc.set_nick_and_password(doc, stranger, 'Simon', 'Secreto-largo-1', 'Secreto-largo-1', now=12_320)
+        if old is None:
+            os.environ.pop('SIMON_OWNER_EMAIL', None)
+        else:
+            os.environ['SIMON_OWNER_EMAIL'] = old
+
     def test_nick_login_is_rate_limited(self):
         doc = acc.empty()
         for i in range(5):

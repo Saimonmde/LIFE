@@ -206,11 +206,13 @@ function continuarSesion(sessionUser) {
   if (wallet && !wallet.includes('@') && wallet.toLowerCase() !== String(sessionUser.email || '').trim().toLowerCase()) S.me.name = wallet.slice(0, 16);
   if ($('#l-nombre')) $('#l-nombre').value = S.me.nick;
   try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
+  const tomar = $('#b-tomar-simon');
+  if (tomar) tomar.hidden = !sessionUser.canClaimSimon;
   if (sessionUser.needsPassword) {
     $('#login').hidden = true;
     const panel = $('#poner-clave');
     if (panel) panel.hidden = false;
-    const nick = apodoCuenta(sessionUser);
+    const nick = sessionUser.canClaimSimon ? 'Simon' : apodoCuenta(sessionUser);
     if ($('#p-nick') && nick !== 'Viajero') $('#p-nick').value = nick;
     return;
   }
@@ -224,6 +226,21 @@ function continuarSesion(sessionUser) {
   }
   startGame();
 }
+const bSimon = $('#b-tomar-simon'); if (bSimon) bSimon.onclick = async () => {
+  if (bSimon.disabled) return;
+  bSimon.disabled = true;
+  try {
+    const response = await fetch('/auth/simon', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const result = await response.json();
+    if (!response.ok || !result.user) throw Error(result.error || 'No se pudo tomar el apodo.');
+    continuarSesion(result.user);
+    const nombre = $('#mi-nombre');
+    if (nombre) nombre.textContent = 'Simon';
+  } catch (error) {
+    const box = $('#login-status');
+    if (box) box.textContent = error.message;
+  } finally { bSimon.disabled = false; }
+};
 function fuerzaClave(text) {
   const value = String(text || '');
   let score = 0;

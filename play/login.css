@@ -74,3 +74,5 @@
 #p-barra.debil i { width: 33%; }
 #p-barra.media i { width: 66%; background: #e2b23c; }
 #p-barra.fuerte i { width: 100%; background: #2e9650; }
+#b-tomar-simon { min-height: 44px; margin-top: 6px; border: 0; border-radius: 12px; background: #e2b23c; color: #3a2a16; font: 700 14px/1 var(--sans); padding: 8px 12px; }
+#b-tomar-simon[hidden] { display: none !important; }
