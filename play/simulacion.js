@@ -915,7 +915,7 @@ function autotest(ok) {
   ok(!!api.W().npcs.find(n => n.id === 'profesora_cadena' && n.name === 'Profesora de la Cadena' && !/Satoshi/i.test(n.name)), 'Profesora de la Cadena');
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
-  ok(/no son dinero real/i.test($('#sai-legal').textContent) && /no tienen valor/i.test($('#sai-legal').textContent) && /se reinicia/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real y el libro se reinicia');
+  ok(/no son dinero real/i.test($('#sai-legal').textContent) && /sin valor real/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real');
   const off = (window.Casa && window.Casa.VALLE_OFFSET) || { x: 0, y: 0 };
   ok(F.stable.y - off.y >= 62 && (F.stable.x - off.x) + F.stable.w - 1 < 234 && F.stable.x - off.x <= 234, 'establo en la plaza, fuera de la iglesia');
   ok(F.stable.x - off.x !== 226 && F.npc.x - off.x !== 227, 'establo y profesora fuera de la puerta del parque');

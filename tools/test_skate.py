@@ -44,7 +44,7 @@ class SkateTests(unittest.TestCase):
         self.assertEqual(door, (94, 267))
         self.assertEqual(self.world['collision'][door[1]][door[0]], 0)
         self.assertNotIn(tiles[str(self.world['ground'][door[1]][door[0]])]['kind'], ('water', 'creek'))
-        self.assertIn('Hogar.stand(S.me.municipio)', self.game)
+        self.assertIn("mid!=='envigado'", self.game.replace(' ', ''))
         self.assertIn('Casa.PARK_STAND', self.game)
         self.assertTrue(self._reaches(door, (50, 267)))
 

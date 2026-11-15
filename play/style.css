@@ -262,7 +262,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offse
 #b-bajar{background:#f0d18b;color:#251c12;border:2px solid #614322}
 #b-skate{bottom:calc(228px + env(safe-area-inset-bottom))}
 #b-skate img, #b-skate-movil img{height:40px;width:40px;display:block}
-html.movil #touch-extra #b-skate-movil img{height:28px;width:28px}
+html.movil #touch-extra #b-skate-movil img{height:26px;width:26px}
 html.movil #b-bajar{left:auto;right:max(10px,env(safe-area-inset-right));bottom:calc(340px + env(safe-area-inset-bottom));min-height:56px;min-width:200px;font-size:17px}
 html.movil #b-skate{display:none}
 #banquito{position:fixed;z-index:18;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:14px 16px}

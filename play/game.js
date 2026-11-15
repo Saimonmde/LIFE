@@ -512,7 +512,7 @@ function switchMap(id,restored=false){
  else if(id==='casa')xy={x:Casa.SPAWN.x,y:Casa.SPAWN.y};
  else if(id==='banco')xy={x:Banco.SPAWN.x,y:Banco.SPAWN.y};
  else if(prev==='mine')xy=cityReturn||{x:W.mineEntrance.x,y:W.mineEntrance.y+1};
- else if(prev==='casa'){const home=window.Hogar&&Hogar.stand(S.me.municipio);xy=home?{x:home.x,y:home.y}:{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};}
+ else if(prev==='casa'){const mid=S.me.municipio;const home=window.Hogar&&mid&&mid!=='envigado'?Hogar.stand(mid):null;xy=home?{x:home.x,y:home.y}:{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};}
  else if(prev==='banco')xy={x:Banco.OUTSIDE.x,y:Banco.OUTSIDE.y};
  else xy={x:p.x,y:p.y};
  p.x=p.fx=xy.x;p.y=p.fy=xy.y;if(id==='casa')p.dir=Casa.SPAWN.dir;if(id==='banco')p.dir=Banco.SPAWN.dir;
