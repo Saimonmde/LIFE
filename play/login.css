@@ -68,6 +68,7 @@
 #poner-clave[hidden] { display: none !important; }
 #poner-clave > * { width: min(420px, 100%); margin-left: auto; margin-right: auto; box-sizing: border-box; }
 #poner-clave label, #login-cuentas label { display: flex; flex-direction: column; gap: 4px; font: 14px/1.3 var(--sans); }
+.apodo-vista { margin: 4px 0 8px; color: #f3e2b8; font: 15px/1.35 var(--sans); }
 #p-fuerza { margin: 8px 0 4px; font: 14px/1.3 var(--sans); }
 #p-barra { height: 8px; border-radius: 8px; background: #3a2a1c; overflow: hidden; }
 #p-barra i { display: block; height: 100%; width: 0; background: #c45a3a; }

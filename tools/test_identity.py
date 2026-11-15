@@ -25,6 +25,7 @@ class IdentityTests(unittest.TestCase):
   self.assertEqual(acc.name_key('  A  B '),acc.name_key('a b'))
   self.assertEqual(acc.game_name('Ｓｉｍｏｎ'), 'Simon')
   self.assertEqual(acc.game_name('Simo\u0301n'), 'Simón')
+  self.assertEqual(acc.game_name('raimundo_prueba'), 'raimundoprueba')
  def test_oauth_collision_preserves_existing_account(self):
   doc=acc.empty();code=self.signup(doc,'Ana','one@example.com');acc.verify_signup(doc,'one@example.com',code,'',lambda *args:True,now=101)
   state=acc.start_oauth(doc,'google',now=110);r=acc.finish_oauth(doc,'google',state,state,{'sub':'g-other','email':'two@example.com','name':'ANA'},now=111)
