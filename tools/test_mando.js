@@ -11,7 +11,7 @@ const mando = read('play/mando.css');
 const movil = read('play/movil.js');
 
 assert.equal(page.split('id="b-montar"').length - 1, 1);
-assert.ok(page.includes('mando.css?v=casa-movil'));
+assert.ok(page.includes('mando.css?v=finca-hud'));
 assert.ok(theme.includes('radial-gradient(1.4px 1.4px at 8% 12%'));
 assert.ok(theme.includes('#e39a62 92%'));
 assert.ok(theme.includes('linear-gradient(#6ea4cc'));
@@ -26,4 +26,9 @@ assert.ok(movil.includes("'b-montar'"));
 assert.ok(movil.includes("'b-descansar'"));
 assert.ok(movil.includes("'bank-dock'"));
 assert.ok(movil.includes("'finca-open'"));
+assert.ok(movil.includes("'b-emote'"));
+assert.ok(movil.includes("'libro-open'"));
+assert.ok(movil.includes("'chat-toggle'"));
+assert.ok(movil.includes('max-width: 820px'));
+assert.ok(mando.includes('@media (max-width: 820px)'));
 console.log('mando ok');

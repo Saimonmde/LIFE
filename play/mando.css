@@ -63,7 +63,8 @@
   }
 }
 
-html.movil #mando {
+@media (max-width: 820px) {
+#mando {
   position: fixed;
   z-index: 40;
   left: 0;
@@ -81,7 +82,7 @@ html.movil #mando {
   pointer-events: auto;
 }
 body:not(.in-game) #mando { display: none !important; }
-html.movil #mando > * {
+#mando > * {
   position: static !important;
   top: auto !important;
   right: auto !important;
@@ -93,32 +94,33 @@ html.movil #mando > * {
   max-width: 210px;
   z-index: auto !important;
 }
-html.movil #mando #touch-extra {
+#mando #touch-extra {
   display: flex !important;
   flex-direction: row;
   gap: 8px;
   width: auto;
   max-width: none;
 }
-html.movil #mando #b-descansar,
-html.movil #mando #bank-dock,
-html.movil #mando #b-montar,
-html.movil #mando #b-cerrar-casa,
-html.movil #mando #b-salir-parque,
-html.movil #mando #b-editar-casa,
-html.movil #mando #b-emote,
-html.movil #mando #finca-open,
-html.movil #mando #libro-open,
-html.movil #mando #chat-toggle {
+#mando #b-descansar,
+#mando #bank-dock,
+#mando #b-montar,
+#mando #b-cerrar-casa,
+#mando #b-salir-parque,
+#mando #b-editar-casa,
+#mando #b-emote,
+#mando #finca-open,
+#mando #libro-open,
+#mando #chat-toggle {
   width: auto;
   min-height: 44px;
   white-space: normal;
   line-height: 1.1;
 }
-html.movil #mando #b-descansar { max-width: 112px; }
-html.movil #mando #bank-dock { max-width: 148px; }
-html.movil body.in-game #city-joystick {
+#mando #b-descansar { max-width: 112px; }
+#mando #bank-dock { max-width: 148px; }
+body.in-game #city-joystick {
   bottom: calc(96px + env(safe-area-inset-bottom));
+}
 }
 
 /* Dentro de la casa, en el celular, los dos paneles se leen y no tapan la barra. */
