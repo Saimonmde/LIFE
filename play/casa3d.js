@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Interior colonial y la puerta de la casa junto al Parque de Envigado.
    Geometría original: muros de cal, vigas, teja, fogón de barro y patio. */
+import { furnish } from './estilo-jabo.js?v=vida-r1';
+
 export function buildHouse(T) {
   const scene = new T.Scene();
   scene.background = new T.Color('#b7cabb');
@@ -192,7 +194,7 @@ export function buildHouse(T) {
       g.position.set((minX + maxX + 1), 0, (minY + maxY + 1));
       g.rotation.y = -(((item.rot % 4) + 4) % 4) * Math.PI / 2;
       g.userData.casaItem = item.id;
-      buildItem(g, item.type);
+      buildItem(g, item.type, item.variant);
       g.traverse(m => { if (m.isMesh) { m.userData.casaItem = item.id; m.castShadow = true; m.receiveShadow = true; pick.push(m); } });
       furn.add(g);
       if (item.id === window.Casa.selected) {
@@ -203,7 +205,11 @@ export function buildHouse(T) {
     }
     furn.userData.anchor = anchor;
   }
-  function buildItem(g, type) {
+  function buildItem(g, type, variant) {
+    if (variant || type === 'altar') {
+      const put = (geometry, color, x, y, z, sx, sy, sz) => part(g, geometry, color, x, y, z, sx, sy, sz);
+      if (furnish(T, put, type, variant || 'madera')) return;
+    }
     const P = (geometry, color, x, y, z, sx, sy, sz) => part(g, geometry, color, x, y, z, sx, sy, sz);
     const wood = '#6e4a2e', linen = '#f3efe4', clay = '#a86448';
     if (type === 'bed') {

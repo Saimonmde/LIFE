@@ -1,0 +1,120 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipos 3D · estilo Jabo</title>
+<style>
+  body { margin: 0; background: #f6f1e6; color: #3a2412; font: 15px/1.4 system-ui, sans-serif; }
+  header { padding: 16px 20px 0; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 0 0 8px; max-width: 70ch; }
+  canvas { display: block; width: min(1200px, 100%); height: auto; margin: 0 auto 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Prototipos del juego · mallas originales</h1>
+  <p>Render de las mismas funciones que usa la casa y la mascota que sigue al jugador. No es una foto del parque ni arte de terceros. «Estilo Jabo» es la hipótesis: bajo poligonaje, chunky y tierno.</p>
+</header>
+<canvas id="lienzo" width="1200" height="980"></canvas>
+<script type="module">
+import * as T from './three.module.js';
+import { createPet, posePet, furnish } from './estilo-jabo.js?v=vida-r1';
+
+const catalog = await fetch('/data/vida.json').then(r => r.json());
+const renderer = new T.WebGLRenderer({ canvas: document.getElementById('lienzo'), antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(1200, 980, false);
+const scene = new T.Scene();
+scene.background = new T.Color('#f6f1e6');
+scene.add(new T.HemisphereLight(0xfff4e4, 0x8a735c, 1.5));
+const sun = new T.DirectionalLight(0xfff1d2, 1.2);
+sun.position.set(-4, 8, 6);
+scene.add(sun);
+const camera = new T.PerspectiveCamera(34, 1200 / 980, 0.1, 80);
+camera.position.set(0, 6.4, 13.5);
+camera.lookAt(0, 0.4, 1.2);
+
+function label(text, x, y, z) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 96;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3a2412';
+  g.font = '600 36px system-ui, sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(text, 256, 48);
+  const tex = new T.CanvasTexture(c);
+  const sprite = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true }));
+  sprite.position.set(x, y, z);
+  sprite.scale.set(1.8, 0.34, 1);
+  scene.add(sprite);
+}
+
+let col = 0;
+const pets = [];
+for (const species of ['dog', 'cat']) {
+  for (const breed of catalog.pets[species]) {
+    const pet = createPet(T, { species, breed: breed.id, colors: breed.colors, variant: 0 });
+    const x = (col % 6) * 1.85 - 4.6;
+    const z = species === 'dog' ? -2.4 : -0.2;
+    pet.position.set(x, 0, z);
+    pet.rotation.y = -0.5;
+    posePet(pet, 'idle', 0.4);
+    scene.add(pet);
+    label((species === 'dog' ? 'Perro ' : 'Gato ') + breed.name, x, 1.55, z);
+    pets.push(pet);
+    col += 1;
+  }
+}
+const poses = [
+  ['dog', 'criollo', 'walk', 0.45, 'Camina'],
+  ['dog', 'criollo', 'lie', 0, 'Acostado'],
+  ['cat', 'criollo', 'idle', 0.2, 'Quieto'],
+  ['cat', 'siames', 'lie', 0, 'Acostado'],
+];
+poses.forEach((row, i) => {
+  const breed = catalog.pets[row[0]].find(item => item.id === row[1]);
+  const pet = createPet(T, { species: row[0], breed: row[1], colors: breed.colors, variant: 0 });
+  const x = -3.4 + i * 2.2;
+  pet.position.set(x, 0, 2.0);
+  pet.rotation.y = -0.4;
+  posePet(pet, row[2], row[3]);
+  scene.add(pet);
+  label(row[4], x, 1.45, 2.0);
+});
+const pieces = [
+  ['bed', 'colonial', 'Cama colonial'],
+  ['bed', 'nogal', 'Cama nogal'],
+  ['bed', 'hamaca', 'Hamaca'],
+  ['altar', 'madera', 'Altar madera'],
+  ['altar', 'piedra', 'Altar piedra'],
+  ['altar', 'dorado', 'Altar dorado'],
+  ['plant', 'barro', 'Matera barro'],
+  ['plant', 'blanca', 'Matera blanca'],
+  ['plant', 'colgante', 'Matera colgante'],
+  ['stove', 'fogon', 'Cocina fogón'],
+  ['stove', 'lena', 'Cocina leña'],
+  ['stove', 'mesa', 'Cocina mesa'],
+];
+pieces.forEach((row, i) => {
+  const group = new T.Group();
+  const put = (geo, color, x, y, z, sx, sy, sz) => {
+    const mesh = new T.Mesh(geo, new T.MeshLambertMaterial({ color, flatShading: true }));
+    mesh.position.set(x, y, z);
+    mesh.scale.set(sx, sy, sz);
+    group.add(mesh);
+  };
+  furnish(T, put, row[0], row[1]);
+  const x = (i % 6) * 1.85 - 4.6;
+  const z = 4.2 + Math.floor(i / 6) * 2.0;
+  group.position.set(x, 0, z);
+  group.rotation.y = -0.6;
+  scene.add(group);
+  label(row[2], x, 1.7, z);
+});
+renderer.render(scene, camera);
+</script>
+</body>
+</html>

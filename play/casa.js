@@ -15,15 +15,22 @@
     table: { name: 'Mesa', w: 2, h: 1, solid: true },
     chair: { name: 'Silla', w: 1, h: 1, solid: true },
     chest: { name: 'Baúl', w: 1, h: 1, solid: true },
-    stove: { name: 'Fogón', w: 1, h: 1, solid: true },
+    stove: { name: 'Cocina', w: 1, h: 1, solid: true },
     pots: { name: 'Ollas', w: 1, h: 1, solid: true },
-    plant: { name: 'Planta', w: 1, h: 1, solid: true },
+    plant: { name: 'Matera', w: 1, h: 1, solid: true },
+    altar: { name: 'Altar', w: 1, h: 1, solid: true },
     rug: { name: 'Alfombra', w: 2, h: 2, solid: false },
     candle: { name: 'Vela', w: 1, h: 1, solid: false },
     painting: { name: 'Cuadro', w: 1, h: 1, solid: false },
     shelf: { name: 'Estante', w: 1, h: 1, solid: true },
   };
-  const ORDER = ['bed', 'table', 'chair', 'chest', 'stove', 'pots', 'plant', 'rug', 'candle', 'painting', 'shelf'];
+  const ORDER = ['bed', 'altar', 'table', 'chair', 'chest', 'stove', 'pots', 'plant', 'rug', 'candle', 'painting', 'shelf'];
+  const VARIANTS = {
+    bed: [{ id: 'colonial', name: 'Colonial' }, { id: 'nogal', name: 'Nogal' }, { id: 'hamaca', name: 'Hamaca' }],
+    altar: [{ id: 'madera', name: 'Madera' }, { id: 'piedra', name: 'Piedra' }, { id: 'dorado', name: 'Dorado' }],
+    plant: [{ id: 'barro', name: 'Barro' }, { id: 'blanca', name: 'Blanca' }, { id: 'colgante', name: 'Colgante' }],
+    stove: [{ id: 'fogon', name: 'Fogón' }, { id: 'lena', name: 'Leña' }, { id: 'mesa', name: 'Mesa' }],
+  };
   const WALLS = [
     { id: 'cal', name: 'Cal', color: '#f4f0e6' },
     { id: 'crema', name: 'Crema', color: '#efe2c4' },
@@ -118,6 +125,7 @@
       let id = String(raw.id || raw.type).replace(/[^\w-]/g, '').slice(0, 24) || raw.type;
       if (seen.has(id)) id = raw.type + '-' + items.length;
       const item = { id, type: raw.type, x: raw.x | 0, y: raw.y | 0, rot: ((raw.rot | 0) % 4 + 4) % 4 };
+      if ((VARIANTS[raw.type] || []).some(v => v.id === raw.variant)) item.variant = raw.variant;
       if (!canPlace(items, item)) continue;
       seen.add(id);
       items.push(item);
@@ -126,7 +134,7 @@
   }
 
   let layout = defaultLayout();
-  let editing = false, armed = null, selected = null;
+  let editing = false, armed = null, selected = null, variantPick = null;
   const storageKey = (name) => 'lifeinc.casa.v1:' + encodeURIComponent(String(name || 'viajero').trim().toLowerCase().slice(0, 16) || 'viajero');
   function load(name) {
     try {
@@ -145,6 +153,14 @@
     save(window.Casa.playerName ? window.Casa.playerName() : 'viajero');
     if (window.Casa.onLayout) window.Casa.onLayout();
     renderEditor();
+  }
+  function apply(data) {
+    layout = sanitize(data || defaultLayout());
+    selected = null;
+    save(window.Casa.playerName ? window.Casa.playerName() : 'viajero');
+    if (window.Casa.onLayout) window.Casa.onLayout();
+    renderEditor();
+    return layout;
   }
   function buildMap(current) {
     const L = current || layout;
@@ -188,7 +204,7 @@
     leave.onclick = () => { if (window.Casa.exit) window.Casa.exit(); };
     const panel = document.createElement('section');
     panel.id = 'casa-editor'; panel.hidden = true; panel.setAttribute('aria-label', 'Editar la casa');
-    panel.innerHTML = '<header>Editar casa <button type="button" id="casa-done">Listo</button></header><p class="casa-hint">Elige un mueble y toca el suelo para colocarlo. Toca uno puesto para moverlo, rotarlo o quitarlo.</p><div id="casa-catalog"></div><div id="casa-actions"><button type="button" id="casa-rot" disabled>Rotar</button><button type="button" id="casa-del" disabled>Quitar</button></div><div id="casa-walls"><span>Pared</span></div><div id="casa-floors"><span>Piso</span></div><p id="casa-status" role="status"></p>';
+    panel.innerHTML = '<header>Editar casa <button type="button" id="casa-done">Listo</button></header><p class="casa-hint">Elige un mueble y toca el suelo para colocarlo. Cama, altar, matera y cocina tienen variantes. El plano se guarda en el servidor.</p><div id="casa-catalog"></div><div id="casa-variants"></div><div id="casa-actions"><button type="button" id="casa-rot" disabled>Rotar</button><button type="button" id="casa-del" disabled>Quitar</button></div><div id="casa-walls"><span>Pared</span></div><div id="casa-floors"><span>Piso</span></div><p id="casa-status" role="status"></p>';
     document.body.append(edit, home, leave, panel);
     root = panel;
     catalogEl = panel.querySelector('#casa-catalog');
@@ -199,7 +215,7 @@
     for (const type of ORDER) {
       const b = document.createElement('button');
       b.type = 'button'; b.dataset.type = type; b.textContent = CATALOG[type].name;
-      b.onclick = () => { armed = type; selected = null; renderEditor(); };
+      b.onclick = () => { armed = type; variantPick = (VARIANTS[type] && VARIANTS[type][0].id) || null; selected = null; renderEditor(); };
       catalogEl.append(b);
     }
     for (const w of WALLS) {
@@ -222,6 +238,18 @@
     const btn = document.getElementById('b-editar-casa');
     if (btn) { btn.textContent = editing ? 'Cerrar edición' : 'Editar casa'; btn.setAttribute('aria-pressed', String(editing)); }
     for (const b of catalogEl.querySelectorAll('button')) b.classList.toggle('armed', b.dataset.type === armed);
+    const variants = root.querySelector('#casa-variants');
+    if (variants) {
+      variants.replaceChildren();
+      for (const variant of VARIANTS[armed] || []) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = variant.name;
+        b.classList.toggle('armed', variant.id === variantPick);
+        b.onclick = () => { variantPick = variant.id; renderEditor(); };
+        variants.append(b);
+      }
+    }
     const item = layout.items.find(i => i.id === selected);
     root.querySelector('#casa-rot').disabled = root.querySelector('#casa-del').disabled = !item;
     for (const b of root.querySelectorAll('#casa-walls .swatch')) b.classList.toggle('armed', b.style.backgroundColor && false);
@@ -267,6 +295,7 @@
     if (armed) {
       if (layout.items.length >= 30) { statusEl.textContent = 'La casa ya está llena (30 muebles).'; return true; }
       const item = { id: armed + '-' + Math.random().toString(36).slice(2, 7), type: armed, x, y, rot: 0 };
+      if (VARIANTS[armed]) item.variant = variantPick || VARIANTS[armed][0].id;
       if (!canPlace(layout.items, item)) { statusEl.textContent = 'Ahí no cabe.'; return true; }
       layout.items.push(item);
       selected = item.id;
@@ -283,7 +312,7 @@
     get layout() { return layout; },
     get editing() { return editing; },
     get selected() { return selected; },
-    cellsOf, canPlace, load, save, buildMap, mount, setEditing, clickTile, renderEditor,
+    cellsOf, canPlace, load, save, apply, buildMap, mount, setEditing, clickTile, renderEditor,
     playerName: () => 'viajero',
     onLayout: null, onEdit: null, enter: null,
   };

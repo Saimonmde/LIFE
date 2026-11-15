@@ -104,7 +104,7 @@ async function init() {
   Casa.enter = () => { if (S.mounted) { game('Baja del caballo para entrar a un edificio.', 'aviso'); return; } enterHouse(); };
   Casa.exit = () => exitHouse();
   Casa.onEdit = (on) => { S.houseEdit = on; if (on) { S.player.path = []; S.player.pending = null; S.keys.clear(); } };
-  Casa.onLayout = () => { if ((W.mapId || 'city') === 'casa') applyCasaLayout(); if (window.LIVE3D && window.LIVE3D.rebuildHouse) window.LIVE3D.rebuildHouse(Casa.layout); };
+  Casa.onLayout = () => { if ((W.mapId || 'city') === 'casa') applyCasaLayout(); if (window.LIVE3D && window.LIVE3D.rebuildHouse) window.LIVE3D.rebuildHouse(Casa.layout); if (window.Vida) Vida.onLayout(); };
   Casa.mount();
   Casa.load(S.me.name);
   restore();
@@ -216,7 +216,9 @@ const bReset = $('#b-olvide-enviar'); if (bReset) bReset.onclick = () => {
 $('#login-form').onsubmit = (e) => { e.preventDefault(); };
 let started = false, reconnectTimer = null, reconnectDelay = 1000;
 function startGame() {
-  if (started) return; started = true;
+  if (started) return;
+  if (window.Vida && !Vida.allowsConnect()) { Vida.queueConnect(startGame); return; }
+  started = true;
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
@@ -767,8 +769,8 @@ function renderChat() {
   if (atBottom) el.scrollTop = el.scrollHeight;
   const inRange = [...S.others.values()].filter(o => dist(o) * 2 <= 30).length;
   const notas = {
-    global: '(Global) Visible para todos los jugadores conectados',
-    proximidad: `(Proximidad) Solo visible para jugadores cercanos (≤ 30 m) · ${inRange} en rango`,
+    global: '(Global) Visible para quienes están en tu mundo',
+    proximidad: `(Proximidad) En tu mundo y a ≤ 30 m · ${inRange} en rango`,
     clan: S.me.clan ? `(Clan) Visible para tu clan: ${esc(S.me.clan)}` : '(Clan) Sin clan · escribe /clan nombre',
     grupo: S.me.group ? `(Grupo) Visible para tu grupo: ${esc(S.me.group)}` : '(Grupo) No estás en un grupo · escribe /grupo nombre',
   };
@@ -809,12 +811,13 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+    if (window.Vida && Vida.onNet(m)) return;
     if (m.t === 'welcome') {
       S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; S.me.nick = m.you.nick ? textoNombre(m.you.nick) : (S.sessionUser ? 'Viajero' : textoNombre(m.you.name)); $('#mi-nombre').textContent = nombrePropio();
       S.net.serverId = m.serverId || null;
@@ -845,7 +848,7 @@ function connect() {
     scheduleReconnect();
   };
 }
-function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
+function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; if(p.pet&&window.Vida&&Vida.decorate)p.pet=Vida.decorate(p.pet); S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
 function sendMove(force) {
   if (W.mapId==='mine' || W.mapId==='banco' || W.mapId==='casa') {
     if (!S.net.ok) return;
