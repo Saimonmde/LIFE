@@ -11,6 +11,7 @@ import cobre
 import economy as eco
 import monedas
 import plata
+import serie
 import supply as sup
 
 
@@ -157,15 +158,20 @@ class FurnaceMintTests(unittest.TestCase):
         self.assertGreaterEqual(chis['minted'], 4)
         self.assertEqual(chis['max'], 333_000_000)
         self.assertEqual(ok['ledger']['balances']['simonchis'], 4)
+        self.assertTrue(serie.intact(self.server.ECON))
+        minted = serie.lookup(self.server.ECON, 'simonchis', 1)
+        self.assertEqual(minted['minter'], who.user['id'])
+        self.assertEqual(minted['serialTo'] - minted['serialFrom'] + 1, 4)
 
-    def test_ingot_is_saved_on_the_server(self):
+    def test_a_player_cannot_mint_ingots(self):
         who = self.player()
+        before = int((self.server.ECON.get('minedSmh') or 0))
         self.server.smelt_for(who, 'mineral_oro', 2, mode='ingot')
         ok = next(item for item in self.sent if item.get('t') == 'smelt_result')
-        self.assertTrue(ok['ok'])
-        self.assertEqual(ok['item'], 'lingote_oro')
-        self.assertEqual(ok['qty'], 2)
-        self.assertEqual(self.server.ECON['foundry']['players'][who.name]['lingote_oro'], 2)
+        self.assertFalse(ok['ok'])
+        self.assertIn('Banco Central', ok['reason'])
+        self.assertEqual(int(self.server.ECON.get('minedSmh') or 0), before)
+        self.assertNotIn(who.name, (self.server.ECON.get('foundry') or {}).get('players') or {})
 
 
 if __name__ == '__main__':
