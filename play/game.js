@@ -216,11 +216,14 @@ const bReset = $('#b-olvide-enviar'); if (bReset) bReset.onclick = () => {
 $('#login-form').onsubmit = (e) => { e.preventDefault(); };
 let started = false, reconnectTimer = null, reconnectDelay = 1000;
 function startGame() {
+  if (!AUTOTEST && window.Hogar && !Hogar.conocido) { Hogar.listo.then(() => startGame()); return; }
+  if (!AUTOTEST && !Q.has('sinlogin') && !Q.has('sinayuda') && !Q.has('forja') && window.Roles && Roles.frena()) { Roles.pedir(startGame, true); return; }
   if (started) return; started = true;
   document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
-  const fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
+  const visita = !AUTOTEST && window.Visitas && Visitas.hay();
+  const fly = !AUTOTEST && !Q.has('forja') && !visita && !localStorage.getItem('lifeinc.vuelo.v1');
   if (fly) {
     if ((W.mapId || 'city') === 'casa') switchMap('city');
     const stand = window.Casa.PARK_STAND;
@@ -229,10 +232,12 @@ function startGame() {
     if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
   } else beginAtHome();
   Casa.load(S.me.name);
+  if (window.Hogar && Hogar.propio && Hogar.propio.casa && !visita) Casa.reemplazar(Hogar.propio.casa);
+  if (visita) Visitas.entrar();
   if (!fly && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Bienvenido a Medellín, ${esc(nombrePropio())}.`);
   connect(); updateTutorial(true);
-  if (!fly && window.Tutorial) Tutorial.afterFly();
+  if (!fly && !visita && window.Tutorial) Tutorial.afterFly();
   if (Q.has('forja')) showForgePreview();
 }
 function showForgePreview(){
@@ -309,6 +314,7 @@ function enterHouse(){
 }
 function exitHouse(){
  if((W.mapId||'city')!=='casa')return;
+ if(window.Casa&&Casa.visita)Casa.quitarVisita(true);
  S.portalUntil=now()+900;
  if(window.LIVE3D){const off=window.Casa.VALLE_OFFSET||{x:0,y:0};window.LIVE3D.lookAt={x:239+off.x,y:69+off.y};}
  switchMap('city');
@@ -343,14 +349,14 @@ function switchMap(id,restored=false){
  document.body.classList.toggle('in-banco',id==='banco');
  document.body.dataset.zone=id;
  if(id!=='casa'&&window.Casa)Casa.setEditing(false);
- const zoneLabel=id==='casa'?'Tu casa · Medellín':id==='mine'?'Mina de Las Palmas · interior':id==='banco'?'Casa bancaria':null;
+  const zoneLabel=id==='casa'?(window.Casa&&Casa.visita?('Visita · '+Casa.visita.codigo):'Tu casa · Medellín'):id==='mine'?'Mina de Las Palmas · interior':id==='banco'?'Casa bancaria':null;
  if(zoneLabel){$('#zona-nombre').textContent=zoneLabel;}
  drawMinimapBase();
  if(!restored){
   save();
   if(id==='mine')game('Entras a la mina de Las Palmas. Toca una veta para usar tu pica; el horno está en el centro.');
   else if(id==='city'&&prev==='mine')game('Sales de la mina y vuelves a Las Palmas.');
-  else if(id==='casa')game('Entras a tu casa en Medellín. La puerta sale al Parque de Envigado. El baúl es el mismo depósito del banquito.');
+  else if(id==='casa')game(window.Casa&&Casa.visita?('Visitas la casa '+Casa.visita.codigo+'. Sólo puedes mirar: no se edita ni se abre el baúl.'):'Entras a tu casa en Medellín. La puerta sale al Parque de Envigado. El baúl es el mismo depósito del banquito.');
   else if(id==='city'&&prev==='casa')game('Sales al <b>Parque de Envigado</b>. El botón Casa te devuelve a tu casa.');
   else if(id==='banco')game('Entras a la Casa bancaria. El mostrador atiende el banquero. El banquito guarda SMC y objetos: no se pierden si caes.');
   else if(id==='city'&&prev==='banco')game('Sales de la Casa bancaria, junto al Parque de Envigado.');
@@ -648,6 +654,17 @@ function damagePlayer(amount) {
   return S.hp;
 }
 function drawPortrait() {
+  const oficio = (window.Roles && Roles.actual()) || 'explorador';
+  if (window.Personajes && Personajes.rostro($('#retrato'), { kind: oficio })) {
+    const cara = $('#dialogo-cara');
+    if (cara) Personajes.rostro(cara, { kind: 'capataz' });
+    const etiqueta = document.getElementById('mi-oficio');
+    if (etiqueta) {
+      const rol = (window.Roles && Roles.lista || []).find(r => r.id === oficio);
+      etiqueta.textContent = rol ? rol.nombre : '';
+    }
+    return;
+  }
   const c = $('#retrato').getContext('2d'), sh = sheets[S.me.color] || sheets.default; c.imageSmoothingEnabled = false;
   c.fillStyle = '#3b5a2c'; c.fillRect(0, 0, 56, 56); c.drawImage(sh, 6, 0, 36, 36, 0, 2, 56, 56);
   const d = $('#dialogo-cara').getContext('2d'); d.imageSmoothingEnabled = false; d.fillStyle = '#b9a676'; d.fillRect(0, 0, 64, 64);
@@ -809,7 +826,7 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, oficio: (window.Roles && Roles.actual()) || '', walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();

@@ -108,6 +108,9 @@
       localStorage.removeItem('lifeinc.eljardin.v3');
       localStorage.removeItem(casa);
       localStorage.removeItem(token);
+      localStorage.removeItem('lifeinc.rol.v1');
+      localStorage.removeItem('lifeinc.rol.v1:' + encodeURIComponent(nick.trim().toLowerCase().slice(0, 16) || 'viajero'));
+      localStorage.removeItem('lifeinc.mascotas.v1:' + encodeURIComponent(nick.trim().toLowerCase().slice(0, 16) || 'viajero'));
     } catch (e) {}
   }
 
