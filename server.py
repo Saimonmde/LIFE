@@ -682,7 +682,12 @@ def _acunar_fail(sender, reason, code=''):
     send(sender, {'t': 'acunar_result', 'ok': False, 'reason': reason, 'code': code})
 
 def acunar_for(sender, coin, pieces, proof=None):
-    spec = TOPES.metal(str(coin or ''))
+    coin = str(coin or '')
+    if 'lingote' in coin or coin in ('ingot', 'ingots'):
+        reason = 'Los lingotes no se acuñan en esta ventanilla.'
+        LINGOTES.anotar_rechazo('acunar', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+        return _acunar_fail(sender, reason, 'coin')
+    spec = TOPES.metal(coin)
     if not spec:
         return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
     if not _en_la_mina(sender):
@@ -768,18 +773,36 @@ def acunar_for(sender, coin, pieces, proof=None):
     })
 
 def fundir_lingotes(sender, ore, batches):
-    return _smelt_fail(sender, 'Los lingotes no se funden en el horno.')
+    reason = 'Los lingotes no se funden en el horno.'
+    LINGOTES.anotar_rechazo('horno', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+    return _smelt_fail(sender, reason)
+
+def zona_pedida(sender, zone):
+    """El Banco Central no se abre con un mensaje. El papel se mira aquí."""
+    zone = zone if zone in ('casa', 'mine', 'banco', 'central', 'city') else 'city'
+    if zone != 'central' or LINGOTES.autorizado(getattr(sender, 'user', None)):
+        return zone
+    reason = 'El Banco Central es un recinto del personal. Esta cuenta no entra.'
+    LINGOTES.anotar_rechazo('puerta', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+    send(sender, {'t': 'central_result', 'ok': False, 'reason': reason})
+    send(sender, {'t': 'system', 'text': reason})
+    return 'city'
 
 def lingote_for(sender, metal, qty):
     reason = LINGOTES.rechazar(getattr(sender, 'user', None), getattr(sender, 'zone', ''))
     if reason:
+        LINGOTES.anotar_rechazo('lingote', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
         return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': reason})
     try:
-        done = LINGOTES.fundir(ECON, sender.name, metal, qty, time.time())
-    except (TypeError, ValueError):
-        return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': 'Esa cantidad no se funde.'})
+        done = LINGOTES.fundir(ECON, sender.name, metal, qty, time.time(), autorizado=True)
+    except (TypeError, ValueError, PermissionError):
+        reason = 'Esa cantidad no se funde.'
+        LINGOTES.anotar_rechazo('lingote', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+        return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': reason})
     save_econ()
-    send(sender, {'t': 'lingote_result', 'ok': True, 'reason': 'Quedó en la reserva del Banco Central.', 'ledger': MONEDAS.ledger(ECON, sender.name), **done})
+    view = MONEDAS.ledger(ECON, sender.name)
+    send(sender, {'t': 'lingote_result', 'ok': True, 'reason': 'Quedó en la reserva del Banco Central.', 'ledger': view, **done})
+    broadcast({'t': 'libro_publico', 'contadores': public_counters()})
 
 def lingote_ver(sender):
     if not LINGOTES.autorizado(getattr(sender, 'user', None)):
@@ -825,6 +848,8 @@ def fundir_simonplata(sender, ore, batches, proof):
         send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
 def smelt_for(sender, ore, batches, proof=None, mode=None):
+    if str(mode or '') == 'ingot':
+        return fundir_lingotes(sender, ore, batches)
     ore = str(ore or '')
     recipe = FOUNDRY.get(ore)
     if not recipe or not _en_la_mina(sender):
@@ -835,8 +860,6 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
     if not wallet_ready(sender):
         return _smelt_fail(sender, 'Esta billetera se creó en otro aparato.')
     mode = str(mode or 'simoncoin')
-    if mode == 'ingot':
-        return fundir_lingotes(sender, ore, batches)
     if mode == 'simonchis':
         return fundir_simonchis(sender, ore, batches, proof)
     if mode == 'simonplata':
@@ -1737,7 +1760,7 @@ def finca_msg(sender, message):
 def handle_client_message(c, m, t):
     if t == 'hello':
         if c.hello: return
-        c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'central', 'city') else 'city'
+        c.zone = zona_pedida(c, m.get('zone'))
         c.world = MUNDOS.normalize(m.get('world')) or 1
         if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
         else: c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
@@ -1787,6 +1810,9 @@ def handle_client_message(c, m, t):
         zone = m.get('zone')
         now_move = time.time()
         if zone in ('casa', 'mine', 'banco', 'central'):
+            zone = zona_pedida(c, zone)
+            if zone == 'city':
+                return
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
             c.zone = zone

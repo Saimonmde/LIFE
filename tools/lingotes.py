@@ -2,9 +2,13 @@
 """Lingotes del Banco Central.
 
 Una cuenta corriente no los funde. Sólo el dueño o un papel de personal,
-y sólo dentro del Banco Central. Cada barra sale con serie. No se crea
-Simoncoin, Simonplata ni Simonchis.
+y sólo dentro del Banco Central. Cada barra sale con serie y queda
+encadenada al hash anterior. No se crea Simoncoin, Simonplata ni Simonchis.
+El único llamador que puede pasar autorizado=True es server.lingote_for.
 """
+import hashlib
+import json
+
 import monedas
 import social
 
@@ -14,6 +18,8 @@ ITEMS = {'oro': 'lingote_oro', 'plata': 'lingote_plata', 'cobre': 'lingote_cobre
 PREFIX = {'oro': 'LGO', 'plata': 'LGP', 'cobre': 'LGC'}
 MAX_QTY = 12
 ROLES = ('simon', 'staff', 'admin')
+GENESIS = '0' * 64
+REFUSALS = []
 
 
 def autorizado(user):
@@ -26,6 +32,25 @@ def rechazar(user, zone):
     if str(zone or '') != ZONE:
         return 'Los lingotes se funden en el Banco Central.'
     return ''
+
+
+def anotar_rechazo(via, role, zone, reason):
+    """Deja el rechazo en memoria y en el registro del proceso. Sin correo ni clave."""
+    row = {
+        'via': str(via or ''),
+        'role': str(role or 'player'),
+        'zone': str(zone or ''),
+        'reason': str(reason or ''),
+    }
+    REFUSALS.append(row)
+    del REFUSALS[:-80]
+    print(
+        '[lingotes] rechazo via=%s rol=%s zona=%s motivo=%s' % (
+            row['via'], row['role'], row['zone'], row['reason'],
+        ),
+        flush=True,
+    )
+    return row
 
 
 def _box(state):
@@ -65,7 +90,35 @@ def vista(state):
     }
 
 
-def fundir(state, name, metal, qty, now):
+def publico(state):
+    """Totales por metal para el Libro mayor. Sin nombres ni series."""
+    counts = reserva(state)
+    box = state.get('foundry') if isinstance(state.get('foundry'), dict) else {}
+    return {
+        'oro': counts['oro'],
+        'plata': counts['plata'],
+        'cobre': counts['cobre'],
+        'head': str((box or {}).get('head') or ''),
+    }
+
+
+def _encadenar(box, row):
+    prev = str(box.get('head') or GENESIS)
+    body = dict(row)
+    body['prev'] = prev
+    raw = json.dumps(body, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    body['hash'] = digest
+    chain = box.setdefault('chain', [])
+    chain.append(body)
+    box['chain'] = chain[-400:]
+    box['head'] = digest
+    return body
+
+
+def fundir(state, name, metal, qty, now, autorizado=False):
+    if not autorizado:
+        raise PermissionError('lingote')
     metal = str(metal or '')
     if metal not in ITEMS:
         raise ValueError('metal')
@@ -78,12 +131,20 @@ def fundir(state, name, metal, qty, now):
         number = int(box['next'].get(metal) or 1)
         box['next'][metal] = number + 1
         serial = '%s-%06d' % (PREFIX[metal], number)
+        entry = _encadenar(box, {
+            'serial': serial,
+            'metal': metal,
+            'item': ITEMS[metal],
+            'at': int(now or 0),
+        })
         box['serials'].append({
             'serial': serial,
             'metal': metal,
             'item': ITEMS[metal],
             'at': int(now or 0),
             'by': str(name or ''),
+            'hash': entry['hash'],
+            'prev': entry['prev'],
         })
         made.append(serial)
     box['serials'] = box['serials'][-200:]
@@ -103,4 +164,5 @@ def fundir(state, name, metal, qty, now):
         'serials': made,
         'reserve': reserva(state),
         'history': list(box['history'])[-12:],
+        'head': box.get('head') or '',
     }
