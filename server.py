@@ -45,6 +45,7 @@ import hogar as HOGAR
 import casa_cuenta as CASA
 import caballo_cuenta as CABALLO
 import gallos as GALLOS
+import guardado as GUARDADO
 import partida as PARTIDA
 import world_edits as EDITS
 
@@ -2417,12 +2418,12 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para recuperar la partida.'}, headers)
-        return auth_response('200 OK', {'partida': PARTIDA.recall(user)}, headers)
+        return auth_response('200 OK', {'partida': GUARDADO.recall(user, ECON)}, headers)
     if path == '/auth/partida' and method == 'POST':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar la partida.'}, headers)
-        shown = PARTIDA.remember(user, payload if isinstance(payload, dict) else {})
+        shown = GUARDADO.remember(user, payload if isinstance(payload, dict) else {}, ECON)
         CASA.mirror(VIDA, 'acct:' + user['id'], user)
         who = user.get('wallet_name') or user.get('name') or ''
         if who:

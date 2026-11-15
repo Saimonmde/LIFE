@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Lo que el jugador puede guardar, sin saldos y sin la finca.
+"""Lo que el jugador puede guardar en su cuenta, por id.
 
-Las tres monedas y el Libro Mayor viven en el libro del servidor.
-La finca vive en su propio almacén. Esta partida no los escribe.
+Las tres monedas viven en el libro del servidor. Este paquete no las
+suma: si el navegador manda un saldo, se ignora. La finca tampoco se
+copia desde el cliente; sigue en el almacén de esa misma cuenta.
 """
 import re
 
@@ -236,9 +237,26 @@ def pack(raw):
     return data
 
 
+def _rev(raw):
+    try:
+        return max(0, int((raw or {}).get('rev') or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
 def remember(user, raw):
-    """Guarda en la cuenta. No crea monedas ni toca la finca."""
+    """Reemplaza la partida de esta cuenta. No suma monedas ni inventario."""
+    raw = raw if isinstance(raw, dict) else {}
+    incoming = _rev(raw)
+    prev = user.get('partida') if isinstance(user.get('partida'), dict) else {}
+    try:
+        have = int(prev.get('rev') or 0)
+    except (TypeError, ValueError):
+        have = 0
+    if incoming and have and incoming < have:
+        return recall(user)
     data = pack(raw)
+    data['rev'] = incoming or have or 1
     user['partida'] = data
     casa_payload = {}
     if data.get('layout'):
@@ -268,4 +286,6 @@ def recall(user):
     if isinstance(user, dict):
         nick = str(user.get('wallet_name') or user.get('name') or '')[:16]
     saved['nick'] = nick
+    saved['accountId'] = str(user.get('id') or '') if isinstance(user, dict) else ''
+    saved['rev'] = int(saved.get('rev') or (user.get('partida') or {}).get('rev') or 0) if isinstance(user, dict) else 0
     return saved
