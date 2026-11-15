@@ -127,6 +127,32 @@ class LetreroTests(unittest.TestCase):
         self.assertIn('Hoy te quedan ' + topes._cantidad(plata_base) + ' Simonplata.', left)
         self.assertIn('Hoy te quedan ' + topes._cantidad(chis) + ' Simonchis.', left)
 
+    def test_next_reward_step_and_daily_reset_come_from_the_growth_rules(self):
+        steps = topes.siguiente(0, 0, 0)
+        edad = next(step for step in steps if step['kind'] == 'edad')
+        self.assertEqual(edad['wait'], topes.DAY)
+        delta = topes.simoncoin_daily_smh(topes.DAY, 0, 0) / topes.SUBS - topes.simoncoin_daily_smh(0, 0, 0) / topes.SUBS
+        self.assertAlmostEqual(edad['simoncoin'], delta)
+        juego = next(step for step in steps if step['kind'] == 'juego')
+        self.assertEqual(juego['wait'], 3600)
+        mision = next(step for step in steps if step['kind'] == 'mision')
+        self.assertIsNone(mision['wait'])
+        full_age = topes.DEFAULT_AGE_DAYS * topes.DAY
+        full_play = topes.DEFAULT_PLAY_HOURS * 3600
+        done = topes.siguiente(full_age, full_play, topes.DEFAULT_QUEST_CAP)
+        self.assertEqual(done[0]['kind'], 'listo')
+        moment = 1_700_000_000
+        board = topes.letrero(0, 0, 0, moment)
+        self.assertEqual(board['resetAt'], topes.next_reset(moment))
+        self.assertTrue(any('peldaño' in step['text'] for step in board['steps']))
+        script = open(os.path.join(os.path.dirname(__file__), '..', 'play', 'letrero.js'), encoding='utf-8').read()
+        self.assertIn('resetAt', script)
+        self.assertIn('setInterval(paint, 1000)', script)
+        mesh = open(os.path.join(os.path.dirname(__file__), '..', 'play', 'letrero3d.js'), encoding='utf-8').read()
+        self.assertIn('CylinderGeometry', mesh)
+        self.assertIn('UnifrakturMaguntia', mesh)
+        self.assertIn('BoxGeometry', mesh)
+
 
 if __name__ == '__main__':
     unittest.main()

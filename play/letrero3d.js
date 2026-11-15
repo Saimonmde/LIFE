@@ -1,49 +1,58 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Marco de madera y tablero de piedra. El texto largo va en la tarjeta, no en la malla. */
+/* Un poste redondo y un tablero rectangular. El título es gótico; el texto largo va en la tarjeta. */
+const fontReady = new FontFace('UnifrakturMaguntia', 'url(fonts/UnifrakturMaguntia.ttf)').load().then((font) => {
+  document.fonts.add(font);
+  return true;
+}).catch(() => false);
+
+function paintTitle(ctx, gothic) {
+  ctx.clearRect(0, 0, 1024, 512);
+  ctx.fillStyle = '#f6f1e6';
+  ctx.fillRect(0, 0, 1024, 512);
+  ctx.fillStyle = '#1c1208';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const family = gothic ? 'UnifrakturMaguntia, serif' : 'serif';
+  let size = 118;
+  ctx.font = size + 'px ' + family;
+  while (size > 56 && ctx.measureText('Reglas de la Mina').width > 960) {
+    size -= 4;
+    ctx.font = size + 'px ' + family;
+  }
+  ctx.fillText('Reglas de la Mina', 512, 256);
+}
+
 export function board(T, x, y, z, id, facing) {
   const group = new T.Group();
   group.position.set(x, y, z);
   group.rotation.y = facing || 0;
-  const mat = new Map();
-  const color = (hex) => {
-    if (!mat.has(hex)) mat.set(hex, new T.MeshLambertMaterial({ color: hex, flatShading: true }));
-    return mat.get(hex);
-  };
-  const box = new T.BoxGeometry(1, 1, 1);
-  function part(px, py, pz, w, h, d, hex) {
-    const mesh = new T.Mesh(box, color(hex));
-    mesh.position.set(px, py, pz);
-    mesh.scale.set(w, h, d);
-    mesh.castShadow = mesh.receiveShadow = true;
-    mesh.userData.id = id;
-    group.add(mesh);
-    return mesh;
-  }
-  part(-0.72, 0.85, 0, 0.12, 1.7, 0.12, '#5c3a22');
-  part(0.72, 0.85, 0, 0.12, 1.7, 0.12, '#5c3a22');
-  part(0, 1.7, 0, 1.7, 0.12, 0.14, '#6e4a2c');
-  part(0, 0.95, 0, 1.56, 1.15, 0.08, '#d7c4a2');
-  part(0, 0.95, 0.05, 1.28, 0.9, 0.04, '#f6f1e6');
+  const wood = new T.MeshLambertMaterial({ color: '#5c3a22', flatShading: true });
+  const paper = new T.MeshLambertMaterial({ color: '#f6f1e6', flatShading: true });
+  const post = new T.Mesh(new T.CylinderGeometry(0.11, 0.13, 2.05, 20), wood);
+  post.position.y = 1.02;
+  post.userData.id = id;
+  group.add(post);
+  const panel = new T.Mesh(new T.BoxGeometry(1.46, 0.78, 0.06), paper);
+  panel.position.set(0.34, 1.28, 0);
+  panel.userData.id = id;
+  group.add(panel);
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 256;
+  canvas.width = 1024;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f6f1e6';
-  ctx.fillRect(0, 0, 512, 256);
-  ctx.fillStyle = '#1c1208';
-  ctx.font = '700 54px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('REGLAS', 256, 110);
-  ctx.font = '600 28px sans-serif';
-  ctx.fillText('Toca para leer', 256, 168);
+  paintTitle(ctx, false);
   const texture = new T.CanvasTexture(canvas);
   texture.colorSpace = T.SRGBColorSpace;
   const plate = new T.Mesh(
-    new T.PlaneGeometry(1.2, 0.72),
+    new T.PlaneGeometry(1.32, 0.64),
     new T.MeshBasicMaterial({ map: texture }),
   );
-  plate.position.set(0, 0.95, 0.08);
+  plate.position.set(0.34, 1.28, 0.04);
   plate.userData.id = id;
   group.add(plate);
+  fontReady.then((ok) => {
+    paintTitle(ctx, ok);
+    texture.needsUpdate = true;
+  });
   return group;
 }
