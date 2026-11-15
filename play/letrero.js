@@ -49,10 +49,60 @@
     });
   }
 
+  function fillMonedas() {
+    const box = document.getElementById('letrero-monedas');
+    if (!box) return;
+    box.replaceChildren();
+    const supply = (data && data.supply) || {};
+    [
+      ['simoncoin', 'Simoncoin es la moneda de oro. Sólo habrá ', supply.simoncoin],
+      ['simonplata', 'Simonplata es la moneda de plata. Sólo habrá ', supply.simonplata],
+      ['simonchis', 'Simonchis son las monedas de cobre. Existirán ', supply.simonchis],
+    ].forEach(([id, lead, max]) => {
+      if (max == null) return;
+      const p = document.createElement('p');
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = 'assets/sara-cartel/' + id + '.svg';
+      const span = document.createElement('span');
+      span.textContent = lead + cantidad(max) + '. Nadie puede crear más ni copiarlas.';
+      p.append(img, span);
+      box.append(p);
+    });
+  }
+
+  function fillMinar() {
+    const list = document.getElementById('letrero-minar');
+    if (!list) return;
+    const rates = (data && data.rates) || {};
+    const lines = [
+      'Entrá con tu apodo.',
+      'Viajá a la Mina de Las Palmas, o caminá hasta allá.',
+      'Picá una veta con la pica. El mineral cae en la mochila.',
+      'Acercate al horno del centro.',
+      'Elegí oro, plata o cobre y acuñá, sin pasar del tope del día.',
+    ];
+    if (rates.simoncoin && rates.simonplata && rates.simonchis) {
+      lines.push(
+        cantidad(rates.simoncoin) + ' oros crudos hacen 1 Simoncoin, ' +
+        cantidad(rates.simonplata) + ' platas crudas hacen 1 Simonplata y ' +
+        cantidad(rates.simonchis) + ' cobres crudos hacen 1 Simonchis.'
+      );
+    }
+    list.replaceChildren();
+    lines.forEach((line) => {
+      const li = document.createElement('li');
+      li.textContent = line;
+      list.append(li);
+    });
+  }
+
   function paint() {
+    fillMonedas();
     fill('letrero-texto', (data && data.lines) || []);
     fill('letrero-hoy', (data && data.hoy && data.hoy.length) ? data.hoy : hoyLocal());
     fill('letrero-pasos', ((data && data.steps) || []).map((step) => step.text).filter(Boolean));
+    fillMinar();
     const clock = document.getElementById('letrero-cuenta');
     if (clock) clock.textContent = clockText();
     if (data && data.resetAt && data.resetAt * 1000 - Date.now() <= 0) load();
@@ -66,7 +116,7 @@
     panel.hidden = true;
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', 'Reglas de la mina');
-    panel.innerHTML = '<header><strong>Reglas de la Mina de Las Palmas</strong><button type="button" id="letrero-cerrar" aria-label="Cerrar">✕</button></header><p id="letrero-cuenta"></p><div id="letrero-hoy"></div><div id="letrero-texto"></div><div id="letrero-pasos"></div>';
+    panel.innerHTML = '<header><strong>Reglas de la Mina</strong><button type="button" id="letrero-cerrar" aria-label="Cerrar">✕</button></header><p id="letrero-cuenta"></p><h3>Cómo funcionan</h3><div id="letrero-monedas"></div><div id="letrero-texto"></div><h3>Hoy</h3><div id="letrero-hoy"></div><h3>Cómo minar y acuñar</h3><ol id="letrero-minar"></ol><h3>Recompensas</h3><div id="letrero-pasos"></div><p id="letrero-aviso">Si el mundo ya llegó al máximo de una moneda, el horno se detiene. No sale ni una de más.</p>';
     document.body.append(panel);
     panel.querySelector('#letrero-cerrar').onclick = () => close();
     return panel;
