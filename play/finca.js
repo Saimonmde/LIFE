@@ -7,6 +7,8 @@
   let contadores = null;
   let prevCoins = null;
   let extraFeed = [];
+  let lastOp = 'ver';
+  let lastExtra = {};
 
   function send(op, extra) {
     const S = window.LiveInk && LiveInk.state;
@@ -15,12 +17,23 @@
       say('Entra al mundo para usar la finca.');
       return;
     }
-    ws.send(JSON.stringify(Object.assign({ t: 'finca', op }, extra || {})));
+    lastOp = op;
+    lastExtra = extra || {};
+    ws.send(JSON.stringify(Object.assign({ t: 'finca', op }, lastExtra)));
   }
 
   function say(text) {
     const note = $('#finca-note');
     if (note) note.textContent = text || '';
+    if (text && text.indexOf('Tu mochila está llena') >= 0 && window.avisarMochilaLlena && window.LiveInk) {
+      LiveInk.state.espera = {
+        server: false,
+        item: 'bolsa',
+        qty: 1,
+        done: (where) => { if (where === 'banco') send(lastOp, Object.assign({}, lastExtra, { place: 'banco' })); },
+      };
+      window.avisarMochilaLlena();
+    }
   }
 
   function stageName(stage) {

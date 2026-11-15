@@ -20,6 +20,7 @@ import os
 import secrets
 
 import economy
+import mochila
 import plata
 import reloj
 
@@ -406,13 +407,26 @@ def fund_buyer(state, purse, config):
     return True
 
 
-def _tick(state, box, crop, now, config, account):
+def _bultos(state, account):
+    counts = {}
+    for bag in state['bags'].values():
+        if bag.get('owner') != account or bag.get('place') != 'mochila':
+            continue
+        key = 'bolsa_' + str(bag.get('crop') or '')
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _tick(state, box, crop, now, config, account, place='mochila'):
     batch = (box.get('batches') or {}).get(crop)
     if not batch or int(now) < int(batch.get('readyAt') or 0) or batch.get('settled'):
         return False
     spec = _crop(config, crop)
     steps = _steps(spec)
     index = int(batch.get('step') or 0)
+    extra = int(config.get('bagsPerBatch') or 2)
+    if index + 1 >= len(steps) and place != 'banco' and not mochila.fits(_bultos(state, account), 'bolsa_' + crop, extra):
+        raise FincaError(mochila.FULL)
     prev = batch.get('hash') or ''
     digest = _sha({'batch': batch['id'], 'crop': crop, 'prev': prev, 'step': steps[index]['id']})
     batch['hash'] = digest
@@ -452,7 +466,7 @@ def _tick(state, box, crop, now, config, account):
             'prev': prev_bag,
             'hash': bag_hash,
             'owner': account,
-            'place': 'mochila',
+            'place': place if place == 'banco' else 'mochila',
             'chain': [{'kind': 'origen', 'hash': bag_hash, 'prev': prev_bag}],
         }
         state['bags'][serial] = bag
@@ -465,10 +479,10 @@ def _tick(state, box, crop, now, config, account):
     return True
 
 
-def _tick_all(state, box, now, config, account):
+def _tick_all(state, box, now, config, account, place='mochila'):
     made = False
     for crop in CROPS:
-        if _tick(state, box, crop, now, config, account):
+        if _tick(state, box, crop, now, config, account, place):
             made = True
     return made
 
@@ -606,6 +620,9 @@ def withdraw(state, config, account, serial, now):
     bag = state['bags'].get(serial)
     if not bag or bag.get('owner') != account or bag.get('place') != 'banco':
         raise FincaError('ese bulto no está en el banco')
+    item = 'bolsa_' + str(bag.get('crop') or '')
+    if not mochila.fits(_bultos(state, account), item, 1):
+        raise FincaError(mochila.FULL)
     _move_place(state, bag, account, 'mochila', now, 'retiro', 'Se retiró 1 bulto del banco.')
     return serial
 
@@ -797,9 +814,10 @@ def act(state, purse, config, account, op, args, now, present=True):
     moved = fund_buyer(state, purse, config) if purse else False
     changed = bool(moved)
     try:
+        place = 'banco' if str(args.get('place') or '') == 'banco' else 'mochila'
         if account and op != 'procesar':
             box = _account(state, config, account)
-            if _tick_all(state, box, now, config, account):
+            if _tick_all(state, box, now, config, account, place):
                 changed = True
         if op == 'ver':
             pass
