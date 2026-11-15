@@ -19,17 +19,38 @@
 #b-registro[hidden],
 #b-olvide[hidden],
 #b-reenviar[hidden] { display: none !important; }
-#login button {
-  min-height: 44px;
+#login button, #poner-clave button {
+  min-height: 48px;
   border-radius: 12px;
   font-family: var(--sans);
   font-weight: 650;
 }
-#login input {
-  min-height: 44px;
-  border-radius: 12px;
-  font-family: var(--sans);
+#login, #poner-clave {
+  font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
 }
+#login input, #poner-clave input {
+  min-height: 48px;
+  border-radius: 12px;
+  font-family: "Segoe UI", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+  font-size: 16px;
+}
+#login input::placeholder, #poner-clave input::placeholder {
+  color: rgba(243, 226, 184, .42);
+}
+#login label, #poner-clave label { font-size: 15px; }
+.ojo-clave {
+  flex: none;
+  min-width: 88px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #f3e2b8;
+  color: #3a2a16;
+  font: 700 14px/1 system-ui, sans-serif;
+}
+label:has(.ojo-clave) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+label:has(.ojo-clave) input { flex: 1 1 160px; }
+.login-aviso { margin: 0; color: #f0d48a; font: 15px/1.4 system-ui, sans-serif; }
 #registro p, #olvide p, #correo-login p, #login-nota {
   margin: 0;
   font: 14px/1.4 var(--sans);

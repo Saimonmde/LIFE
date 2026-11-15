@@ -167,7 +167,17 @@ async function init() {
   beginAtHome();
   $('#login').hidden = false;
   fetch('/auth/providers').then(r => r.json()).then(p => {
-    const g = $('#b-google'); if (g) { g.hidden = false; g.disabled = !p.google; }
+    const g = $('#b-google');
+    const aviso = $('#google-aviso');
+    if (g) {
+      g.hidden = false;
+      g.disabled = !p.google;
+      g.setAttribute('aria-disabled', p.google ? 'false' : 'true');
+      if (!p.google) g.title = 'Google no está configurado en el servidor. Entra con tu nickname y tu contraseña.';
+      const label = g.querySelector('span');
+      if (label && !p.google) label.textContent = 'Google no disponible';
+    }
+    if (aviso) aviso.hidden = !!p.google;
     const f = $('#b-facebook');
     if (f) {
       f.hidden = false;
@@ -227,14 +237,24 @@ async function continuarSesion(sessionUser) {
   try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
   const tomar = $('#b-tomar-simon');
   if (tomar) tomar.hidden = !sessionUser.canClaimSimon;
-  if (sessionUser.needsPassword) {
+  if (sessionUser.needsNick || sessionUser.needsPassword) {
     $('#login').hidden = true;
     const panel = $('#poner-clave');
     if (panel) panel.hidden = false;
-    const propio = apodoCuenta(sessionUser);
-    const reservado = pareceSimon(propio);
-    const nick = (!sessionUser.canClaimSimon && reservado) || propio === 'Viajero' ? '' : propio;
-    if ($('#p-nick')) $('#p-nick').value = nick;
+    const soloNick = !!sessionUser.needsNick && !sessionUser.needsPassword;
+    const clave = $('#p-clave-label');
+    const fuerza = $('#p-fuerza');
+    const barra = $('#p-barra');
+    if (clave) clave.hidden = soloNick;
+    if (fuerza) fuerza.hidden = soloNick;
+    if (barra) barra.hidden = soloNick;
+    const titulo = $('#p-titulo');
+    const ayuda = $('#p-ayuda');
+    if (titulo) titulo.textContent = soloNick ? 'Elige tu nickname' : 'Tu nickname y tu contraseña';
+    if (ayuda) ayuda.textContent = soloNick
+      ? 'Con Google no hace falta contraseña. Elige un nickname que no use otro jugador.'
+      : 'La contraseña se escribe una sola vez. Después entras con el nickname y esa contraseña.';
+    if ($('#p-nick')) $('#p-nick').value = '';
     return;
   }
   const panel = $('#poner-clave');
@@ -308,11 +328,14 @@ const bGuardar = $('#p-guardar'); if (bGuardar) bGuardar.onclick = async () => {
   if (bGuardar.disabled) return;
   bGuardar.disabled = true;
   try {
-    const response = await fetch('/auth/apodo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nick: $('#p-nick').value.trim(), password: $('#p-pass').value, confirm: $('#p-pass2').value }) });
+    const clave = $('#p-pass');
+    const soloNick = clave && clave.closest('label') && clave.closest('label').hidden;
+    const body = { nick: $('#p-nick').value.trim() };
+    if (!soloNick) body.password = clave ? clave.value : '';
+    const response = await fetch('/auth/apodo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const result = await response.json();
     if (!response.ok || !result.user) throw Error(result.error || 'No se pudo guardar.');
-    $('#p-pass').value = '';
-    $('#p-pass2').value = '';
+    if (clave) clave.value = '';
     continuarSesion(result.user);
   } catch (error) {
     const box = $('#p-status');
@@ -327,7 +350,30 @@ $('#b-correo-entrar').onclick=async()=>{
  }catch(error){$('#login-status').textContent=error.message;}finally{button.disabled=false;}
 };
 $('#correo-login').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#b-correo-entrar').click();}};
-const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego()); };
+function ojoClave(input) {
+  if (!input || input.dataset.ojo) return;
+  input.dataset.ojo = '1';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ojo-clave';
+  btn.textContent = 'Mostrar';
+  btn.setAttribute('aria-label', 'Mostrar contraseña');
+  btn.setAttribute('aria-pressed', 'false');
+  input.insertAdjacentElement('afterend', btn);
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? 'Ocultar' : 'Mostrar';
+    btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+    btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  });
+}
+['e-clave', 'e-password', 'r-pass', 'p-pass'].forEach((id) => ojoClave(document.getElementById(id)));
+const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => {
+  if (bGoogle.disabled) return;
+  linkCookie();
+  location.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego());
+};
 const bFacebook = $('#b-facebook'); if (bFacebook) bFacebook.onclick = () => { linkCookie(); location.href = '/auth/facebook?vuelta=' + encodeURIComponent(vueltaJuego()); };
 const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { $('#correo-login').hidden=true; $('#olvide').hidden=true; const box = $('#registro'); if (box) box.hidden = !box.hidden; };
 const bOlvide = $('#b-olvide'); if (bOlvide) bOlvide.onclick = () => { $('#correo-login').hidden=true; $('#registro').hidden=true; const box = $('#olvide'); if (box) box.hidden = !box.hidden; if ($('#o-email') && $('#e-email')) $('#o-email').value = $('#e-email').value; };

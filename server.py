@@ -2234,6 +2234,14 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             'state': state, 'scope': 'email',
         })
         return redirect(loc, headers, [ACC.cookie('oauth_state', state, 600, secure), ACC.cookie('life_return', urllib.parse.quote(back, safe=''), 600, secure)])
+    if path == '/auth/apple' and method == 'GET':
+        if not ACC.providers()['apple']:
+            return auth_response('404 Not Found', {'error': 'Apple no está configurado.'}, headers)
+        return auth_response('501 Not Implemented', {'error': 'Apple está previsto y todavía no abre la sesión.'}, headers)
+    if path == '/auth/github' and method == 'GET':
+        if not ACC.providers()['github']:
+            return auth_response('404 Not Found', {'error': 'GitHub no está configurado.'}, headers)
+        return auth_response('501 Not Implemented', {'error': 'GitHub está previsto y todavía no abre la sesión.'}, headers)
     if path in ('/auth/google/callback', '/auth/facebook/callback') and method == 'GET':
         provider = 'google' if 'google' in path else 'facebook'
         state = (query.get('state') or [''])[0]
@@ -2271,9 +2279,12 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
         old_wallet = user.get('wallet_name') or ''
         try:
-            shown = ACC.set_nick_and_password(
-                ACCOUNTS, user, payload.get('nick'), payload.get('password'), payload.get('confirm'),
-            )
+            if payload.get('password'):
+                shown = ACC.set_nick_and_password(
+                    ACCOUNTS, user, payload.get('nick'), payload.get('password'), payload.get('confirm'),
+                )
+            else:
+                shown = ACC.choose_nick(ACCOUNTS, user, payload.get('nick'))
             mover_billetera(old_wallet, user.get('wallet_name') or '')
             save_accounts()
         except ACC.AuthError as exc:

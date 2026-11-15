@@ -175,7 +175,8 @@ class EmailLinkTests(unittest.TestCase):
         state = acc.start_oauth(doc, 'google', now=10_000)
         made = acc.finish_oauth(doc, 'google', state, state, {'sub': 'g-ana', 'email': 'ana@gmail.com', 'name': 'Ana'}, now=10_010)
         user = next(u for u in doc['users'] if u['id'] == made['user']['id'])
-        self.assertTrue(made['user']['needsPassword'])
+        self.assertTrue(made['user']['needsNick'])
+        self.assertFalse(made['user']['needsPassword'])
         self.assertNotIn('password_hash', made['user'])
         self.assertIn('frase', acc.set_nick_and_password.__doc__)
         with self.assertRaises(acc.AuthError):
@@ -266,6 +267,57 @@ class EmailLinkTests(unittest.TestCase):
             os.environ.pop('SIMON_OWNER_EMAIL', None)
         else:
             os.environ['SIMON_OWNER_EMAIL'] = old
+
+    def test_one_password_is_hashed_and_nick_is_unique(self):
+        doc = acc.empty()
+        user = {'id': 'rai', 'name': 'Pendiente', 'email': 'rai@ejemplo.co', 'password_hash': '', 'wallet_name': 'Pendiente'}
+        other = {'id': 'otra', 'name': 'Otra', 'email': 'otra@ejemplo.co', 'password_hash': '', 'wallet_name': 'Otra'}
+        doc['users'].extend([user, other])
+        shown = acc.set_nick_and_password(doc, user, 'RaiMundo', 'Secreto-largo-1', now=20_000)
+        self.assertEqual(shown['name'], 'RaiMundo')
+        self.assertTrue(user['password_hash'].startswith('scrypt$'))
+        self.assertNotIn('Secreto-largo-1', user['password_hash'])
+        self.assertTrue(acc.verify_password('Secreto-largo-1', user['password_hash']))
+        self.assertNotIn('password_hash', shown)
+        doc['rates'].pop('clave:otra', None)
+        with self.assertRaises(acc.AuthError):
+            acc.set_nick_and_password(doc, other, 'raimundo', 'Secreto-largo-1', now=20_010)
+        self.assertEqual(other['password_hash'], '')
+
+    def test_plaintext_password_upgrades_to_scrypt(self):
+        doc = acc.empty()
+        user = {'id': 'viejo', 'name': 'Viejo', 'email': 'viejo@ejemplo.co', 'password_hash': 'clave-vieja-1', 'wallet_name': 'Viejo'}
+        doc['users'].append(user)
+        entered = acc.login_nick(doc, 'Viejo', 'clave-vieja-1', now=21_000)
+        self.assertEqual(entered['user']['id'], 'viejo')
+        self.assertTrue(user['password_hash'].startswith('scrypt$'))
+        self.assertNotIn('clave-vieja-1', user['password_hash'])
+        again = acc.login_nick(doc, 'viejo', 'clave-vieja-1', now=21_010)
+        self.assertEqual(again['user']['id'], 'viejo')
+
+    def test_google_links_existing_email_and_newcomer_only_picks_a_nick(self):
+        doc = acc.empty()
+        existing = {
+            'id': 'ana', 'name': 'Ana', 'email': 'ana@gmail.com', 'password_hash': acc.hash_password('Secreto-largo-1'),
+            'providers': {}, 'wallet_name': 'Ana',
+        }
+        doc['users'].append(existing)
+        state = acc.start_oauth(doc, 'google', now=22_000)
+        linked = acc.finish_oauth(doc, 'google', state, state, {'sub': 'g-ana', 'email': 'ana@gmail.com', 'name': 'Otra'}, now=22_010)
+        self.assertEqual(len(doc['users']), 1)
+        self.assertEqual(linked['user']['id'], 'ana')
+        self.assertEqual(existing['providers']['google'], 'g-ana')
+        self.assertTrue(existing['password_hash'].startswith('scrypt$'))
+        self.assertFalse(linked['user']['needsNick'])
+        fresh = acc.start_oauth(doc, 'google', now=22_100)
+        made = acc.finish_oauth(doc, 'google', fresh, fresh, {'sub': 'g-nueva', 'email': 'nueva@gmail.com', 'name': 'Nueva'}, now=22_110)
+        self.assertTrue(made['user']['needsNick'])
+        self.assertFalse(made['user']['needsPassword'])
+        newbie = next(u for u in doc['users'] if u['email'] == 'nueva@gmail.com')
+        chosen = acc.choose_nick(doc, newbie, 'Minera_Nueva', now=22_120)
+        self.assertEqual(chosen['name'], 'MineraNueva')
+        self.assertEqual(newbie['password_hash'], '')
+        self.assertFalse(chosen['needsNick'])
 
     def test_nick_login_is_rate_limited(self):
         doc = acc.empty()

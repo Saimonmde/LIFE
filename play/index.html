@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="cajon.css?v=mina-r1">
 <link rel="stylesheet" href="economy.css?v=codex-trade-r1">
 <link rel="stylesheet" href="emotes.css?v=movimiento-r1">
-<link rel="stylesheet" href="login.css?v=apodo-vista">
+<link rel="stylesheet" href="login.css?v=login-facil">
 <link rel="stylesheet" href="vida.css?v=guardar-r1">
 <link rel="stylesheet" href="acunar.css?v=acunar-r1">
 <link rel="stylesheet" href="finca.css?v=botones-r1">
@@ -153,7 +153,7 @@
 </section>
 <button type="button" id="ovni-saltar" hidden>Saltar</button>
 <div id="login" hidden>
-  <form id="login-form" autocomplete="off">
+  <form id="login-form" autocomplete="on">
     <div class="simoncity-lockup">
       <h1 class="simoncity-title">
         <img class="simoncity-wordmark" src="../graphics/ui/saimon-logo-gold.png" alt="Saimon City" width="980" height="532">
@@ -165,7 +165,7 @@
       <p class="simoncity-online" id="login-red">Buscando el servidor…</p>
     </div>
     <div id="login-cuentas">
-      <label>Apodo<input id="e-nick" maxlength="16" autocomplete="username" placeholder="Tu apodo"></label>
+      <label>Nickname o avatar<input id="e-nick" maxlength="16" autocomplete="username" placeholder="Simon"></label>
       <label>Contraseña<input id="e-clave" type="password" autocomplete="current-password"></label>
       <button type="button" id="b-entrar">Entrar</button>
       <div class="login-iconos" aria-label="Otras formas de entrar">
@@ -173,6 +173,7 @@
         <button type="button" id="b-facebook" disabled title="Facebook disponible pronto"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1877F2" d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h2.6l.4-3H13v-2c0-.6.4-1 1-1z"/></svg><span>Facebook disponible pronto</span></button>
         <button type="button" id="b-correo" title="Correo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#f3e2b8" d="M3 6h18v12H3z"/><path fill="none" stroke="#3a2a16" stroke-width="1.6" d="M4 7l8 6 8-6"/></svg><span>Correo</span></button>
       </div>
+      <p id="google-aviso" class="login-aviso" hidden>Google no está configurado en el servidor. Entra con tu nickname y tu contraseña.</p>
       <p id="login-nota" hidden></p>
     </div>
     <div id="correo-login" hidden>
@@ -184,7 +185,7 @@
     </div>
     <div id="registro" hidden>
       <p>Elige un apodo. Te enviamos un enlace: la cuenta no sirve hasta que lo abras.</p>
-      <label>Apodo<input id="l-nombre" maxlength="16" autocomplete="nickname" placeholder="Cómo te verán"></label>
+      <label>Nickname o avatar<input id="l-nombre" maxlength="16" autocomplete="username" placeholder="Simon"></label>
       <p id="l-apodo-vista" class="apodo-vista" aria-live="polite">Acepta letras, números y espacios. Así quedará: (vacío)</p>
       <div class="colores" id="l-colores"></div>
       <label>Correo<input id="r-email" type="email" autocomplete="email"></label>
@@ -210,12 +211,11 @@
   </form>
 </div>
 <section id="poner-clave" hidden>
-  <header>Tu apodo y tu contraseña</header>
-  <p>Sólo esta vez. Después entras con el apodo y la contraseña, sin el correo.</p>
-  <label>Apodo<input id="p-nick" maxlength="16" autocomplete="nickname"></label>
+  <header id="p-titulo">Tu nickname y tu contraseña</header>
+  <p id="p-ayuda">La contraseña se escribe una sola vez. Después entras con el nickname y esa contraseña.</p>
+  <label>Nickname o avatar<input id="p-nick" maxlength="16" autocomplete="username" placeholder="Simon"></label>
   <p id="p-apodo-vista" class="apodo-vista" aria-live="polite">Acepta letras, números y espacios. Así quedará: (vacío)</p>
-  <label>Contraseña<input id="p-pass" type="password" autocomplete="new-password"></label>
-  <label>Confirmar<input id="p-pass2" type="password" autocomplete="new-password"></label>
+  <label id="p-clave-label">Contraseña<input id="p-pass" type="password" autocomplete="new-password"></label>
   <p id="p-fuerza" aria-live="polite">Escribe una contraseña.</p>
   <div id="p-barra" aria-hidden="true"><i></i></div>
   <!-- TODO: frase secreta de 12 palabras. Mostrarla una sola vez y guardar sólo el hash. -->
@@ -351,7 +351,7 @@
 <script src="guacharaca.js?v=guacha-r1"></script>
 <script src="caballo.js?v=afuera-r1"></script>
 <script src="letrero.js?v=sara-cartel"></script>
-<script src="game.js?v=guacha-r1"></script>
+<script src="game.js?v=login-facil"></script>
 <script src="emotes.js?v=movimiento-r1"></script>
 <script src="economy-ui.js?v=mochila-llena"></script>
 <script type="module" src="unified3d.js?v=guacha-r1"></script>

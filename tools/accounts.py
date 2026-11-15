@@ -51,9 +51,14 @@ def save(path, doc):
 
 
 def providers():
+    """Google entra con GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET.
+    Apple y GitHub quedan en el mismo mapa, apagados hasta que existan sus variables.
+    """
     return {
         'google': bool(os.environ.get('GOOGLE_CLIENT_ID') and os.environ.get('GOOGLE_CLIENT_SECRET')),
         'facebook': bool(os.environ.get('FACEBOOK_APP_ID') and os.environ.get('FACEBOOK_APP_SECRET')),
+        'apple': bool(os.environ.get('APPLE_CLIENT_ID') and os.environ.get('APPLE_CLIENT_SECRET')),
+        'github': bool(os.environ.get('GITHUB_CLIENT_ID') and os.environ.get('GITHUB_CLIENT_SECRET')),
         'registro': email_ready(),
         'email_login': True,
         'reset': email_ready(),
@@ -91,6 +96,17 @@ def verify_password(password, stored):
         return False
     digest = hashlib.scrypt(password.encode('utf-8'), salt=salt, n=2 ** 14, r=8, p=1, dklen=32)
     return secrets.compare_digest(digest, expect)
+
+
+def upgrade_plaintext(user, password):
+    """Si una cuenta vieja guardó la clave en claro, al entrar se cambia por scrypt y sal."""
+    stored = str((user or {}).get('password_hash') or '')
+    if not user or not stored or stored.startswith('scrypt$') or not isinstance(password, str):
+        return False
+    if len(stored) != len(password) or not secrets.compare_digest(stored, password):
+        return False
+    user['password_hash'] = hash_password(password)
+    return True
 
 
 def _now(now):
@@ -180,7 +196,7 @@ def login_password(doc, email, password, now=None, client_ip=None):
         raise AuthError('Confirma el enlace del correo antes de entrar. Puedes pedir otro enlace.')
     user = _user_by(doc, email=email)
     stored = (user or {}).get('password_hash') or ('scrypt$' + '00' * 16 + '$' + '00' * 32)
-    verified = verify_password(password, stored)
+    verified = verify_password(password, stored) or upgrade_plaintext(user, password)
     if not user or not user.get('password_hash') or not verified:
         raise AuthError('Correo o contraseña incorrectos.')
     if user.get('verified') is False:
@@ -219,25 +235,15 @@ def login_nick(doc, nick, password, now=None, client_ip=None):
                 user = item
                 break
     stored = (user or {}).get('password_hash') or _dummy_hash()
-    verified = verify_password(password, stored) if password else False
+    verified = (verify_password(password, stored) or upgrade_plaintext(user, password)) if password else False
     if not user or not user.get('password_hash') or not verified:
         raise AuthError('Apodo o contraseña incorrectos.')
     doc['rates'].pop('login-nick:' + key, None)
     return open_session(doc, user, now)
 
 
-def set_nick_and_password(doc, user, nick, password, confirm, now=None):
-    """Primera vez: apodo único y contraseña. El hash es el scrypt de siempre.
-
-    TODO: frase secreta de 12 palabras. Mostrarla una sola vez y guardar sólo
-    su hash lento. Todavía no está en este flujo.
-    """
-    now = _now(now)
-    if not user:
-        raise AuthError('Entra otra vez.')
-    _hit_rate(doc, 'clave:' + user['id'], now)
-    if user.get('password_hash'):
-        raise AuthError('Esta cuenta ya tiene contraseña.')
+def _take_nick(doc, user, nick, now):
+    """Apodo único, sin distinguir mayúsculas. Simon a secas queda para el fundador."""
     if simon_reserved(nick):
         if not is_owner(user):
             raise AuthError('Ese apodo está reservado.')
@@ -248,8 +254,6 @@ def set_nick_and_password(doc, user, nick, password, confirm, now=None):
         raise AuthError('Escribe un apodo de hasta 16 letras.')
     if simon_reserved(nick) and not is_owner(user):
         raise AuthError('Ese apodo está reservado.')
-    if not isinstance(password, str) or password != confirm:
-        raise AuthError('Las contraseñas no coinciden.')
     key = name_key(nick)
     for other in doc['users']:
         if other.get('id') == user['id']:
@@ -258,9 +262,44 @@ def set_nick_and_password(doc, user, nick, password, confirm, now=None):
             raise AuthError('Ese apodo ya pertenece a otra cuenta.')
     if not name_available(doc, nick, user_id=user['id'], now=now):
         raise AuthError('Ese apodo ya pertenece a otra cuenta.')
-    user['password_hash'] = hash_password(password)
-    user['name'] = 'Simon' if is_owner(user) and simon_reserved(nick) else nick
-    user['wallet_name'] = user['name']
+    final = 'Simon' if is_owner(user) and simon_reserved(nick) else nick
+    user['name'] = final
+    user['wallet_name'] = final
+    user['nick_pending'] = False
+    return final
+
+
+def set_nick_and_password(doc, user, nick, password, confirm=None, now=None):
+    """Primera vez: apodo único y una sola contraseña. El hash es el scrypt de siempre.
+
+    TODO: frase secreta de 12 palabras. Mostrarla una sola vez y guardar sólo
+    su hash lento. Todavía no está en este flujo.
+    """
+    now = _now(now)
+    if not user:
+        raise AuthError('Entra otra vez.')
+    _hit_rate(doc, 'clave:' + user['id'], now)
+    if user.get('password_hash'):
+        raise AuthError('Esta cuenta ya tiene contraseña.')
+    if confirm is not None and password != confirm:
+        raise AuthError('Las contraseñas no coinciden.')
+    digest = hash_password(password)
+    _take_nick(doc, user, nick, now)
+    user['password_hash'] = digest
+    return public_user(user)
+
+
+def choose_nick(doc, user, nick, now=None):
+    """Quien entra con Google elige sólo el nickname. No se pide otra contraseña."""
+    now = _now(now)
+    if not user:
+        raise AuthError('Entra otra vez.')
+    _hit_rate(doc, 'clave:' + user['id'], now)
+    if not user.get('nick_pending'):
+        raise AuthError('Esta cuenta ya tiene apodo.')
+    if not (user.get('providers') or {}):
+        raise AuthError('Escribe una contraseña.')
+    _take_nick(doc, user, nick, now)
     return public_user(user)
 
 
@@ -364,7 +403,8 @@ def public_user(user):
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or '',
-        'needsPassword': not bool(user.get('password_hash')),
+        'needsPassword': not bool(user.get('password_hash')) and not (user.get('providers') or {}),
+        'needsNick': bool(user.get('nick_pending')),
         'canClaimSimon': is_owner(user) and simon_key(user.get('wallet_name') or user.get('name')) != 'simon',
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
@@ -452,6 +492,7 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             'id': secrets.token_hex(8), 'name': name, 'email': email, 'phone': '',
             'password_hash': '', 'providers': {provider: sub},
             'wallet_name': name, 'wallet_token': '', 'createdAt': now, 'verified': True,
+            'nick_pending': True,
         }
         doc['users'].append(user)
     return open_session(doc, user, now)
