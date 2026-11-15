@@ -291,7 +291,7 @@ def pagar(sender, dest, smh, note='Transferencia /pagar'):
     save_econ()
     broadcast_econ()
     send(sender, {'t': 'pay_result', 'ok': True, 'to': hit, 'note': note, 'amountSmh': smh, 'amountText': ECO.format_pair(smh)})
-    broadcast({'t': 'system', 'text': f'{sender.name} pagó {ECO.format_pair(smh)} a {hit}. Sólo es una simulación, sin valor real.'})
+    broadcast({'t': 'system', 'text': f'{visible_nick(sender)} pagó {ECO.format_pair(smh)} a {nick_de(hit)}. Sólo es una simulación, sin valor real.'})
 
 def client_ip(headers, writer):
     forwarded = (headers.get('x-forwarded-for') or '').split(',')[0].strip()
@@ -862,7 +862,7 @@ class Client:
         self.x, self.y, self.dir, self.moving = float(SPAWN[0]), float(SPAWN[1]), 'down', False
         self.level = 1; self.hello = False; self.stamps = []; self.zone = 'city'
     def public(self):
-        return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'color': self.color, 'clan': self.clan, 'group': self.group,
+        return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'nick': visible_nick(self), 'color': self.color, 'clan': self.clan, 'group': self.group,
                 'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone}
 
 def clean(s, n):
@@ -934,6 +934,31 @@ def dist(a, b):
     if getattr(a, 'zone', 'city') == 'casa' or getattr(b, 'zone', 'city') == 'casa': return 1e9
     return max(abs(a.x - b.x), abs(a.y - b.y))
 
+def visible_nick(client):
+    """Apodo que ven los demás. Si no hay apodo, Viajero. Nunca el correo ni el usuario de la cuenta."""
+    user = getattr(client, 'user', None)
+    if user:
+        raw = str(user.get('wallet_name') or '').strip()
+        email = str(user.get('email') or '').strip().lower()
+        if not raw or '@' in raw or raw.lower() == email:
+            return 'Viajero'
+        return ACC.game_name(raw) or 'Viajero'
+    raw = str(getattr(client, 'name', '') or '').strip()
+    if not raw or '@' in raw:
+        return 'Viajero'
+    return raw
+
+def nick_de(name):
+    key = ACC.name_key(name)
+    if key:
+        for other in clients.values():
+            if other.hello and ACC.name_key(other.name) == key:
+                return visible_nick(other)
+    text = str(name or '').strip()
+    if not text or '@' in text:
+        return 'Viajero'
+    return text
+
 def unique_name(name, me):
     if PLATA.reserved_name(name):
         name = 'Viajero'
@@ -983,7 +1008,7 @@ def chat(sender, channel, text):
             return broadcast({'t': 'player', 'player': sender.public()})
         return send(sender, {'t': 'system', 'text': 'Comandos: /grupo <nombre> · /clan <nombre> · /pagar <jugador> <monto>'})
     if channel not in CHANNELS: channel = 'proximidad'
-    msg = {'t': 'chat', 'channel': channel, 'from': sender.name, 'fromId': sender.id, 'clan': sender.clan, 'text': text,
+    msg = {'t': 'chat', 'channel': channel, 'from': visible_nick(sender), 'fromId': sender.id, 'clan': sender.clan, 'text': text,
            'ts': time.strftime('%H:%M'), 'bot': sender.bot}
     if channel == 'global': broadcast(msg)
     elif channel == 'proximidad': broadcast(msg, lambda c: dist(c, sender) <= PROX_TILES)
@@ -1066,7 +1091,7 @@ async def handle_ws(reader, writer, cookie='', ip=''):
     finally:
         clients.pop(c.id, None)
         if c.hello:
-            broadcast({'t': 'leave', 'id': c.id}); broadcast({'t': 'system', 'text': f'{c.name} salió.'})
+            broadcast({'t': 'leave', 'id': c.id}); broadcast({'t': 'system', 'text': f'{visible_nick(c)} salió.'})
         try: writer.close()
         except Exception: pass
 
@@ -1090,7 +1115,7 @@ def handle_client_message(c, m, t):
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build')})
         if c.zone != 'casa':
             broadcast({'t': 'join', 'player': c.public()}, exclude=c)
-            broadcast({'t': 'system', 'text': f'{c.name} entró a El Jardín.'}, exclude=c)
+            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a El Jardín.'}, exclude=c)
         send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
         if c.wallet_ok:
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})

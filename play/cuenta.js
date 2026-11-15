@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Eliminar mi cuenta y cerrar sesión, en el perfil. */
+/* Eliminar mi cuenta y cerrar sesión, dentro del menú ⚙. */
 (() => {
   'use strict';
   const perfil = document.getElementById('hud-perfil');
@@ -7,11 +7,10 @@
 
   let usuario = null;
 
-  const bar = document.createElement('div');
-  bar.id = 'cuenta-barra';
-  bar.hidden = true;
-  bar.innerHTML = '<p id="cuenta-nombre"></p><p id="cuenta-correo"></p><div id="cuenta-acciones"><button type="button" id="b-cerrar-sesion">Cerrar sesión</button><button type="button" id="b-eliminar-cuenta">Eliminar mi cuenta</button></div>';
-  perfil.appendChild(bar);
+  const aviso = document.createElement('p');
+  aviso.id = 'cuenta-aviso';
+  aviso.hidden = true;
+  aviso.setAttribute('role', 'status');
 
   const fondo = document.createElement('div');
   fondo.id = 'eliminar-fondo';
@@ -35,8 +34,6 @@
   ].join('');
   document.body.append(fondo, dialog);
 
-  const nombre = bar.querySelector('#cuenta-nombre');
-  const correo = bar.querySelector('#cuenta-correo');
   const input = dialog.querySelector('#eliminar-confirma');
   const error = dialog.querySelector('#eliminar-error');
   const confirmar = dialog.querySelector('#eliminar-confirmar');
@@ -57,34 +54,37 @@
     if (!key || !usuario) return false;
     return key === clave(usuario.name) || key === clave(usuario.wallet_name);
   }
-  function pintar() {
-    if (!usuario) return;
-    const nick = usuario.name || usuario.wallet_name || '';
-    nombre.textContent = 'Nickname: ' + nick;
-    correo.textContent = usuario.email ? 'Cuenta: ' + usuario.email : 'Cuenta iniciada';
+  function boton(id, text) {
+    let el = document.getElementById(id);
+    if (el) return el;
+    el = document.createElement('button');
+    el.type = 'button';
+    el.id = id;
+    el.textContent = text;
+    el.hidden = true;
+    return el;
   }
-  function colocar() {
-    if (bar.hidden) return;
-    if (bar.parentElement !== document.body) document.body.appendChild(bar);
-    bar.classList.add('cuenta-flotante');
-    const rect = perfil.getBoundingClientRect();
-    const margin = 8;
-    const width = Math.min(280, window.innerWidth - margin * 2);
-    const left = Math.max(margin, Math.min(rect.left, window.innerWidth - margin - width));
-    let top = rect.bottom + 8;
-    const alto = bar.offsetHeight || 168;
-    if (top + alto > window.innerHeight - margin) top = Math.max(margin, window.innerHeight - margin - alto);
-    bar.style.left = left + 'px';
-    bar.style.top = top + 'px';
-    bar.style.width = width + 'px';
+  function montar() {
+    const menu = document.getElementById('hud-gear-menu');
+    if (!menu) return false;
+    const salir = boton('b-cerrar-sesion', 'Cerrar sesión');
+    const borrar = boton('b-eliminar-cuenta', 'Eliminar mi cuenta');
+    if (salir.parentElement !== menu) menu.append(salir, borrar, aviso);
+    if (!salir.dataset.listo) {
+      salir.dataset.listo = '1';
+      salir.onclick = cerrarSesion;
+      borrar.onclick = abrir;
+    }
+    return true;
   }
   function sync() {
+    montar();
     const on = !!(usuario && document.body.classList.contains('in-game'));
-    bar.hidden = !on;
-    if (on) {
-      pintar();
-      colocar();
+    for (const id of ['b-cerrar-sesion', 'b-eliminar-cuenta']) {
+      const el = document.getElementById(id);
+      if (el) el.hidden = !on;
     }
+    if (!on) aviso.hidden = true;
   }
   function abrir() {
     input.value = '';
@@ -111,9 +111,11 @@
     } catch (e) {}
   }
 
-  bar.querySelector('#b-cerrar-sesion').onclick = async () => {
-    const button = bar.querySelector('#b-cerrar-sesion');
+  async function cerrarSesion() {
+    const button = document.getElementById('b-cerrar-sesion');
+    if (!button || button.disabled) return;
     button.disabled = true;
+    aviso.hidden = true;
     try {
       const response = await fetch('/auth/salir', {
         method: 'POST', credentials: 'same-origin',
@@ -123,10 +125,10 @@
       location.replace(vuelta());
     } catch (e) {
       button.disabled = false;
-      correo.textContent = 'No se pudo cerrar la sesión.';
+      aviso.hidden = false;
+      aviso.textContent = 'No se pudo cerrar la sesión.';
     }
-  };
-  bar.querySelector('#b-eliminar-cuenta').onclick = abrir;
+  }
   cancelar.onclick = cerrar;
   dialog.querySelector('#eliminar-x').onclick = cerrar;
   fondo.onclick = cerrar;
@@ -179,8 +181,6 @@
   }
 
   new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  addEventListener('resize', colocar);
-  setInterval(colocar, 500);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sesion);
   else sesion();
 })();

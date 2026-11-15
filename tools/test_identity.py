@@ -53,4 +53,23 @@ class IdentityTests(unittest.TestCase):
    owner=type('Owner',(),{'id':2,'user':doc['users'][0]})()
    self.assertEqual(s.unique_name('ignored',owner),'Ana')
   finally:s.ACCOUNTS,s.save_accounts,s.clients=previous
+ def test_other_players_see_nickname_not_login(self):
+  sys.path.insert(0,os.path.dirname(os.path.dirname(__file__)));import server as s
+  logged=s.Client(None)
+  logged.user={'id':'u1','name':'CuentaGoogle','email':'jay.usuario@example.com','wallet_name':'Nica'}
+  logged.name='Nica'
+  self.assertEqual(s.visible_nick(logged),'Nica')
+  shown=logged.public()
+  self.assertEqual(shown['nick'],'Nica')
+  self.assertNotIn('jay.usuario@example.com',json.dumps(shown))
+  self.assertNotIn('CuentaGoogle',json.dumps(shown))
+  bare=s.Client(None)
+  bare.user={'id':'u2','name':'CuentaGoogle','email':'jay.usuario@example.com','wallet_name':''}
+  bare.name='CuentaGoogle'
+  self.assertEqual(s.unique_name('ignored',bare),'CuentaGoogle')
+  self.assertEqual(s.visible_nick(bare),'Viajero')
+  self.assertEqual(bare.public()['nick'],'Viajero')
+  self.assertNotIn('@',bare.public()['nick'])
+  guest=s.Client(None);guest.name='Luz'
+  self.assertEqual(s.visible_nick(guest),'Luz')
 if __name__=='__main__':unittest.main()

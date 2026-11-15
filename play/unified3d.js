@@ -261,7 +261,7 @@ function boot(api){
   for(const [id,el] of playerNames)if(!S.others.has(id)){el.remove();playerNames.delete(id);}
   for(const [id,p] of S.others){
    let el=playerNames.get(id);if(!el){el=document.createElement('div');el.className='player-name';speechLayer.append(el);playerNames.set(id,el);}
-   el.textContent=p.name;el.classList.toggle('bot-name',!!p.bot);
+   el.textContent=window.nombreAjeno?window.nombreAjeno(p):p.name;el.classList.toggle('bot-name',!!p.bot);
    const a=actorMap.get('peer'+id);if(!a){el.hidden=true;continue;}
    projected.copy(a.position);projected.y+=2.7;projected.project(camera);
    el.hidden=!api.started||projected.z< -1||projected.z>1||Math.abs(projected.x)>1.1||Math.abs(projected.y)>1.1;
