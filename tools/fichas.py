@@ -16,6 +16,10 @@ import economy
 import plata
 
 RESERVA = 'reserva_fichas'
+LIMITE_FISICO = (
+    'El QR, el rastro y el pase en la app no prueban que tengas la pieza en la mano '
+    'ni que el metal sea auténtico o puro. No prometen dinero oficial ni valor.'
+)
 METALES = ('simoncoin', 'simonplata', 'simonchis')
 ESTADOS = ('circulando', 'perdida', 'robada', 'revocada', 'retirada')
 VENTANA_LECTURA = 600
@@ -179,6 +183,7 @@ def vista_publica(econ, ident, mac):
         'alerta': piece['alerta'],
         'historia': historia,
         'aviso': 'Ficha o medalla coleccionable. No es dinero de curso legal.',
+        'limite': LIMITE_FISICO,
     }
 
 
@@ -307,14 +312,16 @@ def _esc(text):
 
 
 def pagina(vista):
+    limite = '<p id="limite-fisico"><strong>' + _esc(LIMITE_FISICO) + '</strong></p>'
     if not vista.get('comprobada'):
-        cuerpo = '<p>No se puede comprobar esta ficha.</p>'
+        cuerpo = limite + '<p>No se puede comprobar esta ficha.</p>'
     else:
         filas = ''.join(
             '<li>' + _esc(item['hecho']) + '</li>' for item in vista.get('historia') or []
         )
         cuerpo = (
-            '<p>Comprobada.</p>'
+            limite
+            + '<p>Comprobada.</p>'
             '<ul><li>Serie: ' + _esc(vista['serie']) + '</li>'
             '<li>Metal de juego: ' + _esc(vista['metal']) + '</li>'
             '<li>Peso: ' + _esc(vista['peso_g']) + '</li>'

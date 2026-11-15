@@ -4,6 +4,21 @@ Propuesta. No está encendida en la web. El prototipo del servidor sólo respond
 
 Esto no cambia las reglas de Simoncoin, Simonplata ni Simonchis. No acuña. No promete un token. No diseña un objeto que se parezca al dinero del Banco de la República.
 
+## Lo que el QR no prueba
+
+**El QR, el rastro y el pase en la app no prueban que tengas la pieza en la mano ni que el metal sea auténtico o puro. No prometen dinero oficial ni valor.**
+
+Una foto del código abre la misma página. El servidor sólo comprueba que el enlace fue firmado y qué cuenta del juego tiene asociada la ficha. No pesa el metal, no lo ensaya y no ve si la pieza está delante de la cámara.
+
+Para afirmar posesión física, autenticidad o pureza haría falta algo aparte de esta app:
+
+- un ensayo independiente del metal;
+- un certificado del refinador o de quien acuñó la pieza;
+- una cápsula o sello que se note si alguien la abrió;
+- mirar la pieza en persona en el momento de entregarla.
+
+Nada de eso lo sustituye el QR ni el historial de pases. La ficha no es dinero del Banco de la República y este sistema no le asigna un precio.
+
 ## Cómo se llama
 
 En Colombia una pieza no puede imitar la moneda o el billete de curso legal. Estas piezas se llaman **fichas** o **medallas coleccionables**. No son pesos, no son un medio de pago oficial y no se presentan como dinero del Estado.

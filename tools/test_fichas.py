@@ -43,11 +43,16 @@ class FichaTests(unittest.TestCase):
         self.assertNotIn('Ana', shown)
         self.assertNotIn('clave', shown)
         self.assertEqual(page['estado'], 'circulando')
+        self.assertIn('no prueban que tengas la pieza en la mano', page['limite'])
+        html = fichas.pagina(page)
+        self.assertIn('id="limite-fisico"', html)
+        self.assertIn('no prueban que tengas la pieza en la mano', html)
         self.assertEqual(page['peso_g'], '12 g')
         unknown = fichas.vista_publica(self.econ, issued['id'], 'mal')
         missing = fichas.vista_publica(self.econ, 'FIC-NO', mac)
         self.assertEqual(unknown, missing)
         self.assertFalse(unknown['comprobada'])
+        self.assertIn('id="limite-fisico"', fichas.pagina(unknown))
 
     def test_scan_starts_nothing_and_four_steps_move_the_holder_only(self):
         issued = fichas.emitir(self.econ, 'Ana', 'simoncoin', economy.SUBS, '12 g', 'serie A', ahora=10)
