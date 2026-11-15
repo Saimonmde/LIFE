@@ -67,6 +67,8 @@ assert.strictEqual(ledger.coins, 30);
 assert.strictEqual(rules.count(ledger.inv, 'moneda_oro'), 0);
 assert.strictEqual(rules.count(ledger.inv, 'mineral_oro'), 5);
 assert.ok(rules.smelt(inv, items, 'mineral_plata', 1, 'coin', 60).error);
+const pile = rules.add(Array(60).fill(null), items, 'pepita_oro', 5000, 60);
+assert.strictEqual(rules.count(pile, 'pepita_oro'), 5000);
 assert.strictEqual(rules.recipes.mineral_plata.coinQty, 3);
 assert.strictEqual(rules.recipes.mineral_cobre.ore, 3);
 assert.strictEqual(rules.recipes.pepita_oro.coinItem, 'moneda_oro');
