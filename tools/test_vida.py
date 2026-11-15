@@ -25,12 +25,21 @@ class WorldTests(unittest.TestCase):
     def test_architecture_opens_five_of_333(self):
         self.assertEqual(mundos.CAP, 333)
         self.assertEqual(mundos.open_ids(), (1, 2, 3, 4, 5))
+        self.assertEqual(mundos.DEFAULT_WORLD, 3)
+        self.assertEqual(mundos.OWNER_FAVORITE_WORLD, 5)
+        self.assertEqual(mundos.normalize(None) or mundos.DEFAULT_WORLD, 3)
         self.assertEqual(mundos.normalize(1), 1)
         self.assertEqual(mundos.normalize('5'), 5)
         self.assertIsNone(mundos.normalize(6))
         self.assertIsNone(mundos.normalize(333))
         self.assertTrue(mundos.known(333))
         self.assertFalse(mundos.known(334))
+        page = open(os.path.join(ROOT, 'play', 'vida.js'), encoding='utf-8').read()
+        self.assertIn('const DEFAULT_WORLD = 3', page)
+        self.assertIn("id = 'mundo-tab'", page)
+        self.assertIn('Marcar como favorito', page)
+        self.assertNotIn('Elige un mundo', page)
+        self.assertIn('mundos-v1', open(os.path.join(ROOT, 'play', 'index.html'), encoding='utf-8').read())
 
     def test_same_world_and_place_see_each_other(self):
         boxes = mundos.boxes(world())

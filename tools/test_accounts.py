@@ -267,6 +267,44 @@ class EmailLinkTests(unittest.TestCase):
         else:
             os.environ['SIMON_OWNER_EMAIL'] = old
 
+    def test_owner_favorite_is_world_five_without_touching_the_password(self):
+        import os
+        old = os.environ.get('SIMON_OWNER_EMAIL')
+        os.environ['SIMON_OWNER_EMAIL'] = 'dueno-mundos@ejemplo.co'
+        try:
+            doc = acc.empty()
+            stored = acc.hash_password('Secreto-largo-1')
+            owner = {
+                'id': 'simon', 'name': 'Simon', 'email': 'dueno-mundos@ejemplo.co',
+                'password_hash': stored, 'providers': {}, 'wallet_name': 'Simon', 'wallet_token': '',
+            }
+            ana = {
+                'id': 'ana', 'name': 'Ana', 'email': 'ana@ejemplo.co',
+                'password_hash': acc.hash_password('Secreto-largo-1'), 'providers': {},
+                'wallet_name': 'Ana', 'wallet_token': '',
+            }
+            doc['users'].extend([owner, ana])
+            entered = acc.login_nick(doc, 'Simon', 'Secreto-largo-1', now=20_000)
+            self.assertEqual(owner['password_hash'], stored)
+            self.assertTrue(owner['password_hash'].startswith('scrypt$'))
+            self.assertEqual(entered['user']['favoriteWorld'], 5)
+            self.assertEqual(entered['user']['name'], 'Simon')
+            shown = acc.set_favorite_world(doc, owner, 2)
+            self.assertEqual(shown['favoriteWorld'], 2)
+            self.assertEqual(owner['password_hash'], stored)
+            again = acc.login_nick(doc, 'Simon', 'Secreto-largo-1', now=20_100)
+            self.assertEqual(again['user']['favoriteWorld'], 2)
+            with self.assertRaises(acc.AuthError):
+                acc.set_favorite_world(doc, owner, 9)
+            guest = acc.login_nick(doc, 'Ana', 'Secreto-largo-1', now=20_200)
+            self.assertIsNone(guest['user']['favoriteWorld'])
+            self.assertFalse(acc.ensure_owner_favorite(ana))
+        finally:
+            if old is None:
+                os.environ.pop('SIMON_OWNER_EMAIL', None)
+            else:
+                os.environ['SIMON_OWNER_EMAIL'] = old
+
     def test_nick_login_is_rate_limited(self):
         doc = acc.empty()
         for i in range(5):

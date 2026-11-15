@@ -8,6 +8,10 @@ import json
 import os
 
 CAP = 333
+# Al entrar no hay lista: el jugador aparece en este mundo.
+# El favorito se guarda aparte y no cambia esta entrada.
+DEFAULT_WORLD = 3
+OWNER_FAVORITE_WORLD = 5
 PRIVATE = frozenset({'casa'})
 FIXED_NAMES = {
     'valle': 'Valle de Aburrá',

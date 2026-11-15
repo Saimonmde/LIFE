@@ -17,7 +17,52 @@
   padding: 6px 12px;
   cursor: pointer;
 }
-body:not(.in-game) #amigos-barra, body:not(.in-game) #amigos-panel { display: none !important; }
+body:not(.in-game) #amigos-barra, body:not(.in-game) #amigos-panel,
+body:not(.in-game) #mundo-tab, body:not(.in-game) #mundo-lista { display: none !important; }
+#mundo-tab {
+  position: fixed;
+  z-index: 24;
+  top: calc(max(8px, env(safe-area-inset-top)) + 98px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-height: 44px;
+  max-width: calc(100vw - 24px);
+  border: 1px solid #b48a46;
+  background: #241c14e6;
+  color: #f6e7c4;
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font: 700 15px/1.2 system-ui, sans-serif;
+}
+#mundo-lista {
+  position: fixed;
+  z-index: 28;
+  top: calc(max(8px, env(safe-area-inset-top)) + 150px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(280px, calc(100vw - 24px));
+  max-height: min(52dvh, 460px);
+  overflow: auto;
+  box-sizing: border-box;
+  background: #241c14f5;
+  color: #f6e7c4;
+  border: 2px solid #b48a46;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 10px 24px #000a;
+  font: 15px/1.35 system-ui, sans-serif;
+}
+#mundo-lista[hidden] { display: none !important; }
+#mundo-lista header { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+#mundo-opciones { display: flex; flex-direction: column; gap: 6px; }
+#mundo-lista button { min-height: 44px; cursor: pointer; color: inherit; background: #3a2a1c; border: 1px solid #b48a46; border-radius: 8px; padding: 8px 10px; text-align: left; font: inherit; }
+#mundo-opciones button.sel { outline: 2px solid #f5d27a; }
+#mundo-nota { margin: 8px 0 0; color: #d9c7a2; font-size: 13px; }
+@media (max-width: 820px) and (orientation: portrait) {
+  #mundo-tab { top: calc(max(6px, env(safe-area-inset-top)) + 112px); }
+  #mundo-lista { top: calc(max(6px, env(safe-area-inset-top)) + 164px); max-height: min(50dvh, 460px); }
+}
 #hud-gear-menu:not([hidden]) ~ #amigos-barra, body:has(#hud-gear-menu:not([hidden])) #amigos-barra { visibility: hidden; }
 #amigos-panel, #vida-feedback, #vida-poste, #vida-nick, #vida-puerta {
   position: fixed;
