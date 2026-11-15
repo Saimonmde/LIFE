@@ -21,6 +21,16 @@ assert.deepStrictEqual(map.stand, {
 for (const file of Object.values(map.sheets)) {
   assert.ok(fs.existsSync(path.join(dir, file)), file);
 }
+for (const crop of ['cafe', 'cacao']) {
+  assert.strictEqual(map.stageIcons[crop].length, 5);
+  for (const row of map.stageIcons[crop]) {
+    const file = path.join(dir, row.file);
+    assert.ok(fs.existsSync(file), row.file);
+    assert.ok(fs.statSync(file).size < 80000, row.file);
+    assert.ok(fs.existsSync(path.join(dir, row.live)), row.live);
+  }
+}
+assert.ok(fs.existsSync(path.join(dir, map.manifest)));
 for (const file of Object.values(map.icons)) {
   const bytes = fs.statSync(path.join(dir, file)).size;
   assert.ok(bytes < 80000, file + ' pesa demasiado para el celular: ' + bytes);

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+
+<polygon points="48.00,150.00 208.00,150.00 190.00,228.00 66.00,228.00" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="48.00,150.00 208.00,150.00 190.00,228.00 66.00,228.00" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="48.00,150.00 208.00,150.00 190.00,228.00 66.00,228.00" fill="#C4A070"/>
+<line x1="70.00" y1="178.00" x2="186.00" y2="178.00" stroke="#FFF8EE" stroke-width="16" stroke-linecap="round" opacity="1.000"/>
+<line x1="70.00" y1="178.00" x2="186.00" y2="178.00" stroke="#1A120C" stroke-width="11" stroke-linecap="round" opacity="1.000"/>
+<line x1="70.00" y1="178.00" x2="186.00" y2="178.00" stroke="#8A5A32" stroke-width="8" stroke-linecap="round" opacity="1.000"/>
+<path d="M86,150 C86,88 170,88 170,150" fill="none" stroke="#FFF8EE" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M86,150 C86,88 170,88 170,150" fill="none" stroke="#1A120C" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M86,150 C86,88 170,88 170,150" fill="none" stroke="#8A5A32" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="100.00" cy="132.00" r="26.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<circle cx="100.00" cy="132.00" r="26.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<circle cx="100.00" cy="132.00" r="26.00" fill="#C0262D"/>
+<ellipse cx="92.72" cy="123.68" rx="9.10" ry="6.50" fill="#d97c81" opacity="0.900"/>
+<circle cx="136.00" cy="118.00" r="30.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<circle cx="136.00" cy="118.00" r="30.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<circle cx="136.00" cy="118.00" r="30.00" fill="#b6242a"/>
+<ellipse cx="127.60" cy="108.40" rx="10.50" ry="7.50" fill="#d37b7f" opacity="0.900"/>
+<circle cx="166.00" cy="140.00" r="24.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<circle cx="166.00" cy="140.00" r="24.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<circle cx="166.00" cy="140.00" r="24.00" fill="#C0262D"/>
+<ellipse cx="159.28" cy="132.32" rx="8.40" ry="6.00" fill="#d97c81" opacity="0.900"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="#C0262D"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<circle cx="226.00" cy="227.00" r="7.68" fill="#c9464c"/>
+</svg>

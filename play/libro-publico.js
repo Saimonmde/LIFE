@@ -74,6 +74,19 @@
     return `<img class="libro-ico-img" src="${esc(next)}" alt="" data-fallback="${esc(src)}" onerror="this.onerror=null;this.src=this.dataset.fallback">`;
   }
 
+  function stageRow(crop) {
+    const map = artMap();
+    const rows = map && map.stageIcons && map.stageIcons[crop];
+    if (!rows || !rows.length) return '';
+    const base = map.base || 'assets/cafe-cacao/';
+    return `<div class="libro-etapas">${rows.map((row) => {
+      const src = base + row.file;
+      const live = row.live ? base + row.live : '';
+      const backup = live ? ` onerror="this.onerror=null;this.src='${esc(live)}'"` : '';
+      return `<img src="${esc(src)}" alt="${esc(row.label || '')}"${backup}>`;
+    }).join('')}</div>`;
+  }
+
   function bar(minted, max) {
     const top = Number(max) || 0;
     const now = Number(minted) || 0;
@@ -95,7 +108,7 @@
       const fresh = spec.freshName ? ` de ${esc(spec.freshName)}` : '';
       const unit = spec.unitCount ? esc(spec.unitCount) : 'bultos procesados';
       return `<article class="libro-crop"><div class="libro-ico">${icon(id)}${icon('kg')}${icon('bag')}</div>` +
-        `<h3>${name}</h3><p><b>${esc(formatEs(kilos))} kg</b> cosechados${fresh}</p><p><b>${esc(formatEs(count))}</b> ${unit}</p></article>`;
+        `<h3>${name}</h3>${stageRow(id)}<p><b>${esc(formatEs(kilos))} kg</b> cosechados${fresh}</p><p><b>${esc(formatEs(count))}</b> ${unit}</p></article>`;
     }).join('');
     const coins = [
       ['simoncoin', 'oro', 'Simoncoin', 'Oro', 21000000],

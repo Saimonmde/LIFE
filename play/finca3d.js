@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Cafetal y cacaotal de Las Palmas, con los dos talleres. Geometría original.
+import { placeModel } from './finca-glb.js?v=sara3d-r1';
+
 export function attachFinca(T, parent, opt) {
   opt = opt || {};
   const pack = (typeof window !== 'undefined' && window.CAFE_CACAO_ART) || { icons: {}, colors: {}, base: 'assets/cafe-cacao/' };
@@ -91,28 +93,31 @@ export function attachFinca(T, parent, opt) {
     mesh(ball, tone('shade'), x, y0 + 4.3, z, 1.5, 0.7, 1.5);
     mesh(ball, tone('shadeDeep'), x + 0.4, y0 + 4.0, z + 0.2, 0.9, 0.5, 0.9);
   }
-  const cafeStages = ['plotCafePlanton', 'plotCafeVerde', 'plotCafeMaduro'];
-  const cacaoStages = ['plotCacaoPlanton', 'plotCacaoVerde', 'plotCacaoMaduro'];
-  const heights = [1.2, 1.5, 1.8];
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 5; col++) {
-      const x = -6.2 + col * 1.05;
-      const z = -2.2 + row * 1.15;
-      const step = (row + col) % 3;
-      const y0 = ground(x, z);
-      mesh(box, tone('soil'), x, y0 + 0.04, z, 0.9, 0.06, 0.7);
-      plantSprite(cafeStages[step], x, z, heights[step]);
-    }
+  const phases = ['siembra', 'crecimiento', 'floracion', 'fruto', 'cosecha'];
+  const heights = { siembra: 1.2, crecimiento: 1.4, floracion: 1.5, fruto: 1.7, cosecha: 1.8 };
+  const flatName = {
+    cafe: { siembra: 'plotCafePlanton', crecimiento: 'plotCafeVerde', floracion: 'plotCafeVerde', fruto: 'plotCafeMaduro', cosecha: 'plotCafeMaduro' },
+    cacao: { siembra: 'plotCacaoPlanton', crecimiento: 'plotCacaoVerde', floracion: 'plotCacaoVerde', fruto: 'plotCacaoMaduro', cosecha: 'plotCacaoMaduro' },
+  };
+  const models = [];
+  function addPlant(crop, stageId, x, z) {
+    const h = heights[stageId] || 1.5;
+    const y0 = ground(x, z);
+    mesh(box, tone('soil'), x, y0 + 0.04, z, crop === 'cafe' ? 0.9 : 1.05, 0.06, crop === 'cafe' ? 0.7 : 0.8);
+    const holder = new T.Group();
+    holder.position.set(x, y0, z);
+    g.add(holder);
+    const sprite = new T.Sprite(new T.SpriteMaterial({ map: texture(flatName[crop][stageId]), transparent: true, depthWrite: false }));
+    sprite.position.set(0, h / 2, 0);
+    sprite.scale.set(h * 0.72, h, 1);
+    holder.add(sprite);
+    models.push({ holder, sprite, crop, stageId });
   }
   for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      const x = 2.1 + col * 1.45;
-      const z = -1.6 + row * 1.45;
-      const step = (row + col) % 3;
-      const y0 = ground(x, z);
-      mesh(box, tone('soil'), x, y0 + 0.04, z, 1.05, 0.06, 0.8);
-      plantSprite(cacaoStages[step], x, z, heights[step]);
-    }
+    for (let col = 0; col < 5; col++) addPlant('cafe', phases[(row + col) % 5], -6.2 + col * 1.05, -2.2 + row * 1.15);
+  }
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) addPlant('cacao', phases[(row * 2 + col) % 5], 2.1 + col * 1.45, -1.6 + row * 1.45);
   }
   shade(-7.2, -3.2);
   shade(6.4, -3.2);
@@ -140,16 +145,20 @@ export function attachFinca(T, parent, opt) {
     if (id) { plate.userData.id = id; pick.push(plate); }
     g.add(plate);
   }
-  function workshop(x, z, id, kind) {
+  function workshop(x, z, id, kind, station) {
     const y0 = ground(x, z);
     mesh(box, tone('patio'), x, y0 + 0.05, z, 2.2, 0.08, 1.8, id);
-    mesh(box, tone('wall'), x, y0 + 0.95, z, 1.5, 1.5, 1.15, id);
-    mesh(box, tone('roof'), x, y0 + 1.82, z, 1.85, 0.26, 1.45, id);
+    const wall = mesh(box, tone('wall'), x, y0 + 0.95, z, 1.5, 1.5, 1.15, id);
+    const roof = mesh(box, tone('roof'), x, y0 + 1.82, z, 1.85, 0.26, 1.45, id);
+    const holder = new T.Group();
+    holder.position.set(x, y0, z);
+    g.add(holder);
     tryStand(kind === 'cafe' ? 'workshopCafe' : 'workshopCacao', x, z + 0.15, 2.2, id);
     label(kind === 'cafe' ? 'TALLER DE CAFÉ' : 'TALLER DE CACAO', x, z + 0.2, id);
+    models.push({ holder, sprite: null, crop: kind, station, hide: [wall, roof] });
   }
-  workshop(-4.2, 3.6, 'finca_cafe', 'cafe');
-  workshop(3.4, 3.6, 'finca_cacao', 'cacao');
+  workshop(-4.2, 3.6, 'finca_cafe', 'cafe', 'despulpado');
+  workshop(3.4, 3.6, 'finca_cacao', 'cacao', 'quiebre');
   label('LIBRO MAYOR', -0.2, 5.4, 'finca_libro');
   const beds = [];
   for (let i = 0; i < 8; i++) {
@@ -158,9 +167,12 @@ export function attachFinca(T, parent, opt) {
     const z = 5.6;
     const y0 = ground(x, z);
     const bed = mesh(box, tone('plotEmpty'), x, y0 + 0.08, z, 1.1, 0.1, 0.8, 'finca_las_palmas');
+    const holder = new T.Group();
+    holder.position.set(x, y0, z);
+    g.add(holder);
     const sprite = plantSprite(crop === 'cafe' ? 'plotCafePlanton' : 'plotCacaoPlanton', x, z, 1.2, 'finca_las_palmas');
     sprite.visible = false;
-    beds.push({ mesh: bed, sprite, crop, index: i % 4 });
+    beds.push({ mesh: bed, sprite, holder, crop, index: i % 4, loaded: '' });
   }
   if (opt.lamp) {
     const sun = new T.PointLight(0xffe0b0, 40, 28, 2);
@@ -172,7 +184,35 @@ export function attachFinca(T, parent, opt) {
     g.add(sky);
   }
   parent.add(g);
+  const mobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+  const modelo = typeof window !== 'undefined' ? window.FincaModelo : null;
+  let manifestDoc = null;
+  let lastView = null;
+  function dress(slot, choice) {
+    if (!choice || choice.kind !== 'glb') return;
+    placeModel(slot.holder, choice, () => {
+      if (slot.sprite) slot.sprite.visible = true;
+    }, () => {
+      if (slot.sprite) slot.sprite.visible = false;
+      for (const part of slot.hide || []) part.visible = false;
+    });
+  }
+  const manifestUrl = (pack.base || 'assets/cafe-cacao/') + (pack.manifest || 'sara/manifest.json');
+  if (modelo && typeof fetch === 'function') {
+    fetch(manifestUrl).then((res) => res.ok ? res.json() : null).then((doc) => {
+      if (!doc) return;
+      manifestDoc = doc;
+      if (lastView) sync(lastView);
+      for (const slot of models) {
+        const choice = slot.station
+          ? modelo.stationFromManifest(doc, { crop: slot.crop, id: slot.station, mobile, art: pack })
+          : modelo.choiceFromManifest(doc, { crop: slot.crop, id: slot.stageId, mobile, distance: 8, art: pack });
+        dress(slot, choice);
+      }
+    }).catch(() => {});
+  }
   function sync(view) {
+    lastView = view;
     const plots = (view && view.plots) || [];
     const cafe = plots.filter(row => row.crop === 'cafe');
     const cacao = plots.filter(row => row.crop === 'cacao');
@@ -189,12 +229,17 @@ export function attachFinca(T, parent, opt) {
         : stage === 'verde' ? (bed.crop === 'cafe' ? 'plotCafeVerde' : 'plotCacaoVerde')
           : stage === 'planton' ? (bed.crop === 'cafe' ? 'plotCafePlanton' : 'plotCacaoPlanton')
             : '';
+      const phase = row && row.phase ? row.phase : stage === 'maduro' ? 'cosecha' : stage === 'verde' ? 'crecimiento' : stage === 'planton' ? 'siembra' : '';
       bed.sprite.visible = !!art;
       if (art) {
         const h = stage === 'maduro' ? 1.8 : stage === 'verde' ? 1.5 : 1.2;
         bed.sprite.material.map = texture(art);
         bed.sprite.scale.set(h * 0.72, h, 1);
         bed.sprite.position.y = ground(bed.sprite.position.x, bed.sprite.position.z) + h / 2;
+      }
+      if (manifestDoc && modelo && phase && bed.loaded !== phase) {
+        bed.loaded = phase;
+        dress(bed, modelo.choiceFromManifest(manifestDoc, { crop: bed.crop, id: phase, mobile, distance: 6, art: pack }));
       }
     }
   }

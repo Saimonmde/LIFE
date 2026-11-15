@@ -23,6 +23,24 @@
       workshopCafe: 'hojas/taller_cafe_lite.png',
       workshopCacao: 'hojas/taller_cacao_lite.png',
     },
+    sara: 'sara/',
+    manifest: 'sara/manifest.json',
+    stageIcons: {
+      cafe: [
+        { id: 'siembra', label: 'Siembra', file: 'sara/iconos-etapas/64/cafe_01_siembra.png', live: 'cafe_siembra_64.png' },
+        { id: 'crecimiento', label: 'Crecimiento', file: 'sara/iconos-etapas/64/cafe_02_crecimiento.png', live: 'cafe_crecimiento_64.png' },
+        { id: 'floracion', label: 'Floración', file: 'sara/iconos-etapas/64/cafe_03_floracion.png', live: 'cafe_crecimiento_64.png' },
+        { id: 'fruto', label: 'Cereza', file: 'sara/iconos-etapas/64/cafe_04_cereza_madura.png', live: 'cafe_cosecha_64.png' },
+        { id: 'cosecha', label: 'Cosecha', file: 'sara/iconos-etapas/64/cafe_05_cosecha.png', live: 'cafe_cosecha_64.png' },
+      ],
+      cacao: [
+        { id: 'siembra', label: 'Siembra', file: 'sara/iconos-etapas/64/cacao_01_siembra.png', live: 'cacao_siembra_64.png' },
+        { id: 'crecimiento', label: 'Crecimiento', file: 'sara/iconos-etapas/64/cacao_02_crecimiento.png', live: 'cacao_crecimiento_64.png' },
+        { id: 'floracion', label: 'Floración', file: 'sara/iconos-etapas/64/cacao_03_floracion.png', live: 'cacao_crecimiento_64.png' },
+        { id: 'fruto', label: 'Mazorca', file: 'sara/iconos-etapas/64/cacao_04_mazorca.png', live: 'cacao_cosecha_64.png' },
+        { id: 'cosecha', label: 'Cosecha', file: 'sara/iconos-etapas/64/cacao_05_cosecha.png', live: 'cacao_cosecha_64.png' },
+      ],
+    },
     icons: {
       cafe: 'cafe.svg',
       cacao: 'cacao.svg',

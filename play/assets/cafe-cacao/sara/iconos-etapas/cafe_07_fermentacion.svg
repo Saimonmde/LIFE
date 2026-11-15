@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+
+<rect x="56.00" y="70.00" width="144.00" height="140.00" rx="10.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="56.00" y="70.00" width="144.00" height="140.00" rx="10.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="56.00" y="70.00" width="144.00" height="140.00" rx="10.00" fill="#8A5A32"/>
+<rect x="72.00" y="92.00" width="112.00" height="70.00" rx="4.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="72.00" y="92.00" width="112.00" height="70.00" rx="4.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="72.00" y="92.00" width="112.00" height="70.00" rx="4.00" fill="#7EC4D8"/>
+<ellipse cx="96.00" cy="130.00" rx="16.00" ry="9.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<ellipse cx="96.00" cy="130.00" rx="16.00" ry="9.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<ellipse cx="96.00" cy="130.00" rx="16.00" ry="9.00" fill="#7A4E14"/>
+<ellipse cx="128.00" cy="122.00" rx="16.00" ry="9.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<ellipse cx="128.00" cy="122.00" rx="16.00" ry="9.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<ellipse cx="128.00" cy="122.00" rx="16.00" ry="9.00" fill="#7A4E14"/>
+<ellipse cx="160.00" cy="134.00" rx="16.00" ry="9.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<ellipse cx="160.00" cy="134.00" rx="16.00" ry="9.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<ellipse cx="160.00" cy="134.00" rx="16.00" ry="9.00" fill="#7A4E14"/>
+<ellipse cx="112.00" cy="148.00" rx="16.00" ry="9.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<ellipse cx="112.00" cy="148.00" rx="16.00" ry="9.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<ellipse cx="112.00" cy="148.00" rx="16.00" ry="9.00" fill="#7A4E14"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="#C0262D"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<circle cx="226.00" cy="227.00" r="7.68" fill="#c9464c"/>
+</svg>

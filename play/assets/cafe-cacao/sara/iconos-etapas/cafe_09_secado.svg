@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+
+<rect x="52.00" y="70.00" width="18.00" height="150.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="52.00" y="70.00" width="18.00" height="150.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="52.00" y="70.00" width="18.00" height="150.00" fill="#8A5A32"/>
+<rect x="186.00" y="70.00" width="18.00" height="150.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="186.00" y="70.00" width="18.00" height="150.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="186.00" y="70.00" width="18.00" height="150.00" fill="#8A5A32"/>
+<polygon points="36.00,96.00 220.00,96.00 204.00,44.00 52.00,44.00" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="36.00,96.00 220.00,96.00 204.00,44.00 52.00,44.00" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="36.00,96.00 220.00,96.00 204.00,44.00 52.00,44.00" fill="#C47A52"/>
+<rect x="68.00" y="140.00" width="120.00" height="52.00" rx="3.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="68.00" y="140.00" width="120.00" height="52.00" rx="3.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="68.00" y="140.00" width="120.00" height="52.00" rx="3.00" fill="#C4A070"/>
+<rect x="78.00" y="148.00" width="100.00" height="24.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="78.00" y="148.00" width="100.00" height="24.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="78.00" y="148.00" width="100.00" height="24.00" fill="#FFE27A"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="#C0262D"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<circle cx="226.00" cy="227.00" r="7.68" fill="#c9464c"/>
+</svg>

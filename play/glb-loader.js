@@ -39,6 +39,7 @@ export class GLTFLoader {
       if (a.componentType === 5126) return new Float32Array(bin.buffer, bin.byteOffset + start, count);
       if (a.componentType === 5123) return new Uint16Array(bin.buffer, bin.byteOffset + start, count);
       if (a.componentType === 5125) return new Uint32Array(bin.buffer, bin.byteOffset + start, count);
+      if (a.componentType === 5121) return new Uint8Array(bin.buffer, bin.byteOffset + start, count);
       throw new Error('componente GLB no soportado');
     }
     const scene = new T.Group();
@@ -53,7 +54,14 @@ export class GLTFLoader {
       else geo.computeVertexNormals();
       if (prim.attributes.TEXCOORD_0 != null) geo.setAttribute('uv', new T.BufferAttribute(read(prim.attributes.TEXCOORD_0), 2));
       if (prim.indices != null) geo.setIndex(new T.BufferAttribute(read(prim.indices), 1));
-      const mat = new T.MeshStandardMaterial({ color: '#d5d6d2', metalness: 0.25, roughness: 0.55, side: T.DoubleSide });
+      const colorIndex = prim.attributes.COLOR_0;
+      if (colorIndex != null) {
+        const colorAcc = acc[colorIndex];
+        geo.setAttribute('color', new T.BufferAttribute(read(colorIndex), TYPE_N[colorAcc.type] || 3, !!colorAcc.normalized));
+      }
+      const mat = colorIndex != null
+        ? new T.MeshLambertMaterial({ vertexColors: true, flatShading: true })
+        : new T.MeshStandardMaterial({ color: '#d5d6d2', metalness: 0.25, roughness: 0.55, side: T.DoubleSide });
       const mesh = new T.Mesh(geo, mat);
       mesh.castShadow = mesh.receiveShadow = true;
       const image = json.images && json.images[0];
