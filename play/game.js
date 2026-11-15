@@ -216,7 +216,7 @@ function linkCookie() {
   document.cookie = 'life_link=' + encodeURIComponent(name + '|' + token) + '; Path=/; SameSite=Lax; Max-Age=600';
   document.cookie = 'life_return=' + encodeURIComponent(vueltaJuego()) + '; Path=/; SameSite=Lax; Max-Age=600';
 }
-function continuarSesion(sessionUser) {
+async function continuarSesion(sessionUser) {
   S.sessionUser = sessionUser;
   S.me.municipio = sessionUser.municipio || '';
   window.SaimonSession = { id: sessionUser.id, municipio: S.me.municipio };
@@ -239,6 +239,7 @@ function continuarSesion(sessionUser) {
   }
   const panel = $('#poner-clave');
   if (panel) panel.hidden = true;
+  if (window.Partida) { try { await Partida.pull(); } catch (e) {} }
   if (!S.me.municipio && window.Hogar) {
     $('#login').hidden = true;
     document.body.classList.add('eligiendo-casa');
@@ -813,7 +814,55 @@ function addXp(skill, n) {
   if (level(S.xp[skill]) > before) game(`¡Subiste a nivel ${level(S.xp[skill])} de ${W.skills[skill].name}!`, 'oro');
 }
 function totalLevel() { return skillIds().filter(k => !W.skills[k].stub).reduce((a, k) => a + level(S.xp[k] || 0), 0) - (skillIds().filter(k => !W.skills[k].stub).length - 1); }
-function save() { try { localStorage.setItem('lifeinc.eljardin.v3', JSON.stringify({ inv: S.inv, xp: S.xp, coins: S.coins, legacyCoins: S.legacyCoins || 0, migrationAck: !!S.migrationAck, vault: S.vault || { smcSubs: 0, items: {} }, playtime: S.playtime || 0, createdAt: S.createdAt || 0, energy: S.energy, hp: S.hp, mapId:W.mapId||'city', cityReturn, resourceState:Object.fromEntries([...(caveNodes||[])].filter(([,n])=>n.state==='depleted').map(([id,n])=>[id,Date.now()+Math.max(0,n.until-now())])), mapRevision: W.expansion?.revision || 0, position: {x:S.player.x,y:S.player.y,dir:S.player.dir}, quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn }, libro: S.libro, studied: S.studied, econ: S.econ })); return true; } catch (e) { return false; } }
+function partidaSnapshot() {
+  const hud = {};
+  if (window.HudLayoutCore) {
+    for (const mobile of [false, true]) for (const portrait of [false, true]) {
+      const key = HudLayoutCore.storageKey(mobile, portrait);
+      try { hud[key] = HudLayoutCore.loadLayout(localStorage, key); } catch (e) {}
+    }
+  }
+  try { hud.pantallaLimpia = localStorage.getItem('lifeinc.pantalla.v1') === '1'; } catch (e) {}
+  const libro = S.libro ? { started: !!S.libro.started, done: !!S.libro.done, turnedIn: !!S.libro.turnedIn, steps: S.libro.steps || {} } : {};
+  return {
+    inv: S.inv, xp: S.xp,
+    quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn },
+    libro, studied: S.studied || {}, hp: S.hp, energy: S.energy,
+    position: { mapId: W.mapId || 'city', x: S.player.x, y: S.player.y, dir: S.player.dir },
+    hud, layout: window.Casa ? Casa.layout : null, pet: S.pet || null,
+    coat: window.Caballo ? Caballo.coat : '',
+  };
+}
+function applyPartida(doc) {
+  if (!doc) return;
+  if (Array.isArray(doc.inv)) {
+    const next = doc.inv.filter(slot => slot && W.items[slot.item]);
+    if (next.length) S.inv = next;
+  }
+  if (doc.xp && typeof doc.xp === 'object') S.xp = doc.xp;
+  if (doc.quest) Object.assign(S.quest, doc.quest);
+  if (doc.libro && S.libro) Object.assign(S.libro, { started: !!doc.libro.started, done: !!doc.libro.done, turnedIn: !!doc.libro.turnedIn, steps: doc.libro.steps || {} });
+  if (doc.studied && typeof doc.studied === 'object') S.studied = doc.studied;
+  if (Number.isFinite(doc.hp)) S.hp = Math.max(0, Math.min(100, doc.hp));
+  if (Number.isFinite(doc.energy)) { S.energy = Math.max(0, Math.min(100, doc.energy)); if (S.energy <= 0) S.sprintLock = true; }
+  if (doc.pet && window.Vida && Vida.decorate) { S.pet = Vida.decorate(doc.pet); try { localStorage.setItem('lifeinc.mascota.v1', JSON.stringify(doc.pet)); } catch (e) {} }
+  else if (doc.pet) S.pet = doc.pet;
+  if (doc.layout && window.Casa && Casa.apply) Casa.apply(doc.layout);
+  if (doc.coat && window.Caballo && Caballo.applyCoat) Caballo.applyCoat(doc.coat);
+  if (doc.hud && window.HudLayout && HudLayout.applySaved) HudLayout.applySaved(doc.hud);
+  const pos = doc.position;
+  if (pos && ['city', 'casa', 'mine', 'banco', 'central'].includes(pos.mapId)) {
+    if ((W.mapId || 'city') !== pos.mapId) { try { switchMap(pos.mapId); } catch (e) {} }
+    const tx = Math.floor(pos.x), ty = Math.floor(pos.y);
+    if (pos.mapId === 'casa' || walkable(tx, ty)) {
+      S.player.x = S.player.fx = pos.x; S.player.y = S.player.fy = pos.y;
+      if (pos.dir) S.player.dir = pos.dir;
+      S.player.path = [];
+    }
+  }
+  renderAll();
+}
+function save() { try { localStorage.setItem('lifeinc.eljardin.v3', JSON.stringify({ inv: S.inv, xp: S.xp, coins: S.coins, legacyCoins: S.legacyCoins || 0, migrationAck: !!S.migrationAck, vault: S.vault || { smcSubs: 0, items: {} }, playtime: S.playtime || 0, createdAt: S.createdAt || 0, energy: S.energy, hp: S.hp, mapId:W.mapId||'city', cityReturn, resourceState:Object.fromEntries([...(caveNodes||[])].filter(([,n])=>n.state==='depleted').map(([id,n])=>[id,Date.now()+Math.max(0,n.until-now())])), mapRevision: W.expansion?.revision || 0, position: {x:S.player.x,y:S.player.y,dir:S.player.dir}, quest: { stage: S.quest.stage, steps: S.quest.steps, done: S.quest.done, turnedIn: S.quest.turnedIn }, libro: S.libro, studied: S.studied, econ: S.econ })); if (window.Partida) Partida.touch(); return true; } catch (e) { return false; } }
 function restore() {
   let d = null; try { d = JSON.parse(localStorage.getItem('lifeinc.eljardin.v3')); } catch (e) {}
   if (d && Array.isArray(d.inv) && d.inv.every(s => !s || W.items[s.item])) { S.inv = d.inv; S.xp = d.xp || {}; S.coins = d.coins || 0; S.legacyCoins = d.legacyCoins || d.coins || 0; S.migrationAck = !!d.migrationAck; S.vault = d.vault || { smcSubs: 0, items: {} }; S.playtime = d.playtime || 0; S.createdAt = d.createdAt || 0; Object.assign(S.quest, d.quest || {});
@@ -2325,7 +2374,7 @@ function goMine(){
  approach({kind:'node',n:e});
  game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
 }
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); }, partidaSnapshot, applyPartida,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},

@@ -21,7 +21,13 @@
       { "id": "golden", "name": "Golden", "colors": ["#e2b03a", "#f6e2a8", "#e8c98a"], "colorNames": ["dorado", "crema", "arena"] },
       { "id": "pastor", "name": "Pastor Alemán", "colors": ["#2a241e", "#7a4030", "#e0b07a"], "colorNames": ["negro", "café", "canela"] },
       { "id": "bulldog", "name": "Bulldog Francés", "colors": ["#5c4638", "#a89078", "#d9cbb8"], "colorNames": ["oscuro", "atigrado", "beige"] },
-      { "id": "beagle", "name": "Beagle", "colors": ["#d4843c", "#f7f4ee", "#2a2a2a"], "colorNames": ["canela", "blanco", "negro"] }
+      { "id": "beagle", "name": "Beagle", "colors": ["#d4843c", "#f7f4ee", "#2a2a2a"], "colorNames": ["canela", "blanco", "negro"] },
+      { "id": "husky", "name": "Husky", "colors": ["#d9dde2", "#2c3440", "#f7f4ee", "#8aa0b8"], "colorNames": ["gris", "negro", "blanco", "azul"] },
+      { "id": "pug", "name": "Pug", "colors": ["#c48a62", "#2a2420", "#f3e6d4"], "colorNames": ["avena", "negro", "crema"] },
+      { "id": "boxer", "name": "Bóxer", "colors": ["#c47a45", "#6a5344", "#f4efe6"], "colorNames": ["leonado", "atigrado", "blanco"] },
+      { "id": "cocker", "name": "Cocker", "colors": ["#e2b15a", "#2a241c", "#f6efe2"], "colorNames": ["dorado", "negro", "crema"] },
+      { "id": "dalmata", "name": "Dálmata", "colors": ["#f7f4ee", "#2a2a2a", "#8a5a3c"], "colorNames": ["blanco", "negro", "hígado"] },
+      { "id": "chihuahua", "name": "Chihuahua", "colors": ["#d8a15a", "#f7f1e6", "#2c241c"], "colorNames": ["canela", "blanco", "negro"] }
     ],
     "cat": [
       { "id": "criollo", "name": "Criollo", "colors": ["#e88830", "#f6c99a", "#f3e2cc"], "colorNames": ["naranja", "durazno", "crema"] },
@@ -29,7 +35,13 @@
       { "id": "persa", "name": "Persa", "colors": ["#f7f7f7", "#d5d5d5", "#b0b0b0"], "colorNames": ["blanco", "perla", "gris"] },
       { "id": "atigrado", "name": "Atigrado", "colors": ["#8d949a", "#6a7278", "#c5ccd1"], "colorNames": ["gris", "humo", "plata"] },
       { "id": "negro", "name": "Negro", "colors": ["#2a2a2a", "#3f3f3f", "#6e6e6e"], "colorNames": ["negro", "carbón", "grafito"] },
-      { "id": "calico", "name": "Calicó", "colors": ["#e88830", "#2c2c2c", "#f7f7f7"], "colorNames": ["naranja", "negro", "blanco"] }
+      { "id": "calico", "name": "Calicó", "colors": ["#e88830", "#2c2c2c", "#f7f7f7"], "colorNames": ["naranja", "negro", "blanco"] },
+      { "id": "angora", "name": "Angora", "colors": ["#f7f7f7", "#f3e6d2", "#d5d5d5"], "colorNames": ["blanco", "crema", "perla"] },
+      { "id": "bengali", "name": "Bengalí", "colors": ["#e0a04a", "#c9ccd0", "#3a4148"], "colorNames": ["dorado", "plata", "carbón"] },
+      { "id": "azul", "name": "Azul ruso", "colors": ["#8ea0b0", "#6d7c8c", "#b7c4d0"], "colorNames": ["azul", "pizarra", "niebla"] },
+      { "id": "esfinge", "name": "Esfinge", "colors": ["#e7b7a4", "#c9b8ae", "#8d7b74"], "colorNames": ["rosa", "arena", "gris"] },
+      { "id": "carey", "name": "Carey", "colors": ["#c46a32", "#2a241c", "#e7d3a8"], "colorNames": ["ámbar", "negro", "crema"] },
+      { "id": "tricolor", "name": "Tricolor", "colors": ["#f7f4ee", "#2c2c2c", "#e88830", "#d9d3cc"], "colorNames": ["blanco", "negro", "naranja", "humo"] }
     ]
   },
   "furniture": {

@@ -37,9 +37,9 @@ function pivot(T, parent, x, y, z) {
   return group;
 }
 function picks(colors, variant) {
-  const list = colors && colors.length === 3 ? colors : ['#c48a52', '#f3e6c8', '#6b4a32'];
-  const index = ((variant % 3) + 3) % 3;
-  return { main: list[index], mark: list[(index + 1) % 3], accent: list[(index + 2) % 3] };
+  const list = colors && colors.length >= 3 ? colors : ['#c48a52', '#f3e6c8', '#6b4a32'];
+  const index = ((variant % list.length) + list.length) % list.length;
+  return { main: list[index], mark: list[(index + 1) % list.length], accent: list[(index + 2) % list.length] };
 }
 
 const SHAPES = {
@@ -49,12 +49,24 @@ const SHAPES = {
   'dog:pastor': { body: [.96, .36, .32], leg: [.12, .40, .12], head: [.32, .30, .38], snout: [.28, .12, .16], ear: 'point', tail: 'low', saddle: true, tanLegs: true, tanHead: true },
   'dog:bulldog': { body: [.62, .40, .48], leg: [.16, .14, .16], head: [.48, .34, .42], snout: [.30, .16, .24], ear: 'bat', tail: 'stub', stripes: true },
   'dog:beagle': { body: [.74, .34, .36], leg: [.12, .26, .12], head: [.32, .28, .32], snout: [.20, .12, .16], ear: 'long', tail: 'curve', chest: true, earDark: true, saddle: true, saddleDark: true },
+  'dog:husky': { body: [.86, .38, .34], leg: [.12, .34, .12], head: [.34, .30, .36], snout: [.22, .12, .16], ear: 'point', tail: 'plume', chest: true, saddle: true },
+  'dog:pug': { body: [.52, .36, .42], leg: [.14, .14, .14], head: [.40, .32, .36], snout: [.22, .12, .18], ear: 'flop', tail: 'stub' },
+  'dog:boxer': { body: [.84, .40, .36], leg: [.14, .32, .14], head: [.36, .32, .34], snout: [.18, .12, .16], ear: 'flop', tail: 'stub', chest: true },
+  'dog:cocker': { body: [.70, .32, .32], leg: [.11, .26, .11], head: [.32, .28, .30], snout: [.18, .12, .14], ear: 'long', tail: 'plume' },
+  'dog:dalmata': { body: [.82, .38, .34], leg: [.12, .32, .12], head: [.34, .30, .32], snout: [.20, .12, .16], ear: 'flop', tail: 'curve', patches: true },
+  'dog:chihuahua': { body: [.40, .24, .24], leg: [.08, .16, .08], head: [.28, .24, .26], snout: [.12, .08, .10], ear: 'point', tail: 'curve' },
   'cat:criollo': { body: [.58, .28, .28], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, chest: true },
   'cat:siames': { body: [.62, .28, .26], leg: [.09, .24, .09], head: [.28, .26, .28], snout: [.12, .08, .12], ear: 'point', tail: 'whip', sit: true, points: true },
   'cat:persa': { body: [.70, .42, .46], leg: [.12, .14, .12], head: [.48, .40, .44], snout: [.16, .12, .16], ear: 'tiny', tail: 'plume', sit: true },
   'cat:atigrado': { body: [.60, .28, .28], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, stripes: true },
   'cat:negro': { body: [.58, .28, .28], leg: [.09, .24, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, goldEyes: true },
   'cat:calico': { body: [.60, .28, .30], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, patches: true },
+  'cat:angora': { body: [.66, .36, .40], leg: [.10, .20, .10], head: [.36, .32, .34], snout: [.12, .08, .12], ear: 'tiny', tail: 'plume', sit: true },
+  'cat:bengali': { body: [.64, .26, .26], leg: [.08, .24, .08], head: [.28, .24, .30], snout: [.12, .08, .12], ear: 'point', tail: 'whip', sit: true, stripes: true },
+  'cat:azul': { body: [.58, .30, .30], leg: [.09, .22, .09], head: [.32, .28, .30], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true },
+  'cat:esfinge': { body: [.56, .26, .28], leg: [.08, .24, .08], head: [.30, .26, .28], snout: [.10, .08, .10], ear: 'tiny', tail: 'whip', sit: true },
+  'cat:carey': { body: [.60, .28, .30], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, patches: true },
+  'cat:tricolor': { body: [.60, .28, .30], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'curve', sit: true, patches: true, chest: true },
 };
 
 function ear(T, parent, color, side, kind) {
