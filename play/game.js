@@ -120,10 +120,10 @@ async function init() {
     startGame(); autotest(); return;
   }
   beginAtHome();
-  if (Q.has('sinlogin') || Q.has('sinayuda')) { if (Q.get('nombre')) { S.me.name = textoNombre(Q.get('nombre')); S.me.nick = S.me.name; } beginAtHome(); W.clientReady = true; startGame(); return; }
   W.clientReady = true;
-  if (prof && prof.name) { $('#l-nombre').value = textoNombre(prof.name); if (prof.color) S.me.color = prof.color; buildColorPicker(); }
-  if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con el proveedor. Intenta otra vez.';
+  if (prof && prof.name && $('#l-nombre')) { $('#l-nombre').value = textoNombre(prof.name); if (prof.color) S.me.color = prof.color; buildColorPicker(); }
+  if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con ese proveedor. Intenta otra vez.';
+  if (Q.get('auth') === 'enlace') $('#login-status').textContent = 'El enlace caducó o ya se usó. Pide otro.';
   let sessionUser = null;
   if (Q.get('auth') !== 'error') {
     try {
@@ -144,16 +144,14 @@ async function init() {
     startGame();
     return;
   }
-  $('#login').hidden = false; $('#l-nombre').focus();
+  $('#login').hidden = false;
   fetch('/auth/providers').then(r => r.json()).then(p => {
-    const box = $('#login-cuentas'); if (!box) return;
-    const show = !!(p.google || p.facebook || p.registro || p.email_login);
-    box.hidden = !show;
     const g = $('#b-google'); if (g) g.hidden = !p.google;
     const f = $('#b-facebook'); if (f) f.hidden = !p.facebook;
     const reg = $('#b-registro'); if (reg) reg.hidden = !p.registro;
-    $('#b-correo').hidden = !p.email_login;
-    $('#r-phone-row').hidden = $('#r-sms-row').hidden = !p.sms;
+    const forgot = $('#b-olvide'); if (forgot) forgot.hidden = !p.reset;
+    const again = $('#b-reenviar'); if (again) again.hidden = !p.registro;
+    const mail = $('#b-correo'); if (mail) mail.hidden = !p.email_login;
   }).catch(() => {});
 }
 function buildColorPicker() {
@@ -176,7 +174,7 @@ function linkCookie() {
   document.cookie = 'life_link=' + encodeURIComponent(name + '|' + token) + '; Path=/; SameSite=Lax; Max-Age=600';
   document.cookie = 'life_return=' + encodeURIComponent(vueltaJuego()) + '; Path=/; SameSite=Lax; Max-Age=600';
 }
-$('#b-correo').onclick=()=>{ $('#correo-login').hidden=!$('#correo-login').hidden;$('#registro').hidden=true; };
+$('#b-correo').onclick=()=>{ $('#correo-login').hidden=!$('#correo-login').hidden;$('#registro').hidden=true;$('#olvide').hidden=true; };
 $('#b-correo-entrar').onclick=async()=>{
  const button=$('#b-correo-entrar');if(button.disabled)return;button.disabled=true;
  try{const response=await fetch('/auth/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#e-email').value.trim(),password:$('#e-password').value})});const result=await response.json();$('#e-password').value='';
@@ -187,24 +185,20 @@ $('#b-correo-entrar').onclick=async()=>{
 $('#correo-login').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#b-correo-entrar').click();}};
 const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego()); };
 const bFacebook = $('#b-facebook'); if (bFacebook) bFacebook.onclick = () => { linkCookie(); location.href = '/auth/facebook?vuelta=' + encodeURIComponent(vueltaJuego()); };
-const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { $('#correo-login').hidden=true; const box = $('#registro'); if (box) box.hidden = !box.hidden; };
+const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { $('#correo-login').hidden=true; $('#olvide').hidden=true; const box = $('#registro'); if (box) box.hidden = !box.hidden; };
+const bOlvide = $('#b-olvide'); if (bOlvide) bOlvide.onclick = () => { $('#correo-login').hidden=true; $('#registro').hidden=true; const box = $('#olvide'); if (box) box.hidden = !box.hidden; if ($('#o-email') && $('#e-email')) $('#o-email').value = $('#e-email').value; };
+function avisoLogin(text) { const box = $('#login-status'); if (box) box.textContent = text || ''; }
 const bPedir = $('#b-pedir-codigo'); if (bPedir) bPedir.onclick = () => {
-  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), phone:$('#r-phone').value.trim(), password:$('#r-pass').value})}).then(r => r.json()).then(m => { $('#login-status').textContent = m.error || 'Te enviamos un código al correo. Si indicaste teléfono, verifica también el SMS.'; });
+  linkCookie();
+  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:($('#l-nombre')||{}).value.trim(), email:$('#r-email').value.trim(), password:$('#r-pass').value})}).then(r => r.json().then(m => ({ok:r.ok, m}))).then(({ok, m}) => { avisoLogin(m.error || (ok ? 'Te enviamos un enlace. La cuenta no sirve hasta que lo abras.' : 'No se pudo crear la cuenta.')); });
 };
-const bVer = $('#b-verificar'); if (bVer) bVer.onclick = () => {
-  let token = '';
-  try { token = (window.Simulacion && Simulacion.walletToken && Simulacion.walletToken($('#l-nombre').value.trim())) || ''; } catch (e) {}
-  fetch('/auth/verificar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:$('#l-nombre').value.trim(), email:$('#r-email').value.trim(), email_code:$('#r-email-code').value.trim(), phone_code:$('#r-phone-code').value.trim(), walletToken: token})}).then(r => r.json()).then(m => { if (m.user) { if (m.user.wallet_name && !String(m.user.wallet_name).includes('@')) $('#l-nombre').value = String(m.user.wallet_name).slice(0, 16); $('#login-form').requestSubmit(); } else $('#login-status').textContent = m.error || 'No se pudo verificar.'; });
+const bRe = $('#b-reenviar'); if (bRe) bRe.onclick = () => {
+  fetch('/auth/reenviar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:$('#r-email').value.trim()})}).then(r => r.json()).then(m => avisoLogin(m.error || 'Si hay un registro pendiente, enviamos otro enlace. El anterior ya no sirve.'));
 };
-$('#login-form').onsubmit = (e) => {
-  e.preventDefault();
-  S.me.name = textoNombre($('#l-nombre').value.trim().slice(0, 16));
-  S.me.nick = S.me.name;
-  S.sessionUser = null;
-  S.me.clan = S.me.clan || ''; S.me.group = S.me.group || '';
-  localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me));
-  $('#login').hidden = true; startGame();
+const bReset = $('#b-olvide-enviar'); if (bReset) bReset.onclick = () => {
+  fetch('/auth/olvide', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:$('#o-email').value.trim()})}).then(r => r.json()).then(m => avisoLogin(m.error || 'Si esa cuenta existe, enviamos un enlace para la contraseña.'));
 };
+$('#login-form').onsubmit = (e) => { e.preventDefault(); };
 let started = false, reconnectTimer = null, reconnectDelay = 1000;
 function startGame() {
   if (started) return; started = true;

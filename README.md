@@ -112,7 +112,7 @@ La base es Postgres 17 (Basic, Virginia), en la red interna del servicio `lifein
 | `TWILIO_AUTH_TOKEN` | para SMS | Token de Twilio. |
 | `TWILIO_VERIFY_SERVICE_SID` | para SMS | Servicio Verify (`VA…`). |
 
-El botón de cada proveedor aparece sólo si sus variables están puestas. Si no hay ninguna, la pantalla sigue dejando entrar con el nombre, como hasta ahora. Crear cuenta pide correo y teléfono a la vez: hace falta un emisor de correo (Resend o SMTP) y Twilio Verify.
+El botón de Google o de Facebook aparece sólo si sus variables están puestas. Entrar con correo sigue disponible para las cuentas que ya tienen contraseña. Crear cuenta, reenviar el enlace y restablecer la contraseña necesitan Resend o SMTP. No hay entrada de invitado. La cuenta nueva no sirve hasta abrir el enlace, que caduca a las 24 horas y sólo sirve una vez.
 
 URIs de redirección, exactas:
 
@@ -150,7 +150,7 @@ Resend: verifica un dominio, crea una API key y define `RESEND_API_KEY` y `EMAIL
 
 O SMTP: `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASSWORD` y `SMTP_FROM`.
 
-El código del correo también caduca a los 10 minutos. Quien ya jugaba con un nombre y un `X-Wallet-Token` puede escribir el mismo nombre: la cuenta nueva se ata a esa billetera y no pierde las SMC.
+El enlace de confirmación caduca a las 24 horas. El de contraseña nueva caduca a la hora. Los dos se gastan al usarlos. Quien ya jugaba con un nombre y un token de billetera puede usar el mismo apodo al crear la cuenta: se ata a esa billetera.
 
 ## Libro madre y Simonchis
 

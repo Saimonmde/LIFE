@@ -75,7 +75,7 @@ class AccountTests(unittest.TestCase):
         keys = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'FACEBOOK_APP_ID', 'FACEBOOK_APP_SECRET', 'RESEND_API_KEY', 'EMAIL_FROM', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID']
         old = {k: os.environ.pop(k, None) for k in keys}
         try:
-            self.assertTrue(acc.providers()['guest'])
+            self.assertFalse(acc.providers()['guest'])
             self.assertFalse(acc.providers()['google'])
             os.environ['GOOGLE_CLIENT_ID'] = 'id'
             os.environ['GOOGLE_CLIENT_SECRET'] = 'secret'
@@ -87,6 +87,82 @@ class AccountTests(unittest.TestCase):
                     os.environ.pop(k, None)
                 else:
                     os.environ[k] = v
+
+
+class EmailLinkTests(unittest.TestCase):
+    def test_link_is_single_use_and_blocks_login_until_then(self):
+        doc = acc.empty()
+        sent = {}
+
+        def send_link(email, raw):
+            sent['raw'] = raw
+
+        acc.begin_email_account(doc, 'Nica', 'nica@ejemplo.co', 'secreto-largo', send_link, now=5_000)
+        self.assertEqual(doc['users'], [])
+        with self.assertRaises(acc.AuthError) as blocked:
+            acc.login_password(doc, 'nica@ejemplo.co', 'secreto-largo', now=5_010)
+        self.assertIn('Confirma', str(blocked.exception))
+        result = acc.confirm_email_link(doc, sent['raw'], now=5_020)
+        self.assertEqual(result['user']['wallet_name'], 'Nica')
+        self.assertTrue(doc['users'][0]['verified'])
+        with self.assertRaises(acc.AuthError):
+            acc.confirm_email_link(doc, sent['raw'], now=5_030)
+        again = acc.login_password(doc, 'nica@ejemplo.co', 'secreto-largo', now=5_040)
+        self.assertEqual(again['user']['id'], result['user']['id'])
+
+    def test_expired_link_and_resend_replaces_it(self):
+        doc = acc.empty()
+        sent = {}
+
+        def send_link(email, raw):
+            sent['raw'] = raw
+
+        acc.begin_email_account(doc, 'Nica', 'nica@ejemplo.co', 'secreto-largo', send_link, now=6_000)
+        old = sent['raw']
+        with self.assertRaises(acc.AuthError):
+            acc.confirm_email_link(doc, old, now=6_000 + acc.LINK_TTL + 1)
+        acc.resend_verification(doc, 'nica@ejemplo.co', send_link, now=6_100)
+        self.assertNotEqual(sent['raw'], old)
+        with self.assertRaises(acc.AuthError):
+            acc.confirm_email_link(doc, old, now=6_110)
+        acc.confirm_email_link(doc, sent['raw'], now=6_120)
+        self.assertEqual(len(doc['users']), 1)
+
+    def test_password_reset_is_single_use(self):
+        doc = acc.empty()
+        sent = {}
+
+        def send_link(email, raw):
+            sent['raw'] = raw
+
+        acc.begin_email_account(doc, 'Nica', 'nica@ejemplo.co', 'secreto-largo', send_link, now=7_000)
+        acc.confirm_email_link(doc, sent['raw'], now=7_010)
+        acc.request_password_reset(doc, 'nica@ejemplo.co', send_link, now=7_020)
+        token = sent['raw']
+        acc.reset_password(doc, token, 'otra-clave-larga', now=7_030)
+        with self.assertRaises(acc.AuthError):
+            acc.login_password(doc, 'nica@ejemplo.co', 'secreto-largo', now=7_040)
+        acc.login_password(doc, 'nica@ejemplo.co', 'otra-clave-larga', now=7_050)
+        with self.assertRaises(acc.AuthError):
+            acc.reset_password(doc, token, 'tercera-clave', now=7_060)
+
+    def test_old_account_without_verified_flag_still_enters(self):
+        doc = acc.empty()
+        doc['users'].append({
+            'id': 'vieja', 'name': 'Ana', 'email': 'ana@ejemplo.co', 'phone': '',
+            'password_hash': acc.hash_password('secreto-largo'),
+            'providers': {}, 'wallet_name': 'Ana', 'wallet_token': '', 'createdAt': 1,
+        })
+        result = acc.login_password(doc, 'ana@ejemplo.co', 'secreto-largo', now=8_000)
+        self.assertEqual(result['user']['wallet_name'], 'Ana')
+
+    def test_resend_is_rate_limited(self):
+        doc = acc.empty()
+        acc.begin_email_account(doc, 'Nica', 'nica@ejemplo.co', 'secreto-largo', lambda email, raw: None, now=9_000)
+        for i in range(5):
+            acc.resend_verification(doc, 'nica@ejemplo.co', lambda email, raw: None, now=9_010 + i)
+        with self.assertRaises(acc.AuthError):
+            acc.resend_verification(doc, 'nica@ejemplo.co', lambda email, raw: None, now=9_020)
 
 
 if __name__ == '__main__':
