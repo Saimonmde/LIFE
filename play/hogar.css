@@ -1,0 +1,95 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Oficio, mascotas, Biblia, dirección y visita. */
+
+#oficio-panel, #biblia, #mascotas, #casa-direccion {
+  position: fixed;
+  z-index: 70;
+  color: #f6e7c4;
+  font: 16px/1.4 system-ui, sans-serif;
+}
+#oficio-panel {
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: #140e09e6;
+  overflow: auto;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom));
+}
+#oficio-panel[hidden] { display: none; }
+.oficio-caja { width: min(920px, 100%); }
+#oficio-titulo { margin: 0 0 6px; color: #f5d27a; font-size: 28px; }
+#oficio-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
+.oficio-ficha {
+  display: flex; flex-direction: column; gap: 6px; align-items: stretch;
+  min-height: 44px; padding: 8px; text-align: left;
+  background: #241c14; color: #f6e7c4; border: 2px solid #b48a46; border-radius: 12px; cursor: pointer;
+}
+.oficio-ficha img { width: 100%; height: auto; aspect-ratio: 180 / 220; object-fit: contain; background: #1a140f; border-radius: 8px; }
+.oficio-ficha b { font-size: 16px; }
+.oficio-ficha span { font-size: 13px; color: #e6d3b0; }
+.oficio-ficha.armada { background: #f0d18b; color: #251c12; border-color: #fff1c9; }
+.oficio-ficha.armada span { color: #3d2918; }
+.oficio-acciones, .biblia-nav, .direccion-acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#oficio-entrar, #oficio-cerrar, #biblia button, #mascotas button, #casa-direccion button, #visita-banda button, #b-mascotas, #b-direccion, #b-oficio, #b-oficio-perfil {
+  min-height: 44px; padding: 8px 14px; border-radius: 9px; border: 2px solid #614322;
+  background: #f0d18b; color: #251c12; font: bold 15px system-ui, sans-serif; cursor: pointer;
+}
+#oficio-linea { min-height: 1.4em; }
+#mi-oficio { font-size: 13px; color: #f0d18b; }
+
+#biblia, #mascotas, #casa-direccion {
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 20px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  background: #241c14f5;
+  border: 2px solid #b48a46;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 32px #000a;
+}
+#biblia[hidden], #mascotas[hidden], #casa-direccion[hidden] { display: none; }
+#biblia header, #mascotas header, #casa-direccion header { display: flex; justify-content: space-between; align-items: center; color: #f5d27a; font-weight: 700; }
+#biblia-cita { color: #f5d27a; font-weight: 700; margin-bottom: 0; }
+#biblia-texto { font-family: Georgia, serif; font-size: 18px; }
+.biblia-nota, #direccion-nota { color: #d9c7a2; font-size: 13px; }
+#mascotas-opciones, #casa-estilos, #casa-catalog { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+#mascotas-opciones button, #casa-estilos button { background: #5c4124; color: #ffe7c2; border: 1px solid #b48a46; }
+#casa-estilos button.armed, #casa-catalog button.armed { background: #f0d18b; color: #251c12; }
+#mascotas-lista p { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+#mascotas input { width: 100%; box-sizing: border-box; min-height: 44px; margin-top: 4px; }
+
+#b-mascotas { position: fixed; z-index: 26; left: max(12px, env(safe-area-inset-left)); bottom: max(12px, env(safe-area-inset-bottom)); }
+#b-direccion { display: none; }
+body.in-casa:not(.casa-visita) #b-direccion {
+  display: inline-block; position: fixed; z-index: 26;
+  top: max(58px, calc(env(safe-area-inset-top) + 52px));
+  left: 50%; transform: translateX(-50%);
+}
+body:not(.in-game) #b-mascotas,
+body:not(.in-game) #b-direccion,
+body:not(.in-game) #b-oficio-perfil { display: none !important; }
+body.in-game #b-oficio-perfil { margin-top: 6px; }
+
+#visita-banda {
+  position: fixed; z-index: 27; left: 50%; top: max(10px, env(safe-area-inset-top));
+  transform: translateX(-50%); width: min(460px, calc(100vw - 16px));
+  display: flex; gap: 8px; align-items: center; justify-content: space-between;
+  background: #241c14f5; color: #f6e7c4; border: 2px solid #e2b23c; border-radius: 12px; padding: 8px 10px;
+}
+#visita-banda[hidden] { display: none; }
+#visita-banda p { margin: 0; font: 14px/1.3 system-ui, sans-serif; }
+body.casa-visita #b-editar-casa { display: none !important; }
+
+@media (max-width: 700px) {
+  #oficio-titulo { font-size: 22px; }
+  #b-direccion, body.in-casa:not(.casa-visita) #b-direccion {
+    top: auto; bottom: max(64px, calc(env(safe-area-inset-bottom) + 64px));
+    left: max(8px, env(safe-area-inset-left)); transform: none;
+  }
+  #b-mascotas { bottom: max(116px, calc(env(safe-area-inset-bottom) + 116px)); }
+  #visita-banda { top: auto; bottom: max(8px, env(safe-area-inset-bottom)); flex-direction: column; align-items: stretch; }
+}
