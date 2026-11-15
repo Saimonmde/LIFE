@@ -10,3 +10,5 @@ releases/*.zip
 previews/
 lifein.json
 state/
+restauracion/
+*.lifebak
