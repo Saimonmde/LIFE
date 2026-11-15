@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 import * as T from './three.module.js';
-import {buildMine} from './mine3d.js?v=finca-r1';
+import {buildMine} from './mine3d.js?v=letrero-r1';
 import {attachFinca} from './finca3d.js?v=sara-r1';
 import {enrichWorld} from './park3d.js?v=valle-hud-r5';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
@@ -11,6 +11,7 @@ import {createValleyView} from './valle-vista.js?v=valle-geo-r2';
 import {attachVida} from './vida3d.js?v=mascota-r1';
 import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
 import {createHorse, poseRider} from './caballo3d.js?v=caballo-r1';
+import {board as mineBoard} from './letrero3d.js?v=letrero-r1';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
 const status=window.LIVE3D={active:false,build:BUILD};
@@ -234,7 +235,8 @@ function boot(api){
  church(Math.max(1,Math.min(W.width-4,102+offChurch.x)),Math.max(1,Math.min(W.height-4,12+offChurch.y)),3,3,'#ba805c');
  // La cabeza de bronce de parkDetails 'poblado' no vuelve: es el monumento del Primer Poblado.
  for(const d of W.landmarks){if(d.kind==='santa_gertrudis')santaGertrudis(d);else if(d.kind==='santa_ana')santaAna(d);else if(d.kind==='basilica')church(d.x,d.y,d.w,d.h,d.color);else civicChurch(d);}
- for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type==='home_door')continue;const sp=sprite(api.spriteKeyFor(n),n.def.x,n.def.y,n.def.id);if(sp)dynamic.push({sp,n});}
+ for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type==='home_door'||n.def.type==='mine_sign')continue;const sp=sprite(api.spriteKeyFor(n),n.def.x,n.def.y,n.def.id);if(sp)dynamic.push({sp,n});}
+ for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type!=='mine_sign')continue;const g=mineBoard(T,n.def.x*2+1,height(n.def.x,n.def.y),n.def.y*2+1,n.def.id,n.def.facing||0);scene.add(g);g.traverse(mesh=>{if(mesh.isMesh)pick.push(mesh);});}
  let surfaceFinca=null;const fincaEntry=[...(initialZone?api.cityNodes:S.nodes).values()].find(n=>n.def&&n.def.id==='entrada_mina_palmas');if(fincaEntry){surfaceFinca=attachFinca(T,scene,{x:fincaEntry.def.x*2+14,y:height(fincaEntry.def.x,fincaEntry.def.y),z:fincaEntry.def.y*2+1,pick});}
  for(const a of (initialZone?api.cityAnimals:S.animals)){const sp=sprite(a.def.sprites.alive[0],a.fx,a.fy,a.def.id);if(sp)dynamic.push({sp,a});}
  for(const d of W.doors){const m=box(d.x*2+1,height(d.x,d.y)+1,d.y*2+1,1.4,2,.3,'#684b2e');m.userData.id=d.id;pick.push(m);}

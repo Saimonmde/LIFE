@@ -458,15 +458,18 @@ function prepareCave(){
  for(let r=2;r<10&&!entry;r++)for(let dx=-r;dx<=r&&!entry;dx++)for(let dy=-r;dy<=r&&!entry;dy++){const x=palmas.x+dx,y=palmas.y+dy;if(x>1&&y>1&&x<W.width-1&&y<W.height-1&&W.collision[y][x]===0&&W.collision[y+1][x]===0&&!W.nodes.some(n=>n.x===x&&n.y===y))entry={x,y};}
  if(!entry)throw Error('No hay acceso a la mina en Las Palmas');
  W.nodes.push({id:'entrada_mina_palmas',type:'mine_entrance',...entry,initialState:'active',states:['active'],sprites:{active:'mine_portal'},solid:true});
+ const signHere=(x,y)=>x>1&&y>1&&x<W.width-1&&y<W.height-1&&W.collision[y]&&W.collision[y][x]===0;
+ const sign=signHere(entry.x+1,entry.y+1)?{x:entry.x+1,y:entry.y+1}:signHere(entry.x-1,entry.y+1)?{x:entry.x-1,y:entry.y+1}:{x:entry.x+1,y:entry.y};
+ W.nodes.push({id:'letrero_palmas',type:'mine_sign',x:sign.x,y:sign.y,solid:false,facing:0,initialState:'active',states:['active'],sprites:{active:'mine_portal'}});
  W.waypoints.push({id:'cantera',name:'Mina de Las Palmas · entrada',x:entry.x,y:entry.y+1});
  W.sprites.mine_portal={...W.sprites.rock_piedra};W.sprites.mine_exit={...W.sprites.rock_piedra};
  cityMap=Object.fromEntries(MAP_FIELDS.map(k=>[k,W[k]]));
  const width=36,height=32,ground=Array.from({length:height},()=>Array(width).fill(W.ground[palmas.y][palmas.x])),collision=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x<2||y<2||x>33||y>29?1:0)),elevation=Array.from({length:height},()=>Array(width).fill(0));
- const nodes=[{id:'salida_mina',type:'mine_exit',x:18,y:29,initialState:'active',states:['active'],sprites:{active:'mine_exit'},solid:true},{id:'horno_cantera',type:'furnace',x:18,y:15,solid:true,states:['active'],initialState:'active',sprites:{active:'furnace'}}];
+ const nodes=[{id:'salida_mina',type:'mine_exit',x:18,y:29,initialState:'active',states:['active'],sprites:{active:'mine_exit'},solid:true},{id:'letrero_salida',type:'mine_sign',x:19,y:28,solid:false,facing:Math.PI,initialState:'active',states:['active'],sprites:{active:'mine_exit'}},{id:'horno_cantera',type:'furnace',x:18,y:15,solid:true,states:['active'],initialState:'active',sprites:{active:'furnace'}}];
  const layout={cobre:[[6,6],[9,4],[5,12],[8,22],[12,8]],plata:[[27,5],[30,10],[28,22],[24,9]],oro:[[5,3],[17,3],[28,3],[32,17],[3,18],[24,27]]};
  for(const [metal,coords] of Object.entries(layout))coords.forEach(([x,y],i)=>nodes.push({id:'mina_'+metal+'_'+i,type:'mineral_rock',mineral:metal,x,y,skill:'mining',method:'terrestre',tool:'pico',solid:true,states:['active','depleted'],initialState:'active',sprites:{active:'rock_'+metal,depleted:'rock_depleted'},yield:{item:'mineral_'+metal,min:2,max:metal==='oro'?3:4},xp:metal==='oro'?26:metal==='plata'?18:12,respawnMs:metal==='oro'?32000:18000}));
  const rocks=[[10,13],[26,15],[12,21],[22,23],[8,17],[28,26],[16,7]];for(const [x,y] of rocks){collision[y][x]=1;}
- for(const n of nodes)collision[n.y][n.x]=1;
+ for(const n of nodes)if(n.type!=='mine_sign')collision[n.y][n.x]=1;
  caveMap={width,height,ground,collision,elevation,nodes,npcs:[],doors:[],animals:[],regions:[{id:'mina_palmas',name:'Mina de Las Palmas · interior',x:0,y:0,w:width,h:height}],waypoints:[{id:'horno',name:'Horno central',x:18,y:17},{id:'salida',name:'Salida a Las Palmas',x:18,y:28}],roads3d:[],memories:[],riverLayouts:[],bridges:[],parkDetails:[],surfaceZones:[],signs3d:[],scenery3d:[],waterBodies:{},decorations:[],landmarks:[],areas:[],spawn:{x:18,y:27},rocks};
  W.caveDefinition=caveMap;W.cityDefinition=cityMap;W.mineEntrance=entry;
  const home=window.Casa.PARK_DOOR;
@@ -1323,6 +1326,7 @@ function act(t) {
   if (t.kind === 'animal') return hunt(t.a);
   const n = t.n, d = n.def; const secs = () => Math.max(1, Math.ceil((n.until - now()) / 1000));
   if (S.mounted && (d.type === 'mine_entrance' || d.type === 'mine_exit' || d.type === 'home_door' || d.type === 'bank_door' || d.type === 'central_door')) return game('Baja del caballo para entrar a un edificio.', 'aviso');
+  if(d.type==='mine_sign'){ if(window.Letrero) Letrero.open(); return; }
   if(d.type==='mine_entrance')return switchMap('mine');
   if(d.type==='mine_exit')return switchMap('city');
   if(d.type==='home_door')return enterHouse();
@@ -1760,8 +1764,17 @@ function portalAt(x, y) {
   return null;
 }
 function updateMinePrompt() { const b = document.getElementById('mine-enter'), e = W.mineEntrance; if (!b || !e) return; const near = started && W.mapId !== 'mine' && cheb(S.player.x, S.player.y, e.x, e.y) <= 5; if (b.hidden === near) b.hidden = !near; }
+function updateSign() {
+  if (!window.Letrero) return;
+  let near = false;
+  for (const n of S.nodes.values()) {
+    if (n.def && n.def.type === 'mine_sign' && cheb(S.player.x, S.player.y, n.def.x, n.def.y) <= 2) near = true;
+  }
+  Letrero.setNear(started && near);
+}
 function update(dt) {
   updateMinePrompt();
+  updateSign();
   if (!started) return;
   const p = S.player, t = now();
   const running = S.keys.has('x') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k => S.keys.has(k));

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Independent underground map, built from the same collision grid used by movement.
 import {attachFinca} from './finca3d.js?v=sara-r1';
+import {board as mineBoard} from './letrero3d.js?v=letrero-r1';
 export function buildMine(T,W){
  const map=W.caveDefinition,scene=new T.Scene();scene.background=new T.Color('#130e0b');scene.fog=new T.Fog('#1c130e',38,100);scene.add(new T.HemisphereLight(0xe6bf83,0x503c27,.95));const fill=new T.DirectionalLight(0xe4c79b,.75);fill.position.set(20,45,25);scene.add(fill);
  const pick=[],resources=new Map(),materials=new Map();const mat=c=>{if(!materials.has(c))materials.set(c,new T.MeshLambertMaterial({color:c,flatShading:true}));return materials.get(c);};
@@ -21,6 +22,7 @@ export function buildMine(T,W){
   }else if(d.type==='furnace'){
    part(boxGeo,'#4e4034',0,.35,0,3.8,.7,3.4);part(boxGeo,'#80715e',-1.25,1.4,0,.65,2.3,2.8);part(boxGeo,'#80715e',1.25,1.4,0,.65,2.3,2.8);part(boxGeo,'#6c5944',0,2.65,0,3.3,.6,2.8);part(boxGeo,'#29201a',0,1.3,-1.2,2,2,.4);part(boxGeo,'#4f4539',.6,3.6,-.5,.9,1.6,1);
    const fire=new T.MeshBasicMaterial({color:'#ff8b28'});part(rockGeo,fire,0,.8,.3,.9,.4,.75);const light=new T.PointLight(0xff8a36,55,22,2);light.position.set(d.x*2+1,2,d.y*2+2);scene.add(light);resources.set(d.id,{fire,light});label('HORNO · FUNDIR / ACUÑAR',d.x*2+1,5.5,d.y*2+1);
+  }else if(d.type==='mine_sign'){const sign=mineBoard(T,d.x*2+1,0,d.y*2+1,d.id,d.facing||0);scene.add(sign);sign.traverse(mesh=>{if(mesh.isMesh)pick.push(mesh);});
   }else {part(rockGeo,'#6f4f2c',0,2,0,2.4,2.7,1);part(boxGeo,'#130e0b',0,1.5,1.05,2.5,2.8,.15);label('SALIDA A LAS PALMAS',d.x*2+1,5,d.y*2+1);}
  }
  for(const [x,z] of [[8,10],[60,10],[8,48],[60,48],[35,8],[35,52]]){box(x,1.6,z,.14,3.2,.14,'#33271b');mesh(new T.SphereGeometry(.22,8,6),new T.MeshBasicMaterial({color:'#ffe4a0'}),x,3.3,z);const light=new T.PointLight(0xffcc83,38,24,2);light.position.set(x,3,z);scene.add(light);}
