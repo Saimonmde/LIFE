@@ -400,6 +400,23 @@ class FincaTests(unittest.TestCase):
             planted,
         )
         self.assertEqual(loaded['feed'], ['Se cosecharon 90 kg de cacao.'])
+
+    def test_harvest_all_keeps_unripe_plots_and_does_not_mint(self):
+        plots = [row['id'] for row in self.act('ver')['view']['plots'] if row['crop'] == 'cacao']
+        self.act('plantar', {'plot': plots[0]}, now=self.now)
+        self.now += 2 * reloj.REAL_SECONDS_PER_DAY + 5
+        self.act('plantar', {'plot': plots[1]}, now=self.now)
+        before = dict(self.purse.minted)
+        done = self.act('cosechar_todo', now=self.now)
+        self.assertTrue(done['ok'], done.get('error'))
+        self.assertEqual(self.state['harvestedKg']['cacao'], 90)
+        self.assertEqual(self.state['accounts'][SECRET]['goods']['cacao_baba'], 1)
+        self.assertEqual(self.state['harvestedKg']['cafe'], 0)
+        self.assertEqual(self.state['accounts'][SECRET]['plots'][plots[1]].get('plantedAt'), self.now)
+        self.assertEqual(self.purse.minted, before)
+        again = self.act('cosechar_todo', now=self.now)
+        self.assertFalse(again['ok'])
+        self.assertEqual(self.state['harvestedKg']['cacao'], 90)
         with open(os.path.join(ROOT, 'play', 'mine3d.js'), encoding='utf-8') as handle:
             mine = handle.read()
         self.assertNotIn('attachFinca', mine)
