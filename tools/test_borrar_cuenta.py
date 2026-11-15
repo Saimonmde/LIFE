@@ -188,7 +188,7 @@ class DeleteAccountTests(unittest.TestCase):
         self.assertIn(b'200 OK', response)
         self.assertIn(b'Set-Cookie: life_session=', response)
         self.assertEqual(len(self.saves), 1)
-        self.assertEqual(self.saves[0][0], ['accounts', 'economy', 'vault', 'players', 'nft', 'libro_madre'])
+        self.assertEqual(self.saves[0][0], ['accounts', 'economy', 'vault', 'players', 'nft', 'libro_madre', 'hogar'])
         self.assertEqual(smc_total(economy, vault_state), antes_smc)
         self.assertEqual(smp_total(economy, vault_state), antes_smp)
         self.assertEqual(economy['minedSmh'], mined)

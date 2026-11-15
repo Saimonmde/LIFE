@@ -71,6 +71,8 @@ VIDA = SOCIAL.normalize(PERSIST.load_named('vida', VIDA_PATH))
 PLACES = MUNDOS.boxes(WORLD)
 ACCOUNTS_PATH = os.path.join(ROOT, 'state', 'accounts.json')
 ACCOUNTS = ACC.load(ACCOUNTS_PATH)
+HOGAR_PATH = os.path.join(ROOT, 'state', 'hogar.json')
+HOGAR_STATE = HOGAR.load(HOGAR_PATH)
 NFT_SEED = NFT.load_seed(NFT_KEY_PATH)
 NFT_PUB = ed25519.publickey(NFT_SEED)
 NFT_CHAIN = NFT.load_chain(NFT_PATH, NFT_PUB.hex())
@@ -107,6 +109,9 @@ def save_vida():
 
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
+
+def save_hogar():
+    HOGAR.save(HOGAR_PATH, HOGAR_STATE)
 
 def save_libro(records):
     if not records:
@@ -1060,6 +1065,7 @@ class Client:
         if pet:
             pet = {k: pet[k] for k in ('species', 'breed', 'variant', 'name') if k in pet}
         return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'nick': visible_nick(self), 'color': self.color, 'clan': self.clan, 'group': self.group,
+                'oficio': getattr(self, 'oficio', '') or '',
                 'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone,
                 'world': self.world, 'place': self.place, 'pet': pet}
 
@@ -1488,6 +1494,9 @@ def handle_client_message(c, m, t):
         c.name = unique_name(clean(asked, 16), c)
         c.color = m.get('color') if m.get('color') in COLORS else random.choice(COLORS)
         c.clan = clean(m.get('clan'), 24); c.group = clean(m.get('group'), 24)
+        servidor = HOGAR.oficio_de(HOGAR_STATE, c.user['id']) if getattr(c, 'user', None) else ''
+        pedido = m.get('oficio') if m.get('oficio') in HOGAR.ROLES else ''
+        c.oficio = servidor or pedido
         c.level = clamp_level(m.get('level'), 1); c.hello = True
         c.identity = SOCIAL.identity_of(c)
         c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
@@ -1761,6 +1770,7 @@ def eliminar_cuenta_propia(user, confirm):
     import persist
     import borrar_cuenta as borrar
     accounts = copy.deepcopy(ACCOUNTS)
+    hogar_state = copy.deepcopy(HOGAR_STATE)
     economy = copy.deepcopy(ECON)
     vault_state = copy.deepcopy(VAULT_STATE)
     players = copy.deepcopy(PLAYERS)
@@ -1777,6 +1787,7 @@ def eliminar_cuenta_propia(user, confirm):
     result = borrar.aplicar(bundle, user, confirm, seed=NFT_SEED, now=int(time.time()))
     if not result.get('ok') or result.get('already'):
         return result
+    HOGAR.olvidar(hogar_state, user.get('id'))
     docs = [
         ('accounts', ACCOUNTS_PATH, accounts),
         ('economy', ECON_PATH, economy),
@@ -1784,6 +1795,7 @@ def eliminar_cuenta_propia(user, confirm):
         ('players', PLAY_PATH, players),
         ('nft', NFT_PATH, nft_chain),
         ('libro_madre', LIBRO_PATH, libro_chain),
+        ('hogar', HOGAR_PATH, hogar_state),
     ]
     persist.save_bundle(docs, result.get('new_ids') or [], os.path.dirname(LIBRO_PATH) or '.')
     _volcar(ACCOUNTS, accounts)
@@ -1792,6 +1804,7 @@ def eliminar_cuenta_propia(user, confirm):
     _volcar(PLAYERS, players)
     _volcar(NFT_CHAIN, nft_chain)
     _volcar(LIBRO_CHAIN, libro_chain)
+    _volcar(HOGAR_STATE, hogar_state)
     return result
 
 
@@ -2028,6 +2041,46 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         if not result.get('ok'):
             return auth_response(result.get('status') or '400 Bad Request', {'error': result.get('error') or 'No se pudo eliminar la cuenta.'}, headers)
         return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    if path == '/auth/hogar' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'ok': False, 'error': 'Entra con tu cuenta para guardar la casa.'}, headers)
+        try:
+            box = HOGAR.asegurar(HOGAR_STATE, user)
+            save_hogar()
+        except HOGAR.HogarError as exc:
+            return auth_response(exc.status, {'ok': False, 'error': str(exc)}, headers)
+        return auth_response('200 OK', HOGAR.publico(box, user, True), headers)
+    if path == '/auth/hogar' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'ok': False, 'error': 'Entra con tu cuenta para guardar la casa.'}, headers)
+        try:
+            vista = HOGAR.aplicar(HOGAR_STATE, user, payload)
+            save_hogar()
+        except HOGAR.HogarError as exc:
+            return auth_response(exc.status, {'ok': False, 'error': str(exc)}, headers)
+        return auth_response('200 OK', vista, headers)
+    if path == '/auth/hogar/codigo' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'ok': False, 'error': 'Entra con tu cuenta para cambiar el código.'}, headers)
+        try:
+            vista = HOGAR.regenerar(HOGAR_STATE, user)
+            save_hogar()
+        except HOGAR.HogarError as exc:
+            return auth_response(exc.status, {'ok': False, 'error': str(exc)}, headers)
+        return auth_response('200 OK', vista, headers)
+    if path == '/auth/hogar/visitas' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'ok': False, 'error': 'Entra con tu cuenta para cambiar las visitas.'}, headers)
+        try:
+            vista = HOGAR.fijar_visitas(HOGAR_STATE, user, bool(payload.get('abiertas')))
+            save_hogar()
+        except HOGAR.HogarError as exc:
+            return auth_response(exc.status, {'ok': False, 'error': str(exc)}, headers)
+        return auth_response('200 OK', vista, headers)
     return auth_response('404 Not Found', {'error': 'no existe'}, headers)
 
 
@@ -2096,6 +2149,16 @@ async def handle(reader, writer):
             if method != 'HEAD':
                 writer.write(encoded)
             await writer.drain(); writer.close(); return
+    if method == 'GET' and path.startswith('/casa/'):
+        codigo = path[len('/casa/'):].strip('/')
+        dueno = HOGAR.dueno_de(HOGAR_STATE, ACCOUNTS, codigo)
+        vista, error = HOGAR.visitar(HOGAR_STATE, codigo, (dueno or {}).get('name') or 'Alguien')
+        if error:
+            estado = '400 Bad Request' if 'forma' in error else ('403 Forbidden' if 'visitas' in error else '404 Not Found')
+            writer.write(auth_response(estado, {'ok': False, 'error': error}, headers))
+        else:
+            writer.write(auth_response('200 OK', vista, headers))
+        await writer.drain(); writer.close(); return
     answered = await try_auth(method, path, target, headers, body, client_ip(headers, writer))
     if answered is not None:
         writer.write(answered)

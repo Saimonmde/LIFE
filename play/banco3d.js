@@ -1,5 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Interior original de la Casa bancaria: mostrador, banquero y banquito.
+import { crear } from './personajes3d.js?v=hogar-r1';
 export function buildBank(T) {
   const scene = new T.Scene();
   scene.background = new T.Color('#1a120c');
@@ -35,8 +36,10 @@ export function buildBank(T) {
   mesh(12, 0.55, 7, 12, 1.05, 1.3, '#8a5a32', 'banquero');
   mesh(12, 1.12, 7, 12.4, 0.12, 1.5, '#e6d2a4', 'banquero');
   // Banquero detrás del mostrador.
-  mesh(12, 1.7, 5.2, 0.7, 1.5, 0.45, '#c4553a', 'banquero');
-  mesh(12, 2.65, 5.2, 0.42, 0.42, 0.42, '#e6c2a0', 'banquero');
+  const banquero = crear({ kind: 'banquero' });
+  banquero.position.set(12, 0, 5.2);
+  banquero.traverse(m => { if (m.isMesh) { m.userData.id = 'banquero'; pick.push(m); } });
+  scene.add(banquero);
   // Banquito donde se deposita.
   mesh(17, 0.28, 13, 0.7, 0.45, 0.7, '#6b4224', 'banquito');
   mesh(17, 0.55, 13, 0.85, 0.12, 0.85, '#d8b56a', 'banquito');

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Casa colonial privada (Antioquia, siglos XVII–XIX).
-   Cada jugador tiene su propio interior; el plano se guarda en localStorage por nombre. */
+   Cada jugador tiene su propio interior. El plano queda en este navegador
+   y, con cuenta, también en el servidor. */
 (() => {
   'use strict';
   const MAP_W = 14, MAP_H = 12;
@@ -11,20 +12,25 @@
   const PARK_DOOR = { x: 226 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y };
   const PARK_STAND = { x: 227 + VALLE_OFFSET.x, y: 64 + VALLE_OFFSET.y };
   const CATALOG = {
-    bed: { name: 'Cama', w: 2, h: 1, solid: true },
+    bed: { name: 'Camita', w: 2, h: 1, solid: true, styles: { retazos: 'Cobija de retazos', colonial: 'Cama colonial', dosel: 'Cama con dosel', catre: 'Catre de madera' } },
+    altar: { name: 'Altar', w: 1, h: 1, solid: true, styles: { madera: 'Mesa de madera', velas: 'Altar de velas', hornacina: 'Hornacina', familiar: 'Altar familiar' } },
+    bacenilla: { name: 'Bacenilla', w: 1, h: 1, solid: true },
+    cocina: { name: 'Cocina', w: 2, h: 1, solid: true, styles: { lena: 'Fogón de leña', barro: 'Cocina de barro', carbon: 'Anafe de carbón', estufa: 'Estufa de hierro' } },
+    ventana: { name: 'Ventanita', w: 1, h: 1, solid: true },
+    matica: { name: 'Matica', w: 1, h: 1, solid: true, styles: { flores: 'Flores en matera', helecho: 'Helecho', sabila: 'Sábila', orquidea: 'Orquídea', cinta: 'Cinta' } },
     table: { name: 'Mesa', w: 2, h: 1, solid: true },
     chair: { name: 'Silla', w: 1, h: 1, solid: true },
     chest: { name: 'Baúl', w: 1, h: 1, solid: true },
     stove: { name: 'Cocina', w: 1, h: 1, solid: true },
     pots: { name: 'Ollas', w: 1, h: 1, solid: true },
     plant: { name: 'Matera', w: 1, h: 1, solid: true },
-    altar: { name: 'Altar', w: 1, h: 1, solid: true },
-    rug: { name: 'Alfombra', w: 2, h: 2, solid: false },
+    rug: { name: 'Tapete', w: 2, h: 2, solid: false },
     candle: { name: 'Vela', w: 1, h: 1, solid: false },
     painting: { name: 'Cuadro', w: 1, h: 1, solid: false },
     shelf: { name: 'Estante', w: 1, h: 1, solid: true },
   };
-  const ORDER = ['bed', 'altar', 'table', 'chair', 'chest', 'stove', 'pots', 'plant', 'rug', 'candle', 'painting', 'shelf'];
+  const ORDER = ['bed', 'altar', 'bacenilla', 'cocina', 'ventana', 'matica', 'table', 'chair', 'chest', 'stove', 'pots', 'plant', 'rug', 'candle', 'painting', 'shelf'];
+  const MAX_ITEMS = 36;
   const VARIANTS = {
     bed: [{ id: 'colonial', name: 'Colonial' }, { id: 'nogal', name: 'Nogal' }, { id: 'hamaca', name: 'Hamaca' }],
     altar: [{ id: 'madera', name: 'Madera' }, { id: 'piedra', name: 'Piedra' }, { id: 'dorado', name: 'Dorado' }],
@@ -32,10 +38,14 @@
     stove: [{ id: 'fogon', name: 'Fogón' }, { id: 'lena', name: 'Leña' }, { id: 'mesa', name: 'Mesa' }],
   };
   const WALLS = [
+    { id: 'bahareque', name: 'Bahareque', color: '#e4c48a' },
+    { id: 'ocre', name: 'Ocre', color: '#c9894a' },
     { id: 'cal', name: 'Cal', color: '#f4f0e6' },
+    { id: 'blanco', name: 'Cal blanca', color: '#f7f1e4' },
     { id: 'crema', name: 'Crema', color: '#efe2c4' },
     { id: 'sol', name: 'Sol', color: '#e7d39a' },
     { id: 'salvia', name: 'Salvia', color: '#d5ddc8' },
+    { id: 'anil', name: 'Añil', color: '#6f8f9a' },
   ];
   const FLOORS = [
     { id: 'teja', name: 'Teja', color: '#c45c38' },
@@ -55,23 +65,36 @@
 
   function defaultLayout() {
     return {
-      v: 1, wall: '#f4f0e6', floor: '#c45c38',
+      v: 2, wall: '#e4c48a', floor: '#c45c38',
       items: [
-        { id: 'bed', type: 'bed', x: 1, y: 1, rot: 0 },
-        { id: 'stove', type: 'stove', x: 7, y: 1, rot: 0 },
-        { id: 'pots', type: 'pots', x: 8, y: 1, rot: 0 },
-        { id: 'table', type: 'table', x: 5, y: 3, rot: 0 },
-        { id: 'chair-a', type: 'chair', x: 5, y: 4, rot: 0 },
-        { id: 'chair-b', type: 'chair', x: 7, y: 3, rot: 0 },
-        { id: 'shelf', type: 'shelf', x: 1, y: 4, rot: 0 },
-        { id: 'candle', type: 'candle', x: 6, y: 4, rot: 0 },
-        { id: 'painting', type: 'painting', x: 8, y: 5, rot: 0 },
-        { id: 'rug', type: 'rug', x: 5, y: 6, rot: 0 },
-        { id: 'chest', type: 'chest', x: 1, y: 7, rot: 0 },
-        { id: 'plant-a', type: 'plant', x: 11, y: 3, rot: 0 },
-        { id: 'plant-b', type: 'plant', x: 12, y: 5, rot: 0 },
+        { id: 'bed', type: 'bed', x: 1, y: 1, rot: 0, style: 'retazos' },
+        { id: 'bacenilla', type: 'bacenilla', x: 3, y: 1, rot: 0, style: '' },
+        { id: 'altar', type: 'altar', x: 5, y: 1, rot: 0, style: 'velas' },
+        { id: 'cocina', type: 'cocina', x: 6, y: 1, rot: 0, style: 'lena' },
+        { id: 'ventana', type: 'ventana', x: 1, y: 3, rot: 0, style: '' },
+        { id: 'matica-flores', type: 'matica', x: 2, y: 3, rot: 0, style: 'flores' },
+        { id: 'table', type: 'table', x: 5, y: 3, rot: 0, style: '' },
+        { id: 'chair', type: 'chair', x: 7, y: 4, rot: 0, style: '' },
+        { id: 'cuadro', type: 'painting', x: 8, y: 2, rot: 0, style: '' },
+        { id: 'matica-helecho', type: 'matica', x: 8, y: 5, rot: 0, style: 'helecho' },
+        { id: 'tapete', type: 'rug', x: 3, y: 5, rot: 0, style: '' },
+        { id: 'vela', type: 'candle', x: 6, y: 6, rot: 0, style: '' },
+        { id: 'chest', type: 'chest', x: 1, y: 7, rot: 0, style: '' },
+        { id: 'estante', type: 'shelf', x: 8, y: 7, rot: 0, style: '' },
+        { id: 'matica-sabila', type: 'matica', x: 11, y: 3, rot: 0, style: 'sabila' },
+        { id: 'matica-orquidea', type: 'matica', x: 12, y: 5, rot: 0, style: 'orquidea' },
+        { id: 'matica-cinta', type: 'matica', x: 10, y: 6, rot: 0, style: 'cinta' },
       ],
     };
+  }
+  function stylesOf(type) {
+    const spec = CATALOG[type];
+    return spec && spec.styles ? Object.keys(spec.styles) : [];
+  }
+  function styleOf(type, raw) {
+    const styles = stylesOf(type);
+    if (!styles.length) return '';
+    return styles.includes(raw) ? raw : styles[0];
   }
 
   function sizeOf(item) {
@@ -121,10 +144,10 @@
     const items = [];
     const seen = new Set();
     for (const raw of data.items || []) {
-      if (!raw || !CATALOG[raw.type] || items.length >= 30) continue;
+      if (!raw || !CATALOG[raw.type] || items.length >= MAX_ITEMS) continue;
       let id = String(raw.id || raw.type).replace(/[^\w-]/g, '').slice(0, 24) || raw.type;
       if (seen.has(id)) id = raw.type + '-' + items.length;
-      const item = { id, type: raw.type, x: raw.x | 0, y: raw.y | 0, rot: ((raw.rot | 0) % 4 + 4) % 4 };
+      const item = { id, type: raw.type, x: raw.x | 0, y: raw.y | 0, rot: ((raw.rot | 0) % 4 + 4) % 4, style: styleOf(raw.type, raw.style) };
       if ((VARIANTS[raw.type] || []).some(v => v.id === raw.variant)) item.variant = raw.variant;
       if (!canPlace(items, item)) continue;
       seen.add(id);
@@ -134,7 +157,8 @@
   }
 
   let layout = defaultLayout();
-  let editing = false, armed = null, selected = null, variantPick = null;
+  let visitLayout = null, visitInfo = null;
+  let editing = false, armed = null, armedStyle = '', selected = null, variantPick = null;
   const legacyKey = (name) => 'lifeinc.casa.v1:' + encodeURIComponent(String(name || 'viajero').trim().toLowerCase().slice(0, 16) || 'viajero');
   const storageKey = (name) => {
     const owner = window.Casa.ownerKey ? window.Casa.ownerKey() : name;
@@ -157,7 +181,9 @@
     catch (e) { return false; }
   }
   function commit() {
+    if (visitLayout) return;
     save(window.Casa.playerName ? window.Casa.playerName() : 'viajero');
+    if (window.Hogar) window.Hogar.guardar({ casa: layout });
     if (window.Casa.onLayout) window.Casa.onLayout();
     renderEditor();
   }
@@ -168,6 +194,33 @@
     if (window.Casa.onLayout) window.Casa.onLayout();
     renderEditor();
     return layout;
+  }
+  function reemplazar(data) {
+    if (visitLayout || !data) return layout;
+    layout = sanitize(data);
+    save(window.Casa.playerName ? window.Casa.playerName() : 'viajero');
+    if (window.Casa.onLayout) window.Casa.onLayout();
+    return layout;
+  }
+  function ponerVisita(data) {
+    visitLayout = sanitize(data.casa || data);
+    visitInfo = {
+      codigo: String(data.codigo || ''),
+      dueno: String(data.dueno || 'alguien'),
+      mascotas: Array.isArray(data.mascotas) ? data.mascotas : [],
+    };
+    document.body.classList.add('casa-visita');
+    setEditing(false);
+    if (window.Casa.onLayout) window.Casa.onLayout();
+    return visitLayout;
+  }
+  function quitarVisita(silent) {
+    visitLayout = null;
+    visitInfo = null;
+    document.body.classList.remove('casa-visita');
+    const banda = document.getElementById('visita-banda');
+    if (banda) banda.hidden = true;
+    if (!silent && window.Casa.onLayout) window.Casa.onLayout();
   }
   function buildMap(current) {
     const L = current || layout;
@@ -211,7 +264,7 @@
     leave.onclick = () => { if (window.Casa.exit) window.Casa.exit(); };
     const panel = document.createElement('section');
     panel.id = 'casa-editor'; panel.hidden = true; panel.setAttribute('aria-label', 'Editar la casa');
-    panel.innerHTML = '<header>Editar casa <button type="button" id="casa-done">Listo</button></header><p class="casa-hint">Elige un mueble y toca el suelo para colocarlo. Cama, altar, matera y cocina tienen variantes. El plano se guarda en el servidor.</p><div id="casa-catalog"></div><div id="casa-variants"></div><div id="casa-actions"><button type="button" id="casa-rot" disabled>Rotar</button><button type="button" id="casa-del" disabled>Quitar</button></div><div id="casa-walls"><span>Pared</span></div><div id="casa-floors"><span>Piso</span></div><p id="casa-status" role="status"></p>';
+    panel.innerHTML = '<header>Editar casa <button type="button" id="casa-done">Listo</button></header><p class="casa-hint">Elige un mueble y toca el suelo para colocarlo. Toca uno puesto para moverlo, rotarlo o quitarlo. La camita, el altar, la cocina y las maticas tienen varios tipos. El plano se guarda en el servidor.</p><div id="casa-catalog"></div><div id="casa-estilos"></div><div id="casa-variants"></div><div id="casa-actions"><button type="button" id="casa-rot" disabled>Rotar</button><button type="button" id="casa-del" disabled>Quitar</button></div><div id="casa-walls"><span>Pared</span></div><div id="casa-floors"><span>Piso</span></div><p id="casa-status" role="status"></p>';
     document.body.append(edit, home, leave, panel);
     root = panel;
     catalogEl = panel.querySelector('#casa-catalog');
@@ -222,7 +275,7 @@
     for (const type of ORDER) {
       const b = document.createElement('button');
       b.type = 'button'; b.dataset.type = type; b.textContent = CATALOG[type].name;
-      b.onclick = () => { armed = type; variantPick = (VARIANTS[type] && VARIANTS[type][0].id) || null; selected = null; renderEditor(); };
+      b.onclick = () => { armed = type; armedStyle = styleOf(type, ''); variantPick = (VARIANTS[type] && VARIANTS[type][0].id) || null; selected = null; renderEditor(); };
       catalogEl.append(b);
     }
     for (const w of WALLS) {
@@ -259,12 +312,35 @@
     }
     const item = layout.items.find(i => i.id === selected);
     root.querySelector('#casa-rot').disabled = root.querySelector('#casa-del').disabled = !item;
-    for (const b of root.querySelectorAll('#casa-walls .swatch')) b.classList.toggle('armed', b.style.backgroundColor && false);
+    const estilo = root.querySelector('#casa-estilos');
+    estilo.replaceChildren();
+    const tipo = item ? item.type : armed;
+    const estilos = stylesOf(tipo);
+    if (estilos.length) {
+      const etiqueta = document.createElement('span');
+      etiqueta.textContent = 'Tipo';
+      estilo.append(etiqueta);
+      for (const id of estilos) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = CATALOG[tipo].styles[id];
+        const activo = item ? item.style === id : armedStyle === id;
+        b.classList.toggle('armed', activo);
+        b.onclick = () => {
+          if (item) { item.style = id; commit(); return; }
+          armedStyle = id;
+          renderEditor();
+        };
+        estilo.append(b);
+      }
+    }
+    const nombre = (it) => CATALOG[it.type].name + (CATALOG[it.type].styles && it.style ? ' · ' + CATALOG[it.type].styles[it.style] : '');
     statusEl.textContent = item
-      ? 'Seleccionado: ' + CATALOG[item.type].name + '. Toca otra baldosa para moverlo.'
-      : armed ? 'Colocar: ' + CATALOG[armed].name + '. Toca el suelo.' : 'Toca un mueble o elige uno del catálogo.';
+      ? 'Seleccionado: ' + nombre(item) + '. Toca otra baldosa para moverlo.'
+      : armed ? 'Colocar: ' + nombre({ type: armed, style: armedStyle }) + '. Toca el suelo.' : 'Toca un mueble o elige uno del catálogo.';
   }
   function setEditing(on) {
+    if (on && visitLayout) { if (statusEl) statusEl.textContent = 'Estás de visita: no puedes editar esta casa.'; return; }
     editing = !!on;
     if (!editing) { armed = null; selected = null; }
     renderEditor();
@@ -284,6 +360,7 @@
     commit();
   }
   function clickTile(x, y, itemId) {
+    if (visitLayout) return false;
     if (!editing) return false;
     x |= 0; y |= 0;
     if (itemId) {
@@ -300,8 +377,8 @@
       return true;
     }
     if (armed) {
-      if (layout.items.length >= 30) { statusEl.textContent = 'La casa ya está llena (30 muebles).'; return true; }
-      const item = { id: armed + '-' + Math.random().toString(36).slice(2, 7), type: armed, x, y, rot: 0 };
+      if (layout.items.length >= MAX_ITEMS) { statusEl.textContent = 'La casa ya está llena (' + MAX_ITEMS + ' muebles).'; return true; }
+      const item = { id: armed + '-' + Math.random().toString(36).slice(2, 7), type: armed, x, y, rot: 0, style: styleOf(armed, armedStyle) };
       if (VARIANTS[armed]) item.variant = variantPick || VARIANTS[armed][0].id;
       if (!canPlace(layout.items, item)) { statusEl.textContent = 'Ahí no cabe.'; return true; }
       layout.items.push(item);
@@ -315,11 +392,13 @@
   }
 
   window.Casa = {
-    MAP_W, MAP_H, DOOR, SPAWN, VALLE_OFFSET, PARK_DOOR, PARK_STAND, CATALOG, WALLS, FLOORS, floor,
-    get layout() { return layout; },
+    MAP_W, MAP_H, DOOR, SPAWN, VALLE_OFFSET, PARK_DOOR, PARK_STAND, CATALOG, WALLS, FLOORS, floor, MAX_ITEMS,
+    get layout() { return visitLayout || layout; },
+    get propio() { return layout; },
     get editing() { return editing; },
     get selected() { return selected; },
-    cellsOf, canPlace, load, save, apply, buildMap, mount, setEditing, clickTile, renderEditor,
+    get visita() { return visitInfo; },
+    cellsOf, canPlace, load, save, apply, buildMap, mount, setEditing, clickTile, renderEditor, reemplazar, ponerVisita, quitarVisita, styleOf,
     playerName: () => 'viajero',
     onLayout: null, onEdit: null, enter: null,
   };

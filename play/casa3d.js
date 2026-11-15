@@ -61,6 +61,7 @@ export function buildHouse(T) {
   });
   const shell = new T.Group(); const furn = new T.Group();
   const doorHovers = [];
+  const libros = [];
   scene.add(shell, furn);
   const owned = new Set();
   function clearGroup(group) {
@@ -93,7 +94,7 @@ export function buildHouse(T) {
   }
 
   function rebuild(layout) {
-    clearGroup(shell); clearGroup(furn); pick.length = 0; doorHovers.length = 0;
+    clearGroup(shell); clearGroup(furn); pick.length = 0; doorHovers.length = 0; libros.length = 0;
     const L = layout || window.Casa.layout;
     const wall = L.wall || '#f4f0e6';
     const floorTint = L.floor || '#c45c38';
@@ -130,7 +131,8 @@ export function buildHouse(T) {
     for (const z of [5, 9]) part(shell, boxG(), dark, 10, 4.15, z, 15.4, 0.22, 0.28);
     part(shell, boxG(), dark, 6, 4.15, 10, 0.22, 0.22, 15);
     part(shell, boxG(), '#a86448', 10, 4.45, 1.45, 16.8, 0.18, 0.7);
-    // Ventana con postigos de madera.
+    for (let i = 0; i < 8; i++) part(shell, boxG(), i % 2 ? '#c46a45' : '#9a4e32', 2.4 + i * 2.15, 4.62, 1.32, 1.85, 0.14, 0.62);
+    // Ventana con postigos de madera y un haz de luz.
     const winZ = 9;
     part(shell, boxG(), wood, 1.78, 2.35, winZ, 0.18, 1.7, 1.5);
     for (const side of [-1, 1]) {
@@ -138,6 +140,9 @@ export function buildHouse(T) {
       shutter.rotation.y = side * 0.7;
     }
     part(shell, boxG(), '#9ec4cf', 1.7, 2.35, winZ, 0.08, 1.2, 1.05);
+    const shaft = new T.Mesh(boxG(), new T.MeshBasicMaterial({ color: '#fff1c9', transparent: true, opacity: 0.22, depthWrite: false }));
+    shaft.position.set(3.4, 2.05, winZ); shaft.scale.set(2.8, 0.9, 0.35); shaft.rotation.z = -0.4; add(shell, shaft);
+    const winLight = new T.PointLight(0xffe6b8, 7, 9, 2); winLight.position.set(2.6, 2.3, winZ); scene.add(winLight);
     // Hornacina y cruz de madera (geometría propia, no un icono copiado).
     part(shell, boxG(), '#e7e1d4', 9, 2.7, 2.05, 1.5, 2.1, 0.28);
     part(shell, boxG(), dark, 9, 2.55, 1.82, 0.12, 1.35, 0.1);
@@ -194,8 +199,8 @@ export function buildHouse(T) {
       g.position.set((minX + maxX + 1), 0, (minY + maxY + 1));
       g.rotation.y = -(((item.rot % 4) + 4) % 4) * Math.PI / 2;
       g.userData.casaItem = item.id;
-      buildItem(g, item.type, item.variant);
-      g.traverse(m => { if (m.isMesh) { m.userData.casaItem = item.id; m.castShadow = true; m.receiveShadow = true; pick.push(m); } });
+      buildItem(g, item);
+      g.traverse(m => { if (m.isMesh) { m.userData.casaItem = item.id; m.userData.casaType = item.type; m.castShadow = true; m.receiveShadow = true; pick.push(m); if (m.userData.libro) libros.push(m); } });
       furn.add(g);
       if (item.id === window.Casa.selected) {
         const ring = new T.Mesh(new T.RingGeometry(0.9, 1.15, 24), new T.MeshBasicMaterial({ color: '#ffd56a', side: T.DoubleSide }));
@@ -205,19 +210,76 @@ export function buildHouse(T) {
     }
     furn.userData.anchor = anchor;
   }
-  function buildItem(g, type, variant) {
-    if (variant || type === 'altar') {
+  function buildItem(g, item) {
+    const type = typeof item === 'string' ? item : item.type;
+    const style = typeof item === 'string' ? '' : (item.style || '');
+    const variant = typeof item === 'object' ? (item.variant || '') : '';
+    if (variant && !style) {
       const put = (geometry, color, x, y, z, sx, sy, sz) => part(g, geometry, color, x, y, z, sx, sy, sz);
-      if (furnish(T, put, type, variant || 'madera')) return;
+      if (furnish(T, put, type, variant)) return;
     }
     const P = (geometry, color, x, y, z, sx, sy, sz) => part(g, geometry, color, x, y, z, sx, sy, sz);
     const wood = '#6e4a2e', linen = '#f3efe4', clay = '#a86448';
+    const libro = () => { const m = P(boxG(), '#6d2d32', 0.15, 0.78, 0.12, 0.42, 0.08, 0.3); m.userData.libro = true; P(boxG(), '#f4efe2', 0.15, 0.84, 0.12, 0.36, 0.04, 0.24); return m; };
     if (type === 'bed') {
+      const cobija = style === 'colonial' ? '#f7f3ea' : style === 'catre' ? '#c45c38' : style === 'dosel' ? '#d7e2ea' : '#8d3d3a';
       P(boxG(), wood, 0, 0.28, 0, 3.3, 0.35, 1.55);
       P(boxG(), linen, 0, 0.52, 0.05, 3.05, 0.22, 1.25);
       P(boxG(), '#d9c7a2', -1.15, 0.68, 0.05, 0.7, 0.16, 1.0);
-      P(boxG(), '#8d3d3a', 0.45, 0.66, 0.02, 1.5, 0.1, 1.2);
+      P(boxG(), cobija, 0.45, 0.66, 0.02, 1.7, 0.12, 1.25);
+      if (style === 'retazos' || !style) {
+        P(boxG(), '#e2b23c', 0.1, 0.74, 0.05, 0.55, 0.06, 1.1);
+        P(boxG(), '#3d7f8c', 0.7, 0.74, -0.05, 0.5, 0.06, 0.7);
+        P(boxG(), '#6f8f9a', 1.05, 0.74, 0.2, 0.4, 0.06, 0.55);
+      }
       P(boxG(), wood, -1.55, 0.7, 0, 0.12, 0.7, 1.55);
+      if (style === 'colonial' || style === 'dosel') {
+        for (const x of [-1.45, 1.45]) for (const z of [-0.62, 0.62]) P(boxG(), '#3d2918', x, 1.15, z, 0.1, 1.5, 0.1);
+      }
+      if (style === 'dosel') P(boxG(), '#f4efe4', 0, 1.85, 0, 3.15, 0.08, 1.5);
+      if (style === 'catre') P(boxG(), '#5a3b24', 0, 0.18, 0, 3.2, 0.1, 1.4);
+    } else if (type === 'altar') {
+      if (style === 'hornacina') P(boxG(), '#e7e1d4', 0, 1.15, -0.2, 1.2, 1.6, 0.28);
+      P(boxG(), style === 'familiar' ? '#8d5438' : wood, 0, 0.48, 0, 1.25, 0.7, 0.7);
+      P(boxG(), style === 'velas' || style === 'familiar' ? '#f7f3ea' : '#e7d7b0', 0, 0.86, 0, 1.3, 0.06, 0.74);
+      P(boxG(), '#3d2918', 0, 1.25, -0.05, 0.08, 0.55, 0.08);
+      P(boxG(), '#3d2918', 0, 1.4, -0.05, 0.32, 0.08, 0.08);
+      libro();
+      if (style === 'velas' || style === 'familiar' || style === 'madera' || !style) {
+        for (const x of [-0.38, 0.42]) P(cyl(), '#f3e2b0', x, 1.05, -0.05, 0.06, 0.28, 0.06);
+      }
+      if (style === 'familiar') P(sph(), '#c45c6a', -0.15, 1.05, 0.18, 0.12, 0.16, 0.12);
+    } else if (type === 'bacenilla') {
+      P(cyl(), '#f4efe4', 0, 0.16, 0, 0.28, 0.22, 0.28);
+      P(cyl(), '#e7d7c4', 0, 0.3, 0, 0.32, 0.06, 0.32);
+      P(cyl(), '#d9c7a2', 0, 0.36, 0, 0.18, 0.06, 0.18);
+    } else if (type === 'cocina') {
+      const cuerpo = style === 'estufa' ? '#4a4e52' : style === 'carbon' ? '#2a211c' : clay;
+      P(boxG(), cuerpo, 0, 0.42, 0, 2.5, 0.78, 1.15);
+      P(boxG(), '#1c1612', -0.45, 0.55, 0.42, 0.7, 0.42, 0.1);
+      if (style !== 'estufa') P(boxG(), '#ff9a3c', -0.45, 0.55, 0.3, 0.4, 0.18, 0.1);
+      P(cyl(), style === 'barro' ? '#c48a58' : '#6d5340', 0.55, 0.95, 0.05, 0.28, 0.22, 0.28);
+      P(cyl(), '#8d4d34', 0.95, 0.9, -0.1, 0.18, 0.16, 0.18);
+      if (style === 'lena' || !style) P(boxG(), '#6b4228', -1.05, 0.95, 0, 0.35, 0.12, 0.7);
+      if (style === 'estufa') P(cyl(), '#2c3134', 0.7, 1.15, -0.15, 0.12, 0.45, 0.12);
+      const fire = new T.PointLight(0xff8a32, style === 'estufa' ? 2 : 8, 6, 2); fire.position.set(-0.4, 0.9, 0.2); g.add(fire);
+    } else if (type === 'ventana') {
+      P(boxG(), wood, 0, 1.15, 0, 1.15, 1.45, 0.12);
+      P(boxG(), '#b9d7e2', 0, 1.2, 0.08, 0.85, 1.05, 0.06);
+      P(boxG(), '#fff1c9', 0, 0.85, 0.35, 0.7, 0.9, 0.15);
+      const glow = new T.PointLight(0xfff0c8, 5, 5, 2); glow.position.set(0, 1.2, 0.4); g.add(glow);
+    } else if (type === 'matica' || type === 'plant') {
+      const flor = style === 'orquidea' ? '#c46a9a' : style === 'flores' || type === 'plant' || !style ? '#d24b4b' : style === 'cinta' ? '#7fbf6a' : '';
+      P(cyl(), clay, 0, 0.22, 0, 0.32, 0.36, 0.32);
+      if (style === 'sabila') {
+        for (const a of [-0.4, 0, 0.4]) P(boxG(), '#3f7a45', Math.sin(a) * 0.12, 0.55, Math.cos(a) * 0.05, 0.12, 0.55, 0.08);
+      } else if (style === 'helecho') {
+        P(sph(), '#2f6a34', 0, 0.62, 0, 0.48, 0.28, 0.48);
+        P(sph(), '#4e8a48', 0.2, 0.78, 0.1, 0.32, 0.18, 0.32);
+      } else {
+        P(sph(), style === 'cinta' ? '#dfe8c8' : '#3e6a38', 0, 0.7, 0, 0.4, 0.42, 0.4);
+        if (flor) P(sph(), flor, 0.12, 0.95, 0.08, 0.14, 0.14, 0.14);
+      }
     } else if (type === 'table') {
       P(boxG(), wood, 0, 0.78, 0, 3.1, 0.12, 1.45);
       for (const x of [-1.3, 1.3]) for (const z of [-0.55, 0.55]) P(boxG(), '#5a3b24', x, 0.38, z, 0.12, 0.72, 0.12);
@@ -239,10 +301,6 @@ export function buildHouse(T) {
       P(sph(), '#8d4d34', -0.28, 0.42, 0, 0.2, 0.12, 0.2);
       P(cyl(), '#c48a58', 0.28, 0.16, 0.1, 0.16, 0.24, 0.16);
       P(cyl(), '#6d5340', 0.05, 0.28, -0.22, 0.12, 0.2, 0.12);
-    } else if (type === 'plant') {
-      P(cyl(), clay, 0, 0.22, 0, 0.32, 0.36, 0.32);
-      P(sph(), '#3e6a38', 0, 0.7, 0, 0.42, 0.5, 0.42);
-      P(sph(), '#6f8f45', 0.2, 0.95, 0.1, 0.22, 0.28, 0.22);
     } else if (type === 'rug') {
       const m = part(g, boxG(), '#ffffff', 0, 0.04, 0, 3.6, 0.05, 3.6, rugTex);
       m.userData.ownMat = true;
@@ -263,7 +321,7 @@ export function buildHouse(T) {
     }
   }
   rebuild(window.Casa.layout);
-  return { scene, pick, rebuild, setDoorHover(on) { for (const m of doorHovers) m.visible = !!on; } };
+  return { scene, pick, rebuild, setDoorHover(on) { for (const m of doorHovers) m.visible = !!on; }, setAltarOpen(on) { for (const m of libros) m.rotation.x = on ? -0.9 : 0; } };
 }
 
 export function buildHomeMarker(T, scene, pick, height, material) {

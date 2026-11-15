@@ -17,6 +17,7 @@ NAMES = {
     'players.json': 'players',
     'nft-key.json': 'nft_seed',
     'accounts.json': 'accounts',
+    'hogar.json': 'hogar',
     'libro-madre.json': 'libro_madre',
     'vida.json': 'vida',
 }
