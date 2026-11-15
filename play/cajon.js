@@ -25,7 +25,9 @@
     ];
     return list.slice(0, 3);
   }
-  function balances() {
+  function rawBalances() {
+    /* Simon Coins (oro) = Simoncoin en SMH. Simon Plata (plata) = Simonplata en SPH.
+       Simonchis (cobre) es la moneda entera de cobre, no el SMH del oro. */
     const S = window.__ELJARDIN || {};
     const ledger = S.ledger && S.ledger.balances;
     const name = window.nombrePropio ? nombrePropio() : '';
@@ -37,11 +39,28 @@
       simonplata = (S.plata && S.plata.balanceSph) || 0;
       simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
+    return { simoncoin: simoncoin || 0, simonplata: simonplata || 0, simonchis: simonchis || 0 };
+  }
+  function labeled() {
+    const raw = rawBalances();
+    const sim = window.Simulacion;
     return {
-      simoncoin: coinText(simoncoin, window.Simulacion ? Simulacion.SUBS : 100000000),
-      simonplata: window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(simonplata).replace(/\s*SMP$/, '') : grupo(simonplata),
-      simonchis: grupo(simonchis),
+      oro: sim && sim.formatSai ? sim.formatSai(raw.simoncoin) : grupo(raw.simoncoin),
+      plata: sim && sim.formatPlata ? sim.formatPlata(raw.simonplata) : grupo(raw.simonplata),
+      cobre: grupo(raw.simonchis),
     };
+  }
+  function balances() {
+    const raw = rawBalances();
+    return {
+      simoncoin: coinText(raw.simoncoin, window.Simulacion ? Simulacion.SUBS : 100000000),
+      simonplata: window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(raw.simonplata).replace(/\s*SMP$/, '') : grupo(raw.simonplata),
+      simonchis: grupo(raw.simonchis),
+    };
+  }
+  function putText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
   }
   function paint() {
     const nick = $('#hud-nick');
@@ -49,8 +68,15 @@
     const clock = $('#reloj-ahora');
     if (clock && clockLabel) clock.textContent = clockLabel;
     const money = balances();
+    const shown = labeled();
     const line = $('#hud-saldos');
-    if (line) line.textContent = `Simoncoin ${money.simoncoin} · Simonplata ${money.simonplata} · Simonchis ${money.simonchis}`;
+    if (line) line.textContent = `Simoncoin ${shown.oro} · Simonplata ${shown.plata} · Simonchis ${shown.cobre}`;
+    putText('barra-oro', shown.oro);
+    putText('barra-plata', shown.plata);
+    putText('barra-cobre', shown.cobre);
+    putText('libro-saldo-oro', shown.oro);
+    putText('libro-saldo-plata', shown.plata);
+    putText('libro-saldo-cobre', shown.cobre);
     const box = $('#cajon-monedas');
     if (!box) return;
     box.replaceChildren();
@@ -216,6 +242,24 @@
     menu.addEventListener('pointerup', (e) => { if (e.clientX - startX > 70) closeDrawer(); });
     try { paint(); } catch (e) { console.error(e); }
     try { paintPlaces(); } catch (e) { console.error(e); }
+    const oro = $('#barra-oro-btn');
+    const plata = $('#barra-plata-btn');
+    function flip(storage, mark) {
+      try {
+        const now = localStorage.getItem(storage);
+        localStorage.setItem(storage, now === mark ? '' : mark);
+      } catch (e) {}
+      if (window.Simulacion && Simulacion.paintHud) Simulacion.paintHud();
+      else paint();
+    }
+    if (oro && !oro.dataset.unidad) {
+      oro.dataset.unidad = '1';
+      oro.addEventListener('click', () => flip('lifeinc.unidad', 'SMH'));
+    }
+    if (plata && !plata.dataset.unidad) {
+      plata.dataset.unidad = '1';
+      plata.addEventListener('click', () => flip('lifeinc.unidad.plata', 'SPH'));
+    }
   }
   function mountPicar() {
     if (document.getElementById('b-picar')) return;
@@ -241,7 +285,7 @@
     setInterval(pullClock, 20000);
     setInterval(paint, 1500);
   }
-  window.Cajon = { paint, clockText: () => clockLabel, rememberClock, pullClock };
+  window.Cajon = { paint, labeled, balances, clockText: () => clockLabel, rememberClock, pullClock };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();

@@ -198,6 +198,7 @@ function syncButton() {
   document.body.classList.toggle('mounted', !!api.S.mounted);
 }
 function paintHud() {
+  if (window.Cajon) Cajon.paint();
   const el = $('#sai-saldo');
   if (!el || !api.S.econ) return;
   const subs = walletSubs(walletName());
@@ -525,7 +526,14 @@ function renderLibro() {
     const max = Number(row.max || 0).toLocaleString('es-CO');
     return `${row.name}: ${minted} de ${max}`;
   };
-  el.innerHTML = `<aside class="libro-guia" aria-label="Las tres monedas">
+  const money = window.Cajon && Cajon.labeled ? Cajon.labeled() : { oro: '0 SMC', plata: '0 SMP', cobre: '0' };
+  el.innerHTML = `<section class="libro-saldos" aria-label="Saldos a la fecha">
+      <p class="libro-saldos-titulo">Saldos a la fecha</p>
+      <p class="libro-saldo"><img src="../graphics/mining/moneda_oro.svg?v=saldos-r1" alt=""><span><b class="rotulo">Simon Coins</b><strong id="libro-saldo-oro">${api.esc(money.oro)}</strong><small>oro</small></span></p>
+      <p class="libro-saldo"><img src="../graphics/mining/moneda_plata.svg?v=saldos-r1" alt=""><span><b class="rotulo">Simon Plata</b><strong id="libro-saldo-plata">${api.esc(money.plata)}</strong><small>plata</small></span></p>
+      <p class="libro-saldo"><img src="../graphics/mining/moneda_cobre.svg?v=saldos-r1" alt=""><span><b class="rotulo">Simonchis</b><strong id="libro-saldo-cobre">${api.esc(money.cobre)}</strong><small>cobre</small></span></p>
+      <p class="libro-saldos-nota">Simon Coins es el oro (SMC; el polvo es SMH). Simon Plata es la plata (SMP; el polvo es SPH). Simonchis es el cobre y se cuenta entero: no es el SMH.</p>
+    </section><aside class="libro-guia" aria-label="Las tres monedas">
       <p><b>Simoncoin</b> es el oro. Habrá 21.000.000 y no más.</p>
       <p><b>Simonplata</b> es la plata. Habrá 84.000.000 y no más.</p>
       <p><b>Simonchis</b> son las monedas de cobre. Habrá 333.000.000.</p>

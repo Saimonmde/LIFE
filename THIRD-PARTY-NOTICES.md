@@ -8,6 +8,10 @@ Archivo play/three.module.js, revisión 170. Copyright © 2010–2024 three.js a
 
 Archivo play/PixelifySans.ttf. Copyright 2021 The Pixelify Sans Project Authors. SIL Open Font License 1.1. Aviso existente en play/FUENTE-LICENCIA.txt; texto íntegro y aviso en LICENSES/Pixelify-Sans-OFL-1.1.txt, obtenido del repositorio del proyecto: https://github.com/eifetx/Pixelify-Sans/blob/master/OFL.txt . Mantener estas condiciones y sus avisos al redistribuir o modificar la fuente.
 
+## UnifrakturMaguntia
+
+Archivo play/fonts/UnifrakturMaguntia-Book.ttf. Copyright (c) 2010, j. 'mach' wust, with Reserved Font Name UnifrakturMaguntia. SIL Open Font License 1.1, texto íntegro en LICENSES/UnifrakturMaguntia-OFL.txt. Se usa sin modificar, sólo en el contador de saldos del libro mayor. No se cambia el nombre reservado.
+
 ## Recursos gráficos del proyecto
 
 Se regeneraron los gráficos en una copia aislada de las herramientas propias, usando el archivo de la fuente local para adaptar la ruta del entorno. Se encontraron 317 coincidencias exactas de tamaño y píxeles RGBA. Esta comprobación documenta procedencia reproducible; no garantiza copyright exclusivo. Junto con los seis SVG de minería identificados y autorizados por el titular, suman 323 recursos designados bajo CC BY-SA 4.0 en el manifiesto.
