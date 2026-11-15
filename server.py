@@ -173,7 +173,7 @@ def maybe_fuse():
     save_econ()
     save_vault()
     if result.get('status') == 'pending':
-        print('[fusion] pendiente hasta que entre saimon888oficial@gmail.com', flush=True)
+        print('[fusion] pendiente hasta que entre ' + FUSION.owner_email(), flush=True)
     elif fresh:
         moved = sum(int(item.get('amountSubs') or 0) for item in fresh)
         print(f'[fusion] {len(fresh)} pases, {moved} SMH hacia {dest}. {FUSION.NOTE}', flush=True)
@@ -241,6 +241,22 @@ def token_matches(stored, presented):
     if not stored or not presented or len(stored) != len(str(presented)):
         return False
     return secrets.compare_digest(stored, str(presented))
+
+def mover_billetera(old, new):
+    """El apodo nuevo se queda con las monedas del nombre anterior."""
+    old, new = str(old or ''), str(new or '')
+    if not old or not new or old == new:
+        return
+    wallets = ECON.setdefault('wallets', {})
+    tokens = ECON.setdefault('walletTokens', {})
+    if new in wallets and int(wallets.get(new) or 0):
+        return
+    if old in wallets:
+        wallets[new] = wallets.pop(old)
+    if old in tokens:
+        tokens[new] = tokens.pop(old)
+    save_econ()
+
 
 def bind_wallet(name, presented):
     """Crea la billetera o reconoce a quien guarda el token. No revela el secreto ajeno."""
@@ -1764,13 +1780,32 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure), ACC.cookie('life_return', '', 0, secure)])
     if path == '/auth/entrar' and method == 'POST':
         try:
-            result = ACC.login_password(ACCOUNTS, payload.get('email'), payload.get('password'), client_ip=remote_ip)
+            login = payload.get('nick') if payload.get('nick') else payload.get('email')
+            if '@' in str(login or ''):
+                result = ACC.login_password(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
+            else:
+                result = ACC.login_nick(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
             save_accounts()
         except ACC.AuthError as exc:
             save_accounts()
             return auth_response('400 Bad Request', {'error': str(exc)}, headers)
         return auth_response('200 OK', {'ok': True, 'user': result['user']}, headers,
                              ['Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)])
+    if path == '/auth/apodo' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
+        old_wallet = user.get('wallet_name') or ''
+        try:
+            shown = ACC.set_nick_and_password(
+                ACCOUNTS, user, payload.get('nick'), payload.get('password'), payload.get('confirm'),
+            )
+            mover_billetera(old_wallet, user.get('wallet_name') or '')
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
     if path == '/auth/registro' and method == 'POST':
         if not ACC.email_ready():
             return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado. Entra con Google o Facebook.'}, headers)

@@ -21,6 +21,21 @@ def holdings(state, box):
     return wallets + pool + deposited
 
 
+class OwnerEmailTests(unittest.TestCase):
+    def test_env_wins_and_the_hardcoded_address_is_the_fallback(self):
+        self.assertEqual(fusion.EMAIL, 'saimon888oficial@gmail.com')
+        old = os.environ.pop('SIMON_OWNER_EMAIL', None)
+        try:
+            self.assertEqual(fusion.owner_email(), fusion.EMAIL)
+            os.environ['SIMON_OWNER_EMAIL'] = '  Otra@ejemplo.co '
+            self.assertEqual(fusion.owner_email(), 'otra@ejemplo.co')
+        finally:
+            if old is None:
+                os.environ.pop('SIMON_OWNER_EMAIL', None)
+            else:
+                os.environ['SIMON_OWNER_EMAIL'] = old
+
+
 class FusionTests(unittest.TestCase):
     def setUp(self):
         self.econ = eco.empty_state()

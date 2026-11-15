@@ -168,6 +168,74 @@ def login_password(doc, email, password, now=None, client_ip=None):
     return open_session(doc, user, now)
 
 
+def _dummy_hash():
+    return 'scrypt$' + '00' * 16 + '$' + '00' * 32
+
+
+def _login_bucket(doc, key, now, client_ip):
+    if client_ip:
+        ip_key = 'login-ip:' + hashlib.sha256(str(client_ip).encode()).hexdigest()
+        recent = _prune_rates(doc, ip_key, now)
+        if len(recent) >= 30:
+            raise AuthError('Demasiados intentos. Espera un rato.')
+        recent.append(now)
+        doc['rates'][ip_key] = recent
+    _hit_rate(doc, key, now)
+
+
+def login_nick(doc, nick, password, now=None, client_ip=None):
+    """Entra con el apodo. El error es el mismo si el apodo no existe o la clave no sirve."""
+    now = _now(now)
+    nick = game_name(nick)
+    if not isinstance(password, str) or len(password) > 1024:
+        raise AuthError('Apodo o contraseña incorrectos.')
+    _login_bucket(doc, 'login-nick:' + (name_key(nick) or 'vacio'), now, client_ip)
+    user = None
+    key = name_key(nick)
+    if key:
+        for item in doc['users']:
+            if name_key(item.get('name')) == key or name_key(item.get('wallet_name')) == key:
+                user = item
+                break
+    stored = (user or {}).get('password_hash') or _dummy_hash()
+    verified = verify_password(password, stored) if password else False
+    if not user or not user.get('password_hash') or not verified:
+        raise AuthError('Apodo o contraseña incorrectos.')
+    doc['rates'].pop('login-nick:' + key, None)
+    return open_session(doc, user, now)
+
+
+def set_nick_and_password(doc, user, nick, password, confirm, now=None):
+    """Primera vez: apodo único y contraseña. El hash es el scrypt de siempre.
+
+    TODO: frase secreta de 12 palabras. Mostrarla una sola vez y guardar sólo
+    su hash lento. Todavía no está en este flujo.
+    """
+    now = _now(now)
+    if not user:
+        raise AuthError('Entra otra vez.')
+    _hit_rate(doc, 'clave:' + user['id'], now)
+    if user.get('password_hash'):
+        raise AuthError('Esta cuenta ya tiene contraseña.')
+    nick = game_name(nick)
+    if not nick:
+        raise AuthError('Escribe un apodo de hasta 16 letras.')
+    if not isinstance(password, str) or password != confirm:
+        raise AuthError('Las contraseñas no coinciden.')
+    key = name_key(nick)
+    for other in doc['users']:
+        if other.get('id') == user['id']:
+            continue
+        if name_key(other.get('name')) == key or name_key(other.get('wallet_name')) == key:
+            raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    if not name_available(doc, nick, user_id=user['id'], now=now):
+        raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    user['password_hash'] = hash_password(password)
+    user['name'] = nick
+    user['wallet_name'] = nick
+    return public_user(user)
+
+
 def begin_signup(doc, name, email, phone, password, send_email, start_sms, now=None):
     now = _now(now)
     name = game_name(name)
@@ -247,6 +315,7 @@ def public_user(user):
     return {
         'id': user['id'], 'name': user['name'], 'email': user.get('email') or '',
         'wallet_name': user.get('wallet_name') or '',
+        'needsPassword': not bool(user.get('password_hash')),
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
         'casa': shown,

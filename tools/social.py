@@ -12,6 +12,7 @@ import time
 import unicodedata
 
 import accounts as ACC
+import fusion
 import mascotas
 import muebles
 import mundos
@@ -220,7 +221,7 @@ def role_of(user, admin_header=''):
         return 'simon'
     if not user:
         return 'player'
-    owner = os.environ.get('SIMON_OWNER_EMAIL', '').strip().lower()
+    owner = fusion.owner_email()
     email = str(user.get('email') or '').strip().lower()
     if owner and email and email == owner:
         return 'simon'
