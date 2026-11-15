@@ -72,11 +72,16 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(user['wallet_token'], 'abc123')
 
     def test_provider_buttons_follow_env(self):
-        keys = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'FACEBOOK_APP_ID', 'FACEBOOK_APP_SECRET', 'RESEND_API_KEY', 'EMAIL_FROM', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID']
+        keys = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'FACEBOOK_APP_ID', 'FACEBOOK_APP_SECRET', 'RESEND_API_KEY', 'EMAIL_FROM', 'SMTP_HOST', 'SMTP_FROM', 'TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID']
         old = {k: os.environ.pop(k, None) for k in keys}
         try:
-            self.assertFalse(acc.providers()['guest'])
-            self.assertFalse(acc.providers()['google'])
+            bare = acc.providers()
+            self.assertFalse(bare['guest'])
+            self.assertFalse(bare['google'])
+            self.assertFalse(bare['facebook'])
+            self.assertFalse(bare['registro'])
+            self.assertFalse(bare['reset'])
+            self.assertTrue(bare['email_login'])
             os.environ['GOOGLE_CLIENT_ID'] = 'id'
             os.environ['GOOGLE_CLIENT_SECRET'] = 'secret'
             self.assertTrue(acc.providers()['google'])

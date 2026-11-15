@@ -152,7 +152,22 @@ async function init() {
     const forgot = $('#b-olvide'); if (forgot) forgot.hidden = !p.reset;
     const again = $('#b-reenviar'); if (again) again.hidden = !p.registro;
     const mail = $('#b-correo'); if (mail) mail.hidden = !p.email_login;
-  }).catch(() => {});
+    const note = $('#login-nota');
+    if (note) {
+      if (p.registro) note.hidden = true;
+      else {
+        const vias = [];
+        if (p.google) vias.push('Google');
+        if (p.facebook) vias.push('Facebook');
+        if (p.email_login) vias.push('el correo si ya tienes contraseña');
+        note.hidden = false;
+        note.textContent = 'Sin correo en el servidor no se pueden crear cuentas nuevas ni enviar enlaces. Puedes entrar con ' + (vias.join(' o ') || 'una cuenta que ya exista') + '.';
+      }
+    }
+  }).catch(() => {
+    const note = $('#login-nota');
+    if (note) { note.hidden = false; note.textContent = 'No se pudo leer la configuración. El correo de las cuentas que ya existen sigue disponible.'; }
+  });
 }
 function buildColorPicker() {
   const box = $('#l-colores'); box.innerHTML = '';
