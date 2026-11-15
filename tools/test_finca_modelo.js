@@ -38,7 +38,9 @@ const scene = fs.readFileSync(path.join(__dirname, '../play/finca3d.js'), 'utf8'
 assert.ok(scene.includes('plotCafePlanton') && scene.includes('plotCafeVerde') && scene.includes('plotCafeMaduro'));
 assert.ok(scene.includes('Sprite'));
 assert.ok(scene.includes('opt.height'));
-assert.ok(scene.includes('v2/'));
+assert.ok(scene.includes('0.0156'));
+assert.ok(scene.includes('3.2, 3.2, 1'));
+assert.ok(scene.includes('anclas'));
 assert.ok(scene.includes('manifest.json'));
 
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '../play/assets/cafe-cacao/sara/manifest.json'), 'utf8'));
