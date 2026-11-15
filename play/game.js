@@ -269,14 +269,18 @@ function startGame() {
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
   const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';
   const ovni = !AUTOTEST && window.LIFE_WANT_INTRO === 'ovni' && window.LIFE_OVNI;
+  const heliSpot = !ovni && !AUTOTEST && mid && window.Hogar && Hogar.entryMode(false) === 'heli' && Hogar.stand(mid);
   let fly = false;
   if (ovni) {
     placeAtTown(window.LIFE_OVNI);
     try { localStorage.setItem('lifeinc.vuelo.v1', '1'); } catch (e) {}
     if (window.LIVE3D && LIVE3D.startOvni) LIVE3D.startOvni(window.LIFE_OVNI.x, window.LIFE_OVNI.y);
-  } else if (!AUTOTEST && mid && window.Hogar && Hogar.stand(mid)) {
-    placeAtTown(Hogar.stand(mid));
+  } else if (heliSpot) {
+    placeAtTown(heliSpot);
+    window.LIFE_WANT_INTRO = 'heli';
+    window.LIFE_HELI = heliSpot;
     try { localStorage.setItem('lifeinc.vuelo.v1', '1'); } catch (e) {}
+    if (window.LIVE3D && LIVE3D.startHeli) LIVE3D.startHeli(heliSpot.x, heliSpot.y);
   } else {
     fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
     if (fly) {
@@ -291,7 +295,7 @@ function startGame() {
   if (!fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Bienvenido a Medellín, ${esc(nombrePropio())}.`);
   connect(); updateTutorial(true);
-  if (!fly && !ovni && window.Tutorial) Tutorial.afterFly();
+  if (!fly && !ovni && !heliSpot && window.Tutorial) Tutorial.afterFly();
   if (Q.has('forja')) showForgePreview();
 }
 function showForgePreview(){
@@ -869,7 +873,7 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();
@@ -1163,14 +1167,11 @@ function openCityMap() {
   S.keys.clear();
   cityView.zoom = 1; cityView.panX = 0; cityView.panY = 0;
   clearMapPin();
-  const live = window.LIVE3D && typeof LIVE3D.openValleyMap === 'function';
   const canvas = $('#city-map-canvas');
-  if (live && canvas) canvas.hidden = true;
+  if (canvas) canvas.hidden = false;
   $('#city-map').hidden=false;
   const globe = $('#b-globo'); if (globe) globe.setAttribute('aria-expanded','true');
-  let opened = false;
-  if (live) { try { opened = LIVE3D.openValleyMap() !== false; } catch (err) { console.error(err); } }
-  if (!opened) { if (canvas) canvas.hidden = false; drawCityMap(); }
+  drawCityMap();
   $('#city-map-close').focus();
 }
 function closeCityMap() {
@@ -1330,6 +1331,7 @@ function mapEventTile(e) {
   const rect = canvas.getBoundingClientRect();
   if (e.clientX < rect.left || e.clientY < rect.top || e.clientX > rect.right || e.clientY > rect.bottom) return null;
   const pt = canvasPoint(canvas, e);
+  if (window.ValleMapa && window.VALLE_GEO) return ValleMapa.hit(canvas, cityView, pt.x, pt.y, W);
   const frame = cityFrame();
   const tx = Math.floor((pt.x - frame.left) / frame.scale);
   const ty = Math.floor((pt.y - frame.top) / frame.scale);
@@ -1382,7 +1384,8 @@ if (mapSurface) {
     if (moved || $('#city-map').hidden || (window.LIVE3D && LIVE3D.mapOpen) || !started) return;
     const hit = mapEventTile(e);
     if (!hit) return;
-    const id = labelHit(hit.pt.x, hit.pt.y, (x, y) => [hit.frame.left + (x + .5) * hit.frame.scale, hit.frame.top + (y + .5) * hit.frame.scale], hit.frame.scale);
+    if (hit.id) { askTravel(hit.id); return; }
+    const id = hit.frame && hit.frame.scale != null ? labelHit(hit.pt.x, hit.pt.y, (x, y) => [hit.frame.left + (x + .5) * hit.frame.scale, hit.frame.top + (y + .5) * hit.frame.scale], hit.frame.scale) : null;
     if (id) { askTravel(id); return; }
     askMapSpot(hit.tx, hit.ty);
   };
@@ -1848,8 +1851,17 @@ function cityFrame() {
   return { canvas, size, scale, width, height, left: (size - width) / 2 + cityView.panX, top: (size - height) / 2 + cityView.panY };
 }
 function drawCityMap() {
+  const canvas = $('#city-map-canvas');
+  if (window.ValleMapa && window.VALLE_GEO && canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy } });
+    const home = window.Hogar && S.me.municipio && Hogar.casa(S.me.municipio);
+    $('#city-map-location').textContent = home ? ('Tu casa · ' + home.name + ' · ★ Tú') : ('Tu posición: ' + S.player.fx.toFixed(1) + ', ' + S.player.fy.toFixed(1) + ' · ★ Tú');
+    return;
+  }
   const frame = cityFrame();
-  const canvas = frame.canvas, c = canvas.getContext('2d'), size = frame.size, scale = frame.scale, left = frame.left, top = frame.top, width = frame.width, height = frame.height;
+  const c = canvas.getContext('2d'), size = frame.size, scale = frame.scale, left = frame.left, top = frame.top, width = frame.width, height = frame.height;
   c.clearRect(0,0,size,size);c.fillStyle='#182820';c.fillRect(0,0,size,size);
   c.imageSmoothingEnabled=false;c.drawImage(mmBase,left,top,width,height);
   c.strokeStyle='#a8a17c';c.lineWidth=1;c.strokeRect(left,top,width,height);

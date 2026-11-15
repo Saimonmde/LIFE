@@ -137,6 +137,17 @@ export function createValleyView(T, opts) {
     const liftOff = t > 0.94 ? (t - 0.94) / 0.06 : 0;
     return { x, z, h: landed + liftOff * 10, glide: e, drop: de, t };
   }
+  function heliPoint(spec) {
+    const t = Math.max(0, Math.min(1, spec.t || 0));
+    const e = t * t * (3 - 2 * t);
+    const sx = mapW * 0.08;
+    const sz = mapH * 1.05;
+    const ground = lift(spec.x, spec.y);
+    const x = sx + (spec.x - sx) * e;
+    const z = sz + (spec.y - sz) * e;
+    const h = (ground + 96) + (ground + 5 - (ground + 96)) * e;
+    return { x, z, h, t, e, drop: e };
+  }
   const raycaster = new T.Raycaster();
   const ndc = new T.Vector2();
   let pin = null;
@@ -400,11 +411,12 @@ export function createValleyView(T, opts) {
 
   function pose() {
     if (ride) {
-      const p = ridePoint(ride);
+      const heli = ride.mode === 'heli';
+      const p = heli ? heliPoint(ride) : ridePoint(ride);
       posedTarget.set(p.x * 2 + 1, p.h, p.z * 2 + 1);
-      const yaw = 0.35 + Math.sin(p.t * Math.PI) * 0.25;
-      const pitch = 0.95 - p.drop * 0.12;
-      const distance = 78 - p.drop * 48;
+      const yaw = heli ? 0.55 * (1 - p.e) + 0.15 : 0.35 + Math.sin(p.t * Math.PI) * 0.25;
+      const pitch = heli ? 1.15 - p.e * 0.15 : 0.95 - p.drop * 0.12;
+      const distance = heli ? 88 - p.e * 60 : 78 - p.drop * 48;
       return { target: posedTarget, yaw, pitch, distance };
     }
     if (open) {
@@ -441,7 +453,7 @@ export function createValleyView(T, opts) {
     applyMask(show);
     beacon.visible = show && !ride;
     beacon.position.set(here.x * 2 + 1, lift(here.x, here.y), here.y * 2 + 1);
-    if (ride) {
+    if (ride && ride.mode !== 'heli') {
       const p = ridePoint(ride);
       ufo.visible = p.t < 0.98;
       ufo.position.set(p.x * 2 + 1, p.h, p.z * 2 + 1);
