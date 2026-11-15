@@ -388,7 +388,6 @@ function startGame() {
   }) : { kind: 'none' });
   const ovni = trip.kind === 'ovni';
   const heliSpot = trip.kind === 'heli' ? { x: trip.x, y: trip.y } : null;
-  let fly = false;
   if (ovni) {
     placeAtTown({ x: trip.x, y: trip.y });
     launchRide('ovni', trip.x, trip.y);
@@ -397,21 +396,14 @@ function startGame() {
     window.LIFE_WANT_INTRO = 'heli';
     window.LIFE_HELI = heliSpot;
     launchRide('heli', heliSpot.x, heliSpot.y);
-  } else {
-    fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
-    if (fly) {
-      if ((W.mapId || 'city') === 'casa') switchMap('city');
-      const stand = window.Casa.PARK_STAND;
-      S.player.x = S.player.fx = stand.x; S.player.y = S.player.fy = stand.y; S.player.dir = 'up';
-      window.LIFE_WANT_FLY = true;
-      if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
-    } else beginAtHome();
-  }
+  } else beginAtHome();
   Casa.load(S.me.name);
-  if (!fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
+  if (!ovni && !heliSpot && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Bienvenido a Medellín, ${esc(nombrePropio())}.`);
+  const bar = document.getElementById('viaje-bar'); if (bar) bar.hidden = false;
+  if (!ovni && !heliSpot && window.Intro) Intro.consider();
   connect(); updateTutorial(true);
-  if (!fly && !ovni && !heliSpot && window.Tutorial) Tutorial.afterFly();
+  if (!ovni && !heliSpot && window.Tutorial && !(window.Intro && Intro.blocking())) Tutorial.afterFly();
   if (Q.has('forja')) showForgePreview();
 }
 function showForgePreview(){
@@ -426,6 +418,9 @@ function rest() {
   if (!started) return;
   if (!save()) { $('#rest-status').textContent = 'No se pudo guardar. Libera espacio y vuelve a intentar.'; return; }
   closeForgeChat();pendingFurnaceDrop=null;if(oreDrag||touchOre)endOreDrag();
+  if (window.Intro) Intro.abort();
+  const bar = document.getElementById('viaje-bar'); if (bar) bar.hidden = true;
+  const menu = document.getElementById('viaje-menu'); if (menu) menu.hidden = true;
   started = false; clearTimeout(reconnectTimer);
   S.keys.clear(); S.player.path=[]; S.player.pending=null; S.player.busyUntil=0;
   S.player.fx=S.player.x; S.player.fy=S.player.y; S.dest=null; S.dialog=null;
@@ -875,6 +870,7 @@ function stageComplete(st) {
   return false;
 }
 function updateTutorial(force) {
+  if (window.Intro && Intro.blocking()) return;
   if(W.mapId==='mine'||W.mapId==='casa')return;
   const t = S.quest.def && S.quest.def.tutorial; if (!t || !started) return;
   let changed = force;
@@ -989,7 +985,7 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(window.Intro && Intro.holdPlace()) && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();
@@ -1008,7 +1004,8 @@ function connect() {
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
     else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
-    else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
+    else if (m.t === 'move_correct' && !S.astralHold) { const jump = Math.max(Math.abs(S.player.fx - m.x), Math.abs(S.player.fy - m.y)); S.player.x = S.player.fx = m.x; S.player.y = S.player.fy = m.y; S.player.path = []; if (jump > 2) game('El valle te devolvió al camino.', 'aviso'); }
+    else if (m.t === 'travel_result') { if (!m.ok) { S.astralHold = false; if (window.LiveInk) LiveInk.setIntroLock(false); game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); } else if (window.Intro) Intro.playArrival(m); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
     else if (m.t === 'chat') {
       const mine = m.fromId === S.net.id;
       addLine(m.channel, chatLine(m, mine));
@@ -1030,6 +1027,7 @@ function connect() {
 }
 function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; if(p.pet&&window.Vida&&Vida.decorate)p.pet=Vida.decorate(p.pet); S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
 function sendMove(force) {
+  if (S.astralHold) return;
   if (W.mapId==='mine' || W.mapId==='banco' || W.mapId==='casa') {
     if (!S.net.ok) return;
     const zone = W.mapId;
@@ -1311,18 +1309,21 @@ function closeCityMap() {
   closeTravelAsk();
   clearMapPin();
 }
-const TRAVEL_IDS=new Set(['barbosa','girardota','copacabana','bello','medellin','itagui','envigado','sabaneta','la_estrella','caldas','parque_bolivar','las_palmas']);
+const TRAVEL_IDS=new Set(['barbosa','girardota','copacabana','bello','medellin','itagui','envigado','sabaneta','la_estrella','caldas','parque_bolivar','las_palmas','casa','banco']);
+const TRAVEL_LABELS=[['casa','Tu casa'],['envigado','Parque de Envigado'],['medellin','Parque de Medellín'],['banco','Casa bancaria'],['parque_bolivar','Parque de Bolívar'],['las_palmas','Las Palmas'],['itagui','Parque de Itagüí'],['sabaneta','Parque de Sabaneta'],['bello','Parque de Bello'],['copacabana','Parque de Copacabana'],['girardota','Parque de Girardota'],['barbosa','Parque de Barbosa'],['la_estrella','Parque de La Estrella'],['caldas','Parque de Caldas']];
+const TRAVEL_ANCHORS={casa:{x:94,y:267,name:'Tu casa',enter:'casa'},banco:{x:113,y:257,name:'Casa bancaria'}};
 let travelPick=null;
 function travelName(id){const label=(W.mapLabels||[]).find(item=>item.id===id);return label?label.name:id;}
 function closeTravelAsk(){const box=$('#viaje-dialogo'); if(box) box.hidden=true; travelPick=null;}
 function openTravelAsk(pick, name){
   travelPick=pick;
   const box=$('#viaje-dialogo');
-  $('#viaje-pregunta').textContent='¿Teletransportarte a '+name+'?';
-  const yes=$('#viaje-si'); if(yes) yes.textContent='Confirmar';
+  $('#viaje-pregunta').textContent='¿Cómo quieres ir a '+name+'?';
+  const yes=$('#viaje-si'); if(yes){ yes.textContent='Viaje astral'; yes.disabled=!!(pick&&pick.map); }
+  const horse=$('#viaje-caballo'); if(horse) horse.disabled=false;
   const no=$('#viaje-no'); if(no) no.textContent='Cancelar';
   box.hidden=false;
-  if(yes) yes.focus();
+  if(yes && !yes.disabled) yes.focus(); else if(horse) horse.focus();
 }
 function askTravel(id){
   if(!started||!TRAVEL_IDS.has(id)) return;
@@ -1388,26 +1389,82 @@ function nearestSafe(tx,ty){
   for(let r=1;r<=16;r++) for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) if(Math.max(Math.abs(dx),Math.abs(dy))===r&&open(tx+dx,ty+dy)) return [tx+dx,ty+dy];
   return null;
 }
-function confirmTravel(){
-  const id=travelPick; if(!id) return;
-  if(typeof id==='object' && id.map){
-    const x=id.x, y=id.y;
-    closeTravelAsk();
-    flyTo(x, y, 'ese punto');
-    return;
-  }
-  const name=travelName(id);
-  closeTravelAsk();
-  if(S.net.ok&&S.net.ws){ S.net.ws.send(JSON.stringify({t:'travel', id})); return; }
+function localDest(id){
+  const named=TRAVEL_LABELS.find(row=>row[0]===id);
+  const anchor=TRAVEL_ANCHORS[id];
+  if(anchor){ const spot=nearestSafe(anchor.x,anchor.y)||[anchor.x,anchor.y]; return {x:spot[0],y:spot[1],name:anchor.name,enter:anchor.enter||null}; }
   const wp=(W.waypoints||[]).find(item=>item.id===id);
   const label=(W.mapLabels||[]).find(item=>item.id===id);
-  const src=wp||label; if(!src) return;
-  const spot=nearestSafe(src.x,src.y);
-  if(!spot){ game('No hay un sitio caminable en '+name+'.','aviso'); return; }
-  flyTo(spot[0],spot[1],name);
+  const src=wp||label; if(!src) return null;
+  const spot=nearestSafe(src.x,src.y); if(!spot) return null;
+  return {x:spot[0],y:spot[1],name:named?named[1]:travelName(id),enter:null};
+}
+function finishAstral(m){
+  S.astralHold=true;
+  placeOnCity(m.x,m.y);
+  if(m.id==='casa') enterHouse();
+  S.astralHold=false;
+  S.introLock=false;
+  document.dispatchEvent(new CustomEvent('life-viaje',{detail:'astral'}));
+}
+function requestAstral(id){
+  if(!started||S.astralHold||!id||typeof id==='object'){ if(id&&id.map) game('El viaje astral llega a un lugar de la lista, no a un punto suelto.','aviso'); return; }
+  if(S.mounted&&window.Simulacion) Simulacion.dismount();
+  S.astralHold=true;
+  S.introLock=true;
+  if(S.net.ok&&S.net.ws){ S.net.ws.send(JSON.stringify({t:'travel', id, mode:'astral'})); return; }
+  const spot=localDest(id);
+  if(!spot){ S.astralHold=false; S.introLock=false; game('Ese lugar no está en el mapa.','aviso'); return; }
+  if(window.Intro) Intro.playArrival({x:spot.x,y:spot.y,name:spot.name,id});
+  else { S.astralHold=false; S.introLock=false; flyTo(spot.x,spot.y,spot.name); if(spot.enter==='casa') enterHouse(); }
+}
+function rideTo(x,y){
+  if(!started) return;
+  if((W.mapId||'city')==='mine'){ game('Sal de la mina para montar.','aviso'); return; }
+  if((W.mapId||'city')==='banco'){ switchMap('city'); }
+  if((W.mapId||'city')==='casa') exitHouse();
+  if(window.Simulacion){ if(!S.mounted) Simulacion.summonAndMount(); }
+  const spot=nearestWalkable(Math.round(x),Math.round(y),14);
+  if(!spot){ game('No se puede llegar a caballo hasta ahí.','aviso'); return; }
+  S.rideAuto=true;
+  goTo(spot[0],spot[1]);
+  game('El caballo sigue el camino. WASD, las flechas o el joystick lo desvían.', 'juego');
+  document.dispatchEvent(new CustomEvent('life-viaje',{detail:'caballo'}));
+}
+function openTravelMenu(mode){
+  const menu=$('#viaje-menu'); const list=$('#viaje-lista'); const note=$('#viaje-menu-nota');
+  if(!menu||!list) return;
+  menu.dataset.mode=mode==='caballo'?'caballo':'astral';
+  const title=$('#viaje-menu-titulo'); if(title) title.textContent=mode==='caballo'?'Viajar a caballo':'Viaje astral';
+  if(note) note.textContent=mode==='caballo'?'A caballo recorre el camino. Puedes desviarte con WASD o el joystick.':'El espíritu vuela hasta el lugar y vuelve a entrar en el cuerpo.';
+  list.replaceChildren();
+  for(const [id,name] of TRAVEL_LABELS){
+    const b=document.createElement('button'); b.type='button'; b.textContent=name;
+    b.onclick=()=>{ menu.hidden=true; if(menu.dataset.mode==='caballo'){ const spot=localDest(id); if(spot) rideTo(spot.x,spot.y); } else requestAstral(id); };
+    list.append(b);
+  }
+  menu.hidden=false;
+  document.dispatchEvent(new CustomEvent('life-viaje',{detail:menu.dataset.mode}));
+}
+function confirmTravel(){
+  const id=travelPick; if(!id||(typeof id==='object'&&id.map)){ game('El viaje astral llega a un lugar de la lista.','aviso'); return; }
+  closeTravelAsk();
+  requestAstral(id);
+}
+function confirmHorse(){
+  const id=travelPick; if(!id) return;
+  closeTravelAsk();
+  if(typeof id==='object' && id.map){ rideTo(id.x,id.y); return; }
+  const spot=localDest(id); if(!spot){ game('No hay camino hasta ahí.','aviso'); return; }
+  rideTo(spot.x,spot.y);
 }
 $('#viaje-si').onclick=confirmTravel;
+const viajeCaballo=$('#viaje-caballo'); if(viajeCaballo) viajeCaballo.onclick=confirmHorse;
 $('#viaje-no').onclick=closeTravelAsk;
+const bAstral=$('#b-viaje-astral'); if(bAstral) bAstral.onclick=()=>{ if(started) openTravelMenu('astral'); };
+const bCaballo=$('#b-viaje-caballo'); if(bCaballo) bCaballo.onclick=()=>{ if(started) openTravelMenu('caballo'); };
+const bMontarBarra=$('#b-montar-barra'); if(bMontarBarra) bMontarBarra.onclick=()=>{ if(!started||!window.Simulacion) return; if(S.mounted) Simulacion.dismount(); else Simulacion.summonAndMount(); };
+const viajeCerrar=$('#viaje-menu-cerrar'); if(viajeCerrar) viajeCerrar.onclick=()=>{ const menu=$('#viaje-menu'); if(menu) menu.hidden=true; };
 function nearestWalkable(tx, ty, radius) {
   const limit = radius == null ? 6 : radius;
   for (let r = 0; r <= limit; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.max(Math.abs(dx), Math.abs(dy)) === r && walkable(tx + dx, ty + dy)) return [tx + dx, ty + dy];
@@ -1632,7 +1689,9 @@ function update(dt) {
   const p = S.player, t = now();
   const running = S.keys.has('x') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k => S.keys.has(k));
   const sprinting = running && !S.mounted && !S.sprintLock && S.energy > 0;
-  if (S.houseEdit) { p.path = []; S.dest = null; }
+  if (S.introLock || S.astralHold) { p.path = []; S.dest = null; }
+  else if (S.rideAuto && S.mounted && S.keys.size && !S.dialog) { p.path = []; S.dest = null; S.rideAuto = false; }
+  else if (S.houseEdit) { p.path = []; S.dest = null; }
   else if (!p.path.length && S.keys.size && !S.dialog) {
     let dx = 0, dy = 0; const K = S.keys;
     if (K.has('w') || K.has('arrowup')) dy = -1; if (K.has('s') || K.has('arrowdown')) dy = 1;
@@ -2018,6 +2077,11 @@ function loop(ts) {
 }
 function renderChatNote() { const n = $('#chat-nota'); const before = n.innerHTML; renderChat(); if (n.innerHTML === before) return; }
 
+document.addEventListener('life-intro-done', () => {
+  try { localStorage.setItem('lifeinc.intro.v1','1'); localStorage.setItem('lifeinc.vuelo.v1','1'); } catch (e) {}
+  if (S.net.ok && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'intro_done' }));
+  updateTutorial(true);
+});
 function ensurePersonalHorse(){
  S.mounts=S.mounts||[];
  let horse=S.mounts.find(m=>m.personal);
@@ -2090,6 +2154,8 @@ function goMine(){
  game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
 }
 window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, askTravel, summonPersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); },
+ setIntroLock(on){ S.introLock=!!on; if(on){ S.player.path=[]; S.dest=null; } }, refreshTutorial(){ updateTutorial(true); }, finishAstral, openTravelMenu,
+ goHomeForIntro(){ if((W.mapId||'city')==='mine'||(W.mapId||'city')==='banco') switchMap('city'); if(S.mounted&&window.Simulacion) Simulacion.dismount(); if((W.mapId||'city')!=='casa') enterHouse(); else placeAtHouseSpawn(); },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},

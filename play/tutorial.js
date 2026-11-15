@@ -17,6 +17,7 @@
     }
   }
   function afterFly() {
+    if (window.Intro && Intro.blocking()) return;
     if (/autotest=1/.test(location.search)) return;
     try { if (localStorage.getItem(KEY)) return; } catch {}
     open();

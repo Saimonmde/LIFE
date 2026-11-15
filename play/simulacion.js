@@ -188,8 +188,11 @@ const $ = (s) => document.querySelector(s);
 function walletName() { return api.S.me.name || 'Viajero'; }
 function walletSubs(name) { return (api.S.econ && api.S.econ.wallets && api.S.econ.wallets[name]) || 0; }
 function syncButton() {
+  const label = api.S.mounted ? 'Bajar' : 'Montar';
   const b = $('#b-montar');
-  if (b) b.textContent = api.S.mounted ? 'Bajar' : 'Montar';
+  if (b) b.textContent = label;
+  const bar = $('#b-montar-barra');
+  if (bar) bar.textContent = label;
   const down = $('#b-bajar');
   if (down) down.hidden = !api.S.mounted;
   document.body.classList.toggle('mounted', !!api.S.mounted);
@@ -589,7 +592,19 @@ function dismount() {
   syncButton();
   api.game('Bajas del caballo.', 'juego');
 }
-function mountHorse(horse) {
+function summonAndMount() {
+  if ((api.W().mapId || 'city') !== 'city') { api.game('Los caballos esperan fuera, en el parque.', 'aviso'); return; }
+  const mounts = api.S.mounts || [];
+  if (!mounts.length) { api.game('No hay un caballo en el establo.', 'aviso'); return; }
+  if (api.S.mounted) return;
+  const h = mounts[0];
+  const p = api.S.player;
+  h.ridden = false;
+  h.x = h.fx = p.x; h.y = h.fy = p.y;
+  mountHorse(h, true);
+  api.game('El caballo acude. Vas al cuádruple. WASD, flechas o el joystick lo guían. El botón Bajar desmonta.', 'juego');
+}
+function mountHorse(horse, quiet) {
   if (api.S.mounted) return dismount();
   const h = horse || nearestMount();
   if (!h || h.ridden) { api.game('Acércate a un caballo del establo (tecla M o el botón Montar).', 'aviso'); return; }
@@ -599,7 +614,7 @@ function mountHorse(horse) {
   h.ridden = true;
   h.x = h.fx = p.x; h.y = h.fy = p.y;
   syncButton();
-  api.game('Montas el <b>caballo</b>. Vas al doble de prisa. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
+  if (!quiet) api.game('Montas el <b>caballo</b>. Vas al cuádruple de la marcha. No puedes entrar a edificios ni al agua. M, E o el botón para bajar.', 'juego');
 }
 function blocksTile(W, x, y) {
   if (!api.S.mounted) return false;
@@ -965,7 +980,7 @@ function speedMul() { return api.S.mounted ? ((F.mounts[0] && F.mounts[0].speed)
 
 window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
-  mountHorse, dismount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
+  mountHorse, dismount, summonAndMount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
   rememberSupply, rememberPlata, net,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,

@@ -166,5 +166,13 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind);
     else bind();
   }
-  return { wanted, volume, setWanted, setVolume, isRaw, metalOf, chaChing, clink, fromMint, bind, PITCH };
+  function blip(freq, ms) {
+    if (!wanted()) return;
+    const ac = ensure();
+    if (!ac) return;
+    const dur = Math.max(0.12, (Number(ms) || 180) / 1000);
+    tone(ac, Number(freq) || 440, ac.currentTime, dur, 0.05 * volume());
+  }
+  if (typeof window !== 'undefined') window.LifeAudio = { enabled: wanted, tone: blip };
+  return { wanted, volume, setWanted, setVolume, isRaw, metalOf, chaChing, clink, fromMint, bind, blip, PITCH };
 });

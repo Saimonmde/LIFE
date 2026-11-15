@@ -365,6 +365,7 @@ def public_user(user):
         'needsPassword': not bool(user.get('password_hash')),
         'canClaimSimon': is_owner(user) and simon_key(user.get('wallet_name') or user.get('name')) != 'simon',
         'avatar_id': 'avatar_' + user['id'],
+        'introSeen': bool(user.get('introSeen')),
         'municipio': shown['municipio'],
         'casa': shown,
     }
@@ -387,6 +388,13 @@ def save_casa(user, payload, migrate=False):
     except casa_cuenta.CasaError as exc:
         raise AuthError(str(exc)) from exc
     return public_user(user)
+
+
+def mark_intro(user):
+    """La intro del primer ingreso ya se vio. El documento se guarda con el resto de la cuenta."""
+    if user is not None:
+        user['introSeen'] = True
+    return user
 
 
 def session_user(doc, token, now=None):

@@ -1414,10 +1414,13 @@ def vida_try(c, m, t):
         return True
     return False
 
-TRAVEL_GATE = VIAJES.Gate()
+TRAVEL_GATE = VIAJES.Gate(cooldown=VIAJES.ASTRAL_COOLDOWN)
+
+def correct_move(sender):
+    send(sender, {'t': 'move_correct', 'x': round(sender.x, 2), 'y': round(sender.y, 2), 'zone': sender.zone})
 
 def travel_for(sender, dest_id):
-    """Lleva al jugador a un municipio o punto conocido. El servidor elige la casilla."""
+    """Viaje astral: el servidor elige la casilla de un lugar conocido. No acepta coordenadas sueltas."""
     now = time.time()
     try:
         dest = VIAJES.resolve(WORLD, clean(dest_id, 32).lower())
@@ -1429,6 +1432,7 @@ def travel_for(sender, dest_id):
     sender.zone = 'city'
     sender.x, sender.y = float(dest['x']), float(dest['y'])
     sender.moving = False
+    sender.move_at = now
     sender.place = MUNDOS.place_of(sender.x, sender.y, 'city', PLACES)
     room_shift(sender, old_world, old_place)
     send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
@@ -1504,7 +1508,8 @@ def handle_client_message(c, m, t):
         c.wallet_token = owned or ''
         welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
-                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON)}
+                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON),
+                 'introSeen': bool(c.user.get('introSeen')) if getattr(c, 'user', None) else False}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         send(c, welcome)
         if c.place not in MUNDOS.PRIVATE:
@@ -1517,25 +1522,48 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
         if not c.wallet_ok:
             send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
+    elif t == 'intro_done' and c.hello:
+        user = getattr(c, 'user', None)
+        if user is not None:
+            ACC.mark_intro(user)
+            save_accounts()
+        send(c, {'t': 'intro_saved', 'introSeen': bool(user.get('introSeen')) if user else False})
     elif t == 'travel' and c.hello:
         travel_for(c, m.get('id'))
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
         if zone in ('casa', 'mine', 'banco'):
+            if c.zone == 'city':
+                c.city_x, c.city_y = c.x, c.y
             c.zone = zone
             c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
             if (old_world, old_place) != (c.world, c.place):
                 room_shift(c, old_world, old_place)
             return
-        c.zone = 'city'
         try:
             nx = max(0.0, min(WORLD['width'] - 1.0, float(m['x']))); ny = max(0.0, min(WORLD['height'] - 1.0, float(m['y'])))
         except Exception: return
         if nx != nx or ny != ny: return
-        step = max(abs(nx - c.x), abs(ny - c.y))
-        c.x, c.y = nx, ny
-        note_motion(c, step)
+        now = time.time()
+        came_from = c.zone
+        if came_from != 'city':
+            back = (getattr(c, 'city_x', None), getattr(c, 'city_y', None))
+            if came_from == 'mine' and back[0] is None:
+                back = (c.x, c.y)
+            if not VIAJES.portal_arrival(came_from, nx, ny, back):
+                return correct_move(c)
+            c.zone = 'city'
+            c.x, c.y = nx, ny
+            c.move_at = now
+            note_motion(c, 1)
+        else:
+            step = max(abs(nx - c.x), abs(ny - c.y))
+            if not VIAJES.step_allowed(step, now - float(getattr(c, 'move_at', now) or now)):
+                return correct_move(c)
+            c.move_at = now
+            c.x, c.y = nx, ny
+            note_motion(c, step)
         c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
         c.moving = bool(m.get('moving')); c.level = clamp_level(m.get('level'), c.level)
         c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
