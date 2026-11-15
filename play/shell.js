@@ -53,81 +53,6 @@
     return origFetch(input, init).then(function (res) { finish(); return res; }, function (err) { finish(); throw err; });
   };
 
-  const KEY = 'lifeinc.sonido.v1';
-  let ctx = null;
-  let nodes = null;
-
-  function wanted() {
-    try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; }
-  }
-
-  function paintSound() {
-    const on = wanted();
-    const label = on ? 'Sonido: encendido' : 'Sonido: apagado';
-    const title = document.getElementById('b-sonido-titulo');
-    const hud = document.getElementById('b-sonido');
-    if (title) { title.textContent = label; title.setAttribute('aria-pressed', on ? 'true' : 'false'); }
-    if (hud) {
-      hud.textContent = on ? '♫' : '♪';
-      hud.setAttribute('aria-pressed', on ? 'true' : 'false');
-      hud.setAttribute('aria-label', label);
-      hud.classList.toggle('encendido', on);
-    }
-  }
-
-  function startPad() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    if (!ctx) ctx = new AC();
-    if (!nodes) {
-      const master = ctx.createGain();
-      master.gain.value = 0.035;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 680;
-      filter.connect(master);
-      master.connect(ctx.destination);
-      [220, 277.18, 329.63].forEach(function (freq, i) {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = i === 2 ? 'triangle' : 'sine';
-        osc.frequency.value = freq;
-        gain.gain.value = i === 0 ? 0.55 : 0.28;
-        osc.connect(gain);
-        gain.connect(filter);
-        osc.start();
-      });
-      nodes = master;
-    }
-    if (ctx.state === 'suspended') ctx.resume();
-  }
-
-  function stopPad() {
-    if (ctx && ctx.state === 'running') ctx.suspend();
-  }
-
-  function toggleSound() {
-    if (wanted() && ctx && ctx.state === 'running') {
-      try { localStorage.setItem(KEY, '0'); } catch (e) {}
-      stopPad();
-    } else {
-      try { localStorage.setItem(KEY, '1'); } catch (e) {}
-      startPad();
-    }
-    paintSound();
-  }
-
-  function bindSound() {
-    ['b-sonido', 'b-sonido-titulo'].forEach(function (id) {
-      const el = document.getElementById(id);
-      if (el && !el.dataset.sonido) {
-        el.dataset.sonido = '1';
-        el.addEventListener('click', toggleSound);
-      }
-    });
-    paintSound();
-  }
-
   function serverLine() {
     const el = document.getElementById('login-red');
     if (!el || !window.fetch) return;
@@ -142,7 +67,6 @@
   }
 
   function boot() {
-    bindSound();
     serverLine();
     paint();
   }
