@@ -382,6 +382,36 @@ class FincaTests(unittest.TestCase):
         self.assertEqual(self.config['crops']['cafe']['bagKg'], 70)
         self.assertEqual(self.config['crops']['cacao']['bagKg'], 150)
 
+    def test_outdoor_move_keeps_plots_kilos_and_ledger(self):
+        self.act('ver')
+        plot = next(iter(self.state['accounts'][SECRET]['plots'].values()))
+        plot['plantedAt'] = self.now - 100
+        self.state['harvestedKg']['cacao'] = 900
+        kg = self.state['harvestedKg']['cacao']
+        planted = sum(1 for row in self.state['accounts'][SECRET]['plots'].values() if row.get('plantedAt'))
+        self.state['place'] = 'mina'
+        self.state['feed'] = ['Se cosecharon 90 kg de cacao.']
+        loaded = finca.normalize(self.state)
+        self.assertEqual(loaded['place'], 'las_palmas')
+        self.assertEqual(loaded['harvestedKg']['cacao'], kg)
+        self.assertGreater(planted, 0)
+        self.assertEqual(
+            sum(1 for row in loaded['accounts'][SECRET]['plots'].values() if row.get('plantedAt')),
+            planted,
+        )
+        self.assertEqual(loaded['feed'], ['Se cosecharon 90 kg de cacao.'])
+        with open(os.path.join(ROOT, 'play', 'mine3d.js'), encoding='utf-8') as handle:
+            mine = handle.read()
+        self.assertNotIn('attachFinca', mine)
+        with open(os.path.join(ROOT, 'play', 'unified3d.js'), encoding='utf-8') as handle:
+            world = handle.read()
+        self.assertIn('editorApi', world)
+        self.assertIn('_elevOverlay', world)
+        self.assertIn('freeFlyAt', world)
+        self.assertIn('onEditPointer', world)
+        self.assertIn("id==='las_palmas'", world)
+        self.assertNotIn('underground.finca', world)
+
 
 if __name__ == '__main__':
     unittest.main()

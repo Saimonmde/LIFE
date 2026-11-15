@@ -1809,9 +1809,8 @@ def finca_sync_purse(name):
 
 
 def finca_here(sender):
+    """La finca está afuera, en Las Palmas. La mina es solo la cantera."""
     zone = getattr(sender, 'zone', 'city')
-    if zone == 'mine':
-        return True
     if zone != 'city':
         return False
     spot = next((w for w in WORLD.get('waypoints') or [] if w.get('id') == 'las_palmas'), None)
