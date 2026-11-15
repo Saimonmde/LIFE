@@ -35,13 +35,13 @@
   }
 
   function ingotRows(ledger) {
-    if (!ledger || typeof ledger !== 'object') return null;
+    const map = { oro: 0, plata: 0, cobre: 0 };
+    if (!ledger || typeof ledger !== 'object') return map;
     let source = null;
     if (ledger.ingots && typeof ledger.ingots === 'object') source = ledger.ingots;
     else if (ledger.lingotes && typeof ledger.lingotes === 'object') source = ledger.lingotes;
-    else if (Object.prototype.hasOwnProperty.call(ledger, 'foundry') && ledger.foundry && typeof ledger.foundry === 'object') source = ledger.foundry;
-    if (!source) return null;
-    const map = { oro: 0, plata: 0, cobre: 0 };
+    else if (ledger.foundry && typeof ledger.foundry === 'object') source = ledger.foundry;
+    if (!source) return map;
     for (const [key, value] of Object.entries(source)) {
       const name = String(key).toLowerCase();
       const count = Number(value) || 0;
@@ -66,8 +66,12 @@
     const map = artMap();
     const file = map && map.icons && map.icons[kind];
     if (!file) return '';
-    const src = (map.base || 'assets/cafe-cacao/') + file;
-    return `<img class="libro-ico-img" src="${esc(src)}" alt="">`;
+    const base = map.base || 'assets/cafe-cacao/';
+    const src = base + file;
+    const stand = map.stand && map.stand[kind];
+    if (!stand) return `<img class="libro-ico-img" src="${esc(src)}" alt="">`;
+    const next = base + (map.v2 || 'v2/') + stand;
+    return `<img class="libro-ico-img" src="${esc(next)}" alt="" data-fallback="${esc(src)}" onerror="this.onerror=null;this.src=this.dataset.fallback">`;
   }
 
   function bar(minted, max) {
@@ -112,14 +116,12 @@
       return `<article class="libro-coin"><div class="libro-ico">${icon(kind)}</div><h3>${name}</h3><p>${esc(blurbs[id])}</p><p>Van <b>${esc(formatEs(minted))}</b> de ${esc(formatEs(max))}</p>${bar(minted, max)}</article>`;
     }).join('');
     const ingots = ingotRows(data);
-    const ingotHtml = ingots ? `<section class="libro-ingots"><h3>Lingotes</h3><p>Los cuenta el Banco Central. Acá sólo se leen. Este libro no los crea.</p><ul><li>Oro <b>${esc(formatEs(ingots.oro))}</b></li><li>Plata <b>${esc(formatEs(ingots.plata))}</b></li><li>Cobre <b>${esc(formatEs(ingots.cobre))}</b></li></ul></section>` : '';
+    const ingotHtml = `<section class="libro-ingots"><div class="libro-ico">${icon('ingot')}</div><h3>Lingotes</h3><p>Los cuenta el Banco Central. Acá sólo se leen. Este libro no los crea.</p><ul><li>Oro <b>${esc(formatEs(ingots.oro))}</b></li><li>Plata <b>${esc(formatEs(ingots.plata))}</b></li><li>Cobre <b>${esc(formatEs(ingots.cobre))}</b></li></ul></section>`;
     const feed = [].concat(finca.feed || [], data.extraFeed || []).slice(0, 12);
     const feedHtml = feed.length ? feed.map(line => `<li>${esc(line)}</li>`).join('') : '<li>Todavía no hay movimientos. El libro te lo dice con calma.</li>';
     return `<div class="libro-publico-cuerpo">` +
-      `<p class="libro-lead">Este libro es la memoria de las monedas del juego. Acá ves lo que se acuñó y los totales del café y del cacao. Es una simulación. Las monedas no son dinero real. No se retiran ni se canjean por plata de verdad.</p>` +
-      `<p>Nadie puede crear de más, cambiar ese máximo ni copiar una moneda. El libro público no dice quién.</p>` +
+      `<p class="libro-lead">Este libro es la memoria de las monedas del juego. Las monedas no son dinero real. El libro público no dice quién.</p>` +
       `<div class="libro-grid">${cropHtml}</div>` +
-      `<p class="libro-lead">Arriba ves cuántas van y cuántas pueden existir.</p>` +
       `<div class="libro-grid">${coinHtml}</div>` +
       ingotHtml +
       `<section class="libro-feed"><h3>En vivo</h3><ul>${feedHtml}</ul></section>` +

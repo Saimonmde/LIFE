@@ -1,6 +1,10 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Mapa único del arte de Sara para café, cacao, talleres y el Libro Mayor.
-   El juego pide estos nombres. Para cambiar un dibujo, se reemplaza el archivo. */
+   El juego pide estos nombres. Para cambiar un dibujo, se reemplaza el archivo.
+   Sara deja en v2/ los mismos nombres, de pie y sin texto:
+   v2/taller_cafe_lite.png, v2/taller_cacao_lite.png, v2/kg_cosechados.svg.
+   Si el archivo no está, o si sigue siendo una hoja apaisada, se usa el de ahora.
+   Las hojas 16:9 quedan en hojas/. */
 (function (root, factory) {
   const api = factory();
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
@@ -8,7 +12,17 @@
 })(typeof window !== 'undefined' ? window : this, function () {
   return {
     base: 'assets/cafe-cacao/',
+    v2: 'v2/',
     credit: 'Sara',
+    stand: {
+      workshopCafe: 'taller_cafe_lite.png',
+      workshopCacao: 'taller_cacao_lite.png',
+      kg: 'kg_cosechados.svg',
+    },
+    sheets: {
+      workshopCafe: 'hojas/taller_cafe_lite.png',
+      workshopCacao: 'hojas/taller_cacao_lite.png',
+    },
     icons: {
       cafe: 'cafe.svg',
       cacao: 'cacao.svg',

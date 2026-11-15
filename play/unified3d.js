@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 import * as T from './three.module.js';
-import {buildMine} from './mine3d.js?v=letrero-r1';
-import {attachFinca} from './finca3d.js?v=sara-r1';
+import {buildMine} from './mine3d.js?v=qa-r1';
+import {attachFinca} from './finca3d.js?v=qa-r1';
 import {enrichWorld} from './park3d.js?v=valle-hud-r5';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=valle-hud-r5';
 import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';
@@ -237,7 +237,7 @@ function boot(api){
  for(const d of W.landmarks){if(d.kind==='santa_gertrudis')santaGertrudis(d);else if(d.kind==='santa_ana')santaAna(d);else if(d.kind==='basilica')church(d.x,d.y,d.w,d.h,d.color);else civicChurch(d);}
  for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type==='home_door'||n.def.type==='mine_sign')continue;const sp=sprite(api.spriteKeyFor(n),n.def.x,n.def.y,n.def.id);if(sp)dynamic.push({sp,n});}
  for(const n of (initialZone?api.cityNodes.values():S.nodes.values())){if(n.def.type!=='mine_sign')continue;const g=mineBoard(T,n.def.x*2+1,height(n.def.x,n.def.y),n.def.y*2+1,n.def.id,n.def.facing||0);scene.add(g);g.traverse(mesh=>{if(mesh.isMesh)pick.push(mesh);});}
- let surfaceFinca=null;const fincaEntry=[...(initialZone?api.cityNodes:S.nodes).values()].find(n=>n.def&&n.def.id==='entrada_mina_palmas');if(fincaEntry){surfaceFinca=attachFinca(T,scene,{x:fincaEntry.def.x*2+14,y:height(fincaEntry.def.x,fincaEntry.def.y),z:fincaEntry.def.y*2+1,pick});}
+ let surfaceFinca=null;const fincaEntry=[...(initialZone?api.cityNodes:S.nodes).values()].find(n=>n.def&&n.def.id==='entrada_mina_palmas');if(fincaEntry){surfaceFinca=attachFinca(T,scene,{x:fincaEntry.def.x*2+14,y:height(fincaEntry.def.x,fincaEntry.def.y),z:fincaEntry.def.y*2+1,pick,height});}
  for(const a of (initialZone?api.cityAnimals:S.animals)){const sp=sprite(a.def.sprites.alive[0],a.fx,a.fy,a.def.id);if(sp)dynamic.push({sp,a});}
  for(const d of W.doors){const m=box(d.x*2+1,height(d.x,d.y)+1,d.y*2+1,1.4,2,.3,'#684b2e');m.userData.id=d.id;pick.push(m);}
  const cityLighting=enrichWorld(T,scene,W,pick,height,material);status.lamps=cityLighting.count;
