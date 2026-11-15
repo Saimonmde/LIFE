@@ -31,6 +31,23 @@ assert.ok(html.includes('no son dinero real'));
 assert.ok(html.includes('21.000.000 y no más'));
 assert.ok(html.includes('El libro público no dice quién.'));
 assert.ok(html.includes('Se procesó 1 bulto de café'));
+assert.ok(html.includes('bultos procesados'));
+
+const weighed = libro.render({
+  coins: [],
+  finca: {
+    harvestedKg: { cafe: 940, cacao: 900 },
+    processedBags: { cafe: 2, cacao: 2 },
+    crops: {
+      cafe: { freshName: 'café cereza', unitCount: 'sacos de 70 kg de excelso' },
+      cacao: { freshName: 'cacao en baba', unitCount: 'cajones de 150 kg secos' },
+    },
+    feed: [],
+  },
+});
+assert.ok(weighed.includes('sacos de 70 kg de excelso'));
+assert.ok(weighed.includes('cajones de 150 kg secos'));
+assert.ok(weighed.includes('café cereza'));
 assert.ok(!html.includes('CuentaAnaPrivada'));
 assert.ok(html.includes('Lingotes'));
 assert.ok(html.includes('>2<'));

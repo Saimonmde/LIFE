@@ -10,6 +10,16 @@
   "greenAfterDays": 1,
   "ripeAfterDays": 2,
   "plots": { "cafe": 8, "cacao": 8 },
+  "ripening": {
+    "weeksAfterFlower": 32,
+    "monthsInCenicafeCartilla": 8,
+    "colorStages": 8,
+    "note": "En la finca de verdad la cereza madura unos 8 meses después de la flor, cerca de 32 semanas, y pasa por 8 colores. El reloj del juego va más rápido.",
+    "sources": [
+      "Cenicafé, cartilla de cosecha: de la floración a la maduración transcurren 8 meses. https://publicaciones.cenicafe.org/index.php/libros_manuales/article/download/3197/3218/2968",
+      "Cenicafé, Cromacafé: ocho estados de color, del 1 (verde) al 8 (seco). https://publicaciones.cenicafe.org/index.php/avances_tecnicos/article/view/161"
+    ]
+  },
   "edu": {
     "phases": ["siembra", "crecimiento", "floracion", "fruto", "cosecha"],
     "cafe": [
@@ -18,7 +28,7 @@
       { "id": "lavado", "label": "Lavado" },
       { "id": "secado", "label": "Secado" },
       { "id": "trilla", "label": "Trilla" },
-      { "id": "bulto", "label": "Bulto" }
+      { "id": "bulto", "label": "Saco de 70 kg" }
     ],
     "cacao": [
       { "id": "quiebre", "label": "Quiebre" },
@@ -31,32 +41,52 @@
   "crops": {
     "cafe": {
       "name": "Café",
-      "kgPerHarvest": 1,
+      "freshName": "café cereza",
+      "kgPerHarvest": 94,
       "harvestItem": "cafe_cereza",
       "harvestName": "Café cereza",
-      "product": "Café tostado",
+      "product": "Café excelso",
       "bagKg": 70,
+      "unitCount": "sacos de 70 kg de excelso",
+      "processPhrase": "Se procesó 1 saco de 70 kg de café excelso.",
+      "note": "Cada cosecha son 94 kg de café cereza. Diez cosechas son 940 kg. Quedan 188 kg de pergamino seco: 1 carga de 125 kg y 63 kg. La trilla da 2 sacos de 70 kg de excelso.",
+      "yield": { "num": 7, "den": 47 },
+      "parchment": { "cherryKg": 5, "perSackKg": 94, "cargaKg": 125 },
       "serialPrefix": "CAF",
       "steps": [
         { "id": "despulpado", "label": "Despulpar" },
         { "id": "secado", "label": "Secar" },
-        { "id": "tostado", "label": "Tostar" }
+        { "id": "trilla", "label": "Trillar" }
       ],
-      "prices": { "simoncoin": "0.05", "simonplata": "2", "simonchis": 80 }
+      "prices": { "simoncoin": "0.05", "simonplata": "2", "simonchis": 80 },
+      "sources": [
+        "Cenicafé, Marín et al. 2003: cereza madura a pergamino seco 5,04:1; el rango habitual es 4,7 a 5,3. El juego usa 5 kg de cereza por 1 kg de pergamino para que el kilo sea entero. https://biblioteca.cenicafe.org/bitstream/10778/254/1/arc054%2804%29297-315.pdf",
+        "FNC, glosario: 1 carga = 125 kg de pergamino seco. https://federaciondecafeteros.org/wp/glosario/carga-de-cafe-2/",
+        "FNC: el factor 94 son 94 kg de pergamino seco para 1 saco de 70 kg de excelso. https://federaciondecafeteros.org/aprenda-a-vender-su-cafe/"
+      ]
     },
     "cacao": {
       "name": "Cacao",
-      "kgPerHarvest": 2,
+      "freshName": "cacao en baba",
+      "kgPerHarvest": 90,
       "harvestItem": "cacao_baba",
       "harvestName": "Cacao en baba",
       "product": "Cacao seco",
-      "bagKg": 50,
+      "bagKg": 150,
+      "unitCount": "cajones de 150 kg secos",
+      "processPhrase": "Se procesó 1 cajón de cacao: 150 kg secos.",
+      "note": "Cada cosecha son 90 kg de cacao en baba. Diez cosechas son 900 kg: dos cajones de 1 × 1 × 0,9 m, con 450 kg en baba cada uno. Cada cajón da 150 kg de cacao seco.",
+      "yield": { "num": 1, "den": 3 },
+      "box": { "lengthM": 1, "widthM": 1, "heightM": 0.9, "babaKg": 450, "dryKg": 150 },
       "serialPrefix": "CAC",
       "steps": [
         { "id": "fermentado", "label": "Fermentar" },
         { "id": "secado", "label": "Secar" }
       ],
-      "prices": { "simoncoin": "0.04", "simonplata": "1.5", "simonchis": 60 }
+      "prices": { "simoncoin": "0.04", "simonplata": "1.5", "simonchis": 60 },
+      "sources": [
+        "Cajón de 1 × 1 × 0,9 m: 450 kg de cacao fresco en baba y 150 kg secos. Protocolo de fermentación, Red Cacaotera; la tabla cita a Swisscontact y Colombia Productiva. https://www.redcacaotera.com.co/wp-content/uploads/2025/08/FERMENTACION.pdf"
+      ]
     }
   }
 }

@@ -50,25 +50,28 @@
       return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>`;
     };
     const bags = (view.bags || []).map(bag => (
-      `<div class="finca-bag"><span>${bag.serial} · ${bag.product}</span><span>` +
+      `<div class="finca-bag"><span>${bag.serial} · ${bag.product} · ${bag.kg || 0} kg</span><span>` +
       `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simoncoin">Vender oro</button>` +
       `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simonplata">Vender plata</button>` +
       `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simonchis">Vender cobre</button>` +
       `<button type="button" data-op="depositar" data-serial="${bag.serial}">Mi banco</button></span></div>`
-    )).join('') || '<p>No tienes bultos en la mano.</p>';
+    )).join('') || '<p>No tienes sacos ni cajones en la mano.</p>';
     const bank = (view.bank || []).map(bag => (
-      `<div class="finca-bag"><span>${bag.serial}</span><button type="button" data-op="retirar" data-serial="${bag.serial}">Retirar</button></div>`
-    )).join('') || '<p>El banco no guarda bultos tuyos.</p>';
+      `<div class="finca-bag"><span>${bag.serial} · ${bag.kg || 0} kg</span><button type="button" data-op="retirar" data-serial="${bag.serial}">Retirar</button></div>`
+    )).join('') || '<p>El banco no guarda sacos ni cajones tuyos.</p>';
     const pay = view.buyerBalances || {};
     root.innerHTML = `
       <p class="finca-note" id="finca-note">Plantas. Esperas. Cosechas. Procesas. Vendes.</p>
-      <p>Diez cosechas dan dos bultos. Los kilos del libro no bajan al vender.</p>
+      <p>${((view.crops || {}).cafe || {}).note || ''}</p>
+      <p>${((view.crops || {}).cacao || {}).note || ''}</p>
+      <p>${view.ripeningNote || ''}</p>
+      <p>Esos kilos cosechados se suman y no bajan. El taller no crea kilos ni monedas.</p>
       <h3>Café, junto al cacao</h3>${list('cafe') || '<p>Sin parcelas.</p>'}
       <h3>Cacao, junto al café</h3>${list('cacao') || '<p>Sin parcelas.</p>'}
-      ${workshop('cafe', 'Taller de café · despulpar, secar, tostar')}
+      ${workshop('cafe', 'Taller de café · despulpar, secar, trillar')}
       ${workshop('cacao', 'Taller de cacao · fermentar, secar')}
       <h3>En la mano</h3>
-      <p>Cereza ${goods.cafe_cereza || 0} · Cacao ${goods.cacao_baba || 0}</p>
+      <p>Cereza ${goods.cafe_cereza || 0} recolecciones · Baba ${goods.cacao_baba || 0} recolecciones</p>
       ${bags}
       <h3>Mi banco</h3>${bank}
       <h3>${view.buyerName || 'Casa de Contratación'}</h3>
