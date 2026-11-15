@@ -28,6 +28,8 @@ import simon_api as SIMON_API
 import reloj as RELOJ
 import cobre as COBRE
 import monedas as MONEDAS
+import serie as SERIE
+import banco as BANCO
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -393,6 +395,17 @@ def revert_issue(name, granted):
     if mem and mem[-1].get('to') == name and int(mem[-1].get('amountSubs') or 0) == int(granted):
         mem.pop()
 
+def _fecha_juego():
+    try:
+        return RELOJ.payload(ECON).get('label') or ''
+    except Exception:
+        return ''
+
+
+def _anotar_serie(coin, qty, minter):
+    return SERIE.record(ECON, coin, int(qty), str(minter or 'cuenta'), int(time.time()), _fecha_juego())
+
+
 def emitir(sender, smh, note, kind, foundry, tile, location):
     profile = account_profile(sender)
     granted = ECO.issue(ECON, sender.name, smh, note, kind)
@@ -405,6 +418,15 @@ def emitir(sender, smh, note, kind, foundry, tile, location):
     pub = anotar_emision(sender.name, granted, location)
     if not pub:
         revert_issue(sender.name, granted)
+        SUP.restore(ECON, profile['account'], granted, minted=True, undo_claim=True)
+        save_econ()
+        return 0, None, None
+    try:
+        sender.serie = _anotar_serie('simoncoin', granted, profile.get('account') or sender.name)
+    except SERIE.SerieError:
+        revert_issue(sender.name, granted)
+        LIBRO.revertir(LIBRO_CHAIN, pub)
+        LIBRO.save(LIBRO_PATH, LIBRO_CHAIN, [])
         SUP.restore(ECON, profile['account'], granted, minted=True, undo_claim=True)
         save_econ()
         return 0, None, None
@@ -489,9 +511,17 @@ def mint_plata(sender, proof=None):
         if not result.get('ok'):
             return fail_plata(sender, result.get('reason') or 'signature')
         sender.activity_tiles = 0
+        sph = int(result.get('sph') or 0)
+        try:
+            sender.serie = _anotar_serie('simonplata', sph, profile.get('account') or sender.name)
+        except SERIE.SerieError:
+            if sph and PLATA.park(ECON, sender.name, sph):
+                box = ECON.get('plata') or {}
+                box['minedSph'] = max(0, int(box.get('minedSph') or 0) - sph)
+            save_econ()
+            return fail_plata(sender, 'supply')
         save_econ()
         broadcast_econ()
-        sph = int(result.get('sph') or 0)
         text = f'Se minaron {PLATA.format_pair(sph)}. Es una simulación: no es dinero real.'
         send(sender, {'t': 'system', 'text': text})
         send(sender, {'t': 'issued', 'coin': 'SMP', 'amountSph': sph, 'amountText': PLATA.format_pair(sph), 'kind': 'plata', 'plata': result.get('view')})
@@ -569,16 +599,7 @@ def _smelt_fail(sender, reason):
     send(sender, {'t': 'smelt_result', 'ok': False, 'reason': reason, 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
 def fundir_lingotes(sender, ore, batches):
-    metal = METAL.get(ore)
-    if not metal:
-        return _smelt_fail(sender, 'Ese mineral no se funde.')
-    qty = batches
-    item = 'lingote_' + metal
-    MONEDAS.anotar_lingotes(ECON, sender.name, item, qty)
-    save_econ()
-    note = f'El horno guardó {qty} lingote{"s" if qty != 1 else ""} de {metal}.'
-    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'ingot', 'ore': ore, 'batches': batches, 'item': item, 'qty': qty, 'reason': note, 'ledger': MONEDAS.ledger(ECON, sender.name)})
-    send(sender, {'t': 'system', 'text': note})
+    return _smelt_fail(sender, 'Tú acuñas monedas; los lingotes solo los hace el Banco Central.')
 
 def fundir_simonchis(sender, ore, batches, proof):
     profile = account_profile(sender)
@@ -604,6 +625,15 @@ def fundir_simonchis(sender, ore, batches, proof):
             return _smelt_fail(sender, 'Hoy ya acuñaste las Simonchis de este día.')
         return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
     qty = int(result['qty'])
+    try:
+        sender.serie = _anotar_serie('simonchis', qty, profile.get('account') or sender.name)
+    except SERIE.SerieError:
+        box = ECON.get('simonchis') or {}
+        box['minted'] = max(0, int(box.get('minted') or 0) - qty)
+        wallets = box.setdefault('wallets', {})
+        wallets[sender.name] = max(0, int(wallets.get(sender.name) or 0) - qty)
+        save_econ()
+        return _smelt_fail(sender, 'Ya no se pueden crear más Simonchis. El tope es 333.000.000.')
     note = f'Se acuñaron {qty} Simonchis. No es dinero real.'
     view = MONEDAS.ledger(ECON, sender.name, profile['account'])
     broadcast_econ()
@@ -630,7 +660,7 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
         return _smelt_fail(sender, 'Esta billetera se creó en otro aparato.')
     mode = str(mode or 'simoncoin')
     if mode == 'ingot':
-        return fundir_lingotes(sender, ore, batches)
+        return _smelt_fail(sender, 'Tú acuñas monedas; los lingotes solo los hace el Banco Central.')
     if mode == 'simonchis':
         return fundir_simonchis(sender, ore, batches, proof)
     if mode == 'simonplata':
@@ -1641,7 +1671,8 @@ async def handle(reader, writer):
     path = urllib.parse.unquote(urllib.parse.urlparse(target).path)
     body = b''
     simon_post = method == 'POST' and path.startswith('/api/simon')
-    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post):
+    banco_post = method == 'POST' and path.startswith('/api/banco')
+    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or banco_post):
         try:
             cap = 80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000
             length = min(int(headers.get('content-length') or 0), cap)
@@ -1700,6 +1731,54 @@ async def handle(reader, writer):
             loc = 'https://github.com/Saimonmde/LIFE'
             writer.write(f'HTTP/1.1 302 Found\r\nLocation: {loc}\r\nCache-Control: no-store\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'.encode())
             await writer.drain(); writer.close(); return
+    if path in ('/api/serie', '/api/serie/'):
+        if method == 'POST':
+            body = '{"error":"El tope no se puede cambiar."}'.encode()
+            writer.write(f'HTTP/1.1 405 Method Not Allowed\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            writer.write(body)
+            await writer.drain(); writer.close(); return
+        if method in ('GET', 'HEAD'):
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
+            ident = (query.get('id') or [''])[0]
+            entry = SERIE.lookup_id(ECON, ident) if ident else None
+            if entry is None:
+                try:
+                    number = int((query.get('n') or ['0'])[0])
+                except ValueError:
+                    number = 0
+                entry = SERIE.lookup(ECON, (query.get('moneda') or [''])[0], number) if number else None
+            if not entry:
+                body = '{"error":"esa serie no está"}'.encode()
+                writer.write(f'HTTP/1.1 404 Not Found\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            else:
+                entry['chain'] = SERIE.intact(ECON)
+                body = json.dumps(entry, ensure_ascii=False).encode()
+                writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            if method == 'GET':
+                writer.write(body)
+            await writer.drain(); writer.close(); return
+    if path in ('/api/banco/lingotes', '/api/banco/lingotes/') and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))
+        if not BANCO.autorizado(headers.get('x-simon-admin', ''), user):
+            body = '{"error":"Sólo el Banco Central puede crear lingotes."}'.encode()
+            writer.write(f'HTTP/1.1 403 Forbidden\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            writer.write(body)
+            await writer.drain(); writer.close(); return
+        try:
+            payload = json.loads(body.decode() or '{}')
+            qty = payload.get('qty')
+            qty = int(qty) if isinstance(qty, int) and not isinstance(qty, bool) else int(str(qty))
+            entry = BANCO.crear_lingotes(ECON, payload.get('metal'), qty, (user or {}).get('id') or 'admin', int(time.time()), _fecha_juego())
+            save_econ()
+        except (BANCO.BancoError, TypeError, ValueError) as exc:
+            body = json.dumps({'error': str(exc)}, ensure_ascii=False).encode()
+            writer.write(f'HTTP/1.1 400 Bad Request\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+            writer.write(body)
+            await writer.drain(); writer.close(); return
+        raw = json.dumps({'ok': True, 'ingot': entry}, ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(raw)}\r\nConnection: close\r\n\r\n'.encode())
+        writer.write(raw)
+        await writer.drain(); writer.close(); return
     if path in ('/api/reloj', '/api/reloj/') and method in ('GET', 'HEAD'):
         body = json.dumps(RELOJ.payload(ECON), ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())

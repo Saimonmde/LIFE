@@ -160,7 +160,7 @@
       '<li>Elige el mineral: oro, plata o cobre.</li>',
       '<li>Pulsa Acuñar Simoncoin, Acuñar Simonplata o Acuñar Simonchis.</li>',
       '<li>Espera un momento. Si todavía cabe, las monedas entran en tu saldo y en el libro de todos.</li>',
-      '<li>Si pulsas Crear lingotes, el horno guarda barras. Las barras no son estas tres monedas.</li>',
+      '<li>Tú acuñas monedas; los lingotes solo los hace el Banco Central.</li>',
       '</ol>',
       '<p>Si el número ya llegó al máximo, el horno se detiene. No aparece ni una moneda de más.</p>',
       '</section>',
