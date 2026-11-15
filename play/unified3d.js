@@ -12,7 +12,7 @@ import {attachVida} from './vida3d.js?v=guardar-r1';
 import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-4-sur-r1';
 import {createHorse, poseRider} from './caballo3d.js?v=afuera-r1';
 import {createGuacharaca} from './guacharaca3d.js?v=guacha-r2';
-import {createGallo} from './gallo3d.js?v=gallo-r1';
+import {createGallo, createGallina} from './gallo3d.js?v=corral-r1';
 import {board as mineBoard} from './letrero3d.js?v=sara-cartel';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
@@ -374,7 +374,8 @@ function boot(api){
  const galloMeshes=new Map();const galloLabels=new Map();
  function drawGallos(away){
   if(!window.Gallos)return;
-  const near=away?[]:Gallos.birds().filter(b=>Math.hypot(b.fx-S.player.fx,b.fy-S.player.fy)<36);
+  const caught=window.Corral?Corral.caught():[];
+  const near=away?[]:Gallos.birds().filter(b=>caught.indexOf(b.id)<0&&Math.hypot(b.fx-S.player.fx,b.fy-S.player.fy)<36);
   const ids=new Set();
   for(const b of near){
    ids.add(b.id);
@@ -391,6 +392,38 @@ function boot(api){
   }
   for(const [id,g] of galloMeshes)if(!ids.has(id))g.root.visible=false;
   for(const [id,el] of galloLabels)if(!ids.has(id))el.hidden=true;
+ }
+ const penMeshes=new Map();let penFence=null;
+ function ownHouse(){const id=S.me&&S.me.municipio;const list=(window.HOGARES&&HOGARES.casas)||[];return list.find(item=>item.id===id)||null;}
+ function drawCorral(away){
+  if(!window.Corral)return;
+  const animals=away?[]:Corral.animals();
+  const house=ownHouse();
+  const boxes=[];
+  if(house)boxes.push(Corral.bounds(house,'patio'));
+  if(animals.some(animal=>animal.place==='finca'))boxes.push(Corral.bounds(house,'finca'));
+  if(!penFence&&house&&!away){
+   penFence=new T.Group();
+   const box=Corral.bounds(house,'patio');
+   const y0=height(box.x,box.y);
+   for(const [px,pz] of [[box.x,box.y],[box.x+box.w,box.y],[box.x,box.y+box.h],[box.x+box.w,box.y+box.h]]){
+    const post=new T.Mesh(new T.BoxGeometry(.12,1,.12),material('#8a6240'));
+    post.position.set(px*2,y0+.5,pz*2);penFence.add(post);
+   }
+   scene.add(penFence);
+  }
+  if(penFence)penFence.visible=!!(house&&!away);
+  const ids=new Set();
+  for(const animal of animals){
+   ids.add(animal.id);
+   let g=penMeshes.get(animal.id);
+   if(!g){g=animal.species==='gallina'?createGallina(animal.color):createGallo(animal.color);scene.add(g.root);penMeshes.set(animal.id,g);}
+   const box=Corral.bounds(house,animal.place);
+   g.root.visible=!away;
+   g.root.position.set((animal.fx||box.x)*2+1,height(animal.fx||box.x,animal.fy||box.y), (animal.fy||box.y)*2+1);
+   g.pose(animal,performance.now()/1000);
+  }
+  for(const [id,g] of penMeshes)if(!ids.has(id)){g.root.visible=false;}
  }
  const guachaMeshes=new Map();const guachaLabels=new Map();
  const guachaStyle=document.createElement('style');guachaStyle.textContent='.guacha-nombre{position:absolute;transform:translate(-50%,-130%);background:#1c3324e6;color:#e7f6df;border:1px solid #7dcea0;border-radius:8px;padding:3px 7px;font:12px/1.25 system-ui;text-align:center;pointer-events:none;white-space:nowrap}.guacha-nombre small{display:block;color:#b7e2c3;font-size:10px}.guacha-nombre i{display:inline-block;width:8px;height:8px;margin-right:4px;background:#3f8f4a;border-radius:0 8px 0 8px;vertical-align:middle}';document.head.append(guachaStyle);
@@ -441,7 +474,7 @@ if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colo
  const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':region?.name||'Valle de Aburrá';
  for(const n of W.npcs)actor(n.id,n.x,n.y,'#ab8338');
  for(const m of W.memories){m.mesh.rotation.y+=.01;m.mesh.visible=!found.has(m.id);if(api.started&&!found.has(m.id)&&Math.hypot(p.fx-m.x,p.fy-m.y)<2){found.add(m.id);localStorage.setItem('lifeinc.aburra.memories.v1',JSON.stringify([...found]));document.querySelector('#book').style.outline='2px solid #edc76b';}}
- document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);drawGuacharacas(away,time/1000);drawGallos(away);if(status.onEditFrame)status.onEditFrame();renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
+ document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);drawGuacharacas(away,time/1000);drawGallos(away);drawCorral(away);if(status.onEditFrame)status.onEditFrame();renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
  status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(status.ovni||status.heli||window.LIFE_WANT_INTRO==='ovni'||window.LIFE_WANT_INTRO==='heli')return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:7000};};

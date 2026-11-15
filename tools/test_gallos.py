@@ -31,7 +31,10 @@ class GallosTests(unittest.TestCase):
         doors = {(house['x'], house['y']) for house in self.homes['casas']}
         plots = {(item['x'], item['y']) for item in self.doc['plots']}
         for bird in roosters:
-            self.assertIn(bird['where'], ('patio', 'finca'))
+            self.assertIn(bird['where'], ('patio', 'finca', 'monte'))
+            if bird['where'] == 'monte':
+                self.assertTrue(bird['loose'])
+                self.assertEqual(bird['species'], 'gallo')
             self.assertNotIn((bird['x'], bird['y']), doors)
             self.assertNotIn((bird['x'], bird['y']), plots)
             self.assertNotEqual(self.world['tiles'][str(self.world['ground'][bird['y']][bird['x']])]['kind'], 'water')

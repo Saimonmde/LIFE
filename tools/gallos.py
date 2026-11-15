@@ -51,6 +51,10 @@ def sellable(item):
     return str(item or '') == ITEM
 
 
+def killable(item):
+    return False
+
+
 def crows_real(hour, minute):
     """Canto fuerte entre las 5:00 inclusive y las 6:00 exclusive, hora de Bogotá."""
     try:
@@ -246,6 +250,8 @@ def place(world, homes):
             'y': spot[1],
             'where': 'patio',
             'house': house['id'],
+            'species': 'gallo',
+            'loose': False,
         })
     palmas = next((item for item in world.get('waypoints') or [] if item.get('id') == 'las_palmas'), None)
     if palmas:
@@ -270,12 +276,45 @@ def place(world, homes):
             if any(max(abs(x - item['x']), abs(y - item['y'])) < 3 for item in roosters if item['where'] == 'finca'):
                 continue
             used.add((x, y))
+            kind = 'gallina' if len([item for item in roosters if item.get('species') == 'gallina']) < 2 else 'gallo'
             roosters.append({
-                'id': 'gallo-finca-%d' % (len([item for item in roosters if item['where'] == 'finca']) + 1),
+                'id': '%s-finca-%d' % (kind, len([item for item in roosters if item['where'] == 'finca']) + 1),
                 'x': x,
                 'y': y,
                 'where': 'finca',
                 'house': '',
+                'species': kind,
+                'loose': True,
+            })
+    houses = [(int(house['x']), int(house['y'])) for house in (homes or {}).get('casas') or []]
+    loose = 0
+    for y in range(16, world['height'] - 16, 10):
+        if loose >= 3:
+            break
+        for x in range(16, world['width'] - 16, 12):
+            if loose >= 3:
+                break
+            if (x, y) in used or not _open(world, x, y) or _kind(world, x, y) != 'mountain':
+                continue
+            edge = False
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < world['width'] and 0 <= ny < world['height'] and _kind(world, nx, ny).startswith('grass'):
+                    edge = True
+            if not edge:
+                continue
+            if any(max(abs(x - hx), abs(y - hy)) < 12 for hx, hy in houses):
+                continue
+            used.add((x, y))
+            loose += 1
+            roosters.append({
+                'id': 'gallo-monte-%d' % loose,
+                'x': x,
+                'y': y,
+                'where': 'monte',
+                'house': '',
+                'species': 'gallo',
+                'loose': True,
             })
     return {
         'roosters': roosters,
