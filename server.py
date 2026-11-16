@@ -828,13 +828,14 @@ def acunar_for(sender, coin, pieces, proof=None):
         )
         if not result or not result.get('ok'):
             return
-        granted, _token, _pub = emitir(
+        granted, _token, pub = emitir(
             sender, result['smh'], 'Acuñación de Simoncoin con oros crudos', 'fundicion',
             'fundidora', 'horno', 'Horno',
         )
         if granted <= 0:
-            return _smelt_fail(sender, 'Ya no se puede crear más Simoncoin.')
+            return _acunar_fail(sender, 'No se pudo anotar el registro único. No se creó Simoncoin.', 'registry')
         got = granted / ECO.SUBS
+        sender.registro = pub
     elif coin == 'simonplata':
         want = int(round(quote['recibes'] * ECO.SUBS))
         if not proof:
@@ -886,12 +887,24 @@ def acunar_for(sender, coin, pieces, proof=None):
     recibido = done['recibes']
     if coin == 'simoncoin' and getattr(sender, 'kept_smh', None) is not None:
         recibido = sender.kept_smh / ECO.SUBS
+    saldos = view.get('balances') or {}
+    razon = (
+        f'Se acuñó {recibido} {row["name"]}. '
+        f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}, '
+        f'{PLATA.format_smp(saldos.get("simonplata") or 0)}, '
+        f'{int(saldos.get("simonchis") or 0)} Simonchis. '
+        f'Se gastaron {done["gastas"]} {row["metal"]}.'
+    )
+    registro = getattr(sender, 'registro', None) if coin == 'simoncoin' else None
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
         'item': row['item'], 'spent': done['gastas'], 'spentItems': spent, 'recibes': recibido,
+        'balanceSubs': int(saldos.get('simoncoin') or 0),
+        'balanceSph': int(saldos.get('simonplata') or 0),
+        'registro': registro,
         'moneda': moneda, 'purse': ACU.vista(VAULT_STATE, ECON, sender.name, profile.get('account')),
         'walletName': sender.name,
-        'reason': f'Se acuñó {recibido} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
+        'reason': razon,
         'ledger': view, 'cupos': cupos_public(profile),
         'crudo': {item: CRUDO.nuggets(ECON, profile['account'], item) for item in CRUDO.CAPS},
     })
@@ -2176,7 +2189,10 @@ def handle_client_message(c, m, t):
             return
         pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
     elif t == 'acunar' and c.hello:
-        acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'))
+        try:
+            acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'))
+        except Exception:
+            send(c, {'t': 'acunar_result', 'ok': False, 'reason': 'No se pudo acuñar. No se creó ninguna moneda nueva.', 'code': 'error'})
     elif t == 'smelt' and c.hello:
         smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'), m.get('mode'))
     elif t == 'lingote' and c.hello:

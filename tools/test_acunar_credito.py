@@ -196,10 +196,14 @@ class AcunarSobreviveTests(unittest.TestCase):
     def test_mint_reload_login_and_restart_keep_the_three_coins(self):
         import crudo
         who = self._persona()
+        who.user['providers'] = {'google': 'cuenta-google'}
         crudo.credit(self.server.ECON, 'cta-nico', 'pepita_oro', 2, cap=4)
         crudo.credit(self.server.ECON, 'cta-nico', 'mineral_plata', 4, cap=4)
         crudo.credit(self.server.ECON, 'cta-nico', 'mineral_cobre', 3, cap=4)
-        self._acuñar(who, 'simoncoin', 2)
+        oro = self._acuñar(who, 'simoncoin', 2)
+        self.assertIn('Saldo:', oro.get('reason') or '')
+        self.assertGreater(oro.get('balanceSubs') or 0, 0)
+        self.assertTrue((oro.get('registro') or {}).get('id'))
         self._acuñar(who, 'simonplata', 4)
         self._acuñar(who, 'simonchis', 3)
         primero = self._entrar(self.server.ECON, self.server.VAULT_STATE)
@@ -219,3 +223,25 @@ class AcunarSobreviveTests(unittest.TestCase):
                 tras_reinicio['ledger']['balances']['simonchis'],
                 primero['ledger']['balances']['simonchis'],
             )
+
+    def test_no_ore_explains_and_mints_nothing(self):
+        who = self._persona()
+        who.user['providers'] = {'google': 'cuenta-google'}
+        before = int((self.server.ECON.get('wallets') or {}).get('Nico') or 0)
+        self.sent.clear()
+        self.server.acunar_for(who, 'simoncoin', 2)
+        fail = [item for item in self.sent if item.get('t') == 'acunar_result']
+        self.assertTrue(fail)
+        self.assertFalse(fail[-1].get('ok'))
+        self.assertIn('No tienes', fail[-1].get('reason') or '')
+        self.assertEqual(int((self.server.ECON.get('wallets') or {}).get('Nico') or 0), before)
+        root = os.path.dirname(os.path.dirname(__file__))
+        with open(os.path.join(root, 'play', 'index.html'), encoding='utf-8') as handle:
+            page = handle.read()
+        with open(os.path.join(root, 'play', 'acunar.js'), encoding='utf-8') as handle:
+            dialog = handle.read()
+        with open(os.path.join(root, 'play', 'cajon.js'), encoding='utf-8') as handle:
+            drawer = handle.read()
+        self.assertIn('En tu cuenta:', page)
+        self.assertIn('cajon-madre', drawer)
+        self.assertIn('No tienes metal', dialog)

@@ -78,11 +78,11 @@
     const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {}, sph: 0 };
     const smh = box.smh != null ? box.smh : (box.smcSubs || 0);
     const texto = window.Simulacion && Simulacion.formatSai ? Simulacion.formatSai(smh) : `${smh} SMH`;
-    saldo.innerHTML = 'En el depósito: <span class="smc">' + esc(texto) + '</span>';
+    saldo.innerHTML = 'En el banco: <span class="smc">' + esc(texto) + '</span>';
     const wallet = document.getElementById('banquito-billetera');
     if (wallet && window.Simulacion && Simulacion.walletSubs && Simulacion.formatSai) {
       const name = (window.LiveInk && LiveInk.state && LiveInk.state.me && LiveInk.state.me.name) || '';
-      wallet.innerHTML = 'En la billetera: <span class="smc">' + esc(Simulacion.formatSai(Simulacion.walletSubs(name))) + '</span>';
+      wallet.innerHTML = 'En tu cuenta: <span class="smc">' + esc(Simulacion.formatSai(Simulacion.walletSubs(name))) + '</span>';
     }
     const sph = box.sph || 0;
     const plataSaldo = document.getElementById('banquito-plata-saldo');

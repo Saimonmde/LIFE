@@ -132,7 +132,10 @@
     const ir = $('#acunar-ir');
     const corto = CORTO[coin] || 'metal';
     const falta = shown.gastas < 1 ? textoFalta(shown.tienes, row.rate, corto) : '';
-    if (!aqui) {
+    if (shown.tienes <= 0) {
+      $('#acunar-vas').textContent = 'No tienes metal. Pica en la mina y vuelve al horno. No se acuñó nada.';
+      if (ir) { ir.hidden = false; ir.textContent = 'Ve a picar'; }
+    } else if (!aqui) {
       $('#acunar-vas').textContent = falta ? falta + ' Ve al horno de la mina.' : 'Ve al horno de la mina';
       if (ir) { ir.hidden = false; ir.textContent = 'Ve al horno de la mina'; }
     } else if (falta) {
@@ -222,6 +225,8 @@
     if (m.moneda && window.meterMonedas) window.meterMonedas(m.moneda.item, m.moneda.total || m.moneda.qty);
     if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m);
     else if (window.Simulacion && Simulacion.renderLibro) Simulacion.renderLibro();
+    if (m.registro && window.LibroMadre) LibroMadre.toast(m.registro);
+    if (window.Banco && Banco.paint) Banco.paint();
     if (window.Sonido) Sonido.fromMint(m);
     if (window.Cajon) Cajon.paint();
     paint();

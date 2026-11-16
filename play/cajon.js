@@ -180,6 +180,7 @@
       '<button type="button" id="cajon-chat">Chat del mundo</button>',
       '<button type="button" id="cajon-gente">Jugadores en línea</button>',
       '<button type="button" id="cajon-libro">Libro Mayor</button>',
+      '<button type="button" id="cajon-madre">Libro madre</button>',
       '<div id="cajon-panel"></div>',
     ].join('');
     const closer = document.createElement('button');
@@ -206,6 +207,8 @@
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
     $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
+    const madre = $('#cajon-madre');
+    if (madre) madre.onclick = () => { closeDrawer(); if (window.LibroMadre) LibroMadre.open(); };
     const chatBtn = $('#cajon-chat');
     if (chatBtn) chatBtn.onclick = () => { closeDrawer(); if (window.ChatUI) ChatUI.setOpen(true, true); };
     const genteBtn = $('#cajon-gente');
