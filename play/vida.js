@@ -82,6 +82,15 @@
     if (raw.indexOf('parque-') === 0) return raw.slice(7).replace(/-/g, '_');
     return raw.replace(/-/g, '_');
   }
+  function lugarEnLinea(row) {
+    const zone = row && row.zone;
+    const place = row && row.place;
+    if (zone === 'casa' || place === 'casa') return 'en su casa';
+    if (zone === 'mine' || place === 'mina-palmas') return 'en la mina';
+    if (zone === 'banco' || place === 'casa-bancaria') return 'en el banco';
+    if (zone === 'central' || place === 'banco-central') return 'en el Banco Central';
+    return 'en ' + (row.placeName || 'el valle');
+  }
   function paintPlayers() {
     const box = $('mundo-jugadores');
     if (!box) return;
@@ -99,7 +108,7 @@
       const line = document.createElement('div');
       line.className = 'mundo-jugador';
       const text = document.createElement('p');
-      text.textContent = row.nick + ' · Mundo ' + row.world + ' · ' + (row.placeName || row.place || 'Valle de Aburrá');
+      text.textContent = row.nick + ' · Mundo ' + row.world + ' · ' + lugarEnLinea(row);
       const go = document.createElement('button');
       go.type = 'button';
       go.textContent = 'Ir con él';

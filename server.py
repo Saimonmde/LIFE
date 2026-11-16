@@ -1957,8 +1957,12 @@ def handle_client_message(c, m, t):
         if c.hello: return
         c.zone = zona_pedida(c, m.get('zone'))
         c.world = MUNDOS.normalize(m.get('world')) or MUNDOS.DEFAULT_WORLD
-        if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
-        else: c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
+        if c.zone == 'casa':
+            door = HOGAR.stand((getattr(c, 'user', None) or {}).get('municipio')) or (94, 267)
+            c.city_x, c.city_y = float(door[0]), float(door[1])
+            c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
+        else:
+            c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
         asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
         token_src = c.user.get('wallet_token') if getattr(c, 'user', None) else m.get('walletToken')
         c.name = unique_name(clean(asked, 16), c)
@@ -2879,8 +2883,15 @@ async def handle(reader, writer):
     else:
         with open(full, 'rb') as f: body = f.read()
         ctype = mimetypes.guess_type(full)[0] or 'application/octet-stream'
+        if full.endswith(os.sep + 'play' + os.sep + 'index.html') or full.endswith('/play/index.html'):
+            rev = os.environ.get('RENDER_GIT_COMMIT') or ''
+            html = body.decode('utf-8')
+            if 'name="life-revision"' not in html:
+                html = html.replace('<head>', '<head>\n<meta name="life-revision" content="' + rev + '">', 1)
+            body = html.encode('utf-8')
         if ctype.startswith('text/') or ctype in ('application/javascript', 'application/json'): ctype += '; charset=utf-8'
-        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: {ctype}\r\nContent-Length: {len(body)}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n'.encode())
+        cache = 'no-store' if ctype.startswith('text/html') else 'no-cache'
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: {ctype}\r\nContent-Length: {len(body)}\r\nCache-Control: {cache}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
     try:
         await writer.drain(); writer.close()

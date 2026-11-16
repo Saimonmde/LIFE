@@ -39,7 +39,7 @@ class WorldTests(unittest.TestCase):
         self.assertIn("id = 'mundo-tab'", page)
         self.assertIn('Marcar como favorito', page)
         self.assertNotIn('Elige un mundo', page)
-        self.assertIn('mundo-juntos', open(os.path.join(ROOT, 'play', 'index.html'), encoding='utf-8').read())
+        self.assertIn('se-ven', open(os.path.join(ROOT, 'play', 'index.html'), encoding='utf-8').read())
 
     def test_same_world_and_place_see_each_other(self):
         boxes = mundos.boxes(world())
