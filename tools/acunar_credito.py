@@ -9,6 +9,25 @@ ITEMS = {
 }
 
 
+def explicar(stock, rate, metal, whole=False):
+    """Qué falta del metal. El oro y la plata aceptan una parte; el cobre, monedas enteras."""
+    try:
+        stock = float(stock or 0)
+    except (TypeError, ValueError):
+        stock = 0.0
+    rate = max(1, int(rate or 1))
+    if whole:
+        have = int(stock)
+        if have <= 0:
+            return f'No tienes {metal}. Hacen falta {rate}.'
+        if have < rate:
+            return f'Tienes {have} de {metal}, te falta {rate - have}.'
+        return ''
+    if stock <= 0:
+        return f'No tienes {metal} suficiente. Con una parte ya se puede acuñar; {rate} hacen 1.'
+    return ''
+
+
 def motivo(stock, rate, left, room, metal, name):
     """Frase clara. El metal y el tope del día no se mezclan."""
     stock = float(stock or 0)

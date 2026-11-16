@@ -69,7 +69,18 @@
     $('mi-cuenta-hora').textContent = data.saved || 'Todavía no hay un guardado en la cuenta.';
     $('mi-cuenta-inv').textContent = 'Inventario: ' + inventario(data.inventory);
     const coins = data.coins || {};
-    $('mi-cuenta-monedas').textContent = 'Simoncoin: ' + texto(coins.simoncoinSmh) + ' SMH · Simonplata: ' + texto(coins.simonplataSph) + ' SPH · Simonchis: ' + texto(coins.simonchis);
+    const subs = window.Simulacion ? Simulacion.SUBS : 100000000;
+    const compact = (base, whole) => {
+      const value = Number(base) || 0;
+      if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
+      return texto(whole ? value : value / subs);
+    };
+    const total = coins.totalSmh != null ? coins.totalSmh : coins.simoncoinSmh;
+    const line = $('mi-cuenta-monedas');
+    line.textContent = 'Simoncoin: ' + compact(total, false) + ' SMC · Simonplata: ' + compact(coins.simonplataSph, false) + ' SMP · Simonchis: ' + compact(coins.simonchis, true);
+    const exactSmc = window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(total || 0) : (texto(total) + ' SMH');
+    const exactSmp = window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(coins.simonplataSph || 0) : (texto(coins.simonplataSph) + ' SPH');
+    line.title = exactSmc + ' · ' + exactSmp + ' · ' + texto(coins.simonchis) + ' Simonchis';
     $('mi-cuenta-finca').textContent = 'Finquita: ' + lista(data.crops, { cafe: 'Café', cacao: 'Cacao' }) + ' · Animales: ' + lista(data.animals, { gallo: 'Gallos', gallina: 'Gallinas' });
     $('mi-cuenta-favorito').textContent = 'Favorito: ' + (data.favoritePlace || 'sin lugar') + (data.favoriteWorld ? ' · Mundo ' + data.favoriteWorld : '');
     const google = $('mi-cuenta-google-btn');

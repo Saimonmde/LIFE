@@ -107,6 +107,48 @@ function formatSmh(smh) {
   return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
 }
 function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function formatCompact(amount) {
+  let value = Number(amount);
+  if (!Number.isFinite(value)) return '0';
+  const sign = value < 0 ? '-' : '';
+  value = Math.abs(value);
+  function soft(number) {
+    const text = number.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    const bits = text.split('.');
+    const whole = Number(bits[0]).toLocaleString('es-CO');
+    return bits[1] ? whole + ',' + bits[1] : whole;
+  }
+  if (value < 1000) {
+    if (value === 0) return '0';
+    if (Math.abs(value - Math.round(value)) < 1e-9) return sign + Math.round(value).toLocaleString('es-CO');
+    if (value >= 0.01) return sign + soft(value);
+    const tiny = value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+    const bits = tiny.split('.');
+    return sign + bits[0] + (bits[1] ? ',' + bits[1] : '');
+  }
+  if (value < 1000000) return sign + soft(value / 1000) + ' k';
+  if (value < 1000000000) return sign + soft(value / 1000000) + ' M';
+  return sign + soft(value / 1000000000) + ' mil M';
+}
+let pendingSmh = 0;
+function bankSmh() {
+  const box = api && api.S && api.S.vault;
+  if (!box) return 0;
+  return Math.trunc(Number(box.smh != null ? box.smh : box.smcSubs) || 0);
+}
+function holdingsSmh(name) {
+  return Math.trunc(Number(walletSubs(name)) || 0) + bankSmh() + Math.trunc(pendingSmh || 0);
+}
+function expectMint(smh) {
+  const next = Math.trunc(Number(smh) || 0);
+  if (next <= 0) return;
+  pendingSmh = next;
+  paintHud();
+}
+function reconcileBalance() {
+  pendingSmh = 0;
+  paintHud();
+}
 function formatSmp(sph) {
   sph = Math.trunc(Number(sph) || 0);
   const neg = sph < 0;
@@ -200,11 +242,18 @@ function syncButton() {
 function paintHud() {
   const el = $('#sai-saldo');
   if (!el || !api.S.econ) return;
-  const subs = walletSubs(walletName());
-  const text = formatSai(subs).replace(/\s*SMC$/, ' Simoncoin');
+  const subs = holdingsSmh(walletName());
+  const exact = formatPair(subs);
+  const text = unidadActiva() === 'SMH'
+    ? formatCompact(subs) + ' SMH'
+    : formatCompact(subs / SUBS) + ' SMC';
   el.textContent = text;
+  el.title = exact + ' · billetera ' + formatPair(walletSubs(walletName())) + ' · banco ' + formatPair(bankSmh());
   const pill = $('#smc-pill-saldo');
-  if (pill) pill.textContent = text;
+  if (pill) {
+    pill.textContent = text;
+    pill.title = exact;
+  }
   const chip = $('#sai-chip');
   const always = $('#smc-pill');
   function bindUnit(node) {
@@ -229,11 +278,13 @@ function paintHud() {
     bindUnit(chip);
   }
   const plata = (api.S.plata && api.S.plata.balanceSph) || 0;
-  const plataText = formatPlata(plata).replace(/\s*SMP$/, ' Simonplata');
+  const plataText = unidadPlata() === 'SPH'
+    ? formatCompact(plata) + ' SPH'
+    : formatCompact(plata / SUBS) + ' SMP';
   const saldo = $('#plata-saldo');
   const saldoPanel = $('#plata-saldo-panel');
-  if (saldo) saldo.textContent = plataText;
-  if (saldoPanel) saldoPanel.textContent = plataText;
+  if (saldo) { saldo.textContent = plataText; saldo.title = formatPlataPair(plata); }
+  if (saldoPanel) { saldoPanel.textContent = plataText; saldoPanel.title = formatPlataPair(plata); }
   const pchip = $('#plata-chip');
   if (pchip) {
     const view = api.S.plata;
@@ -481,6 +532,7 @@ function aplicarCredito(m) {
   }
   if (m.historia) api.S.econ.historia = m.historia;
   if (m.ledger && m.ledger.historia) api.S.econ.historia = m.ledger.historia;
+  reconcileBalance();
   reflejarMonedas();
   paintHud();
   renderLibro();
@@ -527,6 +579,7 @@ function applyServer(m) {
   }
   if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
+  pendingSmh = 0;
   reflejarMonedas();
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();
@@ -591,6 +644,8 @@ function renderLibro() {
       <p>Hay tres monedas y el total ya está cerrado. Nadie puede crear de más, cambiar ese máximo ni copiar una moneda.</p>
       <p><b>Simoncoin</b>, el oro. <b>Simonplata</b>, la plata. <b>Simonchis</b>, el cobre.</p>
       <p id="libro-totales">${api.esc(libroLine('simoncoin', 'Simoncoin'))} · ${api.esc(libroLine('simonplata', 'Simonplata'))} · ${api.esc(libroLine('simonchis', 'Simonchis'))}</p>
+      <p id="libro-minado">SMC minadas en total: ${api.esc(formatSmc(api.S.econ.minedSmh || 0))}.</p>
+      <p id="libro-finca">${api.esc((() => { const farm = (api.S.ledger && api.S.ledger.finca) || {}; const kg = farm.harvestedKg || {}; const bags = farm.processedBags || {}; const crops = farm.crops || {}; const cafeUnit = (crops.cafe && crops.cafe.unitCount) || 'sacos de 70 kg'; const cacaoUnit = (crops.cacao && crops.cacao.unitCount) || 'cajones de 150 kg'; return 'Café: ' + (Number(kg.cafe) || 0).toLocaleString('es-CO') + ' kg, ' + (Number(bags.cafe) || 0).toLocaleString('es-CO') + ' ' + cafeUnit + '. Cacao: ' + (Number(kg.cacao) || 0).toLocaleString('es-CO') + ' kg, ' + (Number(bags.cacao) || 0).toLocaleString('es-CO') + ' ' + cacaoUnit + '.'; })())}</p>
       <p id="libro-tuyo">${api.esc(tuyoTxt)}</p>
       <div id="libro-cupo">${cupoHtml}</div>
       <p>Arriba ves cuántas van y cuántas pueden existir. La tabla de abajo es tu historial. Si todavía no hay movimientos, el libro te lo dice con calma.</p>
@@ -843,7 +898,26 @@ function onNet(m) {
   }
   if (m.t === 'vault') {
     if (m.plata) rememberPlata(m.plata);
-    if (window.Banco) Banco.paint(m.account || { smcSubs: 0, items: {}, sph: 0 });
+    api.S.vault = m.account || api.S.vault || { smh: 0, smcSubs: 0, items: {}, sph: 0 };
+    pendingSmh = 0;
+    paintHud();
+    if (window.Banco) Banco.paint(api.S.vault);
+    return true;
+  }
+  if (m.t === 'transfer_result') {
+    pendingSmh = 0;
+    if (m.balanceSubs != null) {
+      api.S.econ = api.S.econ || emptyEcon();
+      api.S.econ.wallets[m.walletName || walletName()] = m.balanceSubs;
+    }
+    if (m.bankSmh != null) {
+      api.S.vault = api.S.vault || { smh: 0, smcSubs: 0, items: {} };
+      api.S.vault.smh = m.bankSmh;
+      api.S.vault.smcSubs = m.bankSmh;
+    }
+    paintHud();
+    if (m.reason) api.game(m.reason, m.ok ? 'oro' : 'aviso');
+    if (window.Banco) Banco.paint(api.S.vault);
     return true;
   }
   if (m.t === 'vault_item') {
@@ -897,6 +971,8 @@ function onRiverGold(nodeId) {
   if ((api.W().mapId || 'city') !== 'city') return 0;
   if (api.S.net.ok) {
     if (api.S.walletLocked) { api.game('Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no emitir con ese nombre.', 'aviso'); return 0; }
+    const expected = (api.S.supply && api.S.supply.nextSubs) || rewardSmh((api.S.econ && api.S.econ.minedSmh) || 0);
+    expectMint(expected);
     api.S.net.ws.send(JSON.stringify({ t: 'mint', node: nodeId || '' }));
     return 0;
   }
@@ -1050,7 +1126,7 @@ window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, summonAndMount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
-  rememberSupply, rememberPlata, net, aplicarCredito, reflejarMonedas,
+  rememberSupply, rememberPlata, net, aplicarCredito, reflejarMonedas, formatCompact, expectMint, reconcileBalance, holdingsSmh, bankSmh,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
   hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, unidadActiva, unidadPlata, walletToken, SUBS, GENESIS_PREV,
 };

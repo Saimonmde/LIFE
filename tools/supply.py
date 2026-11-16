@@ -12,6 +12,7 @@ en el juego y los límites por IP hacen el trabajo pesado.
 import hashlib
 import hmac
 import math
+import os
 import re
 import secrets
 import time
@@ -118,6 +119,41 @@ def ensure(state, now=None):
 def daily_cap_smh(age_seconds, play_seconds, quests):
     """Tope del día UTC, en SMH. Los números viven en topes.py."""
     return TOPES.simoncoin_daily_smh(age_seconds, play_seconds, quests)
+
+
+def _env_number(name, default):
+    raw = os.environ.get(name)
+    if raw is None or str(raw).strip() == '':
+        return float(default)
+    try:
+        return float(str(raw).strip().replace(',', '.'))
+    except ValueError:
+        return float(default)
+
+
+def loose_daily_smc():
+    """Piso holgado del día, en SMC. MINE_DAILY_SMC lo cambia sin tocar la fórmula."""
+    value = _env_number('MINE_DAILY_SMC', 50)
+    return value if value > 0 else 0.0
+
+
+def enforced_daily_smh(age_seconds, play_seconds, quests):
+    """Lo que de verdad se puede minar hoy: la fórmula o el piso, el que sea mayor."""
+    formula = daily_cap_smh(age_seconds, play_seconds, quests)
+    loose = int(round(loose_daily_smc() * eco.SUBS))
+    return max(int(formula), loose)
+
+
+def mine_activity_need():
+    return max(0, int(_env_number('MINE_ACTIVITY_TILES', 1)))
+
+
+def mine_cooldown_s():
+    return max(0, int(_env_number('MINE_COOLDOWN_S', 5)))
+
+
+def mine_proofs_per_hour():
+    return max(1, int(_env_number('MINE_PROOFS_PER_HOUR', 60)))
 
 
 def quest_count(state, name):
@@ -303,12 +339,12 @@ def _ready(profile, acc, now, opening):
         return 'anomaly'
     if opening and not profile['fresh']:
         return 'activity'
-    if profile['activity'] < ACTIVITY_TILES:
+    if profile['activity'] < mine_activity_need():
         return 'activity'
-    if now - int(acc.get('lastClaim') or 0) < CLAIM_COOLDOWN:
+    if now - int(acc.get('lastClaim') or 0) < mine_cooldown_s():
         return 'cooldown'
     _extra, recent = _personal(acc, now)
-    if len(recent) >= MAX_PROOFS_PER_HOUR:
+    if len(recent) >= mine_proofs_per_hour():
         return 'rate'
     return ''
 
@@ -320,7 +356,7 @@ def _view(state, profile, now):
     ceiling = _ceiling(reward)
     epoch_left = max(0, ceiling - int(box.get('epochSubs') or 0))
     guest = not profile['account']
-    cap = daily_cap_smh(profile['age'], profile['play'], profile['quests'])
+    cap = enforced_daily_smh(profile['age'], profile['play'], profile['quests'])
     earned = 0
     proofs = 0
     paused = False
@@ -475,11 +511,11 @@ def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None,
             _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': why, 'smh': 0, 'view': _view(state, profile, now)}
     row['claims'] = _prune(row.get('claims'), now, 3600)
-    if len(row['claims']) >= IP_PROOFS_PER_HOUR:
+    if len(row['claims']) >= max(IP_PROOFS_PER_HOUR, mine_proofs_per_hour()):
         _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': 'rate', 'smh': 0, 'view': _view(state, profile, now)}
     reward = _era_reward(state)
-    cap = daily_cap_smh(profile['age'], profile['play'], profile['quests'])
+    cap = enforced_daily_smh(profile['age'], profile['play'], profile['quests'])
     earned = int(acc.get('earned') or 0)
     personal_left = max(0, cap - earned)
     diminished = personal_left if pay_request else _diminished(reward, int(acc.get('proofs') or 0))

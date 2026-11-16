@@ -161,6 +161,81 @@ def format_pair(smh):
     return f'{format_smc(smh)} = {format_smh(smh)}'
 
 
+def _soft_group(number, digits=2):
+    """Entero con punto de miles y, si hace falta, coma decimal. No usa float para el saldo guardado."""
+    text = f'{number:.{digits}f}'.rstrip('0').rstrip('.')
+    whole, dot, frac = text.partition('.')
+    grouped = f'{int(whole):,}'.replace(',', '.')
+    if frac:
+        return grouped + ',' + frac
+    return grouped
+
+
+def format_compact(amount):
+    """Resumen corto: 950, 1,2 k, 3,45 k, 1,2 M. La coma es decimal (es-CO).
+
+    El número exacto se muestra aparte. Esto no cambia el saldo guardado.
+    """
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return '0'
+    if amount != amount or amount in (float('inf'), float('-inf')):
+        return '0'
+    sign = '-' if amount < 0 else ''
+    value = abs(amount)
+    if value < 1000:
+        if value == 0:
+            return '0'
+        if abs(value - round(value)) < 1e-9:
+            return sign + f'{int(round(value)):,}'.replace(',', '.')
+        if value >= 0.01:
+            return sign + _soft_group(value, 2)
+        text = f'{value:.8f}'.rstrip('0').rstrip('.')
+        whole, _, frac = text.partition('.')
+        return sign + whole + (',' + frac if frac else '')
+    if value < 1_000_000:
+        return sign + _soft_group(value / 1_000) + ' k'
+    if value < 1_000_000_000:
+        return sign + _soft_group(value / 1_000_000) + ' M'
+    return sign + _soft_group(value / 1_000_000_000) + ' mil M'
+
+
+def repair_smh(value):
+    """Corrige un saldo imposible, multiplicado una vez de más por 100.000.000.
+
+    Un entero legal (aunque sea grande) no se toca. Sólo baja lo que no cabe
+    en 21.000.000 SMC y es divisible por SUBS. Devuelve (smh, cambió).
+    """
+    try:
+        smh = int(value)
+    except (TypeError, ValueError):
+        return 0, False
+    if smh > MAX_SMH and smh % SUBS == 0:
+        fixed = smh // SUBS
+        if 0 <= fixed <= MAX_SMH:
+            return int(fixed), True
+    return smh, False
+
+
+def repair_balances(state, log=None):
+    """Repara billeteras imposibles. Anota antes y después. No toca la plata ni el cobre."""
+    logs = []
+    wallets = state.get('wallets') if isinstance(state, dict) else None
+    if not isinstance(wallets, dict):
+        return logs
+    for name, value in list(wallets.items()):
+        fixed, changed = repair_smh(value)
+        if not changed:
+            continue
+        line = f'[reparar] {name}: antes {value} SMH, después {fixed} SMH'
+        logs.append(line)
+        if log:
+            log(line)
+        wallets[name] = fixed
+    return logs
+
+
 def format_sai(subs):
     return format_smc(subs)
 
@@ -318,6 +393,7 @@ def migrate_amounts(state):
         if 'credited' in record:
             record['credited'] = smc_to_smh(record.get('credited') or 0)
         record['unit'] = 'SMH'
+    repair_balances(state, log=print)
     return state
 
 

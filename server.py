@@ -753,7 +753,7 @@ def cupos_public(profile=None):
     chis_earned = int(((ECON.get('simonchis') or {}).get('earnedDay') or {}).get(key) or 0)
     coins = {}
     for coin, cap, earned, room in (
-        ('simoncoin', oro_cap, oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
+        ('simoncoin', max(oro_cap, SUP.loose_daily_smc()), oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
         ('simonplata', plata_cap, plata_earned, PLATA.issuance_room(ECON) / ECO.SUBS),
         ('simonchis', chis_cap, chis_earned, COBRE.room(ECON)),
     ):
@@ -818,7 +818,9 @@ def acunar_for(sender, coin, pieces, proof=None):
         return _acunar_fail(sender, falta, code)
     quote = TOPES.cotizar(stock, row['rate'], row['left'], row['room'], min(pieces, stock) if pieces else None, whole=(coin == 'simonchis'))
     if quote['recibes'] <= 0:
-        return _acunar_fail(sender, falta or 'Hoy no alcanza para acuñar más.', 'cap')
+        detail = ACU.explicar(stock, row['rate'], row['metal'], whole=(coin == 'simonchis'))
+        code = 'metal' if stock < row['rate'] else ('cap' if row['left'] <= 0 else 'supply')
+        return _acunar_fail(sender, detail or falta or 'Hoy no alcanza para acuñar más.', code)
     whole = coin == 'simonchis'
     if coin == 'simoncoin':
         want = int(round(quote['recibes'] * ECO.SUBS))
@@ -1254,6 +1256,31 @@ def vault_for(sender):
         plata = {}
     send(sender, {'t': 'vault', 'account': VAULT.public_account(box), 'plata': plata,
                   'note': 'El banquito y el baúl de la casa son el mismo depósito. No se pierde al morir: sólo la mochila que llevas encima puede caerse.'})
+
+def transferir_todo(sender, dest):
+    """Pasa todo el SMC a la billetera o al banco. No acuña y no sale del juego."""
+    if not wallet_ready(sender):
+        return
+    import traslado
+    result = traslado.trasladar(ECON, VAULT_STATE, sender.name, dest)
+    if not result.get('ok'):
+        return send(sender, {'t': 'transfer_result', 'ok': False, 'reason': result.get('reason') or 'No se movió nada.', 'dest': result.get('dest') or dest})
+    try:
+        anotar_pase(result['from'], result['to'], result['smh'], result.get('note') or 'Transferir todo')
+    except (LIBRO.LibroError, persist_duplicate):
+        pass
+    save_econ()
+    save_vault()
+    broadcast_econ()
+    vault_for(sender)
+    send(sender, {
+        't': 'transfer_result', 'ok': True, 'dest': result['dest'], 'smh': result['smh'],
+        'reason': result.get('note') or 'Listo.',
+        'balanceSubs': int((ECON.get('wallets') or {}).get(sender.name) or 0),
+        'bankSmh': result.get('bankSmh') or 0,
+        'walletName': sender.name,
+    })
+
 
 def deposit_smc(sender, amount):
     if not wallet_ready(sender):
@@ -2002,8 +2029,17 @@ def finca_msg(sender, message):
         save_finca()
         if result.get('movedCoins'):
             save_econ()
+        for row in result.get('exports') or []:
+            crop = str(row.get('crop') or '')
+            label = 'café excelso' if crop == 'cafe' else 'cacao seco'
+            ECO.append_tx(ECON, {
+                'type': 'pay', 'from': FINCA_CONFIG.get('buyer') or 'casa_de_contratacion', 'to': account,
+                'amountSubs': 0, 'amountSph': int(row.get('amount') or 0), 'coin': 'SMP',
+                'note': f'Exportación de {label}. No se acuñó SMC.',
+            })
+            save_econ()
         broadcast({'t': 'libro_publico', 'contadores': public_counters()})
-    send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'view': result.get('view')})
+    send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'note': result.get('note') or '', 'view': result.get('view')})
 
 
 def handle_client_message(c, m, t):
@@ -2243,6 +2279,8 @@ def handle_client_message(c, m, t):
         send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
     elif t == 'vault' and c.hello:
         vault_for(c)
+    elif t == 'transferir_todo' and c.hello:
+        transferir_todo(c, m.get('dest') or m.get('to'))
     elif t == 'deposit_smc' and c.hello:
         try:
             deposit_smc(c, leer_smh(m))
@@ -2736,7 +2774,7 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         if not user:
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
         import mi_cuenta as MICUENTA
-        body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000))
+        body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000), VAULT_STATE)
         body['followable'] = SEGUIR.allow(user)
         social = SOCIAL.friend_view(VIDA, 'acct:' + str(user.get('id') or ''), ACCOUNTS, clients.values())
         body['amigos'] = social.get('friends') or []

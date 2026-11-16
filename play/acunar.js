@@ -14,8 +14,10 @@
 
   function count(id) {
     const S = window.__ELJARDIN;
-    if (!S || !S.inv) return 0;
-    return S.inv.reduce((sum, slot) => sum + (slot && slot.item === id ? Number(slot.qty) || 0 : 0), 0);
+    if (!S) return 0;
+    const fromInv = (S.inv || []).reduce((sum, slot) => sum + (slot && slot.item === id ? Number(slot.qty) || 0 : 0), 0);
+    const fromCrudo = S.crudo && S.crudo[id] != null ? Number(S.crudo[id]) || 0 : 0;
+    return Math.max(fromInv, fromCrudo);
   }
   function countRow(row) {
     const ids = row.items && row.items.length ? row.items : [row.item];
@@ -131,9 +133,9 @@
     $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.)`;
     const ir = $('#acunar-ir');
     const corto = CORTO[coin] || 'metal';
-    const falta = shown.gastas < 1 ? textoFalta(shown.tienes, row.rate, corto) : '';
+    const falta = shown.gastas <= 0 ? textoFalta(shown.tienes, row.rate, corto) : '';
     if (shown.tienes <= 0) {
-      $('#acunar-vas').textContent = 'No tienes metal. Pica en la mina y vuelve al horno. No se acuñó nada.';
+      $('#acunar-vas').textContent = 'No tienes metal. ' + textoFalta(0, row.rate, corto) + '. Pica en la mina y vuelve al horno. No se acuñó nada.';
       if (ir) { ir.hidden = false; ir.textContent = 'Ve a picar'; }
     } else if (!aqui) {
       $('#acunar-vas').textContent = falta ? falta + ' Ve al horno de la mina.' : 'Ve al horno de la mina';
@@ -149,7 +151,7 @@
     const slider = $('#acunar-cantidad');
     slider.max = String(shown.maxPieces);
     slider.value = String(shown.gastas);
-    $('#acunar-ok').disabled = busy || !aqui || shown.gastas < 1;
+    $('#acunar-ok').disabled = busy || !aqui || shown.gastas <= 0;
     $('#acunar').querySelectorAll('[data-coin]').forEach(button => {
       button.classList.toggle('activa', button.dataset.coin === coin);
     });
@@ -177,12 +179,16 @@
       return;
     }
     busy = true;
+    if (window.Simulacion && Simulacion.expectMint && coin === 'simoncoin') {
+      Simulacion.expectMint(Math.round(shown.recibes * Simulacion.SUBS));
+    }
     ws.send(JSON.stringify({ t: 'acunar', coin, pieces: shown.gastas }));
     $('#acunar-vas').textContent = 'Calculando prueba…';
     $('#acunar-ok').disabled = true;
   }
   function fallo(m) {
     busy = false;
+    if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance();
     paint();
     const box = $('#acunar-vas');
     if (box) box.textContent = (m && m.reason) || 'No se pudo acuñar.';

@@ -332,7 +332,7 @@ class ServerPlataTests(unittest.TestCase):
             proof['nonce'] = nonce
             s.mint_for(who, 'oro_fluvial_1', proof)
             delta = int(s.ECON.get('minedSmh') or 0) - before
-            self.assertEqual(delta, sup.BASE_DAILY_SMH)
+            self.assertEqual(delta, min(eco.SUBS, sup.enforced_daily_smh(0, 0, 0)))
             pool = int(s.ECON['plata']['smcPoolSmh'])
             wallet = int(s.ECON['wallets']['BateaPlata'])
             self.assertEqual(pool, delta // 5)

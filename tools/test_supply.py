@@ -113,8 +113,8 @@ class ProofTests(unittest.TestCase):
         now = 1_800_000_000
         owned = prove(state, owner, 'mint', 'oro_1', now)
         self.assertTrue(owned['ok'], owned.get('reason'))
-        self.assertEqual(owned['smh'], sup.BASE_DAILY_SMH)
-        self.assertLess(owned['smh'], eco.SUBS)
+        self.assertEqual(owned['smh'], min(eco.SUBS, sup.enforced_daily_smh(owner['age'], owner['play'], owner['quests'])))
+        self.assertGreaterEqual(owned['smh'], sup.BASE_DAILY_SMH)
         state = self.fresh()
         state['minedSmh'] = eco.smc_to_smh(eco.MAX_SUPPLY - eco.TREASURY) - 1000
         state['supply']['epochSubs'] = 0
@@ -234,7 +234,7 @@ class ServerMintTests(unittest.TestCase):
             proof = dict(challenge)
             proof['nonce'] = nonce
             s.mint_for(who, 'oro_fluvial_1', proof)
-            self.assertEqual(int(s.ECON.get('minedSmh') or 0) - before, sup.BASE_DAILY_SMH)
+            self.assertEqual(int(s.ECON.get('minedSmh') or 0) - before, min(eco.SUBS, sup.enforced_daily_smh(0, 0, 0)))
             mid = int(s.ECON.get('minedSmh') or 0)
             s.mint_for(who, 'oro_fluvial_1', proof)
             self.assertEqual(int(s.ECON.get('minedSmh') or 0), mid)

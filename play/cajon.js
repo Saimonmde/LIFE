@@ -37,10 +37,19 @@
       simonplata = (S.plata && S.plata.balanceSph) || 0;
       simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
+    const subs = window.Simulacion ? Simulacion.SUBS : 100000000;
+    const compact = (base, whole) => {
+      const value = Number(base) || 0;
+      if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
+      return grupo(whole ? value : value / subs);
+    };
     return {
-      simoncoin: coinText(simoncoin, window.Simulacion ? Simulacion.SUBS : 100000000),
-      simonplata: window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(simonplata).replace(/\s*SMP$/, '') : grupo(simonplata),
-      simonchis: grupo(simonchis),
+      simoncoin: compact(simoncoin, false),
+      simonplata: compact(simonplata, false),
+      simonchis: compact(simonchis, true),
+      exactSimoncoin: window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(simoncoin) : grupo(simoncoin) + ' SMH',
+      exactSimonplata: window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(simonplata) : grupo(simonplata) + ' SPH',
+      exactSimonchis: grupo(simonchis) + ' Simonchis',
     };
   }
   function paint() {
@@ -50,7 +59,10 @@
     if (clock && clockLabel) clock.textContent = clockLabel;
     const money = balances();
     const line = $('#hud-saldos');
-    if (line) line.textContent = `Simoncoin ${money.simoncoin} · Simonplata ${money.simonplata} · Simonchis ${money.simonchis}`;
+    if (line) {
+      line.textContent = `Simoncoin ${money.simoncoin} SMC · Simonplata ${money.simonplata} SMP · Simonchis ${money.simonchis}`;
+      line.title = [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+    }
     const box = $('#cajon-monedas');
     if (!box) return;
     box.replaceChildren();
