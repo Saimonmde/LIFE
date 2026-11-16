@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '..');
+const house = fs.readFileSync(path.join(root, 'play/casa3d.js'), 'utf8');
+const world = fs.readFileSync(path.join(root, 'play/unified3d.js'), 'utf8');
+const html = fs.readFileSync(path.join(root, 'play/index.html'), 'utf8');
+assert.ok(house.includes('function gableRoof'));
+assert.ok(house.includes('flatShading: false'));
+assert.ok(house.includes('CylinderGeometry'));
+assert.ok(house.includes("userData.id = 'puerta_casa'"));
+assert.ok(world.includes('function terrainMaterial'));
+assert.ok(world.includes('flatShading:false'));
+assert.ok(world.includes('geo.setIndex(indices)'));
+assert.ok(world.includes('terrainMaterial(palette'));
+assert.ok(world.includes('_elevOverlay'));
+assert.ok(world.includes('onEditPointer'));
+assert.ok(world.includes('freeFly'));
+assert.ok(world.includes('editorApi'));
+assert.ok(world.includes("casa3d.js?v=fachada-r1"));
+assert.ok(html.includes('unified3d.js?v=paso-fluido'));
+assert.ok(!house.includes('hud-gear-menu') && !house.includes('cajon-editor'));
+assert.ok(world.includes('#hud-gear-menu'));
+console.log('fachada ok');

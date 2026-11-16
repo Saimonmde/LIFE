@@ -1,0 +1,36 @@
+#hogar {
+  background:
+    linear-gradient(#8ec4ea 0%, #d7eef8 28%, #c6a15a 28.2%, #7eaa55 62%, #3f6d34 100%);
+}
+.hogar-panel {
+  width: min(440px, calc(100vw - 20px));
+  max-height: min(78dvh, 640px);
+  overflow: auto;
+  color: #3a2412;
+  background: #f4e2bc;
+  border: 8px solid #6b3e24;
+  border-radius: 18px;
+  box-shadow: 0 10px 0 #3d2616;
+}
+#hogar-titulo, #hogar p { color: #3a2412; }
+#hogar-cerrar {
+  min-height: 48px;
+  margin: 0 0 8px;
+  border-radius: 12px;
+  background: #6b3e24;
+  color: #fff6e4;
+  font-weight: 800;
+}
+.lugar-fila { display: flex; gap: 8px; align-items: stretch; }
+.lugar-fila > button:first-child { flex: 1; }
+.lugar-mini { width: 72px; height: 48px; border-radius: 8px; flex: none; }
+.lugar-estrella {
+  min-width: 88px;
+  min-height: 48px;
+  border-radius: 12px;
+  background: #fffaf0;
+  color: #3a2412;
+  border: 2px solid #6b3e24;
+  font-weight: 800;
+}
+#hogar-status { color: #3a2412; }

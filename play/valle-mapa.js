@@ -103,8 +103,6 @@
     const placed = [];
     const overlaps = (a, b) => !(a.x + a.w + 4 < b.x || b.x + b.w + 4 < a.x || a.y + a.h + 3 < b.y || b.y + b.h + 3 < a.y);
     for (const park of data.parques) {
-      const sameTown = data.municipios.some(m => Math.abs(m.lat - park.lat) < 0.0004 && Math.abs(m.lon - park.lon) < 0.0004);
-      if (sameTown) continue;
       const [x, y] = xy(frame, park.lat, park.lon);
       const w = ctx.measureText(park.name).width + 8;
       let ly = y - 8;
@@ -137,6 +135,47 @@
     ctx.fillText('S', canvas.width / 2, canvas.height - 10);
     ctx.fillText('OC', 18, canvas.height / 2);
     ctx.fillText('OR', canvas.width - 18, canvas.height / 2);
+    if (opts.mine && opts.player && world) {
+      const [plat, plon] = playerLatLon(opts.player.x, opts.player.y, world);
+      const [mlat, mlon] = latlonOfTile(opts.mine.x, opts.mine.y, world);
+      const [px, py] = xy(frame, plat, plon);
+      const [mx, my] = xy(frame, mlat, mlon);
+      ctx.strokeStyle = '#ffc93c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(mx, my);
+      ctx.stroke();
+      ctx.fillStyle = '#ffc93c';
+      ctx.font = '700 14px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Mina', mx + 8, my);
+    }
+    const route = opts.route;
+    if (route && route.pts && route.pts.length > 1 && world) {
+      ctx.save();
+      ctx.setLineDash([6, 8]);
+      ctx.strokeStyle = '#ffe14d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      route.pts.forEach((pt, index) => {
+        const [lat, lon] = latlonOfTile(pt[0], pt[1], world);
+        const [x, y] = xy(frame, lat, lon);
+        if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+      const [lat, lon] = latlonOfTile(route.x, route.y, world);
+      const [x, y] = xy(frame, lat, lon);
+      ctx.fillStyle = '#ff8a3d';
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff6df';
+      ctx.font = '700 14px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(route.name || 'Destino', x + 10, y);
+    }
     if (opts.player && world) {
       const [lat, lon] = playerLatLon(opts.player.x, opts.player.y, world);
       const [x, y] = xy(frame, lat, lon);
@@ -160,7 +199,6 @@
     ctx.fillStyle = 'rgba(255,255,255,0.78)';
     ctx.textAlign = 'left';
     ctx.fillText('Río Medellín · © OpenStreetMap · Relieve NASA SRTM', 10, canvas.height - 8);
-    frame.marks = marks;
     return frame;
   }
 

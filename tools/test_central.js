@@ -6,11 +6,9 @@ require(path.join(root, 'play/central.js'));
 const Central = globalThis.Central;
 
 const locked = Central.markup(false);
-assert.ok(locked.includes('Banco Central'));
-assert.ok(locked.includes('no está abierta'));
+assert.strictEqual(locked, '');
 assert.ok(!locked.includes('bc-fundir'));
 assert.ok(!locked.includes('lingote'));
-assert.ok(!locked.includes('bc-metal'));
 
 const open = Central.markup(true);
 assert.ok(open.includes('Banco Central'));
@@ -26,6 +24,8 @@ const game = read('play/game.js');
 const html = read('play/index.html');
 const acunar = read('play/acunar.js');
 const cajon = read('play/cajon.js');
+assert.ok(game.includes('recinto del personal'));
+assert.ok(game.includes('canMintIngots'));
 assert.ok(!game.includes('forge-ingot'));
 assert.ok(!game.includes('Crear lingotes'));
 assert.ok(!game.includes('Hacer lingotes'));

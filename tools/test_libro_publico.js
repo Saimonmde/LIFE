@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 const assert = require('assert');
 const libro = require('../play/libro-publico.js');
+global.window = { CAFE_CACAO_ART: require('../play/assets/cafe-cacao/map.js') };
 
 assert.strictEqual(libro.coinLine(0.25, 'Simoncoin'), 'Se acuñaron 0,25 Simoncoin');
 assert.deepStrictEqual(
@@ -31,8 +32,29 @@ assert.ok(html.includes('no son dinero real'));
 assert.ok(html.includes('21.000.000 y no más'));
 assert.ok(html.includes('El libro público no dice quién.'));
 assert.ok(html.includes('Se procesó 1 bulto de café'));
+assert.ok(html.includes('bultos procesados'));
+
+const weighed = libro.render({
+  coins: [],
+  finca: {
+    harvestedKg: { cafe: 940, cacao: 900 },
+    processedBags: { cafe: 2, cacao: 2 },
+    crops: {
+      cafe: { freshName: 'café cereza', unitCount: 'sacos de 70 kg de excelso' },
+      cacao: { freshName: 'cacao en baba', unitCount: 'cajones de 150 kg secos' },
+    },
+    feed: [],
+  },
+});
+assert.ok(weighed.includes('sacos de 70 kg de excelso'));
+assert.ok(weighed.includes('cajones de 150 kg secos'));
+assert.ok(weighed.includes('café cereza'));
+assert.ok(html.includes('cafe_01_siembra.png'));
+assert.ok(html.includes('cacao_05_cosecha.png'));
+assert.ok(html.includes('cafe_siembra_64.png'));
 assert.ok(!html.includes('CuentaAnaPrivada'));
 assert.ok(html.includes('Lingotes'));
+assert.ok(html.includes('lingote.svg'));
 assert.ok(html.includes('>2<'));
 assert.ok(!html.includes('CuentaAnaPrivada'));
 assert.ok(!html.includes('no debe verse'));
@@ -43,7 +65,10 @@ const bare = libro.render({
   finca: { harvestedKg: { cafe: 0, cacao: 1 }, processedBags: { cafe: 0, cacao: 0 }, feed: [] },
 });
 assert.ok(bare.includes('El libro te lo dice con calma.'));
-assert.ok(!bare.includes('Lingotes'));
-assert.strictEqual(libro.ingotRows({}), null);
+assert.ok(bare.includes('Lingotes'));
+assert.ok(bare.includes('lingote.svg'));
+assert.ok(bare.includes('>0<'));
+assert.deepStrictEqual(libro.ingotRows({}), { oro: 0, plata: 0, cobre: 0 });
+assert.deepStrictEqual(libro.ingotRows({ foundry: {} }), { oro: 0, plata: 0, cobre: 0 });
 assert.deepStrictEqual(libro.ingotRows({ foundry: { lingote_oro: 2 } }), { oro: 2, plata: 0, cobre: 0 });
 console.log('libro publico ok');

@@ -445,7 +445,8 @@ def thread_for(state, a, b):
 
 def hello_extra(state, client, doc, clients, boxes):
     key = getattr(client, 'identity', '') or identity_of(client)
-    presence = mundos.counts(clients.values() if hasattr(clients, 'values') else clients)
+    group = clients.values() if hasattr(clients, 'values') else clients
+    presence = mundos.presence(group, boxes)
     world = getattr(client, 'world', 1)
     return {
         'role': role_of(getattr(client, 'user', None)),

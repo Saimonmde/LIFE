@@ -479,7 +479,16 @@ function applyServer(m) {
   if (m.cupos) api.S.cupos = m.cupos;
   if (window.Acunar) Acunar.paint();
   if (m.ledger) api.S.ledger = m.ledger;
-  if (m.purse) api.S.purse = m.purse;
+  if (m.purse) {
+    api.S.purse = m.purse;
+    const bag = m.purse.items || {};
+    if (window.meterMonedas) {
+      for (const id of ['moneda_oro', 'moneda_plata', 'moneda_cobre']) {
+        if (bag[id]) window.meterMonedas(id, bag[id]);
+      }
+    }
+  }
+  if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();
@@ -507,8 +516,15 @@ function historiaRows() {
 function renderLibro() {
   const el = $('#libro-cuerpo');
   if (!el || !api || !api.S.econ) return;
+  if (!window.__LIBRO_CUPO && !window.__LIBRO_CUPO_PENDING) {
+    window.__LIBRO_CUPO_PENDING = true;
+    fetch('/reglas-mina', { cache: 'no-store', credentials: 'same-origin' }).then((r) => r.json()).then((body) => {
+      window.__LIBRO_CUPO = body;
+      renderLibro();
+    }).catch(() => {});
+  }
   const blocks = api.S.econ.blocks || [];
-  const disc = 'Simulación: las SMC no son dinero real, no se retiran y el libro se reinicia si el servidor se apaga.';
+  const disc = 'Este libro es la memoria de las monedas del juego. Acá ves lo que se acuñó, lo que se movió y lo que hay en tu cuenta. Es una simulación. Las monedas no son dinero real. No se retiran ni se canjean por plata de verdad. Si el servidor se apaga, este libro puede reiniciarse.';
   const oldest = blocks.length ? Math.min(...blocks.map(b => b.height)) : 0;
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   const filtro = el.dataset.filtro || 'todo';
@@ -529,12 +545,16 @@ function renderLibro() {
     const max = Number(row.max || 0).toLocaleString('es-CO');
     return `${row.name}: ${minted} de ${max}`;
   };
+  const cupo = (window.__LIBRO_CUPO && window.__LIBRO_CUPO.lines) || [];
+  const cupoHtml = cupo.map(line => `<p>${api.esc(line)}</p>`).join('');
   el.innerHTML = `<aside class="libro-guia" aria-label="Las tres monedas">
-      <p><b>Simoncoin</b> es el oro. Habrá 21.000.000 y no más.</p>
-      <p><b>Simonplata</b> es la plata. Habrá 84.000.000 y no más.</p>
-      <p><b>Simonchis</b> son las monedas de cobre. Habrá 333.000.000.</p>
-      <p>Nadie puede crear de más, cambiar el máximo ni copiar una moneda.</p>
-      <p id="libro-totales">${api.esc(libroLine('simoncoin', 'Simoncoin: 0 de 21.000.000'))} · ${api.esc(libroLine('simonplata', 'Simonplata: 0 de 84.000.000'))} · ${api.esc(libroLine('simonchis', 'Simonchis: 0 de 333.000.000'))}</p>
+      <p>Hay tres monedas y el total ya está cerrado. Nadie puede crear de más, cambiar ese máximo ni copiar una moneda.</p>
+      <p><b>Simoncoin</b>, el oro. <b>Simonplata</b>, la plata. <b>Simonchis</b>, el cobre.</p>
+      <p id="libro-totales">${api.esc(libroLine('simoncoin', 'Simoncoin'))} · ${api.esc(libroLine('simonplata', 'Simonplata'))} · ${api.esc(libroLine('simonchis', 'Simonchis'))}</p>
+      <div id="libro-cupo">${cupoHtml}</div>
+      <p>Arriba ves cuántas van y cuántas pueden existir. La tabla de abajo es tu historial. Si todavía no hay movimientos, el libro te lo dice con calma.</p>
+      <p>Si querés mirar los bloques y los códigos, abrí <b>Bloques y hashes</b>. No hace falta entenderlos para jugar.</p>
+      <p>¿Querés aprender cómo funciona? Buscá a la Profesora de la Cadena, junto al establo del Parque de Envigado.</p>
     </aside>
     <p class="aviso-legal">${api.esc(disc)}</p>
     <p>${api.esc(libroLine('simoncoin', ''))}</p>

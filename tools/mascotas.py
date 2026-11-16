@@ -24,13 +24,13 @@ def validate(raw):
     if not breed:
         return None
     colors = breed.get('colors') or []
-    if len(colors) != 3:
+    if not 3 <= len(colors) <= 4:
         return None
     try:
         variant = int(raw.get('variant', 0))
     except (TypeError, ValueError):
         return None
-    if variant not in (0, 1, 2):
+    if variant < 0 or variant >= len(colors):
         return None
     import accounts as acc
     name = acc.game_name(raw.get('name') or breed.get('name') or '')

@@ -43,6 +43,10 @@ def arrival(user, resume, walkable):
                 return x, y
         except (KeyError, TypeError, ValueError, OverflowError):
             pass
+    import lugares
+    fav = lugares.spot((user or {}).get('favorite_place'))
+    if fav and walkable(fav[0], fav[1]):
+        return float(fav[0]), float(fav[1])
     spot = stand((user or {}).get('municipio'))
     if spot and walkable(spot[0], spot[1]):
         return float(spot[0]), float(spot[1])

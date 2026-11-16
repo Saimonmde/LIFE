@@ -7,6 +7,8 @@
   let contadores = null;
   let prevCoins = null;
   let extraFeed = [];
+  let lastOp = 'ver';
+  let lastExtra = {};
 
   function send(op, extra) {
     const S = window.LiveInk && LiveInk.state;
@@ -15,16 +17,50 @@
       say('Entra al mundo para usar la finca.');
       return;
     }
-    ws.send(JSON.stringify(Object.assign({ t: 'finca', op }, extra || {})));
+    lastOp = op;
+    lastExtra = extra || {};
+    ws.send(JSON.stringify(Object.assign({ t: 'finca', op }, lastExtra)));
   }
 
   function say(text) {
     const note = $('#finca-note');
     if (note) note.textContent = text || '';
+    if (text && text.indexOf('Tu mochila está llena') >= 0 && window.avisarMochilaLlena && window.LiveInk) {
+      LiveInk.state.espera = {
+        server: false,
+        item: 'bolsa',
+        qty: 1,
+        done: (where) => { if (where === 'banco') send(lastOp, Object.assign({}, lastExtra, { place: 'banco' })); },
+      };
+      window.avisarMochilaLlena();
+    }
   }
 
   function stageName(stage) {
     return { vacio: 'vacía', planton: 'plantón', verde: 'verde', maduro: 'maduro' }[stage] || stage;
+  }
+
+  let textos = null;
+  const FASE = {
+    cafe: { fruto: 'cereza_madura' },
+    cacao: { fruto: 'mazorca' },
+  };
+  const PASO = {
+    cafe: { despulpado: 'despulpado', secado: 'secado', trilla: 'trilla' },
+    cacao: { fermentado: 'fermentacion_cajones', secado: 'secado' },
+  };
+  function esc(text) {
+    return String(text == null ? '' : text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function carta(crop, etapa) {
+    if (!textos || !etapa) return '';
+    const row = (textos[crop] || []).find(item => item.etapa === etapa);
+    if (!row) return '';
+    return `<details class="finca-carta"><summary>${esc(row.titulo)}</summary><p>${esc(row.texto)}</p><p><b>Dato.</b> ${esc(row.dato)}</p><p><a href="${esc(row.fuente)}" target="_blank" rel="noopener">Fuente</a></p></details>`;
+  }
+  function etapaDe(crop, phase) {
+    if (!phase || phase === 'vacio') return '';
+    return (FASE[crop] || {})[phase] || phase;
   }
 
   function paintFarm() {
@@ -38,37 +74,48 @@
     const list = (crop) => plots.filter(row => row.crop === crop).map(row => {
       const action = row.stage === 'vacio' ? 'Plantar' : (row.stage === 'maduro' ? 'Cosechar' : '');
       const button = action ? `<button type="button" data-op="${action === 'Plantar' ? 'plantar' : 'cosechar'}" data-plot="${row.id}">${action}</button>` : '';
-      return `<div class="finca-plot"><span>${row.crop === 'cafe' ? 'Café' : 'Cacao'} · ${stageName(row.stage)}</span>${button}</div>`;
+      return `<div class="finca-plot"><span>${row.crop === 'cafe' ? 'Café' : 'Cacao'} · ${stageName(row.stage)}</span>${button}</div>${carta(crop, etapaDe(crop, row.phase))}`;
     }).join('');
     const goods = view.goods || {};
     const batches = view.batches || {};
     const workshop = (crop, title) => {
-      const steps = ((view.crops || {})[crop] || {}).steps || [];
+      const spec = (view.crops || {})[crop] || {};
+      const steps = spec.steps || [];
+      const ids = spec.stepIds || [];
       const batch = batches[crop];
-      const buttons = steps.map(label => `<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`).join('');
+      const lead = batch ? 'Procesar' : 'Llevar al taller';
+      const buttons = `<button type="button" class="finca-llevar" data-op="procesar" data-crop="${crop}">${lead}</button>` + steps.map(label => `<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`).join('');
+      const cards = ids.map(id => carta(crop, (PASO[crop] || {})[id] || id)).join('');
       const status = batch ? (batch.settled ? `Listo: ${batch.step}.` : `Trabajando: ${batch.step}.`) : 'El taller está libre.';
-      return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>`;
+      return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>${cards}`;
+    };
+    const kilos = (crop, count) => {
+      const per = Number(((view.crops || {})[crop] || {}).kgPerHarvest) || 0;
+      return (Number(count) || 0) * per;
     };
     const bags = (view.bags || []).map(bag => (
-      `<div class="finca-bag"><span>${bag.serial} · ${bag.product}</span><span>` +
+      `<div class="finca-bag"><span>${bag.serial} · bulto de ${bag.kg || 0} kg · ${bag.product}</span><span>` +
       `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simoncoin">Vender oro</button>` +
       `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simonplata">Vender plata</button>` +
       `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simonchis">Vender cobre</button>` +
       `<button type="button" data-op="depositar" data-serial="${bag.serial}">Mi banco</button></span></div>`
-    )).join('') || '<p>No tienes bultos en la mano.</p>';
+    )).join('') || '<p>No tienes sacos ni cajones en la mano.</p>';
     const bank = (view.bank || []).map(bag => (
-      `<div class="finca-bag"><span>${bag.serial}</span><button type="button" data-op="retirar" data-serial="${bag.serial}">Retirar</button></div>`
-    )).join('') || '<p>El banco no guarda bultos tuyos.</p>';
+      `<div class="finca-bag"><span>${bag.serial} · bulto de ${bag.kg || 0} kg</span><button type="button" data-op="retirar" data-serial="${bag.serial}">Retirar</button></div>`
+    )).join('') || '<p>El banco no guarda sacos ni cajones tuyos.</p>';
     const pay = view.buyerBalances || {};
     root.innerHTML = `
       <p class="finca-note" id="finca-note">Plantas. Esperas. Cosechas. Procesas. Vendes.</p>
-      <p>Diez cosechas dan dos bultos. Los kilos del libro no bajan al vender.</p>
+      <p>${((view.crops || {}).cafe || {}).note || ''}</p>
+      <p>${((view.crops || {}).cacao || {}).note || ''}</p>
+      <p>${view.ripeningNote || ''}</p>
+      <p>Esos kilos cosechados se suman y no bajan. El taller no crea kilos ni monedas.</p>
       <h3>Café, junto al cacao</h3>${list('cafe') || '<p>Sin parcelas.</p>'}
       <h3>Cacao, junto al café</h3>${list('cacao') || '<p>Sin parcelas.</p>'}
-      ${workshop('cafe', 'Taller de café · despulpar, secar, tostar')}
+      ${workshop('cafe', 'Taller de café · despulpar, secar, trillar')}
       ${workshop('cacao', 'Taller de cacao · fermentar, secar')}
       <h3>En la mano</h3>
-      <p>Cereza ${goods.cafe_cereza || 0} · Cacao ${goods.cacao_baba || 0}</p>
+      <p>${kilos('cafe', goods.cafe_cereza)} kg de café cereza (${goods.cafe_cereza || 0} recolecciones) · ${kilos('cacao', goods.cacao_baba)} kg de cacao en baba (${goods.cacao_baba || 0} recolecciones)</p>
       ${bags}
       <h3>Mi banco</h3>${bank}
       <h3>${view.buyerName || 'Casa de Contratación'}</h3>
@@ -144,6 +191,7 @@
       if (message.error) say(message.error);
       else if (message.ok && message.view) say('Listo.');
       paintFarm();
+      paintDock();
       if (window.LIVE3D && LIVE3D.syncFinca) LIVE3D.syncFinca(view);
       return false;
     }
@@ -199,8 +247,86 @@
       if (!panel || panel.hidden || !ws || ws.readyState !== 1) return;
       send('ver');
     }, 4000);
+    setInterval(() => {
+      paintDock();
+      const ws = window.LiveInk && LiveInk.state && LiveInk.state.net && LiveInk.state.net.ws;
+      if (!nearFarm() || !ws || ws.readyState !== 1) return;
+      send('ver');
+    }, 2000);
   }
 
+  function zone() {
+    const world = window.LiveInk && LiveInk.world;
+    return (world && world.mapId) || 'city';
+  }
+
+  function nearFarm() {
+    const world = window.LiveInk && LiveInk.world;
+    const player = window.LiveInk && LiveInk.state && LiveInk.state.player;
+    if (!world || !player || zone() !== 'city') return false;
+    const spot = (world.waypoints || []).find(row => row.id === 'las_palmas');
+    if (!spot) return false;
+    return Math.max(Math.abs(player.fx - spot.x), Math.abs(player.fy - spot.y)) <= 30;
+  }
+
+  function ensureDock() {
+    let dock = document.getElementById('oficio-cerca');
+    if (dock) return dock;
+    dock = document.createElement('div');
+    dock.id = 'oficio-cerca';
+    dock.hidden = true;
+    dock.setAttribute('role', 'group');
+    dock.setAttribute('aria-label', 'Acciones al acercarse');
+    document.body.append(dock);
+    return dock;
+  }
+
+  function paintDock() {
+    const dock = ensureDock();
+    const buttons = [];
+    if (nearFarm() && view) {
+      const ripe = (view.plots || []).filter(row => row.stage === 'maduro');
+      ripe.forEach(row => {
+        const name = row.crop === 'cafe' ? 'café' : 'cacao';
+        buttons.push(`<button type="button" data-op="cosechar" data-plot="${esc(row.id)}">Cosechar<small>${name}</small></button>`);
+      });
+      if (ripe.length > 1) buttons.push('<button type="button" data-op="cosechar_todo">Cosechar todo</button>');
+      const goods = view.goods || {};
+      const batches = view.batches || {};
+      [['cafe', 'café', goods.cafe_cereza], ['cacao', 'cacao', goods.cacao_baba]].forEach(([crop, name, have]) => {
+        const working = !!batches[crop];
+        if (!working && !(Number(have) > 0)) return;
+        const both = (Number(goods.cafe_cereza) > 0 || batches.cafe) && (Number(goods.cacao_baba) > 0 || batches.cacao);
+        const label = working ? (both ? `Procesar ${name}` : 'Procesar') : (both ? `Llevar ${name} al taller` : 'Llevar al taller');
+        buttons.push(`<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`);
+      });
+    }
+    if (zone() === 'mine' || zone() === 'central') {
+      buttons.push('<button type="button" data-op="acunar">Acuñar</button>');
+    }
+    if (!buttons.length) {
+      dock.hidden = true;
+      dock.innerHTML = '';
+      return;
+    }
+    dock.hidden = false;
+    dock.innerHTML = buttons.join('');
+    dock.querySelectorAll('button').forEach(button => {
+      button.onclick = () => {
+        if (button.dataset.op === 'acunar') {
+          if (window.Acunar) Acunar.open();
+          return;
+        }
+        send(button.dataset.op, { plot: button.dataset.plot, crop: button.dataset.crop });
+      };
+    });
+  }
+
+  fetch('finca-textos.json?v=cierre-r1').then(res => res.ok ? res.json() : null).then(doc => {
+    if (!doc) return;
+    textos = doc;
+    paintFarm();
+  }).catch(() => {});
   window.Finca = { onNet, open, openPanel, openLibro, pull };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+
+<rect x="48.00" y="130.00" width="160.00" height="80.00" rx="4.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="48.00" y="130.00" width="160.00" height="80.00" rx="4.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="48.00" y="130.00" width="160.00" height="80.00" rx="4.00" fill="#F3EAD7"/>
+<polygon points="32.00,130.00 224.00,130.00 196.00,62.00 60.00,62.00" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="32.00,130.00 224.00,130.00 196.00,62.00 60.00,62.00" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="32.00,130.00 224.00,130.00 196.00,62.00 60.00,62.00" fill="#C47A52"/>
+<rect x="110.00" y="154.00" width="48.00" height="56.00" rx="2.00" fill="none" stroke="#FFF8EE" stroke-width="14"/>
+<rect x="110.00" y="154.00" width="48.00" height="56.00" rx="2.00" fill="none" stroke="#1A120C" stroke-width="7"/>
+<rect x="110.00" y="154.00" width="48.00" height="56.00" rx="2.00" fill="#5A3A1E"/>
+<circle cx="56.00" cy="228.00" r="18.00" fill="#C0262D"/>
+<circle cx="56.00" cy="228.00" r="18.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<circle cx="56.00" cy="229.00" r="8.64" fill="#c9464c"/>
+<circle cx="200.00" cy="228.00" r="18.00" fill="#C45A2A"/>
+<circle cx="200.00" cy="228.00" r="18.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<polygon points="192.20,227.74 196.48,225.45 201.87,225.62 206.58,232.41 198.78,235.13 194.32,232.11" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="192.20,227.74 196.48,225.45 201.87,225.62 206.58,232.41 198.78,235.13 194.32,232.11" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="192.20,227.74 196.48,225.45 201.87,225.62 206.58,232.41 198.78,235.13 194.32,232.11" fill="#FFF8EE"/>
+<path d="M194.9,227.6 L204.8,231.4" fill="none" stroke="#fffaf3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.800"/>
+</svg>

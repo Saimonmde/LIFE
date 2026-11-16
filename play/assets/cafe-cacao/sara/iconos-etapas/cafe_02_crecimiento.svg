@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+
+<line x1="128.00" y1="230.00" x2="128.00" y2="150.00" stroke="#FFF8EE" stroke-width="26" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="230.00" x2="128.00" y2="150.00" stroke="#1A120C" stroke-width="21" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="230.00" x2="128.00" y2="150.00" stroke="#8A5A32" stroke-width="18" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="175.00" x2="64.00" y2="88.00" stroke="#FFF8EE" stroke-width="22" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="175.00" x2="64.00" y2="88.00" stroke="#1A120C" stroke-width="17" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="175.00" x2="64.00" y2="88.00" stroke="#8A5A32" stroke-width="14" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="175.00" x2="194.00" y2="86.00" stroke="#FFF8EE" stroke-width="22" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="175.00" x2="194.00" y2="86.00" stroke="#1A120C" stroke-width="17" stroke-linecap="round" opacity="1.000"/>
+<line x1="128.00" y1="175.00" x2="194.00" y2="86.00" stroke="#8A5A32" stroke-width="14" stroke-linecap="round" opacity="1.000"/>
+<polygon points="69.15,85.28 41.52,94.73 18.43,56.00 63.52,56.63" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="69.15,85.28 41.52,94.73 18.43,56.00 63.52,56.63" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="69.15,85.28 41.52,94.73 18.43,56.00 63.52,56.63" fill="#4CA35A"/>
+<path d="M69.1,85.3 L18.4,56.0" fill="none" stroke="#2F7D3A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.700"/>
+<polygon points="58.52,110.92 37.48,131.16 0.18,105.82 41.31,87.33" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="58.52,110.92 37.48,131.16 0.18,105.82 41.31,87.33" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="58.52,110.92 37.48,131.16 0.18,105.82 41.31,87.33" fill="#4CA35A"/>
+<path d="M58.5,110.9 L0.2,105.8" fill="none" stroke="#2F7D3A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.700"/>
+<polygon points="188.08,81.61 198.59,54.37 243.11,61.58 213.64,95.72" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="188.08,81.61 198.59,54.37 243.11,61.58 213.64,95.72" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="188.08,81.61 198.59,54.37 243.11,61.58 213.64,95.72" fill="#4CA35A"/>
+<path d="M188.1,81.6 L243.1,61.6" fill="none" stroke="#2F7D3A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.700"/>
+<polygon points="199.60,108.17 222.33,89.83 257.27,118.34 214.69,133.17" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="199.60,108.17 222.33,89.83 257.27,118.34 214.69,133.17" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="199.60,108.17 222.33,89.83 257.27,118.34 214.69,133.17" fill="#4CA35A"/>
+<path d="M199.6,108.2 L257.3,118.3" fill="none" stroke="#2F7D3A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.700"/>
+<polygon points="128.00,117.44 150.00,136.64 128.00,176.00 106.00,136.64" fill="none" stroke="#FFF8EE" stroke-width="14" stroke-linejoin="round"/>
+<polygon points="128.00,117.44 150.00,136.64 128.00,176.00 106.00,136.64" fill="none" stroke="#1A120C" stroke-width="7" stroke-linejoin="round"/>
+<polygon points="128.00,117.44 150.00,136.64 128.00,176.00 106.00,136.64" fill="#4CA35A"/>
+<path d="M128.0,117.4 L128.0,176.0" fill="none" stroke="#2F7D3A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.700"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="#C0262D"/>
+<circle cx="226.00" cy="226.00" r="16.00" fill="none" stroke="#1A120C" stroke-width="3"/>
+<circle cx="226.00" cy="227.00" r="7.68" fill="#c9464c"/>
+</svg>

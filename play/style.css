@@ -28,7 +28,7 @@ header .x, .x { margin-left: auto; background: none; border: 0; color: #d9c08c; 
 #smc-pill img, #hud-recursos img.oro-coin { width: 22px; height: 22px; display: block; image-rendering: auto; filter: drop-shadow(0 1px 1px rgba(0,0,0,.45)); }
 #smc-pill-saldo { font-variant-numeric: tabular-nums; }
 body:not(.in-game) #smc-pill { display: none !important; }
-body.pantalla-limpia #smc-pill, .solo-mundo #smc-pill { display: inline-flex !important; }
+#smc-pill, body.pantalla-limpia #smc-pill, .solo-mundo #smc-pill { display: none !important; }
 @media (max-width: 820px) {
   #smc-pill { top: calc(max(6px, env(safe-area-inset-top)) + 92px); font-size: 13px; padding: 3px 8px 3px 3px; }
   #smc-pill img { width: 20px; height: 20px; }
@@ -257,7 +257,16 @@ button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offse
 .player-name{position:absolute;transform:translate(-50%,-100%);padding:3px 7px;border-radius:5px;background:#17251ee6;border:1px solid #d5c49599;color:#fff;font:bold 12px/1.2 system-ui,sans-serif;white-space:nowrap;text-shadow:0 1px 2px #000;pointer-events:none}.player-name.bot-name{color:#d5d0b9;background:#28332dbb}
 
 /* Session controls stay visible even in Solo mundo. */
-#b-descansar{position:fixed;z-index:24;left:max(12px,env(safe-area-inset-left));right:auto;bottom:calc(12px + env(safe-area-inset-bottom));min-width:125px;min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:9px;font:bold 17px system-ui;cursor:pointer}
+#b-descansar{position:fixed;z-index:70;left:max(10px,env(safe-area-inset-left));right:auto;top:264px;bottom:auto;width:min(168px,calc(100vw - 20px));min-height:48px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:14px;font:bold 15px/1.2 system-ui;cursor:pointer;padding:8px 10px;text-align:left}
+#astral{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(circle,#fff8e8d0,#1c140acc);color:#fff6e4;font:700 22px system-ui}
+#astral[hidden]{display:none!important}
+#astral button{min-height:44px;border:0;border-radius:12px;background:#f0d18b;color:#251c12;font:700 16px system-ui;padding:8px 16px}
+#cerrar-sesion{position:fixed;z-index:96;left:50%;top:30%;transform:translateX(-50%);width:min(360px,calc(100vw - 24px));padding:16px;border-radius:16px;background:#2a2118;color:#fff6e8;border:3px solid #e7c27a;font:16px/1.4 system-ui}
+#cerrar-sesion[hidden]{display:none!important}
+#cerrar-sesion .fila{display:flex;gap:8px}
+#cerrar-sesion button{min-height:44px;border:0;border-radius:12px;background:#e2b23c;color:#1c1208;font:700 15px system-ui;padding:8px 12px}
+#b-cerrar-casa{display:none;position:fixed;z-index:24;left:max(10px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom));min-height:44px;border:0;border-radius:12px;background:#3a2a1c;color:#f6e7c4;font:700 14px system-ui;padding:8px 12px}
+body.in-game.in-casa #b-cerrar-casa{display:block}
 #b-bajar, #b-skate{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
 #b-bajar{background:#f0d18b;color:#251c12;border:2px solid #614322}
 #b-skate{bottom:calc(228px + env(safe-area-inset-bottom))}
@@ -316,8 +325,8 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 #mochila-llena button{min-height:44px;border:0;border-radius:12px;background:#e2b23c;color:#1c1208;font:700 15px/1 var(--sans);padding:8px 12px}
 #mochila-llena[hidden]{display:none!important}
 #b-salir-parque{left:50%;bottom:78px;transform:translateX(-50%);background:#6b3a22;color:#fff1c9;border-color:#e2b23c}
-body.in-casa #world-tools{top:auto!important;bottom:200px}
-body.in-casa #world-note{top:auto!important;bottom:150px}
+body.in-casa #world-tools{top:120px!important;bottom:auto!important}
+body.in-casa #world-note{top:168px!important;bottom:auto!important}
 body.in-casa #b-casa,body:not(.in-casa) #b-editar-casa,body:not(.in-casa) #b-salir-parque,body:not(.in-game) #b-casa,body:not(.in-game) #b-editar-casa,body:not(.in-game) #b-salir-parque,body:not(.in-game) #casa-editor,body.in-casa #mine-route{display:none!important}
 #casa-editor{position:fixed;z-index:28;top:64px;left:max(10px,env(safe-area-inset-left));width:min(300px,calc(100vw - 20px));max-height:calc(100dvh - 80px);overflow:auto;background:#241c14f5;border:2px solid #b48a46;border-radius:10px;color:#f6e7c4;padding:10px 12px;font:14px/1.4 system-ui,sans-serif;box-shadow:0 10px 30px #000a}
 #casa-editor header{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:#f5d27a;padding:0 0 6px;border:0}

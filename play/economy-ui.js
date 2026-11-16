@@ -244,6 +244,7 @@
       if (session && m.id !== session.id) return true;
       close();
       if ($('#rest-status')) $('#rest-status').textContent = m.reason;
+      if (m.reason && m.reason.indexOf('Tu mochila está llena') >= 0 && window.avisarMochilaLlena) window.avisarMochilaLlena();
       if (window.Banco) Banco.paint();
     }
     return true;

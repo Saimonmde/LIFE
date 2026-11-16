@@ -21,6 +21,15 @@ function chunk(T, parent, color, x, y, z, sx, sy, sz) {
   parent.add(mesh);
   return mesh;
 }
+function blob(T, parent, color, x, y, z, sx, sy, sz) {
+  if (!geos.blob) geos.blob = new T.SphereGeometry(0.5, 6, 5);
+  const mesh = new T.Mesh(geos.blob, mat(T, color));
+  mesh.position.set(x, y, z);
+  mesh.scale.set(sx, sy, sz);
+  mesh.castShadow = mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
 function pivot(T, parent, x, y, z) {
   const group = new T.Group();
   group.position.set(x, y, z);
@@ -28,24 +37,36 @@ function pivot(T, parent, x, y, z) {
   return group;
 }
 function picks(colors, variant) {
-  const list = colors && colors.length === 3 ? colors : ['#c48a52', '#f3e6c8', '#6b4a32'];
-  const index = ((variant % 3) + 3) % 3;
-  return { main: list[index], mark: list[(index + 1) % 3], accent: list[(index + 2) % 3] };
+  const list = colors && colors.length >= 3 ? colors : ['#c48a52', '#f3e6c8', '#6b4a32'];
+  const index = ((variant % list.length) + list.length) % list.length;
+  return { main: list[index], mark: list[(index + 1) % list.length], accent: list[(index + 2) % list.length] };
 }
 
 const SHAPES = {
   'dog:criollo': { body: [.72, .36, .34], leg: [.12, .28, .12], head: [.34, .30, .32], snout: [.18, .12, .16], ear: 'flop', tail: 'curve', chest: true },
   'dog:labrador': { body: [.82, .40, .38], leg: [.14, .30, .14], head: [.36, .32, .34], snout: [.24, .14, .18], ear: 'flop', tail: 'otter' },
-  'dog:golden': { body: [.84, .42, .40], leg: [.14, .30, .14], head: [.38, .34, .36], snout: [.22, .14, .18], ear: 'flop', tail: 'plume' },
-  'dog:pastor': { body: [.90, .38, .34], leg: [.12, .36, .12], head: [.34, .32, .36], snout: [.26, .12, .16], ear: 'point', tail: 'low', saddle: true },
-  'dog:bulldog': { body: [.62, .40, .48], leg: [.15, .16, .15], head: [.42, .32, .40], snout: [.28, .14, .22], ear: 'bat', tail: 'stub' },
-  'dog:beagle': { body: [.74, .34, .32], leg: [.12, .26, .12], head: [.32, .28, .32], snout: [.20, .12, .16], ear: 'long', tail: 'curve', chest: true, earDark: true },
+  'dog:golden': { body: [.92, .44, .42], leg: [.14, .32, .14], head: [.40, .34, .36], snout: [.24, .14, .18], ear: 'flop', tail: 'plume', chest: true },
+  'dog:pastor': { body: [.96, .36, .32], leg: [.12, .40, .12], head: [.32, .30, .38], snout: [.28, .12, .16], ear: 'point', tail: 'low', saddle: true, tanLegs: true, tanHead: true },
+  'dog:bulldog': { body: [.62, .40, .48], leg: [.16, .14, .16], head: [.48, .34, .42], snout: [.30, .16, .24], ear: 'bat', tail: 'stub', stripes: true },
+  'dog:beagle': { body: [.74, .34, .36], leg: [.12, .26, .12], head: [.32, .28, .32], snout: [.20, .12, .16], ear: 'long', tail: 'curve', chest: true, earDark: true, saddle: true, saddleDark: true },
+  'dog:husky': { body: [.86, .38, .34], leg: [.12, .34, .12], head: [.34, .30, .36], snout: [.22, .12, .16], ear: 'point', tail: 'plume', chest: true, saddle: true },
+  'dog:pug': { body: [.52, .36, .42], leg: [.14, .14, .14], head: [.40, .32, .36], snout: [.22, .12, .18], ear: 'flop', tail: 'stub' },
+  'dog:boxer': { body: [.84, .40, .36], leg: [.14, .32, .14], head: [.36, .32, .34], snout: [.18, .12, .16], ear: 'flop', tail: 'stub', chest: true },
+  'dog:cocker': { body: [.70, .32, .32], leg: [.11, .26, .11], head: [.32, .28, .30], snout: [.18, .12, .14], ear: 'long', tail: 'plume' },
+  'dog:dalmata': { body: [.82, .38, .34], leg: [.12, .32, .12], head: [.34, .30, .32], snout: [.20, .12, .16], ear: 'flop', tail: 'curve', patches: true },
+  'dog:chihuahua': { body: [.40, .24, .24], leg: [.08, .16, .08], head: [.28, .24, .26], snout: [.12, .08, .10], ear: 'point', tail: 'curve' },
   'cat:criollo': { body: [.58, .28, .28], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, chest: true },
   'cat:siames': { body: [.62, .28, .26], leg: [.09, .24, .09], head: [.28, .26, .28], snout: [.12, .08, .12], ear: 'point', tail: 'whip', sit: true, points: true },
-  'cat:persa': { body: [.64, .36, .40], leg: [.11, .16, .11], head: [.40, .34, .38], snout: [.14, .10, .14], ear: 'tiny', tail: 'plume', sit: true },
+  'cat:persa': { body: [.70, .42, .46], leg: [.12, .14, .12], head: [.48, .40, .44], snout: [.16, .12, .16], ear: 'tiny', tail: 'plume', sit: true },
   'cat:atigrado': { body: [.60, .28, .28], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, stripes: true },
   'cat:negro': { body: [.58, .28, .28], leg: [.09, .24, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, goldEyes: true },
   'cat:calico': { body: [.60, .28, .30], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, patches: true },
+  'cat:angora': { body: [.66, .36, .40], leg: [.10, .20, .10], head: [.36, .32, .34], snout: [.12, .08, .12], ear: 'tiny', tail: 'plume', sit: true },
+  'cat:bengali': { body: [.64, .26, .26], leg: [.08, .24, .08], head: [.28, .24, .30], snout: [.12, .08, .12], ear: 'point', tail: 'whip', sit: true, stripes: true },
+  'cat:azul': { body: [.58, .30, .30], leg: [.09, .22, .09], head: [.32, .28, .30], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true },
+  'cat:esfinge': { body: [.56, .26, .28], leg: [.08, .24, .08], head: [.30, .26, .28], snout: [.10, .08, .10], ear: 'tiny', tail: 'whip', sit: true },
+  'cat:carey': { body: [.60, .28, .30], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'whip', sit: true, patches: true },
+  'cat:tricolor': { body: [.60, .28, .30], leg: [.09, .22, .09], head: [.30, .26, .28], snout: [.12, .08, .10], ear: 'point', tail: 'curve', sit: true, patches: true, chest: true },
 };
 
 function ear(T, parent, color, side, kind) {
@@ -69,7 +90,7 @@ export function createPet(T, spec) {
   root.add(bob);
   const [bw, bh, bd] = shape.body;
   const [lw, lh, ld] = shape.leg;
-  const legColor = shape.points ? paint.accent : paint.main;
+  const legColor = shape.points ? paint.accent : shape.tanLegs ? paint.accent : paint.main;
   const legs = [];
   for (const [sx, sz] of [[-.5, .32], [.5, .32], [-.5, -.32], [.5, -.32]]) {
     const hip = pivot(T, bob, sx * bw * .7, lh, sz * bd);
@@ -77,9 +98,9 @@ export function createPet(T, spec) {
     legs.push(hip);
   }
   const body = pivot(T, bob, 0, lh + bh / 2, 0);
-  chunk(T, body, paint.main, 0, 0, 0, bw, bh, bd);
-  if (shape.chest) chunk(T, body, paint.mark, 0, -.04, bd * .42, bw * .46, bh * .55, .06);
-  if (shape.saddle) chunk(T, body, paint.accent, 0, bh * .35, -.04, bw * .7, bh * .28, bd * .62);
+  blob(T, body, paint.main, 0, 0, 0, bw, bh, bd);
+  if (shape.chest) blob(T, body, paint.mark, 0, -.06, bd * .36, bw * .5, bh * .55, bd * .28);
+  if (shape.saddle) blob(T, body, shape.saddleDark ? paint.accent : paint.main, 0, bh * .28, -.02, bw * .72, bh * .36, bd * .55);
   if (shape.stripes) {
     for (const z of [-.12, .02, .16]) chunk(T, body, paint.accent, 0, bh * .42, z, bw * .92, .05, .06);
   }
@@ -89,11 +110,12 @@ export function createPet(T, spec) {
   }
   const [hw, hh, hd] = shape.head;
   const head = pivot(T, body, 0, bh * .55, bd * .42);
-  const headColor = shape.points ? paint.mark : paint.main;
-  chunk(T, head, headColor, 0, 0, 0, hw, hh, hd);
+  const headColor = shape.points ? paint.mark : shape.tanHead ? paint.accent : paint.main;
+  blob(T, head, headColor, 0, 0, 0, hw, hh, hd);
   if (shape.points) chunk(T, head, paint.accent, 0, -.02, hd * .2, hw * .7, hh * .55, .08);
   const [sw, sh, sd] = shape.snout;
-  chunk(T, head, shape.points ? paint.accent : paint.mark, 0, -.06, hd * .48, sw, sh, sd);
+  blob(T, head, shape.points ? paint.accent : paint.mark, 0, -.06, hd * .42, sw, sh, sd);
+  chunk(T, head, '#3a2418', 0, -.08, hd * .62, sw * .28, sh * .35, .04);
   const eye = shape.goldEyes ? '#e2b84a' : '#24180f';
   chunk(T, head, eye, -.08, .04, hd * .48, .05, .05, .04);
   chunk(T, head, eye, .08, .04, hd * .48, .05, .05, .04);
@@ -138,6 +160,18 @@ export function posePet(group, anim, time) {
     rig.head.rotation.x = .35;
     for (const leg of rig.legs) leg.rotation.x = 1.25;
     rig.tail.rotation.x = .3;
+  } else if (anim === 'greet') {
+    const feline = !!rig.sit;
+    const wag = Math.sin(t * (feline ? 7 : 16));
+    rig.tail.rotation.y = wag * (feline ? .55 : 1.05);
+    rig.head.rotation.x = feline ? -.2 + Math.sin(t * 9) * .18 : Math.sin(t * 10) * .08;
+    rig.head.rotation.z = feline ? Math.sin(t * 7) * .18 : 0;
+    rig.bob.position.y = Math.abs(Math.sin(t * 8)) * .04;
+    if (feline) {
+      rig.bob.position.y -= rig.legH * .35;
+      rig.legs[2].rotation.x = 1.35;
+      rig.legs[3].rotation.x = 1.35;
+    }
   } else if (sit) {
     rig.bob.position.y = -rig.legH * .35;
     rig.legs[0].rotation.x = .15;

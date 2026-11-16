@@ -1,0 +1,103 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Instructivo del cartel, al modo de Sara: título gótico, cuerpo en Inter. */
+@font-face {
+  font-family: "UnifrakturMaguntia";
+  src: url("fonts/UnifrakturMaguntia.ttf") format("truetype");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+#letrero-mina {
+  position: fixed;
+  z-index: 78;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(440px, calc(100vw - 20px));
+  max-height: min(86dvh, 760px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 18px 18px 22px;
+  background: #14241c;
+  color: #f6e7c4;
+  border: 2px solid #c6a15a;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px #000a;
+  font: 18px/1.4 Inter, system-ui, sans-serif;
+}
+#letrero-mina[hidden] { display: none !important; }
+#letrero-mina header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+#letrero-mina header strong {
+  font-family: "UnifrakturMaguntia", serif;
+  font-weight: 400;
+  color: #f5d27a;
+  font-size: 34px;
+  line-height: 1.05;
+}
+#letrero-mina button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid #c6a15a;
+  border-radius: 50%;
+  background: transparent;
+  color: #f5d27a;
+  font: 700 22px/1 Inter, system-ui, sans-serif;
+}
+#letrero-mina h3 {
+  margin: 14px 0 8px;
+  color: #f5d27a;
+  font: 700 18px/1.2 Inter, system-ui, sans-serif;
+}
+#letrero-mina p { margin: 0 0 10px; }
+#letrero-cuenta { font-variant-numeric: tabular-nums; font-weight: 700; color: #fff6df; }
+#letrero-hoy p { font-weight: 700; }
+#letrero-monedas p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+#letrero-monedas img { width: 42px; height: 42px; flex: none; }
+#letrero-minar {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: mina;
+}
+#letrero-minar li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 8px;
+}
+#letrero-minar li::before {
+  counter-increment: mina;
+  content: counter(mina);
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f5d27a;
+  color: #1c1208;
+  font: 700 14px/28px Inter, system-ui, sans-serif;
+  text-align: center;
+}
+#letrero-aviso {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 2px solid #c6a15a;
+  border-radius: 10px;
+  color: #f6e7c4;
+}
+@media (max-width: 700px) {
+  #letrero-mina { font-size: 17px; top: 8px; transform: translate(-50%, 0); max-height: calc(100dvh - 16px); }
+  #letrero-mina header strong { font-size: 28px; }
+}

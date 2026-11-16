@@ -5,28 +5,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=patinar-vidrio-r1">
+<link rel="stylesheet" href="style.css?v=sara-hud">
+<link rel="stylesheet" href="letrero.css?v=sara-cartel">
 <link rel="stylesheet" href="central.css?v=central-r1">
-<link rel="stylesheet" href="movil.css?v=patinar-vidrio-r1">
+<link rel="stylesheet" href="movil.css?v=joystick-v1">
 <link rel="stylesheet" href="hud-layout.css?v=casa-r1">
-<link rel="stylesheet" href="theme.css?v=patinar-vidrio-r1">
+<link rel="stylesheet" href="theme.css?v=casa-movil">
 <link rel="stylesheet" href="cuenta.css?v=nick-r1">
-<link rel="stylesheet" href="cajon.css?v=mina-r1">
+<link rel="stylesheet" href="mi-cuenta.css?v=mi-cuenta">
+<link rel="stylesheet" href="cajon.css?v=joy-horizontal">
 <link rel="stylesheet" href="economy.css?v=codex-trade-r1">
 <link rel="stylesheet" href="emotes.css?v=movimiento-r1">
-<link rel="stylesheet" href="login.css?v=simon-r1">
-<link rel="stylesheet" href="vida.css?v=guia-r2">
+<link rel="stylesheet" href="login.css?v=login-limpio">
+<link rel="stylesheet" href="login-entrada.css?v=login-limpio">
+<link rel="stylesheet" href="vida.css?v=se-ven">
 <link rel="stylesheet" href="acunar.css?v=acunar-r1">
-<link rel="stylesheet" href="finca.css?v=finca-r1">
+<link rel="stylesheet" href="finca.css?v=botones-r1">
 <link rel="icon" href="../graphics/ui/saimon-logo-gold.png">
 <link rel="stylesheet" href="shell.css?v=sonido-r1">
+<link rel="stylesheet" href="mando.css?v=joystick-v1">
+<link rel="stylesheet" href="mover.css?v=mover-r1">
+<link rel="stylesheet" href="lugar.css?v=lugar-r1">
+<link rel="stylesheet" href="mapa-hoja.css?v=ruta-mina">
+<link rel="stylesheet" href="pulgar.css?v=joy-horizontal">
+<link rel="stylesheet" href="editor/editor.css?v=editor-r1">
 <script src="shell.js?v=sonido-r1"></script>
-<script src="sonido.js?v=sonido-r1"></script>
-<script src="movil.js?v=valle-hud-r5"></script>
+<script src="sonido.js?v=guacha-r1"></script>
+<script src="movil.js?v=barra-r1"></script>
 </head>
 <body class="mapa-limpio">
+<div id="intro-cielo" hidden></div>
 <canvas id="juego"></canvas>
-<button id="b-descansar" hidden>Descansar</button><button type="button" id="b-skate" hidden aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><div id="rest-status" role="alert"></div>
+<button id="b-descansar" hidden>Descansar / Ir a casa</button><button type="button" id="b-skate" hidden aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><div id="rest-status" role="alert"></div>
+<div id="astral" hidden><p>Vas a casa…</p><button type="button" id="astral-saltar">Saltar</button></div>
 
 <!-- ===== Marca + perfil (arriba izquierda) ===== -->
 <div id="hud-perfil" class="hud">
@@ -140,8 +151,9 @@
 
 <section id="hogar" hidden aria-labelledby="hogar-titulo">
   <div class="hogar-panel">
-    <h2 id="hogar-titulo">¿Dónde vives?</h2>
-    <p>Elige tu municipio. Ahí está tu casa, de sur a norte.</p>
+    <h2 id="hogar-titulo">¿Dónde quieres empezar?</h2>
+    <p>Elige un parque o un pueblo del valle. La estrella es el lugar donde apareces siempre.</p>
+    <button type="button" id="hogar-cerrar" hidden>Cerrar</button>
     <div id="hogar-lista" role="list"></div>
     <p id="hogar-status" role="status"></p>
   </div>
@@ -157,14 +169,16 @@
       <div class="simoncity-rule" aria-hidden="true"></div>
       <div class="simoncity-place">Medellín</div>
       <p class="simoncity-welcome">Entra para jugar</p>
-      <p class="simoncity-online" id="login-red">Buscando el servidor…</p>
+      <p class="simoncity-online" id="login-red">Conectando al mundo…</p>
+      <p id="login-bienvenida" hidden></p>
     </div>
     <div id="login-cuentas">
-      <label>Apodo<input id="e-nick" maxlength="16" autocomplete="username" placeholder="Tu apodo"></label>
+      <label>Nickname<input id="e-nick" maxlength="16" autocomplete="username" placeholder="Tu apodo"></label>
       <label>Contraseña<input id="e-clave" type="password" autocomplete="current-password"></label>
-      <button type="button" id="b-entrar">Entrar</button>
+      <p id="login-nuevo" hidden>¿Eres nuevo? Se creará tu cuenta con este nickname</p>
+      <button type="button" id="b-entrar">Entrar al mundo</button>
       <div class="login-iconos" aria-label="Otras formas de entrar">
-        <button type="button" id="b-google" hidden title="Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#34A853" d="M12 22c2.7 0 5-1 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6z"/><path fill="#EA4335" d="M12 6.2c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 8 9.4 6.2 12 6.2z"/></svg><span>Google</span></button>
+        <button type="button" id="b-google" hidden title="Google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#34A853" d="M12 22c2.7 0 5-1 6.6-2.5l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 13.9a6 6 0 0 1 0-3.8V7.5H3.1a10 10 0 0 0 0 9l3.3-2.6z"/><path fill="#EA4335" d="M12 6.2c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 8 9.4 6.2 12 6.2z"/></svg><span>Continuar con Google</span></button>
         <button type="button" id="b-facebook" disabled title="Facebook disponible pronto"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1877F2" d="M14 9h3V6h-3c-2.2 0-4 1.8-4 4v2H8v3h2v7h3v-7h2.6l.4-3H13v-2c0-.6.4-1 1-1z"/></svg><span>Facebook disponible pronto</span></button>
         <button type="button" id="b-correo" title="Correo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#f3e2b8" d="M3 6h18v12H3z"/><path fill="none" stroke="#3a2a16" stroke-width="1.6" d="M4 7l8 6 8-6"/></svg><span>Correo</span></button>
       </div>
@@ -180,6 +194,7 @@
     <div id="registro" hidden>
       <p>Elige un apodo. Te enviamos un enlace: la cuenta no sirve hasta que lo abras.</p>
       <label>Apodo<input id="l-nombre" maxlength="16" autocomplete="nickname" placeholder="Cómo te verán"></label>
+      <p id="l-apodo-vista" class="apodo-vista" aria-live="polite">Acepta letras, números y espacios. Así quedará: (vacío)</p>
       <div class="colores" id="l-colores"></div>
       <label>Correo<input id="r-email" type="email" autocomplete="email"></label>
       <label>Contraseña<input id="r-pass" type="password" minlength="8" maxlength="1024" autocomplete="new-password"></label>
@@ -207,6 +222,7 @@
   <header>Tu apodo y tu contraseña</header>
   <p>Sólo esta vez. Después entras con el apodo y la contraseña, sin el correo.</p>
   <label>Apodo<input id="p-nick" maxlength="16" autocomplete="nickname"></label>
+  <p id="p-apodo-vista" class="apodo-vista" aria-live="polite">Acepta letras, números y espacios. Así quedará: (vacío)</p>
   <label>Contraseña<input id="p-pass" type="password" autocomplete="new-password"></label>
   <label>Confirmar<input id="p-pass2" type="password" autocomplete="new-password"></label>
   <p id="p-fuerza" aria-live="polite">Escribe una contraseña.</p>
@@ -239,10 +255,17 @@
     <li><b>Simoncoin:</b> la moneda de oro. Sólo habrá 21.000.000. Se acuña en el horno de la mina, con cuenta. No se puede crear más ni copiarla.</li>
     <li><b>Simonplata:</b> la moneda de plata. Sólo habrá 84.000.000. Se acuña en el mismo horno. No se puede crear más ni copiarla.</li>
     <li><b>Simonchis:</b> las monedas de cobre. Habrá 333.000.000. Se acuñan en el horno con mineral de cobre.</li>
-    <li><b>Horno:</b> en la mina, Acuñar cambia el metal por Simoncoin, Simonplata o Simonchis. Esas tres monedas se guardan en el servidor y se detienen al llegar a su máximo.</li>
+    <li>🏙 <b>Saimon City.</b> Valle de Aburrá. El año del juego es 1777.</li>
+    <li>⛏ <b>Trabajo.</b> Ve a la mina. Pica el metal.</li>
+    <li>🪙 <b>Premio.</b> En el horno, Acuñar guarda las monedas en tu inventario. Así armas tu reserva.</li>
+    <li>🏠 <b>Casa.</b> Descansar / Ir a casa. Tu mascota te espera. Cerrar sesión pregunta antes de salir.</li>
+    <li>Plantas en una parcela.</li>
+    <li>Cosechas cuando está maduro.</li>
+    <li>En el taller procesas el fruto.</li>
+    <li>Vendes el bulto si la casa tiene monedas.</li>
     <li><b>Banco Central:</b> el edificio verde, junto a la Casa bancaria. Se ve desde la calle. La ventanilla interior no está abierta para una cuenta corriente.</li>
     <li><b>Casa bancaria:</b> junto al Parque de Envigado. El banquero atiende el mostrador y el banquito. El baúl de tu casa es el mismo depósito. Lo que dejas ahí no se pierde si caes.</li>
-    <li><b>Café y cacao:</b> en Las Palmas, junto a la mina. Plantas en una parcela. Cosechas cuando está maduro. En el taller procesas el fruto. Vendes el bulto si la casa tiene monedas. El Libro mayor no dice quién.</li>
+    <li><b>Café y cacao:</b> afuera, en la ladera abierta de Las Palmas. La mina es solo la cantera. Plantas en una parcela. Cosechas cuando está maduro. En el taller procesas el fruto. Vendes el bulto si la casa tiene monedas. El saco de café excelso es de 70 kg. El cajón de cacao rinde 150 kg secos. El Libro mayor no dice quién. Al acercarte, Cosechar está a la vista. Llevar al taller no acuña.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain. El botón Libro mayor muestra los totales de café, cacao y monedas.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
     <li><b>Intercambiar:</b> pulsa a otra persona o su nombre en Jugadores. Las dos aceptan y las dos confirman, a 30 m. Entran Simoncoin, Simonplata, Simonchis y bolsas de café o cacao que el servidor haya acreditado.</li>
@@ -260,7 +283,7 @@
 </div>
 <div id="viaje-vuelo" aria-hidden="true"></div>
 <section id="city-map" role="dialog" aria-modal="true" aria-labelledby="city-map-title" hidden>
-  <div class="city-map-panel"><header><span id="city-map-title">Valle de Aburrá</span><button id="city-map-close" type="button" aria-label="Cerrar mapa">×</button></header>
+  <div class="city-map-panel"><header><span id="city-map-title">Valle de Aburrá</span><button id="city-map-close" type="button" aria-label="Cerrar">✕ Cerrar</button></header>
   <div id="city-map-view">
     <div id="city-map-stage"></div>
     <div id="city-map-labels"></div>
@@ -313,40 +336,56 @@
 </section>
 <div id="autotest" hidden></div>
 <script src="historia.js?v=vidrio-r1"></script>
-<script src="simulacion.js?v=caballo-r1"></script>
+<script src="simulacion.js?v=acunar-credito"></script>
 <script src="pow.js?v=vidrio-r1"></script>
 <script src="../data/el-jardin.js?v=fusion-r1"></script>
-<script src="mining-rules.js?v=valle-hud-r5"></script>
+<script src="mining-rules.js?v=lingote-puerta"></script>
 <script src="../data/hogares.js?v=hogar-r1"></script>
 <script src="../data/valle-geo.js?v=valle-geo-r1"></script>
-<script src="valle-mapa.js?v=valle-geo-r2"></script>
-<script src="hogar.js?v=valle-geo-r1"></script>
-<script src="casa.js?v=hogar-r1"></script>
+<script src="valle-mapa.js?v=ruta-mina"></script>
+<script src="lugares.js?v=lugar-r1"></script>
+<script src="hogar.js?v=lugar-r1"></script>
+<script src="casa.js?v=guardar-r1"></script>
 <script src="envigado-park.js?v=fusion-r1"></script>
 <script src="banco.js?v=codex-trade-r1"></script>
-<script src="central.js?v=central-r1"></script>
+<script src="central.js?v=lingote-puerta"></script>
 <script src="tutorial.js?v=guia-r1"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
 <script src="../data/skate-4-sur.js?v=skate-r1"></script>
 <script src="llegada.js?v=ovni-r1"></script>
-<script src="assets/cafe-cacao/map.js?v=fases-r1"></script>
-<script src="finca-modelo.js?v=fases-r1"></script>
-<script src="libro-publico.js?v=sara-r1"></script>
-<script src="finca.js?v=finca-r1"></script>
+<script src="assets/cafe-cacao/map.js?v=v2-r1"></script>
+<script src="finca-modelo.js?v=cierre-r1"></script>
+<script src="libro-publico.js?v=elisa-r1"></script>
+<script src="finca.js?v=botones-r1"></script>
 <script src="motion.js?v=movimiento-r1"></script>
-<script src="caballo.js?v=caballo-r1"></script>
-<script src="game.js?v=central-r1"></script>
+<script src="../data/guacharacas.js?v=guacha-r2"></script>
+<script src="guacharaca.js?v=guacha-r2"></script>
+<script src="../data/gallos.js?v=corral-r1"></script>
+<script src="gallo.js?v=corral-r1"></script>
+<script src="corral.js?v=corral-r1"></script>
+<script src="caballo.js?v=afuera-r1"></script>
+<script src="letrero.js?v=sara-cartel"></script>
+<script src="cambio-simple.js?v=barra-r1"></script>
+<script src="game.js?v=camina-lugar"></script>
+<script src="pulgar.js?v=mi-cuenta"></script>
 <script src="emotes.js?v=movimiento-r1"></script>
-<script src="economy-ui.js?v=codex-trade-r1"></script>
-<script type="module" src="unified3d.js?v=central-r1"></script>
+<script src="economy-ui.js?v=mochila-llena"></script>
+<script type="module" src="unified3d.js?v=paso-fluido"></script>
+<script type="module" src="mascota-preview.js?v=mascota-r1"></script>
 <script src="interface.js?v=valle-hud-r5"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
-<script src="hud-layout.js?v=monedas-r1"></script>
-<script src="cuenta.js?v=nick-r1"></script>
-<script src="cajon.js?v=finca-r1"></script>
-<script src="acunar.js?v=raices-r1"></script>
-<script src="vida.js?v=vida-r1"></script>
-<script src="instructivo.js?v=finca-r1"></script>
+<script src="hud-layout.js?v=guardar-r1"></script>
+<script src="cuenta.js?v=mascota-r1"></script>
+<script src="mi-cuenta.js?v=mi-cuenta"></script>
+<script src="cajon.js?v=joystick-v1"></script>
+<script src="acunar.js?v=acunar-credito"></script>
+<script src="partida.js?v=guardado-r1"></script>
+<script src="vida.js?v=se-ven"></script>
+<script src="instructivo.js?v=elisa-r1"></script>
+<script src="editor/editables.js?v=editor-r1"></script>
+<script src="editor/model.js?v=editor-r1"></script>
+<script src="editor/panel.js?v=editor-r1"></script>
+<script type="module" src="editor/editor.js?v=editor-r1"></script>
 </body>
 </html>

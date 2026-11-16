@@ -110,6 +110,23 @@ def resolve(world, dest_id):
     return {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind']}
 
 
+def mine_stand(world):
+    """Casilla caminable frente a la entrada de la mina, junto a Las Palmas."""
+    palmas = next((item for item in world.get('waypoints') or [] if item.get('id') == 'las_palmas'), None)
+    if not palmas:
+        raise ViajeError('no hay mina')
+    px, py = int(palmas['x']), int(palmas['y'])
+    for ring in range(2, 12):
+        for dy in range(-ring, ring + 1):
+            for dx in range(-ring, ring + 1):
+                if max(abs(dx), abs(dy)) != ring:
+                    continue
+                x, y = px + dx, py + dy
+                if walkable(world, x, y) and walkable(world, x, y + 1):
+                    return {'id': 'mina', 'name': 'Mina de Las Palmas', 'x': x, 'y': y + 1}
+    raise ViajeError('no hay acceso a la mina')
+
+
 def step_allowed(step, dt):
     """Un paso de a pie o a caballo cabe. Un salto de decenas de casillas, no."""
     step = abs(float(step or 0))
@@ -119,17 +136,45 @@ def step_allowed(step, dt):
     return step <= HORSE_SPEED * STEP_SLACK * dt + STEP_BURST
 
 
+def _house_doors():
+    """Cada municipio tiene su puerta. Salir de casa no es sólo la de Envigado."""
+    try:
+        import hogar
+    except Exception:
+        return []
+    doors = []
+    for item in hogar.CASAS.values():
+        try:
+            doors.append((float(item['x']), float(item['y'])))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return doors
+
+
 def portal_arrival(zone, x, y, back=None):
-    """La primera casilla al salir de un interior es la puerta, no un punto cualquiera."""
+    """La salida vale si caes en la puerta, en tu casa del municipio, o donde entraste."""
+    try:
+        fx, fy = float(x), float(y)
+    except (TypeError, ValueError):
+        return False
+    points = []
     if zone == 'mine':
         if not back or back[0] is None or back[1] is None:
             return True
-        ax, ay = float(back[0]), float(back[1])
-    elif zone in PORTALS:
-        ax, ay = PORTALS[zone]
+        points.append((float(back[0]), float(back[1])))
     else:
-        return True
-    return max(abs(float(x) - ax), abs(float(y) - ay)) <= 3
+        if zone in PORTALS:
+            points.append((float(PORTALS[zone][0]), float(PORTALS[zone][1])))
+        if zone == 'casa':
+            points.extend(_house_doors())
+        if back and back[0] is not None and back[1] is not None:
+            try:
+                points.append((float(back[0]), float(back[1])))
+            except (TypeError, ValueError):
+                pass
+        if not points:
+            return True
+    return any(max(abs(fx - ax), abs(fy - ay)) <= 3 for ax, ay in points)
 
 
 class Gate:

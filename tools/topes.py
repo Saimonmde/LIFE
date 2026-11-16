@@ -34,6 +34,10 @@ DEFAULT_SIMONCHIS = 200
 DEFAULT_AGE_DAYS = 60
 DEFAULT_PLAY_HOURS = 40
 DEFAULT_QUEST_CAP = 10
+# Segundos que tarda una veta picada en volver. El cliente usa los mismos milisegundos.
+VEIN_ORO_S = 32
+VEIN_PLATA_S = 18
+VEIN_COBRE_S = 18
 
 METALES = {
     'simoncoin': {
@@ -159,4 +163,133 @@ def cotizar(have, rate_n, daily_left, global_left, pieces=None, whole=False):
         'gastas': pieces,
         'recibes': recibes,
         'sobran': have - pieces,
+    }
+
+
+def _cantidad(number):
+    number = float(number)
+    if abs(number - round(number)) < 1e-6:
+        whole = int(round(number))
+        return f'{whole:,}'.replace(',', '.')
+    text = f'{number:.2f}'.rstrip('0').rstrip('.')
+    whole, frac = text.split('.')
+    return f'{int(whole):,}'.replace(',', '.') + ',' + frac
+
+
+def _techo_simoncoin():
+    days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
+    hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
+    quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
+    return simoncoin_daily_smh(days * DAY, hours * 3600, quests) / SUBS
+
+
+def _techo_simonplata():
+    days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
+    hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
+    quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
+    return simonplata_daily_sph(days * DAY, hours * 3600, quests) / SUBS
+
+
+def siguiente(age_seconds, play_seconds, quests):
+    """El próximo peldaño del tope, con los mismos días, horas y misiones de _growth."""
+    age_seconds = max(0, int(age_seconds or 0))
+    play_seconds = max(0, int(play_seconds or 0))
+    quests = max(0, int(quests or 0))
+    days, hours, done = _growth(age_seconds, play_seconds, quests)
+    max_days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
+    max_hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
+    max_quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
+    now_smc = simoncoin_daily_smh(age_seconds, play_seconds, quests) / SUBS
+    now_smp = simonplata_daily_sph(age_seconds, play_seconds, quests) / SUBS
+    steps = []
+
+    def add(kind, wait, future_age, future_play, future_quests, when):
+        smc = simoncoin_daily_smh(future_age, future_play, future_quests) / SUBS - now_smc
+        smp = simonplata_daily_sph(future_age, future_play, future_quests) / SUBS - now_smp
+        steps.append({
+            'kind': kind,
+            'wait': wait,
+            'simoncoin': smc,
+            'simonplata': smp,
+            'text': when + ' Sumas ' + _cantidad(smc) + ' de Simoncoin y ' + _cantidad(smp) + ' de Simonplata al tope del día.',
+        })
+
+    if days < max_days:
+        wait = DAY - (age_seconds % DAY)
+        add('edad', wait, age_seconds + wait, play_seconds, quests, 'El siguiente peldaño llega con un día más de cuenta.')
+    if hours < max_hours:
+        wait = 3600 - (play_seconds % 3600)
+        add('juego', wait, age_seconds, play_seconds + wait, quests, 'El siguiente peldaño llega con una hora más de juego.')
+    if done < max_quests:
+        add('mision', None, age_seconds, play_seconds, quests + 1, 'El siguiente peldaño llega al completar una misión más.')
+    if not steps:
+        steps.append({
+            'kind': 'listo',
+            'wait': None,
+            'simoncoin': 0,
+            'simonplata': 0,
+            'text': 'Ya llegaste al tope de recompensas de Simoncoin y Simonplata.',
+        })
+    return steps
+
+
+def hoy(coins):
+    """'Hoy te quedan X' a partir de los cupos ya calculados. Sin números fijos."""
+    lines = []
+    for coin in ('simoncoin', 'simonplata', 'simonchis'):
+        row = (coins or {}).get(coin) or {}
+        if 'left' not in row:
+            continue
+        lines.append('Hoy te quedan ' + _cantidad(row['left']) + ' ' + row.get('name', coin) + '.')
+    return lines
+
+
+def letrero(age_seconds=0, play_seconds=0, quests=0, now=None):
+    """Texto del letrero de la mina. Los números salen de estas funciones."""
+    import time as _time
+    import economy
+    import plata
+    import cobre
+    now = int(_time.time() if now is None else now)
+    oro = rate('simoncoin')
+    plata_rate = rate('simonplata')
+    cobre_rate = rate('simonchis')
+    oro_base = simoncoin_daily_smh(0, 0, 0) / SUBS
+    oro_top = _techo_simoncoin()
+    plata_base = simonplata_daily_sph(0, 0, 0) / SUBS
+    plata_top = _techo_simonplata()
+    chis = simonchis_daily()
+    bono_dia = _float_env('MINT_SIMONPLATA_AGE_SMP', DEFAULT_SIMONPLATA_AGE)
+    bono_hora = _float_env('MINT_SIMONPLATA_PLAY_SMP', DEFAULT_SIMONPLATA_PLAY)
+    bono_mision = _float_env('MINT_SIMONPLATA_QUEST_SMP', DEFAULT_SIMONPLATA_QUEST)
+    lines = [
+        'Bienvenido. Acá se pica el mineral y se acuñan las monedas del juego. No son dinero real.',
+        (
+            f'Picar no tiene tope. Podés picar las veces que quieras. El mineral queda en la mochila y picar no crea monedas. '
+            f'Si una veta de oro se agota, vuelve en {_cantidad(VEIN_ORO_S)} segundos. '
+            f'La plata vuelve en {_cantidad(VEIN_PLATA_S)} segundos y el cobre en {_cantidad(VEIN_COBRE_S)} segundos.'
+        ),
+        f'{_cantidad(oro)} oros crudos hacen 1 Simoncoin. Hasta {_cantidad(oro_base)} Simoncoin al día. Ese tope sube hasta {_cantidad(oro_top)} con recompensas.',
+        (
+            f'{_cantidad(plata_rate)} de plata cruda hacen 1 Simonplata. Hasta {_cantidad(plata_base)} Simonplata al día, más bonos: '
+            f'{_cantidad(bono_dia)} por día de cuenta, {_cantidad(bono_hora)} por hora de juego y {_cantidad(bono_mision)} por misión. '
+            f'Con esos bonos sube hasta {_cantidad(plata_top)}.'
+        ),
+        f'{_cantidad(cobre_rate)} de cobre crudo hacen 1 Simonchis. El tope es {_cantidad(chis)} al día.',
+        'Para acuñar tenés que entrar con tu apodo. El cupo se reinicia a las ' + RESET_LABEL + '.',
+        (
+            f'Hay tres monedas y el total ya está fijo: {_cantidad(economy.MAX_SUPPLY)} de Simoncoin, '
+            f'{_cantidad(plata.MAX_SUPPLY)} de Simonplata y {_cantidad(cobre.MAX_SUPPLY)} de Simonchis. '
+            'No se puede crear más ni copiarlas. Si el mundo ya llegó al máximo, el horno se detiene.'
+        ),
+    ]
+    return {
+        'lines': lines,
+        'veins': {'oro': VEIN_ORO_S, 'plata': VEIN_PLATA_S, 'cobre': VEIN_COBRE_S},
+        'reset': RESET_LABEL,
+        'rates': {'simoncoin': oro, 'simonplata': plata_rate, 'simonchis': cobre_rate},
+        'daily': {'simoncoin': oro_base, 'simoncoinMax': oro_top, 'simonplata': plata_base, 'simonplataMax': plata_top, 'simonchis': chis},
+        'supply': {'simoncoin': economy.MAX_SUPPLY, 'simonplata': plata.MAX_SUPPLY, 'simonchis': cobre.MAX_SUPPLY},
+        'resetAt': next_reset(now),
+        'steps': siguiente(age_seconds, play_seconds, quests),
     }

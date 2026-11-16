@@ -31,6 +31,13 @@ class ViajeTests(unittest.TestCase):
         self.assertLess(found['medellin']['y'], found['itagui']['y'])
         self.assertLess(found['medellin']['y'], found['envigado']['y'])
 
+    def test_mine_stand_is_walkable_and_near_las_palmas(self):
+        dest = viajes.mine_stand(self.world)
+        self.assertEqual(dest['name'], 'Mina de Las Palmas')
+        self.assertTrue(viajes.walkable(self.world, dest['x'], dest['y']))
+        palmas = next(item for item in self.world['waypoints'] if item['id'] == 'las_palmas')
+        self.assertLessEqual(max(abs(dest['x'] - palmas['x']), abs(dest['y'] - palmas['y'])), 14)
+
     def test_every_spawn_is_walkable_and_near_the_center(self):
         for item in viajes.catalog(self.world):
             dest = viajes.resolve(self.world, item['id'])

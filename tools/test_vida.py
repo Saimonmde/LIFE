@@ -10,6 +10,7 @@ import accounts as acc
 import mascotas
 import muebles
 import mundos
+import partida
 import social
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -24,12 +25,21 @@ class WorldTests(unittest.TestCase):
     def test_architecture_opens_five_of_333(self):
         self.assertEqual(mundos.CAP, 333)
         self.assertEqual(mundos.open_ids(), (1, 2, 3, 4, 5))
+        self.assertEqual(mundos.DEFAULT_WORLD, 3)
+        self.assertEqual(mundos.OWNER_FAVORITE_WORLD, 5)
+        self.assertEqual(mundos.normalize(None) or mundos.DEFAULT_WORLD, 3)
         self.assertEqual(mundos.normalize(1), 1)
         self.assertEqual(mundos.normalize('5'), 5)
         self.assertIsNone(mundos.normalize(6))
         self.assertIsNone(mundos.normalize(333))
         self.assertTrue(mundos.known(333))
         self.assertFalse(mundos.known(334))
+        page = open(os.path.join(ROOT, 'play', 'vida.js'), encoding='utf-8').read()
+        self.assertIn('const DEFAULT_WORLD = 3', page)
+        self.assertIn("id = 'mundo-tab'", page)
+        self.assertIn('Marcar como favorito', page)
+        self.assertNotIn('Elige un mundo', page)
+        self.assertIn('se-ven', open(os.path.join(ROOT, 'play', 'index.html'), encoding='utf-8').read())
 
     def test_same_world_and_place_see_each_other(self):
         boxes = mundos.boxes(world())
@@ -66,17 +76,25 @@ class WorldTests(unittest.TestCase):
 
 
 class PetTests(unittest.TestCase):
-    def test_twelve_breeds_three_colors(self):
+    def test_more_breeds_and_colors(self):
         dogs = mascotas.breeds('dog')
         cats = mascotas.breeds('cat')
-        self.assertEqual([item['id'] for item in dogs], ['criollo', 'labrador', 'golden', 'pastor', 'bulldog', 'beagle'])
-        self.assertEqual([item['id'] for item in cats], ['criollo', 'siames', 'persa', 'atigrado', 'negro', 'calico'])
+        dog_ids = [item['id'] for item in dogs]
+        cat_ids = [item['id'] for item in cats]
+        for breed in ('criollo', 'labrador', 'golden', 'pastor', 'bulldog', 'beagle', 'husky', 'pug', 'boxer', 'cocker', 'dalmata', 'chihuahua'):
+            self.assertIn(breed, dog_ids)
+        for breed in ('criollo', 'siames', 'persa', 'atigrado', 'negro', 'calico', 'angora', 'bengali', 'azul', 'esfinge', 'carey', 'tricolor'):
+            self.assertIn(breed, cat_ids)
         for breed in dogs + cats:
-            self.assertEqual(len(breed['colors']), 3)
+            self.assertGreaterEqual(len(breed['colors']), 3)
+            self.assertLessEqual(len(breed['colors']), 4)
         pet = mascotas.validate({'species': 'cat', 'breed': 'siames', 'variant': 2, 'name': 'Luna'})
         self.assertEqual(pet['name'], 'Luna')
+        husky = mascotas.validate({'species': 'dog', 'breed': 'husky', 'variant': 3, 'name': 'Nieve'})
+        self.assertEqual(husky['variant'], 3)
         self.assertIsNone(mascotas.validate({'species': 'dog', 'breed': 'siames', 'variant': 0}))
         self.assertIsNone(mascotas.validate({'species': 'dog', 'breed': 'beagle', 'variant': 3}))
+        self.assertIsNone(mascotas.validate({'species': 'dog', 'breed': 'husky', 'variant': 4}))
         script = open(os.path.join(ROOT, 'play', 'estilo-jabo.js'), encoding='utf-8').read()
         for breed in dogs + cats:
             self.assertIn(breed['id'], script)
@@ -192,6 +210,59 @@ class SocialTests(unittest.TestCase):
             self.assertIn(phrase, text)
         self.assertNotIn('doble toque para correr', text.lower())
         self.assertIn('no hay un botón de correr', text)
+
+
+class SaveTests(unittest.TestCase):
+    def test_pet_stays_inside_the_house(self):
+        layout = muebles.default_layout()
+        tiles = set(muebles.pet_tiles(layout))
+        self.assertNotIn((4, 9), tiles)
+        self.assertNotIn((4, 8), tiles)
+        self.assertIn((5, 6), tiles)
+        self.assertNotIn((1, 1), tiles)
+        self.assertEqual(muebles.pet_step(layout, 5, 6, 6, 6), (6, 6))
+        self.assertEqual(muebles.pet_step(layout, 5, 6, 5, 9), (5, 6))
+        self.assertEqual(muebles.pet_step(layout, 5, 6, 5, 20), (5, 6))
+        outside = muebles.pet_step(layout, 0, 0, 1, 0)
+        self.assertIn(outside, tiles)
+
+    def test_reload_keeps_the_save_and_drops_coins(self):
+        user = {'id': 'ana', 'name': 'Ana', 'wallet_name': 'Ana', 'casa': {}, 'caballo': {}}
+        payload = {
+            'inv': [{'item': 'pico', 'qty': 1}, {'item': 'simoncoin', 'qty': 9}],
+            'xp': {'mining': 40},
+            'quest': {'stage': 2, 'steps': {'madera': 3}, 'done': False, 'turnedIn': False},
+            'libro': {'started': True, 'done': False, 'turnedIn': False, 'steps': {'lavar_oro_sai': 1}},
+            'studied': {'oro': True},
+            'hp': 80, 'energy': 40,
+            'position': {'mapId': 'casa', 'x': 4, 'y': 6, 'dir': 'down'},
+            'hud': {'lifeinc.hud.layout.desktop.horizontal': {'hud-mapa': {'x': 12, 'y': 20, 'scale': 1.1}}},
+            'pet': {'species': 'dog', 'breed': 'husky', 'variant': 3, 'name': 'Nieve'},
+            'layout': muebles.default_layout(),
+            'coat': 'grey',
+            'horse': {'x': 94.5, 'y': 268, 'dir': 'left', 'coat': 'grey'},
+            'coins': 999999, 'wallets': {'Ana': 50}, 'finca': {'plots': 9},
+        }
+        saved = partida.remember(user, payload)
+        disk = json.loads(json.dumps(user))
+        again = partida.recall(disk)
+        self.assertEqual(again['inv'], [{'item': 'pico', 'qty': 1}])
+        self.assertEqual(again['pet']['breed'], 'husky')
+        self.assertEqual(again['pet']['name'], 'Nieve')
+        self.assertEqual(again['pet']['variant'], 3)
+        self.assertEqual(again['position'], {'mapId': 'casa', 'x': 4.0, 'y': 6.0, 'dir': 'down'})
+        self.assertEqual(again['hud']['lifeinc.hud.layout.desktop.horizontal']['hud-mapa']['x'], 12)
+        self.assertEqual(again['coat'], 'grey')
+        self.assertEqual(again['horse']['x'], 94.5)
+        self.assertEqual(again['horse']['y'], 268)
+        self.assertEqual(again['horse']['dir'], 'left')
+        self.assertTrue(again['libro']['started'])
+        self.assertEqual(again['studied'], {'oro': True})
+        self.assertNotIn('coins', again)
+        self.assertNotIn('wallets', again)
+        self.assertNotIn('finca', again)
+        self.assertEqual(saved['nick'], 'Ana')
+        self.assertEqual(again['layout']['items'][0]['type'], 'bed')
 
 
 class ServerRoomTests(unittest.TestCase):

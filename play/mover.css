@@ -1,0 +1,18 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Antes de entrar, la casa no tapa el mundo con los paneles de acuñar. */
+body.mapa-limpio:not(.in-game) #pow-panel,
+body.mapa-limpio:not(.in-game) #plata-panel,
+body.mapa-limpio:not(.in-game) #world-tools,
+body:not(.in-game) #pow-panel,
+body:not(.in-game) #plata-panel,
+body.mapa-limpio.in-casa #pow-panel,
+body.mapa-limpio.in-casa #plata-panel,
+body.mapa-limpio.in-casa #pow-panel.hud-puesto,
+body.mapa-limpio.in-casa #plata-panel.hud-puesto,
+html.movil body.mapa-limpio.in-casa #pow-panel,
+html.movil body.mapa-limpio.in-casa #plata-panel,
+html.movil body.mapa-limpio.in-casa #pow-panel.hud-puesto,
+html.movil body.mapa-limpio.in-casa #plata-panel.hud-puesto {
+  display: none !important;
+  pointer-events: none !important;
+}

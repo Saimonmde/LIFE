@@ -320,6 +320,20 @@
     get editing() { return editing; },
     get selected() { return selected; },
     cellsOf, canPlace, load, save, apply, buildMap, mount, setEditing, clickTile, renderEditor,
+    petWalk() {
+      const open = [];
+      const blocked = new Set();
+      for (const item of layout.items) {
+        if (!CATALOG[item.type] || !CATALOG[item.type].solid) continue;
+        for (const [x, y] of cellsOf(item)) blocked.add(x + ',' + y);
+      }
+      for (const [key, kind] of floor) {
+        if (kind === 'door' || kind === 'threshold' || blocked.has(key)) continue;
+        const [x, y] = key.split(',').map(Number);
+        open.push([x, y]);
+      }
+      return open;
+    },
     playerName: () => 'viajero',
     onLayout: null, onEdit: null, enter: null,
   };

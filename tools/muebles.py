@@ -43,6 +43,50 @@ def floor_cells():
     return cells
 
 
+def pet_tiles(layout=None):
+    """Baldosas del interior donde una mascota puede pisar. La puerta y los muros no."""
+    blocked = set()
+    for item in (layout or {}).get('items') or []:
+        spec = LEGACY.get(item.get('type')) if isinstance(item, dict) else None
+        if not spec or not spec[2]:
+            continue
+        try:
+            placed = {
+                'type': item.get('type'),
+                'x': int(item.get('x') or 0),
+                'y': int(item.get('y') or 0),
+                'rot': int(item.get('rot') or 0),
+            }
+        except (TypeError, ValueError):
+            continue
+        for cell in cells_of(placed):
+            blocked.add(cell)
+    found = []
+    for (x, y), kind in floor_cells().items():
+        if kind in ('door', 'threshold') or (x, y) in blocked:
+            continue
+        found.append((x, y))
+    return found
+
+
+def pet_step(layout, x, y, nx, ny):
+    """Un paso ortogonal dentro de la casa. Fuera, o contra un mueble, se queda."""
+    tiles = set(pet_tiles(layout))
+    try:
+        here = (int(x), int(y))
+    except (TypeError, ValueError):
+        return next(iter(tiles)) if tiles else (0, 0)
+    if here not in tiles:
+        return next(iter(tiles)) if tiles else here
+    try:
+        nxt = (int(nx), int(ny))
+    except (TypeError, ValueError):
+        return here
+    if nxt in tiles and abs(nxt[0] - here[0]) + abs(nxt[1] - here[1]) == 1:
+        return nxt
+    return here
+
+
 def variants_of(kind):
     spec = (mundos.catalog().get('furniture') or {}).get(kind) or {}
     return tuple(item['id'] for item in spec.get('variants') or [])

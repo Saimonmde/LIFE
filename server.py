@@ -10,6 +10,7 @@
 import secrets, sys, uuid
 import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, socket, struct, time, urllib.parse
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server'))
 import economy as ECO
 import supply as SUP
 import plata as PLATA
@@ -32,7 +33,9 @@ import lingotes as LINGOTES
 import finca as FINCA
 import persist as PERSIST
 import purses as PURSES
+import mochila as MOCHILA
 import trades as TRADE
+import cambio_simple as CAMBIO
 import bridge4sur
 import mundos as MUNDOS
 import social as SOCIAL
@@ -42,6 +45,10 @@ import vida_api as VIDA_API
 import hogar as HOGAR
 import casa_cuenta as CASA
 import caballo_cuenta as CABALLO
+import gallos as GALLOS
+import guardado as GUARDADO
+import partida as PARTIDA
+import world_edits as EDITS
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -117,6 +124,27 @@ def save_finca():
 
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
+
+WORLD_EDITS_PATH = os.path.join(ROOT, 'state', EDITS.storage_filename())
+WORLD_EDITS = EDITS.normalize(PERSIST.load_named(EDITS.storage_name(), WORLD_EDITS_PATH), env=EDITS.env_name())
+
+def save_world_edits():
+    PERSIST.save_named(EDITS.storage_name(), WORLD_EDITS_PATH, WORLD_EDITS)
+
+def world_edit_packet(user):
+    return EDITS.packet(WORLD_EDITS, user, role_of=SOCIAL.role_of)
+
+def world_edit_request(user, message, save=True, announce=True):
+    """Escribe la capa de ediciones. Un no-admin recibe code 403 y no cambia nada."""
+    global WORLD_EDITS
+    result = EDITS.apply_request(WORLD_EDITS, user, message, role_of=SOCIAL.role_of)
+    if result.get('ok') and result.get('changed'):
+        WORLD_EDITS = result['stored']
+        if save:
+            save_world_edits()
+        if announce:
+            broadcast({'t': 'world_edits', 'worldEdits': EDITS.packet(WORLD_EDITS)})
+    return result
 
 def save_libro(records):
     if not records:
@@ -250,6 +278,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
     m['cupos'] = cupos_public(profile)
     m['purse'] = PURSES.public(VAULT_STATE, who) if who and not locked else {'items': {}, 'catalog': dict(PURSES.CATALOG)}
+    m['puestoSmh'] = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
     return m
 
 def token_matches(stored, presented):
@@ -273,8 +302,12 @@ def mover_billetera(old, new):
     save_econ()
 
 
-def bind_wallet(name, presented):
-    """Crea la billetera o reconoce a quien guarda el token. No revela el secreto ajeno."""
+def bind_wallet(name, presented, owner=False):
+    """Crea la billetera o reconoce a quien guarda el token. No revela el secreto ajeno.
+
+    Quien ya entró con su cuenta es el dueño de ese nombre: la cookie basta.
+    Un invitado sin token no puede acuñar con el nombre de otro.
+    """
     wallets = ECON.setdefault('wallets', {})
     tokens = ECON.setdefault('walletTokens', {})
     if name not in wallets:
@@ -284,7 +317,7 @@ def bind_wallet(name, presented):
         tokens[name] = token
         save_econ()
         return token
-    if token_matches(tokens[name], presented):
+    if token_matches(tokens[name], presented) or owner:
         return tokens[name]
     return None
 
@@ -566,6 +599,47 @@ def mint_plata(sender, proof=None):
     return {'ok': False, 'pending': True, 'sph': 0}
 
 
+def cambio_simple_msg(sender, message):
+    """Mueve metal por SMC del puesto, o plata por oro del fondo. No acuña."""
+    give = str((message or {}).get('give') or '')
+    receive = str((message or {}).get('receive') or '')
+    try:
+        qty = int((message or {}).get('qty') or 0)
+    except (TypeError, ValueError):
+        qty = 0
+    if give == 'simonplata' and receive == 'simoncoin':
+        have = PLATA.balance_of(ECON, sender.name)
+        fondo = int((ECON.get('plata') or {}).get('smcPoolSmh') or 0)
+        quoted = CAMBIO.quote('simonplata', 'simoncoin', qty, have, fondo_smh=fondo)
+        if not quoted.get('ok'):
+            return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': quoted.get('texto') or 'No se movió nada.'})
+        result = exchange_plata(sender, f"{quoted['das']} smp")
+        ok = bool(isinstance(result, dict) and result.get('ok'))
+        return send(sender, {'t': 'cambio_result', 'ok': ok, 'give': give, 'das': quoted['das'] if ok else 0, 'recibes': quoted['recibes'] if ok else 0, 'reason': quoted['texto'] if ok else 'No se movió nada.'})
+    if give not in CAMBIO.MINERALES or receive != 'simoncoin':
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': 'Eso crearía monedas o metal nuevo. No se movió nada.'})
+    have = PURSES.count(VAULT_STATE, sender.name, give)
+    puesto = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
+    quoted = CAMBIO.quote(give, 'simoncoin', qty, have, puesto_smh=puesto)
+    if not quoted.get('ok'):
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': quoted.get('texto') or 'No se movió nada.'})
+    if not PURSES.debit(VAULT_STATE, sender.name, give, quoted['das']):
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': 'Ese metal no está en la cuenta. No se movió nada.'})
+    try:
+        CAMBIO.mover_mineral(ECON, sender.name, quoted['das'])
+    except ValueError as exc:
+        PURSES.credit(VAULT_STATE, sender.name, give, quoted['das'])
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': str(exc)})
+    ECO.append_tx(ECON, {
+        'type': 'trade', 'from': 'puesto_frutas', 'to': sender.name,
+        'amountSubs': quoted['das'] * CAMBIO.MINERAL_SMH, 'note': 'Cambio de metal por Simoncoin ya existente',
+    })
+    save_econ()
+    save_vault()
+    broadcast_econ()
+    send(sender, {'t': 'cambio_result', 'ok': True, 'give': give, 'das': quoted['das'], 'recibes': quoted['recibes'], 'reason': quoted['texto'], 'purse': PURSES.public(VAULT_STATE, sender.name)})
+
+
 def exchange_plata(sender, sph=None):
     if getattr(sender, 'bot', False):
         return fail_plata(sender, 'guest')
@@ -660,11 +734,34 @@ def cupos_public(profile=None):
         }
     return {'reset': TOPES.RESET_LABEL, 'coins': coins}
 
+def _reglas_mina(headers):
+    now = time.time()
+    user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session')) or {}
+    name = str(user.get('wallet_name') or user.get('name') or '')
+    age = play = quests = 0
+    if user:
+        age = max(0, int(now - int(user.get('createdAt') or now)))
+        if name:
+            box = PLAY.ensure(PLAYERS, name, now=int(now)) or {}
+            play = int(box.get('playtime') or 0)
+            quests = SUP.quest_count(ECON, name)
+    payload = TOPES.letrero(age, play, quests, now)
+    if user.get('id'):
+        payload['hoy'] = TOPES.hoy(cupos_public({
+            'account': user['id'], 'age': age, 'play': play, 'quests': quests,
+        })['coins'])
+    return payload
+
 def _acunar_fail(sender, reason, code=''):
     send(sender, {'t': 'acunar_result', 'ok': False, 'reason': reason, 'code': code})
 
 def acunar_for(sender, coin, pieces, proof=None):
-    spec = TOPES.metal(str(coin or ''))
+    coin = str(coin or '')
+    if 'lingote' in coin or coin in ('ingot', 'ingots'):
+        reason = 'Los lingotes no se acuñan en esta ventanilla.'
+        LINGOTES.anotar_rechazo('acunar', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+        return _acunar_fail(sender, reason, 'coin')
+    spec = TOPES.metal(coin)
     if not spec:
         return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
     if not _en_la_mina(sender):
@@ -683,9 +780,14 @@ def acunar_for(sender, coin, pieces, proof=None):
         return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
     items = CRUDO.items_for(coin)
     stock = CRUDO.total(ECON, profile['account'], items)
+    import acunar_credito as ACU
+    falta = ACU.motivo(stock, row['rate'], row['left'], row['room'], row['metal'], row['name'])
+    if falta:
+        code = 'metal' if stock < row['rate'] else ('cap' if row['left'] <= 0 else 'supply')
+        return _acunar_fail(sender, falta, code)
     quote = TOPES.cotizar(stock, row['rate'], row['left'], row['room'], min(pieces, stock) if pieces else None, whole=(coin == 'simonchis'))
     if quote['recibes'] <= 0:
-        return _acunar_fail(sender, 'Hoy no alcanza para acuñar más, o no hay metal suficiente.', 'cap')
+        return _acunar_fail(sender, falta or 'Hoy no alcanza para acuñar más.', 'cap')
     whole = coin == 'simonchis'
     if coin == 'simoncoin':
         want = int(round(quote['recibes'] * ECO.SUBS))
@@ -739,29 +841,58 @@ def acunar_for(sender, coin, pieces, proof=None):
     spent = CRUDO.debit(ECON, profile['account'], items, done['gastas'])
     if spent is None:
         return _acunar_fail(sender, 'No hay suficiente metal en la cuenta.', 'metal')
+    moneda = ACU.acreditar_mochila(VAULT_STATE, sender.name, coin, got)
+    if moneda:
+        save_vault()
+    if coin == 'simonchis':
+        ECO.append_tx(ECON, {
+            'type': 'fundicion', 'to': sender.name, 'coin': 'SMCH', 'qty': int(got),
+            'amountSubs': 0, 'note': f'Acuñación de {int(got)} Simonchis',
+        })
     view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
+    view['historia'] = HISTORIA.filas(ECON)
     save_econ()
+    broadcast_econ()
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
         'item': row['item'], 'spent': done['gastas'], 'spentItems': spent, 'recibes': done['recibes'],
+        'moneda': moneda, 'purse': PURSES.public(VAULT_STATE, sender.name),
         'reason': f'Se acuñó {done["recibes"]} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
         'ledger': view, 'cupos': cupos_public(profile),
         'crudo': {item: CRUDO.nuggets(ECON, profile['account'], item) for item in CRUDO.CAPS},
     })
 
 def fundir_lingotes(sender, ore, batches):
-    return _smelt_fail(sender, 'Los lingotes no se funden en el horno.')
+    reason = 'Los lingotes no se funden en el horno.'
+    LINGOTES.anotar_rechazo('horno', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+    return _smelt_fail(sender, reason)
+
+def zona_pedida(sender, zone):
+    """El Banco Central no se abre con un mensaje. El papel se mira aquí."""
+    zone = zone if zone in ('casa', 'mine', 'banco', 'central', 'city') else 'city'
+    if zone != 'central' or LINGOTES.autorizado(getattr(sender, 'user', None)):
+        return zone
+    reason = 'El Banco Central es un recinto del personal. Esta cuenta no entra.'
+    LINGOTES.anotar_rechazo('puerta', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+    send(sender, {'t': 'central_result', 'ok': False, 'reason': reason})
+    send(sender, {'t': 'system', 'text': reason})
+    return 'city'
 
 def lingote_for(sender, metal, qty):
     reason = LINGOTES.rechazar(getattr(sender, 'user', None), getattr(sender, 'zone', ''))
     if reason:
+        LINGOTES.anotar_rechazo('lingote', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
         return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': reason})
     try:
-        done = LINGOTES.fundir(ECON, sender.name, metal, qty, time.time())
-    except (TypeError, ValueError):
-        return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': 'Esa cantidad no se funde.'})
+        done = LINGOTES.fundir(ECON, sender.name, metal, qty, time.time(), autorizado=True)
+    except (TypeError, ValueError, PermissionError):
+        reason = 'Esa cantidad no se funde.'
+        LINGOTES.anotar_rechazo('lingote', SOCIAL.role_of(getattr(sender, 'user', None)), getattr(sender, 'zone', ''), reason)
+        return send(sender, {'t': 'lingote_result', 'ok': False, 'reason': reason})
     save_econ()
-    send(sender, {'t': 'lingote_result', 'ok': True, 'reason': 'Quedó en la reserva del Banco Central.', 'ledger': MONEDAS.ledger(ECON, sender.name), **done})
+    view = MONEDAS.ledger(ECON, sender.name)
+    send(sender, {'t': 'lingote_result', 'ok': True, 'reason': 'Quedó en la reserva del Banco Central.', 'ledger': view, **done})
+    broadcast({'t': 'libro_publico', 'contadores': public_counters()})
 
 def lingote_ver(sender):
     if not LINGOTES.autorizado(getattr(sender, 'user', None)):
@@ -807,6 +938,8 @@ def fundir_simonplata(sender, ore, batches, proof):
         send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
 def smelt_for(sender, ore, batches, proof=None, mode=None):
+    if str(mode or '') == 'ingot':
+        return fundir_lingotes(sender, ore, batches)
     ore = str(ore or '')
     recipe = FOUNDRY.get(ore)
     if not recipe or not _en_la_mina(sender):
@@ -817,8 +950,6 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
     if not wallet_ready(sender):
         return _smelt_fail(sender, 'Esta billetera se creó en otro aparato.')
     mode = str(mode or 'simoncoin')
-    if mode == 'ingot':
-        return fundir_lingotes(sender, ore, batches)
     if mode == 'simonchis':
         return fundir_simonchis(sender, ore, batches, proof)
     if mode == 'simonplata':
@@ -868,9 +999,9 @@ def swing_for(sender, mineral, qty=1):
         return
     sender.last_swing = now
     note_motion(sender, 1)
-    got = CRUDO.credit(ECON, account, item, qty)
-    save_econ()
-    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0, 'qty': got,
+    if not recibir(sender, item, qty, 'ore'):
+        return
+    send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0, 'qty': int(qty or 1),
                   'note': 'El mineral quedó en tu cuenta. Las monedas se acuñan en el horno, con el tope del día.'})
     _avisar_crudo(sender, item)
 
@@ -886,10 +1017,74 @@ def lavar_for(sender, qty=1):
         return
     sender.last_pan = now
     note_motion(sender, 1)
-    got = CRUDO.credit(ECON, account, 'pepita_oro', qty, cap=1)
-    save_econ()
-    send(sender, {'t': 'lavar_result', 'ok': True, 'qty': got})
+    if not recibir(sender, 'pepita_oro', 1, 'lavar'):
+        return
+    send(sender, {'t': 'lavar_result', 'ok': True, 'qty': 1})
     _avisar_crudo(sender, 'pepita_oro')
+
+SELL_SMH = {
+    'mineral_oro': 1_000_000,
+    'mineral_plata': 1_000_000,
+    'mineral_cobre': 1_000_000,
+    'pepita_oro': 1_000_000,
+    'bolsa_cafe': 5_000_000,
+    'bolsa_cacao': 5_000_000,
+}
+
+
+def recibir(sender, item, qty, kind):
+    """Mete algo en la mochila del servidor. Si no cabe, no toca nada."""
+    try:
+        qty = int(qty or 0)
+    except (TypeError, ValueError):
+        qty = 0
+    item = str(item or '')
+    qty = max(0, min(qty, 4))
+    if not sender.name or not item or qty <= 0:
+        return False
+    before = PURSES.count(VAULT_STATE, sender.name, item)
+    after = PURSES.credit(VAULT_STATE, sender.name, item, qty)
+    if after == before:
+        sender.pending_pick = {'item': item, 'qty': qty, 'kind': str(kind or '')}
+        send(sender, {'t': 'mochila_llena', 'item': item, 'qty': qty, 'reason': MOCHILA.FULL})
+        return False
+    sender.pending_pick = None
+    if item in CRUDO.CAPS:
+        account = _cuenta(sender)
+        if account:
+            CRUDO.credit(ECON, account, item, qty, cap=qty)
+            save_econ()
+    save_vault()
+    return True
+
+
+def mochila_op(sender, op):
+    """Banco, soltar o vender lo que no cupo. No duplica y no lo tira sin querer."""
+    pending = getattr(sender, 'pending_pick', None)
+    if not pending:
+        return send(sender, {'t': 'mochila_op', 'ok': False, 'reason': 'No hay nada esperando. No se perdió nada.'})
+    item = pending['item']
+    qty = int(pending['qty'])
+    op = str(op or '')
+    if op == 'soltar':
+        sender.pending_pick = None
+        return send(sender, {'t': 'mochila_op', 'ok': True, 'op': 'soltar', 'item': item, 'qty': qty, 'reason': 'Lo dejaste donde estaba.'})
+    if op == 'banco':
+        VAULT.add_item(VAULT.account(VAULT_STATE, sender.name), item, qty)
+        sender.pending_pick = None
+        save_vault()
+        return send(sender, {'t': 'mochila_op', 'ok': True, 'op': 'banco', 'item': item, 'qty': qty, 'reason': 'Quedó en el banco. La mochila no cambió.'})
+    if op == 'vender':
+        price = int(SELL_SMH.get(item) or 0) * qty
+        if price <= 0 or not ECO.debit(ECON, 'puesto_frutas', price):
+            return send(sender, {'t': 'mochila_op', 'ok': False, 'op': 'vender', 'item': item, 'qty': qty, 'reason': 'El puesto no tiene monedas para comprar esto. No se perdió nada.'})
+        ECO.credit(ECON, sender.name, price)
+        ECO.append_tx(ECON, {'type': 'trade', 'from': 'puesto_frutas', 'to': sender.name, 'amountSubs': price, 'note': 'Venta porque la mochila estaba llena'})
+        sender.pending_pick = None
+        save_econ()
+        return send(sender, {'t': 'mochila_op', 'ok': True, 'op': 'vender', 'item': item, 'qty': qty, 'paid': price, 'reason': 'El puesto lo compró. La mochila no cambió.'})
+    return send(sender, {'t': 'mochila_op', 'ok': False, 'reason': 'Esa opción no existe. No se perdió nada.'})
+
 
 def migrar_crudo(sender, counts):
     account = _cuenta(sender)
@@ -1144,7 +1339,7 @@ class Client:
         self.name = f'Jugador{self.id}'; self.color = 'azul'; self.clan = 'LIFE INC'; self.group = ''
         self.x, self.y, self.dir, self.moving = float(SPAWN[0]), float(SPAWN[1]), 'down', False
         self.level = 1; self.hello = False; self.stamps = []; self.zone = 'city'
-        self.world = 1; self.place = 'valle'; self.pet = None; self.identity = ''
+        self.world = MUNDOS.DEFAULT_WORLD; self.place = 'valle'; self.pet = None; self.identity = ''
         self.note_stamps = []; self.feedback_stamps = []
     def public(self):
         pet = self.pet if isinstance(self.pet, dict) else None
@@ -1395,14 +1590,53 @@ class _Spot:
         self.world = world
         self.place = place
 
+def presence_msg():
+    body = MUNDOS.presence(clients.values(), PLACES)
+    for row in body['players']:
+        person = clients.get(row['id'])
+        if person is not None:
+            row['nick'] = visible_nick(person)
+    return body
+
+def city_peers(c):
+    return [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_sight(c, o)]
+
+def stand_beside(x, y):
+    """Una casilla caminable al lado, no encima de otra persona."""
+    ix, iy = int(float(x)), int(float(y))
+    occupied = {(int(o.x), int(o.y)) for o in clients.values() if o.hello}
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)):
+        nx, ny = ix + dx, iy + dy
+        if (nx, ny) in occupied:
+            continue
+        if VIAJES.walkable(WORLD, nx, ny):
+            return float(nx), float(ny)
+    try:
+        nx, ny = VIAJES.nearest_spawn(WORLD, ix, iy)
+        return float(nx), float(ny)
+    except VIAJES.ViajeError:
+        return float(ix), float(iy)
+
+def meet_point(target):
+    """Al lado de quien está en la ciudad. Si está adentro, a la puerta pública."""
+    zone = getattr(target, 'zone', 'city')
+    if zone == 'city':
+        return float(target.x), float(target.y)
+    if zone == 'casa':
+        return 94.0, 267.0
+    saved_x, saved_y = getattr(target, 'city_x', None), getattr(target, 'city_y', None)
+    if saved_x is not None and saved_y is not None:
+        return float(saved_x), float(saved_y)
+    return float(target.x), float(target.y)
+
 def room_shift(c, old_world, old_place):
-    """Quien sale de la sala deja de verse. Quien entra aparece. En la misma sala, se mueve."""
+    """Quien sale de la ciudad deja de verse. En la misma ciudad, se mueve aunque cambie de parque."""
     previous = _Spot(old_world, old_place)
     for other in list(clients.values()):
         if other is c or not other.hello:
             continue
-        before = MUNDOS.same_room(previous, other)
-        after = MUNDOS.same_room(c, other)
+        before = MUNDOS.same_sight(previous, other)
+        after = MUNDOS.same_sight(c, other)
         if before and not after:
             send(other, {'t': 'leave', 'id': c.id})
         elif after and not before:
@@ -1410,6 +1644,8 @@ def room_shift(c, old_world, old_place):
         elif after:
             send(other, {'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2),
                          'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'})
+    if old_world != c.world or old_place != c.place:
+        broadcast(presence_msg())
 
 def refresh_social(c, other_key=None):
     send(c, {'t': 'social', 'social': SOCIAL.friend_view(VIDA, c.identity, ACCOUNTS, clients.values())})
@@ -1447,7 +1683,7 @@ def vida_try(c, m, t):
             save_accounts()
         save_vida()
         send(c, {'t': 'pet', 'id': c.id, 'pet': pet})
-        broadcast({'t': 'pet', 'id': c.id, 'pet': pet}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+        broadcast({'t': 'pet', 'id': c.id, 'pet': pet}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
         return True
     if t == 'hogar':
         layout = SOCIAL.save_home(VIDA, key, m.get('layout'))
@@ -1465,8 +1701,9 @@ def vida_try(c, m, t):
         old_world, old_place = c.world, c.place
         c.world = chosen
         room_shift(c, old_world, old_place)
-        payload = MUNDOS.counts(clients.values())
+        payload = presence_msg()
         send(c, {'t': 'mundo', 'world': chosen, 'presence': payload})
+        send(c, {'t': 'cerca', 'players': city_peers(c)})
         broadcast(payload)
         return True
     if t == 'amigo_buscar':
@@ -1588,8 +1825,8 @@ async def handle_ws(reader, writer, cookie='', ip=''):
         TRADES.cancel(c.id, 'Intercambio cancelado por desconexión.')
         clients.pop(c.id, None)
         if c.hello:
-            broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_room(c, o))
-            broadcast(MUNDOS.counts(clients.values()))
+            broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_sight(c, o))
+            broadcast(presence_msg())
         try: writer.close()
         except Exception: pass
 
@@ -1680,9 +1917,8 @@ def finca_sync_purse(name):
 
 
 def finca_here(sender):
+    """La finca está afuera, en Las Palmas. La mina es solo la cantera."""
     zone = getattr(sender, 'zone', 'city')
-    if zone == 'mine':
-        return True
     if zone != 'city':
         return False
     spot = next((w for w in WORLD.get('waypoints') or [] if w.get('id') == 'las_palmas'), None)
@@ -1719,10 +1955,14 @@ def finca_msg(sender, message):
 def handle_client_message(c, m, t):
     if t == 'hello':
         if c.hello: return
-        c.zone = m.get('zone') if m.get('zone') in ('casa', 'mine', 'banco', 'central', 'city') else 'city'
-        c.world = MUNDOS.normalize(m.get('world')) or 1
-        if c.zone == 'casa': c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
-        else: c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
+        c.zone = zona_pedida(c, m.get('zone'))
+        c.world = MUNDOS.normalize(m.get('world')) or MUNDOS.DEFAULT_WORLD
+        if c.zone == 'casa':
+            door = HOGAR.stand((getattr(c, 'user', None) or {}).get('municipio')) or (94, 267)
+            c.city_x, c.city_y = float(door[0]), float(door[1])
+            c.x, c.y = float(SPAWN[0]), float(SPAWN[1])
+        else:
+            c.x, c.y = arrival_position(m.get('resume'), getattr(c, 'user', None))
         asked = c.user.get('wallet_name') if getattr(c, 'user', None) else m.get('name')
         token_src = c.user.get('wallet_token') if getattr(c, 'user', None) else m.get('walletToken')
         c.name = unique_name(clean(asked, 16), c)
@@ -1744,19 +1984,24 @@ def handle_client_message(c, m, t):
                 c.pet = adopted
                 save_vida()
         presented = clean(token_src, 64)
-        owned = bind_wallet(c.name, presented)
+        owned = bind_wallet(c.name, presented, owner=bool(getattr(c, 'user', None)))
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''
-        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
+        if owned and getattr(c, 'user', None) is not None and c.user.get('wallet_token') != owned:
+            c.user['wallet_token'] = owned
+            save_accounts()
+        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': city_peers(c),
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                  'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
+        welcome['presence'] = presence_msg()
+        welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
         send(c, welcome)
-        if c.place not in MUNDOS.PRIVATE:
-            broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+        if MUNDOS.outdoors(c):
+            broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
             place = MUNDOS.place_name(c.place, PLACES)
-            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
-        broadcast(MUNDOS.counts(clients.values()))
+            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
+        broadcast(presence_msg())
         send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
         if c.wallet_ok:
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
@@ -1764,11 +2009,49 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
     elif t == 'travel' and c.hello:
         travel_for(c, m.get('id'))
+    elif t == 'ir_con' and c.hello:
+        try:
+            target = clients.get(int(m.get('id')))
+        except (TypeError, ValueError):
+            target = None
+        if target is None or not target.hello or target is c:
+            send(c, {'t': 'travel_result', 'ok': False, 'reason': 'Ese jugador ya no está en línea.'})
+        else:
+            old_world, old_place = c.world, getattr(c, 'place', 'valle')
+            tx, ty = meet_point(target)
+            c.world = target.world
+            c.zone = 'city'
+            c.x, c.y = stand_beside(tx, ty)
+            c.moving = False
+            c.move_at = time.time()
+            c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
+            room_shift(c, old_world, old_place)
+            payload = presence_msg()
+            send(c, {'t': 'mundo', 'world': c.world, 'presence': payload})
+            send(c, {'t': 'cerca', 'players': city_peers(c)})
+            send(c, {'t': 'travel_result', 'ok': True, 'id': 'junto', 'name': visible_nick(target), 'x': c.x, 'y': c.y, 'world': c.world})
+            broadcast(payload)
+    elif t == 'ir_mina' and c.hello:
+        try:
+            dest = VIAJES.mine_stand(WORLD)
+        except VIAJES.ViajeError as exc:
+            send(c, {'t': 'travel_result', 'ok': False, 'reason': str(exc)})
+        else:
+            old_world, old_place = c.world, getattr(c, 'place', 'valle')
+            c.zone = 'city'
+            c.x, c.y = float(dest['x']), float(dest['y'])
+            c.moving = False
+            c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
+            room_shift(c, old_world, old_place)
+            send(c, {'t': 'travel_result', 'ok': True, 'id': 'mina', 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
         now_move = time.time()
         if zone in ('casa', 'mine', 'banco', 'central'):
+            zone = zona_pedida(c, zone)
+            if zone == 'city':
+                return
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
             c.zone = zone
@@ -1825,6 +2108,8 @@ def handle_client_message(c, m, t):
         mint_for(c, clean(m.get('node'), 40), m.get('proof'))
     elif t == 'mint_plata' and c.hello:
         mint_plata(c, m.get('proof'))
+    elif t == 'cambio_simple' and c.hello:
+        cambio_simple_msg(c, m)
     elif t == 'exchange_plata' and c.hello:
         try:
             if m.get('max'):
@@ -1859,6 +2144,12 @@ def handle_client_message(c, m, t):
         lingote_ver(c)
     elif t == 'swing' and c.hello:
         swing_for(c, m.get('mineral'), m.get('qty'))
+    elif t == 'recoger' and c.hello:
+        item = str(m.get('item') or '')
+        if recibir(c, item, m.get('qty'), m.get('kind') or 'recoger'):
+            send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0)})
+    elif t == 'mochila_op' and c.hello:
+        mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:
         lavar_for(c, m.get('qty') or 1)
     elif t == 'metal_migrar' and c.hello:
@@ -1897,6 +2188,10 @@ def handle_client_message(c, m, t):
         withdraw_item(c, m.get('item'), m.get('qty'))
     elif t == 'finca' and c.hello:
         finca_msg(c, m)
+    elif t == 'world_edit' and c.hello:
+        result = world_edit_request(getattr(c, 'user', None), m)
+        send(c, {'t': 'world_edit_result', 'ok': result.get('ok'), 'code': result.get('code'),
+                 'error': result.get('error') or '', 'worldEdits': result.get('doc'), 'package': result.get('package')})
     elif vida_try(c, m, t):
         return
 
@@ -2068,7 +2363,19 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return auth_response('200 OK', ACC.providers(), headers)
     if path == '/auth/sesion' and method == 'GET':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if user and ACC.ensure_owner_favorite(user):
+            save_accounts()
         return auth_response('200 OK', {'user': ACC.public_user(user) if user else None}, headers)
+    if path == '/auth/mundo-favorito' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar el favorito.'}, headers)
+        try:
+            shown = ACC.set_favorite_world(ACCOUNTS, user, payload.get('id'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
     if path == '/auth/google' and method == 'GET':
         if not ACC.providers()['google']:
             return auth_response('404 Not Found', {'error': 'Google no está configurado.'}, headers)
@@ -2109,13 +2416,15 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         except (ACC.AuthError, urllib.error.URLError, TimeoutError, OSError):
             return redirect(fallo, headers, [ACC.cookie('life_return', '', 0, secure)])
         return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure), ACC.cookie('life_return', '', 0, secure)])
+    if path == '/auth/nick' and method == 'POST':
+        return auth_response('200 OK', ACC.nick_preview(ACCOUNTS, payload.get('nick')), headers)
     if path == '/auth/entrar' and method == 'POST':
         try:
             login = payload.get('nick') if payload.get('nick') else payload.get('email')
             if '@' in str(login or ''):
                 result = ACC.login_password(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
             else:
-                result = ACC.login_nick(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
+                result = ACC.enter_or_create(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
             save_accounts()
         except ACC.AuthError as exc:
             save_accounts()
@@ -2252,6 +2561,19 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             CASA.mirror(VIDA, 'acct:' + user['id'], user)
             save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'home': {'x': spot[0], 'y': spot[1], 'name': HOGAR.NOMBRES[shown['municipio']]}}, headers)
+    if path == '/auth/lugar' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para elegir el lugar.'}, headers)
+        try:
+            shown = ACC.set_favorite_place(ACCOUNTS, user, payload.get('id'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        import lugares as LUGARES
+        item = LUGARES.get(shown.get('favoritePlace'))
+        home = {'x': item['x'], 'y': item['y'], 'name': item['name'], 'id': item['id']} if item else None
+        return auth_response('200 OK', {'ok': True, 'user': shown, 'home': home}, headers)
     if path == '/auth/casa' and method == 'GET':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
@@ -2269,6 +2591,26 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         save_accounts()
         save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'casa': shown['casa']}, headers)
+    if path == '/auth/partida' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para recuperar la partida.'}, headers)
+        return auth_response('200 OK', {'partida': GUARDADO.recall(user, ECON)}, headers)
+    if path == '/auth/partida' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para guardar la partida.'}, headers)
+        shown = GUARDADO.remember(user, payload if isinstance(payload, dict) else {}, ECON)
+        CASA.mirror(VIDA, 'acct:' + user['id'], user)
+        who = user.get('wallet_name') or user.get('name') or ''
+        if who:
+            before = PURSES.count(VAULT_STATE, who, 'gallo')
+            after = GALLOS.sync_purse(VAULT_STATE, who, shown.get('gallos') or 0)
+            if after != before:
+                save_vault()
+        save_accounts()
+        save_vida()
+        return auth_response('200 OK', {'ok': True, 'partida': shown}, headers)
     if path == '/auth/caballo' and method == 'GET':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
@@ -2286,9 +2628,35 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return auth_response('200 OK', {'ok': True, 'user': shown, 'caballo': shown['caballo']}, headers)
     if path == '/auth/salir' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
-        ACCOUNTS['sessions'].pop(token, None)
+        ACC.end_session(ACCOUNTS, token)
         save_accounts()
         return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    if path == '/auth/salir-todos' and method == 'POST':
+        token = ACC.read_cookie(cookie, 'life_session')
+        user = ACC.session_user(ACCOUNTS, token)
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
+        ACC.end_all_sessions(ACCOUNTS, user['id'])
+        save_accounts()
+        return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    if path == '/auth/clave' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
+        try:
+            shown = ACC.change_password(ACCOUNTS, user, payload.get('current'), payload.get('password'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
+    if path == '/auth/cuenta' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
+        import mi_cuenta as MICUENTA
+        body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000))
+        return auth_response('200 OK', body, headers)
     if path == '/auth/delete-account' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         user = ACC.session_user(ACCOUNTS, token)
@@ -2330,9 +2698,10 @@ async def handle(reader, writer):
     body = b''
     simon_post = method == 'POST' and path.startswith('/api/simon')
     vida_post = method == 'POST' and path.startswith('/api/vida')
-    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post):
+    world_post = method == 'POST' and path.startswith('/api/world-edits')
+    if method == 'POST' and (path.startswith('/auth') or path in APARTMENT_API.AGENT_PATHS or simon_post or vida_post or world_post):
         try:
-            cap = 80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000
+            cap = 1500000 if world_post else (80000 if simon_post or path in APARTMENT_API.AGENT_PATHS else 20000)
             length = min(int(headers.get('content-length') or 0), cap)
         except ValueError:
             length = 0
@@ -2345,6 +2714,27 @@ async def handle(reader, writer):
         labels = {200: 'OK', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed', 503: 'Service Unavailable'}
         encoded = json.dumps(payload, ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
+        if method != 'HEAD':
+            writer.write(encoded)
+        await writer.drain(); writer.close(); return
+    if path.startswith('/api/world-edits'):
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))
+        if method == 'GET':
+            code, payload = 200, world_edit_packet(user)
+        elif method == 'POST':
+            try:
+                message = json.loads(body.decode() or '{}')
+            except Exception:
+                message = {}
+            result = world_edit_request(user, message if isinstance(message, dict) else {})
+            code = int(result.get('code') or (200 if result.get('ok') else 400))
+            payload = {'ok': result.get('ok'), 'code': code, 'error': result.get('error') or '',
+                       'worldEdits': result.get('doc'), 'package': result.get('package')}
+        else:
+            code, payload = 405, {'ok': False, 'error': 'Método no permitido.'}
+        labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found', 405: 'Method Not Allowed', 409: 'Conflict'}
+        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
             writer.write(encoded)
         await writer.drain(); writer.close(); return
@@ -2420,6 +2810,11 @@ async def handle(reader, writer):
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
+    if path == '/reglas-mina' and method in ('GET', 'HEAD'):
+        body = json.dumps(_reglas_mina(headers), ensure_ascii=False).encode()
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
+        if method == 'GET': writer.write(body)
+        await writer.drain(); writer.close(); return
     if path == '/session.json' and method in ('GET', 'HEAD'):
         body = json.dumps({'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                            'revision': os.environ.get('RENDER_GIT_COMMIT') or None,
@@ -2488,8 +2883,15 @@ async def handle(reader, writer):
     else:
         with open(full, 'rb') as f: body = f.read()
         ctype = mimetypes.guess_type(full)[0] or 'application/octet-stream'
+        if full.endswith(os.sep + 'play' + os.sep + 'index.html') or full.endswith('/play/index.html'):
+            rev = os.environ.get('RENDER_GIT_COMMIT') or ''
+            html = body.decode('utf-8')
+            if 'name="life-revision"' not in html:
+                html = html.replace('<head>', '<head>\n<meta name="life-revision" content="' + rev + '">', 1)
+            body = html.encode('utf-8')
         if ctype.startswith('text/') or ctype in ('application/javascript', 'application/json'): ctype += '; charset=utf-8'
-        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: {ctype}\r\nContent-Length: {len(body)}\r\nCache-Control: no-cache\r\nConnection: close\r\n\r\n'.encode())
+        cache = 'no-store' if ctype.startswith('text/html') else 'no-cache'
+        writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: {ctype}\r\nContent-Length: {len(body)}\r\nCache-Control: {cache}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
     try:
         await writer.drain(); writer.close()

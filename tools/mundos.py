@@ -8,7 +8,13 @@ import json
 import os
 
 CAP = 333
+# Al entrar no hay lista: el jugador aparece en este mundo.
+# El favorito se guarda aparte y no cambia esta entrada.
+DEFAULT_WORLD = 3
+OWNER_FAVORITE_WORLD = 5
 PRIVATE = frozenset({'casa'})
+# La mina, el banco y la casa son otros mapas. El valle y los parques son la misma ciudad.
+INTERIOR = frozenset({'casa', 'mina-palmas', 'casa-bancaria', 'banco-central'})
 FIXED_NAMES = {
     'valle': 'Valle de Aburrá',
     'mina-palmas': 'Mina de Las Palmas',
@@ -131,7 +137,7 @@ def same_world(a, b):
 
 
 def same_room(a, b):
-    """Misma sala pública. La casa nunca se comparte."""
+    """Misma sala de chat. La casa nunca se comparte."""
     if getattr(a, 'world', None) != getattr(b, 'world', None):
         return False
     place_a = getattr(a, 'place', '')
@@ -139,6 +145,43 @@ def same_room(a, b):
     if place_a in PRIVATE or place_b in PRIVATE:
         return False
     return bool(place_a) and place_a == place_b
+
+
+def outdoors(person):
+    """En la ciudad compartida. Un parque no es otra instancia."""
+    zone = getattr(person, 'zone', None)
+    if zone and zone != 'city':
+        return False
+    place = getattr(person, 'place', '')
+    return bool(place) and place not in INTERIOR
+
+
+def same_sight(a, b):
+    """Se ven los avatares. Mismo mundo y los dos en la ciudad, aunque el parque sea otro."""
+    return same_world(a, b) and outdoors(a) and outdoors(b)
+
+
+def presence(people, boxes_=None):
+    """Cuántos hay por mundo, y quién está en línea con su lugar."""
+    body = counts(people)
+    boxes_ = boxes_ or []
+    rows = []
+    for person in people:
+        if not getattr(person, 'hello', False) or getattr(person, 'bot', False):
+            continue
+        place = getattr(person, 'place', '') or 'valle'
+        nick = getattr(person, 'nick', None) or getattr(person, 'name', '') or 'Viajero'
+        rows.append({
+            'id': getattr(person, 'id', 0),
+            'nick': str(nick)[:16],
+            'world': getattr(person, 'world', DEFAULT_WORLD),
+            'place': place,
+            'placeName': place_name(place, boxes_),
+            'zone': getattr(person, 'zone', 'city') or 'city',
+        })
+    rows.sort(key=lambda row: (row['world'], str(row['nick']).lower(), row['id']))
+    body['players'] = rows
+    return body
 
 
 def counts(people):

@@ -1,0 +1,922 @@
+[
+  {
+    "kind": "plant",
+    "name": "cafe_siembra_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_siembra_near.glb",
+    "triangles": 272,
+    "vertices": 166,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      0.3603,
+      0.5
+    ],
+    "size": [
+      1.0,
+      0.3603,
+      1.0
+    ],
+    "height": 0.3603,
+    "bytes": 6876,
+    "crop": "cafe",
+    "stage": "siembra",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_siembra_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_siembra_far.glb",
+    "triangles": 272,
+    "vertices": 166,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      0.325,
+      0.5
+    ],
+    "size": [
+      1.0,
+      0.325,
+      1.0
+    ],
+    "height": 0.325,
+    "bytes": 6876,
+    "crop": "cafe",
+    "stage": "siembra",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_crecimiento_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_crecimiento_near.glb",
+    "triangles": 460,
+    "vertices": 301,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.04,
+      0.5
+    ],
+    "size": [
+      1.0,
+      1.04,
+      1.0
+    ],
+    "height": 1.04,
+    "bytes": 11296,
+    "crop": "cafe",
+    "stage": "crecimiento",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_crecimiento_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_crecimiento_far.glb",
+    "triangles": 276,
+    "vertices": 163,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.04,
+      0.5
+    ],
+    "size": [
+      1.0,
+      1.04,
+      1.0
+    ],
+    "height": 1.04,
+    "bytes": 6884,
+    "crop": "cafe",
+    "stage": "crecimiento",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_floracion_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_floracion_near.glb",
+    "triangles": 1092,
+    "vertices": 771,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.4,
+      0.5
+    ],
+    "size": [
+      1.0,
+      1.4,
+      1.0
+    ],
+    "height": 1.4,
+    "bytes": 26404,
+    "crop": "cafe",
+    "stage": "floracion",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_floracion_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_floracion_far.glb",
+    "triangles": 336,
+    "vertices": 203,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.4,
+      0.5
+    ],
+    "size": [
+      1.0,
+      1.4,
+      1.0
+    ],
+    "height": 1.4,
+    "bytes": 8244,
+    "crop": "cafe",
+    "stage": "floracion",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_fruto_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_fruto_near.glb",
+    "triangles": 1296,
+    "vertices": 919,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.71,
+      0.5092
+    ],
+    "size": [
+      1.0,
+      1.71,
+      1.0092
+    ],
+    "height": 1.71,
+    "bytes": 31236,
+    "crop": "cafe",
+    "stage": "fruto",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_fruto_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_fruto_far.glb",
+    "triangles": 388,
+    "vertices": 237,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.71,
+      0.5
+    ],
+    "size": [
+      1.0,
+      1.71,
+      1.0
+    ],
+    "height": 1.71,
+    "bytes": 9416,
+    "crop": "cafe",
+    "stage": "fruto",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_cosecha_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_cosecha_near.glb",
+    "triangles": 1296,
+    "vertices": 919,
+    "bounds_min": [
+      -0.5018,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      2.0,
+      0.5273
+    ],
+    "size": [
+      1.0018,
+      2.0,
+      1.0273
+    ],
+    "height": 2.0,
+    "bytes": 31236,
+    "crop": "cafe",
+    "stage": "cosecha",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cafe_cosecha_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cafe/cafe_cosecha_far.glb",
+    "triangles": 404,
+    "vertices": 249,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      2.0,
+      0.5
+    ],
+    "size": [
+      1.0,
+      2.0,
+      1.0
+    ],
+    "height": 2.0,
+    "bytes": 9784,
+    "crop": "cafe",
+    "stage": "cosecha",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_siembra_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_siembra_near.glb",
+    "triangles": 200,
+    "vertices": 120,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      0.4922,
+      0.5
+    ],
+    "size": [
+      1.0,
+      0.4922,
+      1.0
+    ],
+    "height": 0.4922,
+    "bytes": 5276,
+    "crop": "cacao",
+    "stage": "siembra",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_siembra_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_siembra_far.glb",
+    "triangles": 208,
+    "vertices": 126,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      0.46,
+      0.5
+    ],
+    "size": [
+      1.0,
+      0.46,
+      1.0
+    ],
+    "height": 0.46,
+    "bytes": 5468,
+    "crop": "cacao",
+    "stage": "siembra",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_crecimiento_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_crecimiento_near.glb",
+    "triangles": 320,
+    "vertices": 222,
+    "bounds_min": [
+      -0.5614,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.6052,
+      1.5266,
+      0.5
+    ],
+    "size": [
+      1.1666,
+      1.5266,
+      1.0
+    ],
+    "height": 1.5266,
+    "bytes": 8396,
+    "crop": "cacao",
+    "stage": "crecimiento",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_crecimiento_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_crecimiento_far.glb",
+    "triangles": 296,
+    "vertices": 178,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      1.38,
+      0.5
+    ],
+    "size": [
+      1.0,
+      1.38,
+      1.0
+    ],
+    "height": 1.38,
+    "bytes": 7368,
+    "crop": "cacao",
+    "stage": "crecimiento",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_floracion_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_floracion_near.glb",
+    "triangles": 480,
+    "vertices": 350,
+    "bounds_min": [
+      -0.6352,
+      0.0,
+      -0.5213
+    ],
+    "bounds_max": [
+      0.6951,
+      2.3326,
+      0.5308
+    ],
+    "size": [
+      1.3303,
+      2.3326,
+      1.0521
+    ],
+    "height": 2.3326,
+    "bytes": 12396,
+    "crop": "cacao",
+    "stage": "floracion",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_floracion_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_floracion_far.glb",
+    "triangles": 348,
+    "vertices": 216,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      2.15,
+      0.5
+    ],
+    "size": [
+      1.0,
+      2.15,
+      1.0
+    ],
+    "height": 2.15,
+    "bytes": 8600,
+    "crop": "cacao",
+    "stage": "floracion",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_fruto_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_fruto_near.glb",
+    "triangles": 616,
+    "vertices": 418,
+    "bounds_min": [
+      -0.7568,
+      0.0,
+      -0.5138
+    ],
+    "bounds_max": [
+      0.7487,
+      3.353,
+      0.6755
+    ],
+    "size": [
+      1.5055,
+      3.353,
+      1.1893
+    ],
+    "height": 3.353,
+    "bytes": 15116,
+    "crop": "cacao",
+    "stage": "fruto",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_fruto_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_fruto_far.glb",
+    "triangles": 428,
+    "vertices": 258,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      3.15,
+      0.5
+    ],
+    "size": [
+      1.0,
+      3.15,
+      1.0
+    ],
+    "height": 3.15,
+    "bytes": 10232,
+    "crop": "cacao",
+    "stage": "fruto",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_cosecha_near.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_cosecha_near.glb",
+    "triangles": 664,
+    "vertices": 446,
+    "bounds_min": [
+      -0.7568,
+      0.0,
+      -0.5138
+    ],
+    "bounds_max": [
+      0.7487,
+      3.353,
+      0.6755
+    ],
+    "size": [
+      1.5055,
+      3.353,
+      1.1893
+    ],
+    "height": 3.353,
+    "bytes": 16140,
+    "crop": "cacao",
+    "stage": "cosecha",
+    "lod": "near",
+    "valid": true
+  },
+  {
+    "kind": "plant",
+    "name": "cacao_cosecha_far.glb",
+    "file": "/workspace/sara-saimon/3d/plantas/cacao/cacao_cosecha_far.glb",
+    "triangles": 428,
+    "vertices": 258,
+    "bounds_min": [
+      -0.5,
+      0.0,
+      -0.5
+    ],
+    "bounds_max": [
+      0.5,
+      3.15,
+      0.5
+    ],
+    "size": [
+      1.0,
+      3.15,
+      1.0
+    ],
+    "height": 3.15,
+    "bytes": 10232,
+    "crop": "cacao",
+    "stage": "cosecha",
+    "lod": "far",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cafe_estacion_01_despulpado.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_estacion_01_despulpado.glb",
+    "triangles": 280,
+    "vertices": 180,
+    "bounds_min": [
+      -0.85,
+      0.0,
+      -0.7
+    ],
+    "bounds_max": [
+      0.85,
+      1.17,
+      0.7
+    ],
+    "size": [
+      1.7,
+      1.17,
+      1.4
+    ],
+    "height": 1.17,
+    "bytes": 7248,
+    "crop": "cafe",
+    "step": "01_despulpado",
+    "label": "Despulpado",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cafe_estacion_02_fermentado.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_estacion_02_fermentado.glb",
+    "triangles": 300,
+    "vertices": 174,
+    "bounds_min": [
+      -1.3,
+      0.0,
+      -1.0
+    ],
+    "bounds_max": [
+      1.3,
+      0.91,
+      1.0
+    ],
+    "size": [
+      2.6,
+      0.91,
+      2.0
+    ],
+    "height": 0.91,
+    "bytes": 7368,
+    "crop": "cafe",
+    "step": "02_fermentado",
+    "label": "Fermentado",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cafe_estacion_03_lavado.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_estacion_03_lavado.glb",
+    "triangles": 188,
+    "vertices": 130,
+    "bounds_min": [
+      -1.05,
+      0.0,
+      -0.65
+    ],
+    "bounds_max": [
+      1.05,
+      0.52,
+      0.65
+    ],
+    "size": [
+      2.1,
+      0.52,
+      1.3
+    ],
+    "height": 0.52,
+    "bytes": 5300,
+    "crop": "cafe",
+    "step": "03_lavado",
+    "label": "Lavado",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cafe_estacion_04_secado.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_estacion_04_secado.glb",
+    "triangles": 852,
+    "vertices": 548,
+    "bounds_min": [
+      -5.5,
+      0.0,
+      -1.8
+    ],
+    "bounds_max": [
+      5.5,
+      2.117,
+      1.8
+    ],
+    "size": [
+      11.0,
+      2.117,
+      3.6
+    ],
+    "height": 2.117,
+    "bytes": 19980,
+    "crop": "cafe",
+    "step": "04_secado",
+    "label": "Secado en marquesina",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cafe_estacion_05_trilla.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_estacion_05_trilla.glb",
+    "triangles": 308,
+    "vertices": 194,
+    "bounds_min": [
+      -0.85,
+      0.0,
+      -0.7
+    ],
+    "bounds_max": [
+      0.85,
+      1.15,
+      0.7
+    ],
+    "size": [
+      1.7,
+      1.15,
+      1.4
+    ],
+    "height": 1.15,
+    "bytes": 7844,
+    "crop": "cafe",
+    "step": "05_trilla",
+    "label": "Trilla",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cafe_estacion_06_bultos.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_estacion_06_bultos.glb",
+    "triangles": 352,
+    "vertices": 228,
+    "bounds_min": [
+      -1.3,
+      0.0,
+      -1.1
+    ],
+    "bounds_max": [
+      1.3,
+      1.6535,
+      1.1
+    ],
+    "size": [
+      2.6,
+      1.6535,
+      2.2
+    ],
+    "height": 1.6535,
+    "bytes": 8916,
+    "crop": "cafe",
+    "step": "06_bultos",
+    "label": "Bultos",
+    "valid": true
+  },
+  {
+    "kind": "layout",
+    "name": "cafe_layout.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cafe/cafe_layout.glb",
+    "triangles": 4748,
+    "vertices": 2955,
+    "bounds_min": [
+      -16.35,
+      -0.08,
+      -4.05
+    ],
+    "bounds_max": [
+      16.35,
+      2.117,
+      5.05
+    ],
+    "size": [
+      32.7,
+      2.197,
+      9.1
+    ],
+    "height": 2.197,
+    "bytes": 105308,
+    "crop": "cafe",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cacao_estacion_01_quiebre.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cacao/cacao_estacion_01_quiebre.glb",
+    "triangles": 200,
+    "vertices": 132,
+    "bounds_min": [
+      -0.85,
+      0.0,
+      -0.7
+    ],
+    "bounds_max": [
+      0.85,
+      0.63,
+      0.7
+    ],
+    "size": [
+      1.7,
+      0.63,
+      1.4
+    ],
+    "height": 0.63,
+    "bytes": 5480,
+    "crop": "cacao",
+    "step": "01_quiebre",
+    "label": "Quiebre de mazorca",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cacao_estacion_02_fermentacion_cajones.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cacao/cacao_estacion_02_fermentacion_cajones.glb",
+    "triangles": 264,
+    "vertices": 176,
+    "bounds_min": [
+      -2.2,
+      0.0,
+      -1.2
+    ],
+    "bounds_max": [
+      2.2,
+      2.1,
+      1.2
+    ],
+    "size": [
+      4.4,
+      2.1,
+      2.4
+    ],
+    "height": 2.1,
+    "bytes": 6948,
+    "crop": "cacao",
+    "step": "02_fermentacion_cajones",
+    "label": "Fermentaci\u00f3n en cajones",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cacao_estacion_03_secado.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cacao/cacao_estacion_03_secado.glb",
+    "triangles": 648,
+    "vertices": 416,
+    "bounds_min": [
+      -3.5,
+      0.0,
+      -2.05
+    ],
+    "bounds_max": [
+      3.5,
+      2.595,
+      2.05
+    ],
+    "size": [
+      7.0,
+      2.595,
+      4.1
+    ],
+    "height": 2.595,
+    "bytes": 15416,
+    "crop": "cacao",
+    "step": "03_secado",
+    "label": "Secado",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cacao_estacion_04_seleccion.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cacao/cacao_estacion_04_seleccion.glb",
+    "triangles": 228,
+    "vertices": 162,
+    "bounds_min": [
+      -0.9,
+      0.0,
+      -0.7
+    ],
+    "bounds_max": [
+      0.9,
+      0.6624,
+      0.7
+    ],
+    "size": [
+      1.8,
+      0.6624,
+      1.4
+    ],
+    "height": 0.6624,
+    "bytes": 6292,
+    "crop": "cacao",
+    "step": "04_seleccion",
+    "label": "Selecci\u00f3n",
+    "valid": true
+  },
+  {
+    "kind": "station",
+    "name": "cacao_estacion_05_kilos_registrados.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cacao/cacao_estacion_05_kilos_registrados.glb",
+    "triangles": 216,
+    "vertices": 123,
+    "bounds_min": [
+      -0.8,
+      0.0,
+      -0.7
+    ],
+    "bounds_max": [
+      0.8,
+      1.3324,
+      0.7
+    ],
+    "size": [
+      1.6,
+      1.3324,
+      1.4
+    ],
+    "height": 1.3324,
+    "bytes": 5616,
+    "crop": "cacao",
+    "step": "05_kilos_registrados",
+    "label": "Kilos registrados",
+    "valid": true
+  },
+  {
+    "kind": "layout",
+    "name": "cacao_layout.glb",
+    "file": "/workspace/sara-saimon/3d/talleres/cacao/cacao_layout.glb",
+    "triangles": 3752,
+    "vertices": 2333,
+    "bounds_min": [
+      -12.95,
+      -0.08,
+      -4.3
+    ],
+    "bounds_max": [
+      12.95,
+      3.15,
+      5.3
+    ],
+    "size": [
+      25.9,
+      3.23,
+      9.6
+    ],
+    "height": 3.23,
+    "bytes": 83404,
+    "crop": "cacao",
+    "valid": true
+  }
+]

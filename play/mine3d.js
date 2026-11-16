@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 // Independent underground map, built from the same collision grid used by movement.
-import {attachFinca} from './finca3d.js?v=sara-r1';
+import {board as mineBoard} from './letrero3d.js?v=sara-cartel';
 export function buildMine(T,W){
  const map=W.caveDefinition,scene=new T.Scene();scene.background=new T.Color('#130e0b');scene.fog=new T.Fog('#1c130e',38,100);scene.add(new T.HemisphereLight(0xe6bf83,0x503c27,.95));const fill=new T.DirectionalLight(0xe4c79b,.75);fill.position.set(20,45,25);scene.add(fill);
  const pick=[],resources=new Map(),materials=new Map();const mat=c=>{if(!materials.has(c))materials.set(c,new T.MeshLambertMaterial({color:c,flatShading:true}));return materials.get(c);};
@@ -21,12 +21,12 @@ export function buildMine(T,W){
   }else if(d.type==='furnace'){
    part(boxGeo,'#4e4034',0,.35,0,3.8,.7,3.4);part(boxGeo,'#80715e',-1.25,1.4,0,.65,2.3,2.8);part(boxGeo,'#80715e',1.25,1.4,0,.65,2.3,2.8);part(boxGeo,'#6c5944',0,2.65,0,3.3,.6,2.8);part(boxGeo,'#29201a',0,1.3,-1.2,2,2,.4);part(boxGeo,'#4f4539',.6,3.6,-.5,.9,1.6,1);
    const fire=new T.MeshBasicMaterial({color:'#ff8b28'});part(rockGeo,fire,0,.8,.3,.9,.4,.75);const light=new T.PointLight(0xff8a36,55,22,2);light.position.set(d.x*2+1,2,d.y*2+2);scene.add(light);resources.set(d.id,{fire,light});label('HORNO · FUNDIR / ACUÑAR',d.x*2+1,5.5,d.y*2+1);
+  }else if(d.type==='mine_sign'){const sign=mineBoard(T,d.x*2+1,0,d.y*2+1,d.id,d.facing||0);scene.add(sign);sign.traverse(mesh=>{if(mesh.isMesh)pick.push(mesh);});
   }else {part(rockGeo,'#6f4f2c',0,2,0,2.4,2.7,1);part(boxGeo,'#130e0b',0,1.5,1.05,2.5,2.8,.15);label('SALIDA A LAS PALMAS',d.x*2+1,5,d.y*2+1);}
  }
  for(const [x,z] of [[8,10],[60,10],[8,48],[60,48],[35,8],[35,52]]){box(x,1.6,z,.14,3.2,.14,'#33271b');mesh(new T.SphereGeometry(.22,8,6),new T.MeshBasicMaterial({color:'#ffe4a0'}),x,3.3,z);const light=new T.PointLight(0xffcc83,38,24,2);light.position.set(x,3,z);scene.add(light);}
  // Timber supports and a wooden mine cart echo the supplied low-poly references.
  for(const x of [9,61]){box(x,2.3,27,.6,4.6,.6,'#3d291b');box(x,4.6,27,5,.5,.6,'#67472b');}
  box(22,.7,37,2.2,1.1,1.5,'#493b2e');for(const x of [21.2,22.8])for(const z of [36.3,37.7])mesh(new T.CylinderGeometry(.3,.3,.15,8),'#282626',x,.25,z).rotation.x=Math.PI/2;
- const finca=attachFinca(T,scene,{x:30,y:0,z:46,pick,lamp:true});
- return {scene,pick,finca,update(state,time){for(const [id,r] of resources){if(r.veins){const active=state.nodes.get(id)?.state==='active';for(const v of r.veins)v.visible=active;r.g.scale.y=active?1:.48;}if(r.light){r.light.intensity=(time<state.forgeUntil?75:48)+Math.sin(time*.012)*4;r.fire.color.set(time<state.forgeUntil?'#ffd25b':'#ff8b28');}}}};
+ return {scene,pick,update(state,time){for(const [id,r] of resources){if(r.veins){const active=state.nodes.get(id)?.state==='active';for(const v of r.veins)v.visible=active;r.g.scale.y=active?1:.48;}if(r.light){r.light.intensity=(time<state.forgeUntil?75:48)+Math.sin(time*.012)*4;r.fire.color.set(time<state.forgeUntil?'#ffd25b':'#ff8b28');}}}};
 }

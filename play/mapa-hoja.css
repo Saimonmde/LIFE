@@ -1,0 +1,66 @@
+/* El mapa y la lista de lugares se ven encima del login y se pueden recorrer. */
+body:not(.in-game) #hud-mapa {
+  display: block !important;
+  z-index: 80;
+}
+#hud-mapa, #b-globo { z-index: 80; }
+#city-map { z-index: 90; }
+#city-map-close {
+  min-width: 112px;
+  min-height: 48px;
+  font: 800 18px/1 system-ui, sans-serif;
+  position: sticky;
+  top: 0;
+}
+#city-map-muni {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  max-height: min(42dvh, 360px);
+  flex: 0 1 auto;
+}
+#mine-route {
+  position: fixed;
+  top: auto;
+  left: auto;
+  bottom: calc(310px + env(safe-area-inset-bottom));
+  right: max(8px, env(safe-area-inset-right));
+  width: auto;
+  height: auto;
+  max-width: 190px;
+  min-height: 48px;
+  min-width: 148px;
+  padding: 10px 14px;
+  font: 800 16px/1.2 system-ui, sans-serif;
+  z-index: 46;
+}
+#mina-brujula {
+  position: fixed;
+  top: auto;
+  bottom: calc(230px + env(safe-area-inset-bottom));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 46;
+  min-height: 48px;
+  max-width: 190px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #241c14e6;
+  color: #ffe3a0;
+  font: 800 15px/1.2 system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#mina-brujula[hidden] { display: none !important; }
+#mina-flecha { display: inline-block; font-size: 18px; }
+body:not(.in-game) #mina-brujula { display: none !important; }
+#city-map-muni button {
+  min-height: 48px;
+  width: 100%;
+  text-align: left;
+}

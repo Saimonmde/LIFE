@@ -152,18 +152,14 @@
       '<p><b>Simonplata</b> es la moneda de plata. Sólo existirán 84.000.000. Nadie puede crear más, cambiar ese número ni copiar una.</p>',
       '<p><b>Simonchis</b> son las monedas de cobre. Existirán 333.000.000.</p>',
       '<p>El libro de arriba dice cuántas van y cuántas pueden existir. Tu número es el de la izquierda.</p>',
-      '<h3>Cómo minar y acuñar</h3>',
+      '<h3>En corto</h3>',
       '<ol>',
-      '<li>Entra con tu cuenta.</li>',
-      '<li>Abre Viajar y elige la mina, o camina hasta Las Palmas.</li>',
-      '<li>Entra a la mina y pica una veta con la pica. El mineral cae en la mochila.</li>',
-      '<li>Acércate al horno del centro.</li>',
-      '<li>Elige el mineral: oro, plata o cobre.</li>',
-      '<li>Picar y lavar sólo guarda metal en la mochila. Eso no crea monedas.</li>',
-      '<li>En el horno, Acuñar cambia el metal por monedas: 5 oros crudos hacen 1 Simoncoin, 4 platas crudas hacen 1 Simonplata y 3 cobres crudos hacen 1 Simonchis.</li>',
-      '<li>Hoy puedes acuñar hasta el tope del día. Se reinicia a las 7:00 p. m. (hora de Bogotá).</li>',
+      '<li>🏙 Saimon City. Valle de Aburrá. Año 1777.</li>',
+      '<li>⛏ Ve a la mina. Pica el metal.</li>',
+      '<li>🪙 En el horno, Acuñar guarda las monedas en tu inventario.</li>',
+      '<li>🏠 Descansar / Ir a casa. Tu mascota te espera.</li>',
       '</ol>',
-      '<p>Si el número ya llegó al máximo, el horno se detiene. No aparece ni una moneda de más.</p>',
+      '<p>5 oros crudos hacen 1 Simoncoin. 4 platas, 1 Simonplata. 3 cobres, 1 Simonchis. El tope del día se reinicia a las 7:00 p. m.</p>',
       '</section>',
       '<h3>Viajar</h3><div id="cajon-lugares"></div>',
       '<h3>Caballo</h3><p>Tu caballo te lleva solo por el camino. También puedes llamarlo a la puerta.</p>',
@@ -230,6 +226,14 @@
     button.title = 'Ir a la mina y picar';
     button.onclick = () => { if (window.LiveInk && LiveInk.goMine) LiveInk.goMine(); };
     document.body.append(button);
+    if (document.getElementById('b-acunar-pulgar')) return;
+    const mint = document.createElement('button');
+    mint.type = 'button';
+    mint.id = 'b-acunar-pulgar';
+    mint.textContent = 'Acuñar';
+    mint.title = 'Acuñar o cambiar monedas';
+    mint.onclick = () => { if (window.Acunar) Acunar.open(); };
+    document.body.append(mint);
   }
   function boot() {
     mountPicar();

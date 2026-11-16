@@ -204,6 +204,64 @@ def _login_bucket(doc, key, now, client_ip):
     _hit_rate(doc, key, now)
 
 
+def _nick_user(doc, nick):
+    key = name_key(game_name(nick))
+    if not key:
+        return None
+    for item in doc['users']:
+        if name_key(item.get('name')) == key or name_key(item.get('wallet_name')) == key:
+            return item
+    return None
+
+
+def nick_preview(doc, nick):
+    """Dice si ese nickname todavía no tiene cuenta. No crea nada."""
+    cleaned = game_name(nick)
+    if not cleaned or simon_reserved(cleaned):
+        return {'nuevo': False, 'reservado': bool(cleaned) and simon_reserved(cleaned)}
+    return {'nuevo': _nick_user(doc, cleaned) is None, 'reservado': False}
+
+
+def enter_or_create(doc, nick, password, now=None, client_ip=None):
+    """Entra si el nickname existe. Si no existe, crea la cuenta con scrypt y entra.
+
+    Una clave equivocada no reescribe el hash. Simon sigue reservado.
+    """
+    now = _now(now)
+    cleaned = game_name(nick)
+    if not cleaned:
+        raise AuthError('Escribe un nickname de hasta 16 letras.')
+    if not isinstance(password, str) or len(password) > 1024:
+        raise AuthError('Contraseña incorrecta')
+    _login_bucket(doc, 'login-nick:' + (name_key(cleaned) or 'vacio'), now, client_ip)
+    user = _nick_user(doc, cleaned)
+    if user:
+        stored = user.get('password_hash') or _dummy_hash()
+        before = user.get('password_hash')
+        verified = bool(password) and bool(before) and verify_password(password, stored)
+        if not verified:
+            raise AuthError('Contraseña incorrecta')
+        doc['rates'].pop('login-nick:' + name_key(cleaned), None)
+        return open_session(doc, user, now)
+    if simon_reserved(cleaned):
+        raise AuthError('Ese apodo está reservado.')
+    user = {
+        'id': secrets.token_hex(8),
+        'name': cleaned,
+        'email': '',
+        'phone': '',
+        'password_hash': hash_password(password),
+        'providers': {},
+        'wallet_name': cleaned,
+        'wallet_token': '',
+        'createdAt': now,
+        'verified': True,
+    }
+    doc['users'].append(user)
+    doc['rates'].pop('login-nick:' + name_key(cleaned), None)
+    return open_session(doc, user, now)
+
+
 def login_nick(doc, nick, password, now=None, client_ip=None):
     """Entra con el apodo. El error es el mismo si el apodo no existe o la clave no sirve."""
     now = _now(now)
@@ -238,15 +296,16 @@ def set_nick_and_password(doc, user, nick, password, confirm, now=None):
     _hit_rate(doc, 'clave:' + user['id'], now)
     if user.get('password_hash'):
         raise AuthError('Esta cuenta ya tiene contraseña.')
-    if simon_reserved(nick) and not is_owner(user):
-        raise AuthError('Ese apodo está reservado.')
-    nick = game_name(nick)
+    if simon_reserved(nick):
+        if not is_owner(user):
+            raise AuthError('Ese apodo está reservado.')
+        nick = 'Simon'
+    else:
+        nick = game_name(nick)
     if not nick:
         raise AuthError('Escribe un apodo de hasta 16 letras.')
     if simon_reserved(nick) and not is_owner(user):
         raise AuthError('Ese apodo está reservado.')
-    if is_owner(user) and simon_reserved(nick) and name_key(nick) != 'simon':
-        raise AuthError('El apodo del fundador es Simon.')
     if not isinstance(password, str) or password != confirm:
         raise AuthError('Las contraseñas no coinciden.')
     key = name_key(nick)
@@ -349,8 +408,30 @@ def verify_signup(doc, email, email_code, phone_code, check_sms, now=None):
     return open_session(doc, user, now)
 
 
+def ensure_owner_favorite(user):
+    """Si la cuenta del fundador aún no tiene favorito, queda el mundo 5. No toca la contraseña."""
+    import mundos
+    if not user or not is_owner(user):
+        return False
+    if mundos.normalize(user.get('favorite_world')):
+        return False
+    user['favorite_world'] = mundos.OWNER_FAVORITE_WORLD
+    return True
+
+
+def set_favorite_world(doc, user, world):
+    """Guarda el mundo favorito en la cuenta. No crea monedas ni cambia la clave."""
+    import mundos
+    number = mundos.normalize(world)
+    if not number:
+        raise AuthError('Ese mundo no está abierto.')
+    user['favorite_world'] = number
+    return public_user(user)
+
+
 def open_session(doc, user, now=None):
     now = _now(now)
+    ensure_owner_favorite(user)
     token = secrets.token_urlsafe(32)
     doc['sessions'][token] = {'user_id': user['id'], 'exp': now + SESSION_TTL}
     return {'token': token, 'user': public_user(user), 'max_age': SESSION_TTL}
@@ -367,10 +448,52 @@ def public_user(user):
         'canClaimSimon': is_owner(user) and simon_key(user.get('wallet_name') or user.get('name')) != 'simon',
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
+        'favoriteWorld': __import__('mundos').normalize(user.get('favorite_world')),
+        'favoritePlace': __import__('lugares').get(user.get('favorite_place')) and user.get('favorite_place') or '',
         'casa': shown,
         'caballo': caballo_cuenta.view(user),
         'role': __import__('social').role_of(user),
     }
+
+
+def change_password(doc, user, current, new, now=None):
+    """Cambia la clave sólo si la actual coincide. No devuelve el hash."""
+    if not user:
+        raise AuthError('Entra otra vez.')
+    _hit_rate(doc, 'clave:' + user['id'], _now(now))
+    before = user.get('password_hash') or ''
+    if not before:
+        raise AuthError('Esta cuenta todavía no tiene contraseña.')
+    if not isinstance(current, str) or not verify_password(current, before):
+        raise AuthError('Contraseña incorrecta')
+    user['password_hash'] = hash_password(new)
+    return public_user(user)
+
+
+def end_session(doc, token):
+    doc.get('sessions', {}).pop(token or '', None)
+
+
+def end_all_sessions(doc, user_id):
+    for token, row in list((doc.get('sessions') or {}).items()):
+        if row.get('user_id') == user_id:
+            doc['sessions'].pop(token, None)
+
+
+def set_favorite_place(doc, user, place_id):
+    """Guarda el lugar donde esta cuenta aparece. No toca la contraseña ni crea monedas."""
+    import lugares
+    import casa_cuenta
+    item = lugares.get(place_id)
+    if not item:
+        raise AuthError('Ese lugar no está en el valle.')
+    user['favorite_place'] = item['id']
+    if item.get('municipio'):
+        try:
+            casa_cuenta.apply(user, {'municipio': item['municipio']})
+        except casa_cuenta.CasaError as exc:
+            raise AuthError(str(exc)) from exc
+    return public_user(user)
 
 
 def set_municipio(doc, user, municipio):

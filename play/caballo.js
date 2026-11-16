@@ -277,6 +277,27 @@
       return;
     }
   }
+  function blockedTiles(ctx) {
+    const tiles = forbidden(ctx.S);
+    if (ctx.avoid) for (const key of ctx.avoid) tiles.add(key);
+    return tiles;
+  }
+  function pickNear(x, y, open, avoid, radius) {
+    const options = [];
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        if (Math.hypot(dx, dy) > radius) continue;
+        const tx = x + dx, ty = y + dy;
+        const key = tx + ',' + ty;
+        if (avoid && avoid.has(key)) continue;
+        if (open && !open(tx, ty)) continue;
+        options.push([tx, ty]);
+      }
+    }
+    if (!options.length) return [x, y];
+    return options[Math.floor(Math.random() * options.length)];
+  }
   function steer(horse, tx, ty, dt, speed, ctx, now) {
     const open = ctx.open;
     const dist = Math.hypot(tx - horse.fx, ty - horse.fy);
@@ -295,16 +316,38 @@
       while (horse.path.length && Math.hypot(horse.path[0][0] - horse.fx, horse.path[0][1] - horse.fy) < 0.4) horse.path.shift();
       if (horse.path[0]) { nx = horse.path[0][0]; ny = horse.path[0][1]; }
     }
-    const moving = stepToward(horse, nx, ny, dt, speed, open, forbidden(ctx.S));
+    const moving = stepToward(horse, nx, ny, dt, speed, open, blockedTiles(ctx));
     shoveOff(horse, ctx.S, open);
+    const door = blockedTiles(ctx);
+    if (door.has(horse.x + ',' + horse.y)) {
+      const options = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (const [sx, sy] of options) {
+        const nx2 = horse.x + sx, ny2 = horse.y + sy;
+        if (door.has(nx2 + ',' + ny2)) continue;
+        if (open && !open(nx2, ny2)) continue;
+        horse.x = horse.fx = nx2; horse.y = horse.fy = ny2;
+        break;
+      }
+    }
     if (!moving || dist < 0.35) horse.gait = 'idle';
     else if (dist > 8) horse.gait = 'gallop';
     else horse.gait = dist > 3.2 ? 'trot' : 'walk';
     horse.tethered = false;
   }
-  function behind(player) {
-    const back = { up: [0, 2], down: [0, -2], left: [2, 0], right: [-2, 0] }[player.dir] || [0, -2];
-    return [player.fx + back[0], player.fy + back[1]];
+  const WANDER = 4;
+  function wander(horse, spot, dt, ctx, now) {
+    const home = Math.hypot(horse.fx - spot.x, horse.fy - spot.y);
+    if (home > WANDER + 1.2) {
+      steer(horse, spot.x, spot.y, dt, 4.2 * 1.1, ctx, now);
+      return;
+    }
+    const arrived = horse.goal && Math.hypot(horse.fx - horse.goal[0], horse.fy - horse.goal[1]) < 0.45;
+    if (!horse.goal || arrived || now - (horse.wanderAt || 0) > 6) {
+      horse.goal = pickNear(spot.x, spot.y, ctx.open, ctx.avoid, WANDER);
+      horse.wanderAt = now;
+      horse.path = null;
+    }
+    steer(horse, horse.goal[0], horse.goal[1], dt, 4.2 * 0.55, ctx, now);
   }
   function tick(dt, ctx) {
     const S = ctx && ctx.S;
@@ -316,27 +359,15 @@
     const horse = ensurePersonal(S, spot);
     hideHomeDuplicate(S);
     const now = typeof ctx.now === 'function' ? ctx.now() / 1000 : (ctx.seconds || 0);
-    const city = !ctx.W || (ctx.W.mapId || 'city') === 'city';
     if (S.mounted === horse) {
       horse.gait = (S.player.path && S.player.path.length) ? 'gallop' : 'idle';
       horse.tethered = false;
       horse.called = false;
       horse.dir = S.player.dir;
       horse.phase = (horse.phase + dt * (RATE[horse.gait] || 1)) % 1;
-    } else if (city && onMission(S)) {
+    } else if (spot) {
       horse.called = false;
-      const goal = behind(S.player);
-      const far = Math.hypot(horse.fx - S.player.fx, horse.fy - S.player.fy);
-      const speed = far > 8 ? 4.2 * 2 : 4.2 * 1.25;
-      steer(horse, goal[0], goal[1], dt, speed, ctx, now);
-      horse.phase = (horse.phase + dt * (RATE[horse.gait] || 1)) % 1;
-    } else if (city && !horse.called && spot) {
-      const home = Math.hypot(horse.fx - spot.x, horse.fy - spot.y) > 0.4;
-      if (home) steer(horse, spot.x, spot.y, dt, 4.2 * 1.15, ctx, now);
-      else {
-        horse.fx = spot.x; horse.fy = spot.y; horse.x = spot.x; horse.y = spot.y;
-        horse.gait = 'idle'; horse.tethered = true; horse.dir = spot.dir; horse.path = null;
-      }
+      wander(horse, spot, dt, ctx, now);
       horse.phase = (horse.phase + dt * (RATE[horse.gait] || 0.45)) % 1;
     } else {
       horse.gait = 'idle';

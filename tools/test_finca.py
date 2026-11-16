@@ -97,22 +97,22 @@ class FincaTests(unittest.TestCase):
         early = self.act('cosechar', {'plot': cacao[0]}, now=self.now + 10)
         self.assertFalse(early['ok'])
         self.ripe(cacao[0])
-        self.assertEqual(self.state['harvestedKg']['cacao'], 2)
+        self.assertEqual(self.state['harvestedKg']['cacao'], 90)
         self.assertEqual(self.state['accounts'][SECRET]['goods']['cacao_baba'], 1)
         self.assertEqual(self.state['harvestedKg']['cafe'], 0)
         chain = [row for row in self.state['publicEvents'] if row['kind'] == 'cosecha']
         self.assertEqual(chain[0]['prev'], '')
-        self.assertEqual(chain[0]['hash'], finca._harvest_hash('cacao', 2, 2, ''))
+        self.assertEqual(chain[0]['hash'], finca._harvest_hash('cacao', 90, 90, ''))
         self.ripe(cafe[0])
-        self.assertEqual(self.state['harvestedKg']['cafe'], 1)
+        self.assertEqual(self.state['harvestedKg']['cafe'], 94)
         self.assertEqual(self.state['accounts'][SECRET]['goods']['cafe_cereza'], 1)
-        self.assertEqual(self.state['harvestedKg']['cacao'], 2)
+        self.assertEqual(self.state['harvestedKg']['cacao'], 90)
 
     def test_ten_cacao_harvests_make_two_bags_and_kilos_stay(self):
         plots = [row['id'] for row in self.act('ver')['view']['plots'] if row['crop'] == 'cacao']
         for index in range(10):
             self.ripe(plots[index % len(plots)])
-        self.assertEqual(self.state['harvestedKg']['cacao'], 20)
+        self.assertEqual(self.state['harvestedKg']['cacao'], 900)
         self.assertEqual(self.state['accounts'][SECRET]['goods']['cacao_baba'], 10)
         short = self.act('procesar', {'crop': 'cacao'}, now=self.now)
         self.assertTrue(short['ok'], short.get('error'))
@@ -125,9 +125,12 @@ class FincaTests(unittest.TestCase):
         self.assertTrue(done['ok'])
         self.assertEqual(self.state['processedBags']['cacao'], 2)
         self.assertEqual(len(done['view']['bags']), 2)
-        self.assertEqual(self.state['harvestedKg']['cacao'], 20)
+        self.assertEqual(self.state['harvestedKg']['cacao'], 900)
         self.assertEqual(self.state['accounts'][SECRET]['goods'].get('cacao_baba', 0), 0)
         bags = [bag for bag in self.state['bags'].values() if bag['crop'] == 'cacao']
+        self.assertEqual(sum(bag['kg'] for bag in bags), 300)
+        self.assertTrue(all(bag['kg'] == 150 for bag in bags))
+        self.assertEqual(sum(bag['freshKg'] for bag in bags), 900)
         self.assertEqual(len({bag['serial'] for bag in bags}), 2)
         self.assertTrue(all(bag['serial'].startswith('CAC-') for bag in bags))
         harvests = bags[0]['harvests']
@@ -140,7 +143,7 @@ class FincaTests(unittest.TestCase):
         self.assertEqual(again, bags[0]['chain'][0]['hash'])
         self.assertEqual(bags[1]['prev'], bags[0]['chain'][0]['hash'])
         feed = ' '.join(self.state['feed'])
-        self.assertIn('Se procesó 1 bulto de cacao', feed)
+        self.assertIn('Se procesó 1 cajón de cacao: 150 kg secos.', feed)
         self.assertNotIn(SECRET, feed)
 
     def test_sale_store_and_handoff_do_not_change_kilos_or_mint(self):
@@ -235,7 +238,9 @@ class FincaTests(unittest.TestCase):
         self.assertNotIn(SECRET, raw)
         self.assertNotIn('counterparty', raw)
         self.assertNotIn('tesoro_genesis', raw)
-        self.assertEqual(body['finca']['harvestedKg']['cacao'], 2)
+        self.assertEqual(body['finca']['harvestedKg']['cacao'], 90)
+        self.assertEqual(body['finca']['crops']['cafe']['sackKg'], 70)
+        self.assertEqual(body['finca']['crops']['cacao']['sackKg'], 150)
         self.assertEqual(body['finca']['processedBags']['cafe'], 0)
         self.assertEqual(body['foundry']['lingote_oro'], 4)
         self.assertEqual(body['coins'][0]['max'], 21_000_000)
@@ -257,7 +262,7 @@ class FincaTests(unittest.TestCase):
         path = os.path.join(folder, 'finca.json')
         finca.save(path, self.state)
         again = finca.load(path)
-        self.assertEqual(again['harvestedKg']['cacao'], 2)
+        self.assertEqual(again['harvestedKg']['cacao'], 90)
         self.assertNotIn(SECRET, json.dumps(finca.public_payload(again, self.purse, self.config)))
 
     def test_five_phases_keep_the_old_harvest_and_kilos(self):
@@ -282,18 +287,66 @@ class FincaTests(unittest.TestCase):
         planted = {'crop': 'cafe', 'stage': 'planted'}
         finca.migrate_plot(planted, self.now, self.config)
         self.assertEqual(finca.phase_of(planted, self.now, self.config), 'siembra')
+        self.assertEqual(finca.legacy_phase('planted'), 'siembra')
+        self.assertEqual(finca.legacy_phase('grown'), 'cosecha')
+        self.assertEqual(finca.legacy_phase('growing'), 'crecimiento')
+        self.assertEqual(finca.legacy_phase('flowering'), 'floracion')
+        self.assertEqual(finca.legacy_phase('fruiting'), 'fruto')
         self.assertNotEqual(finca.stage_of(planted, self.now, self.config), 'maduro')
         empty = {'crop': 'cafe', 'stage': 'empty'}
         finca.migrate_plot(empty, self.now, self.config)
         self.assertEqual(empty.get('plantedAt', 0), 0)
         view = self.act('ver')['view']
-        self.assertEqual(view['crops']['cafe']['steps'], ['Despulpar', 'Secar', 'Tostar'])
+        self.assertEqual(view['crops']['cafe']['steps'], ['Despulpar', 'Secar', 'Trillar'])
         self.assertEqual(view['crops']['cacao']['eduSteps'][-1], 'Kilos al Libro Mayor')
         self.assertIn('Fermentación', view['crops']['cafe']['eduSteps'])
+        self.assertIn('70 kg', view['crops']['cafe']['note'])
+        self.assertIn('450 kg', view['crops']['cacao']['note'])
+        self.assertIn('32 semanas', view['ripeningNote'])
         kg = self.state['harvestedKg']['cacao']
         self.ripe(plots[0])
-        self.assertEqual(self.state['harvestedKg']['cacao'], kg + 2)
+        self.assertEqual(self.state['harvestedKg']['cacao'], kg + 90)
         self.assertEqual(finca.supply_fingerprint(self.purse.supply()), self.mark)
+
+    def test_real_units_do_not_create_kilos(self):
+        cafe = finca.batch_balance(self.config['crops']['cafe'], self.config)
+        self.assertEqual(cafe['freshKg'], 940)
+        self.assertEqual(cafe['pergaminoKg'], 188)
+        self.assertEqual(cafe['cargas'], 1)
+        self.assertEqual(cafe['cargaRestoKg'], 63)
+        self.assertEqual(cafe['dryKg'], 140)
+        self.assertEqual(cafe['sackKg'], 70)
+        cacao = finca.batch_balance(self.config['crops']['cacao'], self.config)
+        self.assertEqual(cacao['freshKg'], 900)
+        self.assertEqual(cacao['boxes'], 2)
+        self.assertEqual(cacao['dryKg'], 300)
+        self.assertEqual(cacao['sackKg'], 150)
+        self.assertEqual(cacao['freshKg'], cacao['dryKg'] * 3)
+        self.assertEqual(self.config['ripening']['weeksAfterFlower'], 32)
+        self.assertEqual(self.config['ripening']['colorStages'], 8)
+        self.assertEqual(self.config['crops']['cacao']['box']['babaKg'], 450)
+        self.assertEqual(self.config['crops']['cafe']['parchment']['cargaKg'], 125)
+
+    def test_legacy_bag_keeps_its_kilos(self):
+        self.act('ver')
+        self.state['harvestedKg']['cacao'] = 20
+        self.state['harvestedKg']['cafe'] = 4
+        self.state['bags']['CAC-viejo'] = {
+            'serial': 'CAC-viejo', 'crop': 'cacao', 'kg': 50,
+            'owner': SECRET, 'place': 'mochila', 'product': 'Cacao seco',
+        }
+        self.state['accounts'][SECRET]['batches']['cafe'] = {
+            'id': 'lot-viejo', 'crop': 'cafe', 'step': 1, 'settled': True, 'readyAt': 0,
+        }
+        loaded = finca.normalize(self.state)
+        self.assertEqual(loaded['harvestedKg']['cacao'], 20)
+        self.assertEqual(loaded['harvestedKg']['cafe'], 4)
+        self.assertEqual(loaded['bags']['CAC-viejo']['kg'], 50)
+        self.assertEqual(loaded['bags']['CAC-viejo']['massRule'], 'legado')
+        self.assertEqual(loaded['accounts'][SECRET]['batches']['cafe']['sackKg'], 70)
+        self.assertEqual(loaded['accounts'][SECRET]['batches']['cafe']['massRule'], 'legado')
+        before = finca.supply_fingerprint(self.purse.supply())
+        self.assertEqual(finca.supply_fingerprint(self.purse.supply()), before)
 
     def test_guide_uses_short_sentences(self):
         with open(os.path.join(ROOT, 'play', 'instructivo.js'), encoding='utf-8') as handle:
@@ -308,6 +361,73 @@ class FincaTests(unittest.TestCase):
         ):
             self.assertIn(line, guide)
             self.assertIn(line, ayuda)
+        with open(os.path.join(ROOT, 'play', 'finca.js'), encoding='utf-8') as handle:
+            panel = handle.read()
+        self.assertIn('bulto de ${bag.kg || 0} kg', panel)
+        self.assertIn('kg de café cereza', panel)
+        self.assertIn('kg de cacao en baba', panel)
+        self.assertIn('finca-carta', panel)
+        self.assertIn('cereza_madura', panel)
+        modelo = os.path.join(ROOT, 'play', 'finca-modelo.js')
+        with open(modelo, encoding='utf-8') as handle:
+            head = handle.read(40)
+        self.assertFalse(head.lstrip().lower().startswith('<'))
+        self.assertTrue(head.startswith('/*') or head.startswith('//') or head.startswith('(function'))
+        with open(os.path.join(ROOT, 'play', 'finca-textos.json'), encoding='utf-8') as handle:
+            cards = json.load(handle)
+        self.assertEqual(cards['cafe'][3]['etapa'], 'cereza_madura')
+        self.assertEqual(cards['cacao'][-1]['etapa'], 'kilos_libro_mayor')
+        self.assertEqual(self.config['crops']['cafe']['kgPerHarvest'], 94)
+        self.assertEqual(self.config['crops']['cacao']['kgPerHarvest'], 90)
+        self.assertEqual(self.config['crops']['cafe']['bagKg'], 70)
+        self.assertEqual(self.config['crops']['cacao']['bagKg'], 150)
+
+    def test_outdoor_move_keeps_plots_kilos_and_ledger(self):
+        self.act('ver')
+        plot = next(iter(self.state['accounts'][SECRET]['plots'].values()))
+        plot['plantedAt'] = self.now - 100
+        self.state['harvestedKg']['cacao'] = 900
+        kg = self.state['harvestedKg']['cacao']
+        planted = sum(1 for row in self.state['accounts'][SECRET]['plots'].values() if row.get('plantedAt'))
+        self.state['place'] = 'mina'
+        self.state['feed'] = ['Se cosecharon 90 kg de cacao.']
+        loaded = finca.normalize(self.state)
+        self.assertEqual(loaded['place'], 'las_palmas')
+        self.assertEqual(loaded['harvestedKg']['cacao'], kg)
+        self.assertGreater(planted, 0)
+        self.assertEqual(
+            sum(1 for row in loaded['accounts'][SECRET]['plots'].values() if row.get('plantedAt')),
+            planted,
+        )
+        self.assertEqual(loaded['feed'], ['Se cosecharon 90 kg de cacao.'])
+
+    def test_harvest_all_keeps_unripe_plots_and_does_not_mint(self):
+        plots = [row['id'] for row in self.act('ver')['view']['plots'] if row['crop'] == 'cacao']
+        self.act('plantar', {'plot': plots[0]}, now=self.now)
+        self.now += 2 * reloj.REAL_SECONDS_PER_DAY + 5
+        self.act('plantar', {'plot': plots[1]}, now=self.now)
+        before = dict(self.purse.minted)
+        done = self.act('cosechar_todo', now=self.now)
+        self.assertTrue(done['ok'], done.get('error'))
+        self.assertEqual(self.state['harvestedKg']['cacao'], 90)
+        self.assertEqual(self.state['accounts'][SECRET]['goods']['cacao_baba'], 1)
+        self.assertEqual(self.state['harvestedKg']['cafe'], 0)
+        self.assertEqual(self.state['accounts'][SECRET]['plots'][plots[1]].get('plantedAt'), self.now)
+        self.assertEqual(self.purse.minted, before)
+        again = self.act('cosechar_todo', now=self.now)
+        self.assertFalse(again['ok'])
+        self.assertEqual(self.state['harvestedKg']['cacao'], 90)
+        with open(os.path.join(ROOT, 'play', 'mine3d.js'), encoding='utf-8') as handle:
+            mine = handle.read()
+        self.assertNotIn('attachFinca', mine)
+        with open(os.path.join(ROOT, 'play', 'unified3d.js'), encoding='utf-8') as handle:
+            world = handle.read()
+        self.assertIn('editorApi', world)
+        self.assertIn('_elevOverlay', world)
+        self.assertIn('freeFlyAt', world)
+        self.assertIn('onEditPointer', world)
+        self.assertIn("id==='las_palmas'", world)
+        self.assertNotIn('underground.finca', world)
 
 
 if __name__ == '__main__':

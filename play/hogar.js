@@ -17,23 +17,86 @@
     return (window.SaimonSession && window.SaimonSession.municipio) || '';
   }
 
+  function thumb(place) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 72;
+    canvas.height = 48;
+    canvas.className = 'lugar-mini';
+    const pen = canvas.getContext('2d');
+    if (!pen) return canvas;
+    pen.fillStyle = '#8ec4ea';
+    pen.fillRect(0, 0, 72, 20);
+    pen.fillStyle = place.id === 'las_palmas' ? '#2f6a34' : '#7eaa55';
+    pen.fillRect(0, 20, 72, 28);
+    pen.fillStyle = '#6b3e24';
+    if (place.kind === 'poi' && place.id === 'las_palmas') {
+      pen.fillRect(34, 18, 4, 22);
+      pen.beginPath();
+      pen.arc(36, 18, 10, 0, Math.PI * 2);
+      pen.fill();
+    } else {
+      pen.beginPath();
+      pen.moveTo(18, 30);
+      pen.lineTo(36, 16);
+      pen.lineTo(54, 30);
+      pen.fill();
+      pen.fillStyle = '#f7f1e4';
+      pen.fillRect(24, 30, 24, 14);
+    }
+    return canvas;
+  }
+
   let onChoose = null;
-  function openPicker(choose) {
+  function mountMenu() {
+    const menu = document.getElementById('hud-gear-menu');
+    if (!menu || document.getElementById('cajon-lugar')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'cajon-lugar';
+    button.textContent = 'Dónde empezar';
+    button.onclick = () => {
+      menu.hidden = true;
+      openPicker((id, remember) => {
+        if (window.LiveInk && LiveInk.elegirLugar) LiveInk.elegirLugar(id, remember);
+      }, true);
+    };
+    menu.append(button);
+  }
+  function openPicker(choose, inGame) {
     const root = document.getElementById('hogar');
     const list = document.getElementById('hogar-lista');
     if (!root || !list) return;
     onChoose = choose;
+    const places = window.Lugares ? Lugares.catalog() : ORDEN.map(id => byId[id]).filter(Boolean);
+    const fav = (window.SaimonSession && window.SaimonSession.favoritePlace) || '';
     list.replaceChildren();
-    for (const id of ORDEN) {
-      const item = byId[id];
+    for (const item of places) {
       if (!item) continue;
+      const row = document.createElement('div');
+      row.className = 'lugar-fila';
       const b = document.createElement('button');
       b.type = 'button';
-      b.dataset.municipio = id;
-      b.innerHTML = HOUSE + '<span><b>' + item.name + '</b><small>Tu casa</small></span>';
-      b.onclick = () => { if (onChoose) onChoose(id); };
-      list.append(b);
+      b.dataset.municipio = item.id;
+      b.append(thumb(item));
+      const label = document.createElement('span');
+      const star = item.id === fav ? '⭐ ' : '';
+      label.innerHTML = '<b>' + star + item.name + '</b><small>' + (inGame ? 'Esta vez' : 'Empezar aquí') + '</small>';
+      b.append(label);
+      b.onclick = () => { if (onChoose) onChoose(item.id, !inGame); };
+      row.append(b);
+      if (inGame) {
+        const mark = document.createElement('button');
+        mark.type = 'button';
+        mark.className = 'lugar-estrella';
+        mark.textContent = 'Favorito';
+        mark.setAttribute('aria-label', 'Marcar ' + item.name + ' como favorito');
+        mark.onclick = () => { if (onChoose) onChoose(item.id, true); };
+        row.append(mark);
+      }
+      list.append(row);
     }
+    const close = document.getElementById('hogar-cerrar');
+    if (close) close.hidden = !inGame;
     root.hidden = false;
     const first = list.querySelector('button');
     if (first) first.focus();
@@ -80,5 +143,10 @@
     return result.user;
   }
 
-  window.Hogar = { ORDEN, entryMode, casa, stand, current, openPicker, closePicker, readLocal, migrate };
+  const closer = document.getElementById('hogar-cerrar');
+  if (closer) closer.onclick = () => closePicker();
+  mountMenu();
+  new MutationObserver(mountMenu).observe(document.body, { childList: true, subtree: true });
+
+  window.Hogar = { ORDEN, entryMode, casa, stand, current, openPicker, closePicker, readLocal, migrate, mountMenu };
 })();

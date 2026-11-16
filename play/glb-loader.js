@@ -33,45 +33,36 @@ export class GLTFLoader {
     const views = json.bufferViews || [];
     function read(index) {
       const a = acc[index], bv = views[a.bufferView];
-      const n = TYPE_N[a.type];
+      const n = TYPE_N[a.type], size = COMP[a.componentType];
       const start = (bv.byteOffset || 0) + (a.byteOffset || 0);
       const count = a.count * n;
-      const off = bin.byteOffset + start;
-      let array;
-      // 5126: COLOR_0 en float (la patineta). 5121: bytes normalizados (la banca).
-      if (a.componentType === 5126) array = new Float32Array(bin.buffer, off, count);
-      else if (a.componentType === 5123) array = new Uint16Array(bin.buffer, off, count);
-      else if (a.componentType === 5125) array = new Uint32Array(bin.buffer, off, count);
-      else if (a.componentType === 5121) array = new Uint8Array(bin.buffer, off, count);
-      else throw new Error('componente GLB no soportado');
-      return new T.BufferAttribute(array, n, !!a.normalized);
+      if (a.componentType === 5126) return new Float32Array(bin.buffer, bin.byteOffset + start, count);
+      if (a.componentType === 5123) return new Uint16Array(bin.buffer, bin.byteOffset + start, count);
+      if (a.componentType === 5125) return new Uint32Array(bin.buffer, bin.byteOffset + start, count);
+      if (a.componentType === 5121) return new Uint8Array(bin.buffer, bin.byteOffset + start, count);
+      throw new Error('componente GLB no soportado');
     }
     const scene = new T.Group();
     const pending = [];
     for (const node of json.nodes || []) {
       if (node.mesh == null) continue;
-      for (const prim of json.meshes[node.mesh].primitives || []) {
+      const prim = json.meshes[node.mesh].primitives[0];
       const geo = new T.BufferGeometry();
-      geo.setAttribute('position', read(prim.attributes.POSITION));
-      if (prim.attributes.NORMAL != null) geo.setAttribute('normal', read(prim.attributes.NORMAL));
+      const pos = read(prim.attributes.POSITION);
+      geo.setAttribute('position', new T.BufferAttribute(pos, 3));
+      if (prim.attributes.NORMAL != null) geo.setAttribute('normal', new T.BufferAttribute(read(prim.attributes.NORMAL), 3));
       else geo.computeVertexNormals();
-      if (prim.attributes.COLOR_0 != null) geo.setAttribute('color', read(prim.attributes.COLOR_0));
-      if (prim.attributes.TEXCOORD_0 != null) geo.setAttribute('uv', read(prim.attributes.TEXCOORD_0));
-      if (prim.indices != null) geo.setIndex(read(prim.indices));
-      const pbr = (json.materials && json.materials[prim.material || 0] && json.materials[prim.material || 0].pbrMetallicRoughness) || {};
-      const factor = pbr.baseColorFactor || [0.84, 0.83, 0.8, 1];
-      const mat = new T.MeshLambertMaterial({
-        color: new T.Color(factor[0], factor[1], factor[2]),
-        vertexColors: prim.attributes.COLOR_0 != null,
-        side: T.DoubleSide,
-      });
-      const mesh = new T.Mesh(geo, mat);
-      if (node.matrix) mesh.applyMatrix4(new T.Matrix4().fromArray(node.matrix));
-      else {
-        if (node.translation) mesh.position.fromArray(node.translation);
-        if (node.rotation) mesh.quaternion.fromArray(node.rotation);
-        if (node.scale) mesh.scale.fromArray(node.scale);
+      if (prim.attributes.TEXCOORD_0 != null) geo.setAttribute('uv', new T.BufferAttribute(read(prim.attributes.TEXCOORD_0), 2));
+      if (prim.indices != null) geo.setIndex(new T.BufferAttribute(read(prim.indices), 1));
+      const colorIndex = prim.attributes.COLOR_0;
+      if (colorIndex != null) {
+        const colorAcc = acc[colorIndex];
+        geo.setAttribute('color', new T.BufferAttribute(read(colorIndex), TYPE_N[colorAcc.type] || 3, !!colorAcc.normalized));
       }
+      const mat = colorIndex != null
+        ? new T.MeshLambertMaterial({ vertexColors: true, flatShading: true })
+        : new T.MeshStandardMaterial({ color: '#d5d6d2', metalness: 0.25, roughness: 0.55, side: T.DoubleSide });
+      const mesh = new T.Mesh(geo, mat);
       mesh.castShadow = mesh.receiveShadow = true;
       const image = json.images && json.images[0];
       const texView = image && views[image.bufferView];
@@ -96,7 +87,6 @@ export class GLTFLoader {
         }));
       }
       scene.add(mesh);
-      }
     }
     return Promise.all(pending).then(() => ({ scene }));
   }

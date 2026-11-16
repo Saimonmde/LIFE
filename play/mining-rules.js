@@ -22,10 +22,7 @@
   let next=remove(inv,id,cost);
   if(!next)return {error:'Necesitas '+cost+' unidades de '+r.name.toLowerCase()+'.'};
   if(mode==='ingot'){
-   const qty=(r.ingots||1)*batches;
-   next=add(next,items,'lingote_'+r.metal,qty,slots);
-   if(!next)return {error:'No hay espacio para los lingotes. Libera una casilla.'};
-   return {inv:next,coins:0,item:'lingote_'+r.metal,qty:qty,cost:cost,xp:r.xp*batches};
+   return {error:'Los lingotes se funden en el Banco Central.'};
   }
   if(mode==='coin'){
    const qty=r.coinQty*batches;

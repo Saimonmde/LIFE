@@ -74,3 +74,25 @@ services:
         sync: false
       - key: SMTP_FROM
         sync: false
+      - key: LIFE_ENV
+        value: public
+      - key: ADMIN_USERS
+        sync: false
+# Servicio aparte, NO activo: no se despliega hasta pegarlo como segundo servicio.
+# Sirve la misma rama con LIFE_ENV=preview para que las muestras no toquen el mundo público.
+#   - type: web
+#     name: lifein-preview
+#     runtime: python
+#     plan: free
+#     branch: main
+#     autoDeploy: true
+#     buildCommand: pip install -r requirements.txt && python3 tools/update_licensing.py --build-source-only
+#     startCommand: python3 server.py --host 0.0.0.0
+#     healthCheckPath: /healthz
+#     envVars:
+#       - key: LIFE_ENV
+#         value: preview
+#       - key: DATABASE_URL
+#         sync: false
+#       - key: ADMIN_USERS
+#         sync: false

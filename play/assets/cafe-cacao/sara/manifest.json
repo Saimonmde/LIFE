@@ -1,0 +1,392 @@
+{
+  "id": "saimon-city-cafe-cacao-3d",
+  "version": 1,
+  "units": "meters",
+  "up": "Y",
+  "scaleDefault": 1,
+  "pathBase": "relative to this file (workspace/sara-saimon/3d/)",
+  "notes": {
+    "serverStatesToday": [
+      "empty",
+      "planted",
+      "grown"
+    ],
+    "empty": "No GLB in this pack; keep the game's existing empty plot.",
+    "lod": "Use near under ~18 m, far beyond. Same origin and scale.",
+    "stableNames": true
+  },
+  "crops": {
+    "cafe": {
+      "siembra": {
+        "near": "plantas/cafe/cafe_siembra_near.glb",
+        "far": "plantas/cafe/cafe_siembra_far.glb",
+        "fallback2d": "../sprites/plot_cafe_siembra.png",
+        "fallback2dAll": [
+          "../sprites/plot_cafe_siembra.png",
+          "iconos-etapas/cafe_01_siembra.png"
+        ],
+        "icon": "iconos-etapas/cafe_01_siembra.png",
+        "triangles": {
+          "near": 272,
+          "far": 272
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": "planted",
+        "suggestedState": "planted"
+      },
+      "crecimiento": {
+        "near": "plantas/cafe/cafe_crecimiento_near.glb",
+        "far": "plantas/cafe/cafe_crecimiento_far.glb",
+        "fallback2d": "../sprites/plot_cafe_crecimiento.png",
+        "fallback2dAll": [
+          "../sprites/plot_cafe_crecimiento.png",
+          "iconos-etapas/cafe_02_crecimiento.png"
+        ],
+        "icon": "iconos-etapas/cafe_02_crecimiento.png",
+        "triangles": {
+          "near": 460,
+          "far": 276
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": null,
+        "suggestedState": "growing"
+      },
+      "floracion": {
+        "near": "plantas/cafe/cafe_floracion_near.glb",
+        "far": "plantas/cafe/cafe_floracion_far.glb",
+        "fallback2d": "iconos-etapas/cafe_03_floracion.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_03_floracion.png"
+        ],
+        "icon": "iconos-etapas/cafe_03_floracion.png",
+        "triangles": {
+          "near": 1092,
+          "far": 336
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": null,
+        "suggestedState": "flowering"
+      },
+      "fruto": {
+        "near": "plantas/cafe/cafe_fruto_near.glb",
+        "far": "plantas/cafe/cafe_fruto_far.glb",
+        "fallback2d": "iconos-etapas/cafe_04_cereza_madura.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_04_cereza_madura.png"
+        ],
+        "icon": "iconos-etapas/cafe_04_cereza_madura.png",
+        "triangles": {
+          "near": 1296,
+          "far": 388
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": null,
+        "suggestedState": "fruiting"
+      },
+      "cosecha": {
+        "near": "plantas/cafe/cafe_cosecha_near.glb",
+        "far": "plantas/cafe/cafe_cosecha_far.glb",
+        "fallback2d": "../sprites/plot_cafe_cosecha.png",
+        "fallback2dAll": [
+          "../sprites/plot_cafe_cosecha.png",
+          "iconos-etapas/cafe_05_cosecha.png"
+        ],
+        "icon": "iconos-etapas/cafe_05_cosecha.png",
+        "triangles": {
+          "near": 1296,
+          "far": 404
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": "grown",
+        "suggestedState": "grown"
+      }
+    },
+    "cacao": {
+      "siembra": {
+        "near": "plantas/cacao/cacao_siembra_near.glb",
+        "far": "plantas/cacao/cacao_siembra_far.glb",
+        "fallback2d": "../sprites/plot_cacao_siembra.png",
+        "fallback2dAll": [
+          "../sprites/plot_cacao_siembra.png",
+          "iconos-etapas/cacao_01_siembra.png"
+        ],
+        "icon": "iconos-etapas/cacao_01_siembra.png",
+        "triangles": {
+          "near": 200,
+          "far": 208
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": "planted",
+        "suggestedState": "planted"
+      },
+      "crecimiento": {
+        "near": "plantas/cacao/cacao_crecimiento_near.glb",
+        "far": "plantas/cacao/cacao_crecimiento_far.glb",
+        "fallback2d": "../sprites/plot_cacao_crecimiento.png",
+        "fallback2dAll": [
+          "../sprites/plot_cacao_crecimiento.png",
+          "iconos-etapas/cacao_02_crecimiento.png"
+        ],
+        "icon": "iconos-etapas/cacao_02_crecimiento.png",
+        "triangles": {
+          "near": 320,
+          "far": 296
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": null,
+        "suggestedState": "growing"
+      },
+      "floracion": {
+        "near": "plantas/cacao/cacao_floracion_near.glb",
+        "far": "plantas/cacao/cacao_floracion_far.glb",
+        "fallback2d": "iconos-etapas/cacao_03_floracion.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_03_floracion.png"
+        ],
+        "icon": "iconos-etapas/cacao_03_floracion.png",
+        "triangles": {
+          "near": 480,
+          "far": 348
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": null,
+        "suggestedState": "flowering"
+      },
+      "fruto": {
+        "near": "plantas/cacao/cacao_fruto_near.glb",
+        "far": "plantas/cacao/cacao_fruto_far.glb",
+        "fallback2d": "iconos-etapas/cacao_04_mazorca.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_04_mazorca.png"
+        ],
+        "icon": "iconos-etapas/cacao_04_mazorca.png",
+        "triangles": {
+          "near": 616,
+          "far": 428
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": null,
+        "suggestedState": "fruiting"
+      },
+      "cosecha": {
+        "near": "plantas/cacao/cacao_cosecha_near.glb",
+        "far": "plantas/cacao/cacao_cosecha_far.glb",
+        "fallback2d": "../sprites/plot_cacao_cosecha.png",
+        "fallback2dAll": [
+          "../sprites/plot_cacao_cosecha.png",
+          "iconos-etapas/cacao_05_cosecha.png"
+        ],
+        "icon": "iconos-etapas/cacao_05_cosecha.png",
+        "triangles": {
+          "near": 664,
+          "far": 428
+        },
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "serverState": "grown",
+        "suggestedState": "grown"
+      }
+    }
+  },
+  "stations": {
+    "cafe": {
+      "despulpado": {
+        "glb": "talleres/cafe/cafe_estacion_01_despulpado.glb",
+        "fallback2d": "iconos-etapas/cafe_06_despulpado.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_06_despulpado.png"
+        ],
+        "icon": "iconos-etapas/cafe_06_despulpado.png",
+        "triangles": 280,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 1,
+        "label": "Despulpado"
+      },
+      "fermentado": {
+        "glb": "talleres/cafe/cafe_estacion_02_fermentado.glb",
+        "fallback2d": "iconos-etapas/cafe_07_fermentacion.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_07_fermentacion.png"
+        ],
+        "icon": "iconos-etapas/cafe_07_fermentacion.png",
+        "triangles": 300,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 2,
+        "label": "Fermentado"
+      },
+      "lavado": {
+        "glb": "talleres/cafe/cafe_estacion_03_lavado.glb",
+        "fallback2d": "iconos-etapas/cafe_08_lavado.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_08_lavado.png"
+        ],
+        "icon": "iconos-etapas/cafe_08_lavado.png",
+        "triangles": 188,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 3,
+        "label": "Lavado"
+      },
+      "secado": {
+        "glb": "talleres/cafe/cafe_estacion_04_secado.glb",
+        "fallback2d": "iconos-etapas/cafe_09_secado.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_09_secado.png"
+        ],
+        "icon": "iconos-etapas/cafe_09_secado.png",
+        "triangles": 852,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 4,
+        "label": "Secado en marquesina"
+      },
+      "trilla": {
+        "glb": "talleres/cafe/cafe_estacion_05_trilla.glb",
+        "fallback2d": "iconos-etapas/cafe_10_trilla.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_10_trilla.png"
+        ],
+        "icon": "iconos-etapas/cafe_10_trilla.png",
+        "triangles": 308,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 5,
+        "label": "Trilla"
+      },
+      "bultos": {
+        "glb": "talleres/cafe/cafe_estacion_06_bultos.glb",
+        "fallback2d": "iconos-etapas/cafe_11_bulto.png",
+        "fallback2dAll": [
+          "iconos-etapas/cafe_11_bulto.png",
+          "../cultivos/bulto_cafe.png"
+        ],
+        "icon": "iconos-etapas/cafe_11_bulto.png",
+        "triangles": 352,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 6,
+        "label": "Bultos"
+      }
+    },
+    "cacao": {
+      "quiebre": {
+        "glb": "talleres/cacao/cacao_estacion_01_quiebre.glb",
+        "fallback2d": "iconos-etapas/cacao_06_quiebre.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_06_quiebre.png"
+        ],
+        "icon": "iconos-etapas/cacao_06_quiebre.png",
+        "triangles": 200,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 1,
+        "label": "Quiebre de mazorca"
+      },
+      "fermentacion_cajones": {
+        "glb": "talleres/cacao/cacao_estacion_02_fermentacion_cajones.glb",
+        "fallback2d": "iconos-etapas/cacao_07_fermentacion_cajones.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_07_fermentacion_cajones.png"
+        ],
+        "icon": "iconos-etapas/cacao_07_fermentacion_cajones.png",
+        "triangles": 264,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 2,
+        "label": "Fermentación en cajones"
+      },
+      "secado": {
+        "glb": "talleres/cacao/cacao_estacion_03_secado.glb",
+        "fallback2d": "iconos-etapas/cacao_08_secado.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_08_secado.png"
+        ],
+        "icon": "iconos-etapas/cacao_08_secado.png",
+        "triangles": 648,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 3,
+        "label": "Secado"
+      },
+      "seleccion": {
+        "glb": "talleres/cacao/cacao_estacion_04_seleccion.glb",
+        "fallback2d": "iconos-etapas/cacao_09_seleccion.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_09_seleccion.png"
+        ],
+        "icon": "iconos-etapas/cacao_09_seleccion.png",
+        "triangles": 228,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 4,
+        "label": "Selección"
+      },
+      "kilos_registrados": {
+        "glb": "talleres/cacao/cacao_estacion_05_kilos_registrados.glb",
+        "fallback2d": "iconos-etapas/cacao_10_kilos_registrados.png",
+        "fallback2dAll": [
+          "iconos-etapas/cacao_10_kilos_registrados.png"
+        ],
+        "icon": "iconos-etapas/cacao_10_kilos_registrados.png",
+        "triangles": 216,
+        "scale": 1,
+        "units": "meters",
+        "up": "Y",
+        "step": 5,
+        "label": "Kilos registrados"
+      }
+    }
+  },
+  "layouts": {
+    "cafe": {
+      "glb": "talleres/cafe/cafe_layout.glb",
+      "fallback2d": "../talleres/taller_cafe.png",
+      "triangles": 4748,
+      "scale": 1,
+      "units": "meters",
+      "up": "Y"
+    },
+    "cacao": {
+      "glb": "talleres/cacao/cacao_layout.glb",
+      "fallback2d": "../talleres/taller_cacao.png",
+      "triangles": 3752,
+      "scale": 1,
+      "units": "meters",
+      "up": "Y"
+    }
+  },
+  "icons": {
+    "planta_procesamiento": "iconos-etapas/planta_procesamiento.png"
+  }
+}
