@@ -2,17 +2,21 @@
 // Pista de la 4 Sur: un solo mesh, colores de vértice, sin fotos.
 import * as T from './three.module.js';
 
-// Paleta de Sara: concreto cálido, coping frío y un solo acento. Sin fotos.
-const TOP = [0.906, 0.827, 0.737];
-const SIDE = [0.769, 0.659, 0.557];
-const UNDER = [0.478, 0.392, 0.322];
-const STRIPE = [0.243, 0.204, 0.173];
-const SLAB = [0.851, 0.769, 0.659];
-const SLAB_DARK = [0.659, 0.596, 0.533];
-const COPING = [0.894, 0.918, 0.933];
-const COPING_MID = [0.659, 0.694, 0.722];
-const MINT = [0.490, 0.871, 0.784];
-const GOLD = [0.886, 0.698, 0.235];
+// Concreto cálido con más contraste, coping de metal y un verde propio. Sin fotos del escaneo.
+const TOP = [0.96, 0.86, 0.72];
+const SIDE = [0.40, 0.30, 0.22];
+const UNDER = [0.18, 0.13, 0.10];
+const SHADOW = [0.12, 0.09, 0.07];
+const STRIPE = [0.16, 0.12, 0.09];
+const SLAB = [0.78, 0.68, 0.56];
+const SLAB_DARK = [0.48, 0.40, 0.32];
+const WALL = [0.28, 0.21, 0.16];
+const MARK = [0.93, 0.70, 0.18];
+const COPING = [0.94, 0.96, 0.98];
+const COPING_MID = [0.38, 0.42, 0.46];
+const GREEN = [0.10, 0.46, 0.20];
+const GREEN_HI = [0.62, 0.90, 0.38];
+const GREEN_DARK = [0.04, 0.20, 0.08];
 
 function tri(pos, col, a, b, c, color) {
   pos.push(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]);
@@ -68,22 +72,63 @@ function quarter(pos, col, ramp) {
   }
 }
 
+function shadow(pos, col, x0, x1, z0, z1) {
+  quad(pos, col, [x0, 0.085, z1], [x1, 0.085, z1], [x1, 0.085, z0], [x0, 0.085, z0], SHADOW);
+}
+function yawBox(pos, col, x0, x1, y0, y1, z0, z1, top, side, yaw, at) {
+  const p = (x, y, z) => spin([x, y, z], yaw || 0, at);
+  quad(pos, col, p(x0, y1, z1), p(x1, y1, z1), p(x1, y1, z0), p(x0, y1, z0), top);
+  quad(pos, col, p(x0, y0, z0), p(x1, y0, z0), p(x1, y0, z1), p(x0, y0, z1), side);
+  quad(pos, col, p(x0, y0, z1), p(x0, y1, z1), p(x0, y1, z0), p(x0, y0, z0), side);
+  quad(pos, col, p(x1, y0, z0), p(x1, y1, z0), p(x1, y1, z1), p(x1, y0, z1), side);
+  quad(pos, col, p(x0, y0, z0), p(x0, y1, z0), p(x1, y1, z0), p(x1, y0, z0), side);
+  quad(pos, col, p(x0, y0, z1), p(x1, y0, z1), p(x1, y1, z1), p(x0, y1, z1), side);
+}
 function funbox(pos, col, ramp) {
   const x0 = ramp.x - ramp.w / 2, x1 = ramp.x + ramp.w / 2;
   const z0 = ramp.z - ramp.d / 2, z1 = ramp.z + ramp.d / 2;
   const top = 0.08 + ramp.h;
+  shadow(pos, col, x0 - 0.18, x1 + 0.18, z0 - 0.18, z1 + 0.18);
+  if (ramp.wall === '-z') {
+    const lip = Math.min(1.15, ramp.d * 0.26);
+    const zk = z1 - lip;
+    box(pos, col, x0, x1, 0.08, top, z0, zk, TOP, SIDE);
+    quad(pos, col, [x0, top, zk], [x1, top, zk], [x1, 0.08, z1], [x0, 0.08, z1], TOP);
+    tri(pos, col, [x0, top, zk], [x0, 0.08, zk], [x0, 0.08, z1], UNDER);
+    tri(pos, col, [x1, 0.08, zk], [x1, top, zk], [x1, 0.08, z1], UNDER);
+    const mid = (z0 + zk) / 2;
+    quad(pos, col, [x0 + 0.35, 0.22, z0 - 0.01], [x1 - 0.35, 0.22, z0 - 0.01], [x1 - 0.35, top - 0.12, z0 - 0.01], [x0 + 0.35, top - 0.12, z0 - 0.01], WALL);
+    quad(pos, col, [ramp.x - 0.55, 0.34, z0 - 0.02], [ramp.x + 0.55, 0.34, z0 - 0.02], [ramp.x + 0.16, top - 0.22, z0 - 0.02], [ramp.x - 0.16, top - 0.22, z0 - 0.02], MARK);
+    quad(pos, col, [x0 + 0.2, top + 0.012, mid - 0.18], [x1 - 0.2, top + 0.012, mid - 0.18], [x1 - 0.2, top + 0.012, mid + 0.18], [x0 + 0.2, top + 0.012, mid + 0.18], STRIPE);
+    return;
+  }
+  if (ramp.coping === 'long') {
+    const nose = Math.min(0.7, ramp.w * 0.08);
+    box(pos, col, x0 + nose, x1 - nose, 0.08, top, z0, z1, TOP, SIDE);
+    quad(pos, col, [x0, 0.08, z0], [x0 + nose, top, z0], [x0 + nose, top, z1], [x0, 0.08, z1], SIDE);
+    quad(pos, col, [x1 - nose, top, z0], [x1, 0.08, z0], [x1, 0.08, z1], [x1 - nose, top, z1], SIDE);
+    const railY = top + 0.02, thick = 0.07;
+    box(pos, col, x0 + nose, x1 - nose, railY, railY + thick, z0 - 0.02, z0 + 0.08, COPING, COPING_MID);
+    box(pos, col, x0 + nose, x1 - nose, railY, railY + thick, z1 - 0.08, z1 + 0.02, COPING, COPING_MID);
+    return;
+  }
   box(pos, col, x0 + 0.7, x1 - 0.7, 0.08, top, z0, z1, TOP, SIDE);
   quad(pos, col, [x0, 0.08, z0], [x0 + 0.7, top, z0], [x0 + 0.7, top, z1], [x0, 0.08, z1], SIDE);
   quad(pos, col, [x1 - 0.7, top, z0], [x1, 0.08, z0], [x1, 0.08, z1], [x1 - 0.7, top, z1], SIDE);
-  quad(pos, col, [ramp.x - 0.35, top + 0.01, ramp.z - 0.28], [ramp.x + 0.35, top + 0.01, ramp.z - 0.28], [ramp.x + 0.35, top + 0.01, ramp.z + 0.28], [ramp.x - 0.35, top + 0.01, ramp.z + 0.28], MINT);
-  quad(pos, col, [ramp.x - 0.16, top + 0.02, ramp.z - 0.16], [ramp.x + 0.16, top + 0.02, ramp.z - 0.16], [ramp.x + 0.16, top + 0.02, ramp.z + 0.16], [ramp.x - 0.16, top + 0.02, ramp.z + 0.16], GOLD);
 }
 
 function rail(pos, col, ramp) {
+  const green = ramp.color === 'green';
+  const topC = green ? GREEN_HI : COPING;
+  const sideC = green ? GREEN : COPING_MID;
+  const postC = green ? GREEN_DARK : UNDER;
   const y = 0.08 + ramp.h, half = ramp.length / 2;
-  box(pos, col, ramp.x - half, ramp.x + half, y, y + 0.06, ramp.z - 0.04, ramp.z + 0.04, COPING, COPING_MID);
-  for (const x of [ramp.x - half + 0.3, ramp.x + half - 0.3]) {
-    box(pos, col, x - 0.04, x + 0.04, 0.08, y, ramp.z - 0.04, ramp.z + 0.04, COPING_MID, UNDER);
+  const yaw = ramp.yaw || 0;
+  const at = [ramp.x, 0, ramp.z];
+  shadow(pos, col, ramp.x - half - 0.12, ramp.x + half + 0.12, ramp.z - 0.16, ramp.z + 0.16);
+  yawBox(pos, col, ramp.x - half, ramp.x + half, y, y + 0.07, ramp.z - 0.045, ramp.z + 0.045, topC, sideC, yaw, at);
+  for (const x of [ramp.x - half + 0.22, ramp.x + half - 0.22]) {
+    yawBox(pos, col, x - 0.045, x + 0.045, 0.08, y, ramp.z - 0.04, ramp.z + 0.04, sideC, postC, yaw, at);
   }
 }
 
