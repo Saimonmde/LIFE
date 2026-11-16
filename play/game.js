@@ -1290,7 +1290,11 @@ setInterval(() => {
   if (S.net.seen && performance.now() - S.net.seen > 12000) { try { ws.close(); } catch (e) {} return; }
   ws.send(JSON.stringify({ t: 'ping', c: performance.now() }));
 }, 3000);
-addEventListener('pointerdown', () => { S.lastInput = now(); }, true);
+addEventListener('pointerdown', (e) => {
+  S.lastInput = now();
+  const typingNow = document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+  if (typingNow && !(e.target && e.target.closest && e.target.closest('input,textarea,select,label'))) document.activeElement.blur();
+}, true);
 addEventListener('keydown', () => { S.lastInput = now(); }, true);
 setInterval(() => {
   if (!started || !S.net.ok) return;
@@ -2336,7 +2340,8 @@ function drawCityMap() {
 let lastUi = 0;
 function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
-  update(dt); drawMinimap(arrowTarget());
+  try { update(dt); } catch (err) { /* un fallo del caballo no puede congelar el paso */ }
+  drawMinimap(arrowTarget());
   if (ts - lastUi > 500) { lastUi = ts; applyCircadian(true); renderNearby(); renderProfile(); if (S.chat.tab === 'proximidad') renderChatNote(); }
   requestAnimationFrame(loop);
 }
@@ -2383,7 +2388,7 @@ function horseContext(){
  if(window.Casa){avoid.add(Casa.PARK_DOOR.x+','+Casa.PARK_DOOR.y);avoid.add(Casa.PARK_STAND.x+','+Casa.PARK_STAND.y);}
  const city=cityMap||W;
  return {S:S,W:W,seconds:now()/1000,houses:(window.HOGARES&&HOGARES.casas)||[],avoid:avoid,
-  open(x,y){if(x<0||y<0||x>=city.width||y>=city.height||!city.collision[y]||city.collision[y][x]!==0)return false;const kind=city.tiles[city.ground[y][x]]&&city.tiles[city.ground[y][x]].kind;return kind!=='water'&&kind!=='creek';},
+  open(x,y){if(x<0||y<0||x>=city.width||y>=city.height||!city.collision[y]||city.collision[y][x]!==0)return false;const tiles=city.tiles||(window.EL_JARDIN&&EL_JARDIN.tiles);const row=city.ground&&city.ground[y];if(!tiles||!row)return true;const kind=tiles[row[x]]&&tiles[row[x]].kind;return kind!=='water'&&kind!=='creek';},
   route(x,y,tx,ty){if((W.mapId||'city')!=='city')return null;return bfs(x,y,(a,b)=>a===tx&&b===ty);}};
 }
 function ensurePersonalHorse(){
