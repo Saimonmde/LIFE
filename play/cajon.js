@@ -63,8 +63,8 @@
     const money = balances();
     const line = $('#hud-saldos');
     if (line) {
-      line.textContent = `Simoncoin ${money.simoncoin} SMC · Simonplata ${money.simonplata} SMP · Simonchis ${money.simonchis}`;
-      line.title = [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+      line.textContent = 'Tuyo: ' + [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+      line.title = line.textContent;
     }
     const box = $('#cajon-monedas');
     if (!box) return;
@@ -74,7 +74,8 @@
       p.className = 'cajon-moneda';
       const minted = grupo(row.minted);
       const max = grupo(row.max);
-      p.innerHTML = `<span><b>${row.name}</b><br>Tuyo: ${money[row.id] || '0'}</span><span>Acuñadas ${minted}<br>de ${max}</span>`;
+      const exact = { simoncoin: money.exactSimoncoin, simonplata: money.exactSimonplata, simonchis: money.exactSimonchis };
+      p.innerHTML = `<span><b>${row.name}</b><br>Tuyo: ${exact[row.id] || money[row.id] || '0'}</span><span>Acuñadas ${minted}<br>de ${max}</span>`;
       box.appendChild(p);
     }
   }

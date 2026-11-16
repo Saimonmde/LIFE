@@ -668,7 +668,10 @@ body.pantalla-limpia #hud-recursos > #sai-chip { display: flex !important; align
 body.pantalla-limpia #inventario,
 body.pantalla-limpia #hotbar,
 body.pantalla-limpia #w-inv,
-body.pantalla-limpia #plata-chip { display: none !important; }
+body.pantalla-limpia #plata-chip,
+body.pantalla-limpia #chis-chip { display: none !important; }
+#hud-recursos img.cobre-coin { width: 22px; height: 22px; }
+#chis-chip { color: #e7b48a; }
 @media (max-width: 600px) {
   #inventario .slot { border-radius: 12px; }
   .forge-outputs img { width: 56px; height: 56px; }

@@ -298,6 +298,12 @@ function paintHud() {
   const saldoPanel = $('#plata-saldo-panel');
   if (saldo) { saldo.textContent = plataText; saldo.title = formatPlataPair(plata); }
   if (saldoPanel) { saldoPanel.textContent = plataText; saldoPanel.title = formatPlataPair(plata); }
+  const chis = (api.S.ledger && api.S.ledger.balances && api.S.ledger.balances.simonchis) || 0;
+  const chisEl = $('#chis-saldo');
+  if (chisEl) {
+    chisEl.textContent = Math.trunc(Number(chis) || 0).toLocaleString('es-CO') + ' Simonchis';
+    chisEl.title = chisEl.textContent;
+  }
   const pchip = $('#plata-chip');
   if (pchip) {
     const view = api.S.plata;

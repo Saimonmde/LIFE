@@ -32,8 +32,9 @@ No hace falta otro módulo de intercambio. Se usa este.
        {t:'trade_cancel', id}
 
    Respuestas: ``trade_state``, ``trade_error``, ``trade_end``.
-   Hace falta billetera desbloqueada, las dos en la ciudad, a 15 casillas
-   (30 m) o menos, una sola sesión por persona, 180 s de inactividad.
+   Hace falta billetera desbloqueada, las dos en la ciudad o las dos en la
+   mina, a 15 casillas (30 m) o menos, una sola sesión por persona, 180 s
+   de inactividad. La casa y el banco no sirven. No hay puesto ni comisión.
    Cambiar la oferta sube ``revision`` y borra las aceptaciones.
    Primero aceptan las dos; después confirman las dos. Con esas cuatro
    respuestas se mueve el saldo. No se reserva saldo entre medias.
@@ -271,14 +272,24 @@ class Trades:
     def ready(self, client):
         return bool(client and client.hello and not client.bot and client.wallet_ok)
 
+    def _spot(self, person):
+        if getattr(person, 'zone', 'city') == 'mine':
+            return float(getattr(person, 'zx', person.x) or 0), float(getattr(person, 'zy', person.y) or 0)
+        return float(person.x), float(person.y)
+
     def _near(self, a, b):
-        if getattr(a, 'zone', '') != 'city' or getattr(b, 'zone', '') != 'city':
+        """30 m en la ciudad o en la mina. La casa y el banco quedan fuera."""
+        zone_a = getattr(a, 'zone', 'city') or 'city'
+        zone_b = getattr(b, 'zone', 'city') or 'city'
+        if zone_a != zone_b or zone_a not in ('city', 'mine'):
             return False
         world_a = getattr(a, 'world', None)
         world_b = getattr(b, 'world', None)
         if world_a and world_b and world_a != world_b:
             return False
-        return (a.x - b.x) ** 2 + (a.y - b.y) ** 2 <= PROXIMITY_TILES ** 2
+        ax, ay = self._spot(a)
+        bx, by = self._spot(b)
+        return (ax - bx) ** 2 + (ay - by) ** 2 <= PROXIMITY_TILES ** 2
 
     def cancel(self, player_id, reason='Intercambio cancelado.'):
         key = self.by_player.get(player_id)
@@ -334,7 +345,7 @@ class Trades:
             if client.id in self.by_player or peer.id in self.by_player:
                 raise TradeError('Una de las personas ya tiene un intercambio abierto.')
             if not self._near(client, peer):
-                raise TradeError('Acércate a la otra persona en la ciudad (máximo 30 m).')
+                raise TradeError('Acércate a la otra persona (máximo 30 m).')
             session = {
                 'id': uuid.uuid4().hex,
                 'players': [client.id, peer.id],
@@ -398,11 +409,19 @@ class Trades:
                     self.sessions.pop(session['id'], None)
                     for person in (a, b):
                         self.by_player.pop(person.id, None)
+                        box = self.balances(person.name) or {}
+                        smc = int(box.get('smc') or 0)
+                        sph = int(box.get('smp') or 0)
+                        chis = int(box.get('cobre') or 0)
                         self.send(person, {
                             't': 'trade_end',
                             'id': session['id'],
                             'ok': True,
-                            'reason': 'Intercambio completado y guardado en el servidor.',
+                            'balances': {'smc': smc, 'smp': sph, 'cobre': chis},
+                            'reason': (
+                                'Intercambiaste. Saldo: '
+                                f'{economy.format_smc(smc)}, {plata.format_smp(sph)}, {chis} Simonchis.'
+                            ),
                         })
                     return
         else:
