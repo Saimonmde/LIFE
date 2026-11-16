@@ -51,7 +51,7 @@
     if (!person || !person.id) return;
     target = { id: Number(person.id), nick: person.nick || 'Viajero', key: person.key || '' };
     trail = [];
-    auto = false;
+    auto = true;
     send({ t: 'seguir', id: target.id });
     paint();
   }

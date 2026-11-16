@@ -1769,6 +1769,11 @@ def vida_try(c, m, t):
         save_vida()
         refresh_social(c, m.get('key'))
         return True
+    if t == 'amigo_rechazar':
+        SOCIAL.reject_friend(VIDA, key, m.get('key'))
+        save_vida()
+        refresh_social(c, m.get('key'))
+        return True
     if t == 'amigo_hilo':
         send(c, {'t': 'hilo', 'key': m.get('key'), 'messages': SOCIAL.thread_for(VIDA, key, m.get('key'))})
         return True

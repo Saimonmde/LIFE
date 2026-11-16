@@ -166,6 +166,17 @@ def accept_friend(state, me, other_key):
     return request_friend(state, me, other_key)
 
 
+def reject_friend(state, me, other_key):
+    """Quita el pedido. No crea amistad ni mueve monedas."""
+    mine = _bucket(state, me)
+    theirs = _bucket(state, other_key)
+    if other_key not in mine['in']:
+        return {'ok': False, 'error': 'No hay un pedido de esa cuenta.'}
+    mine['in'] = [item for item in mine['in'] if item != other_key]
+    theirs['out'] = [item for item in theirs['out'] if item != me]
+    return {'ok': True, 'status': 'rechazado'}
+
+
 def are_friends(state, a, b):
     return b in _bucket(state, a)['friends']
 

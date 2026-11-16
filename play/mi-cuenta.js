@@ -117,7 +117,14 @@
           const S = window.__ELJARDIN;
           if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'amigo_aceptar', key: row.key }));
         };
-        line.append(' ', yes);
+        const no = document.createElement('button');
+        no.type = 'button';
+        no.textContent = 'Rechazar';
+        no.onclick = () => {
+          const S = window.__ELJARDIN;
+          if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'amigo_rechazar', key: row.key }));
+        };
+        line.append(' ', yes, ' ', no);
       }
       box.append(line);
     });

@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
 import seguir
+import social
 
 
 class SeguirTests(unittest.TestCase):
@@ -21,6 +22,12 @@ class SeguirTests(unittest.TestCase):
         self.assertEqual(seguir.pace_of('caminando', 'casa', True), 'casa')
         gone = seguir.pedir({}, False, False)
         self.assertFalse(gone['ok'])
+        box = social.empty()
+        social.request_friend(box, 'acct:a', 'acct:b')
+        refused = social.reject_friend(box, 'acct:b', 'acct:a')
+        self.assertTrue(refused['ok'])
+        self.assertNotIn('acct:a', box['friends']['acct:b']['in'])
+        self.assertNotIn('acct:b', box['friends']['acct:a']['friends'])
 
     def test_the_card_and_account_mention_follow_and_friends(self):
         root = os.path.dirname(os.path.dirname(__file__))
@@ -30,10 +37,15 @@ class SeguirTests(unittest.TestCase):
             account = handle.read()
         with open(os.path.join(root, 'play', 'seguir.js'), encoding='utf-8') as handle:
             follow = handle.read()
+        with open(os.path.join(root, 'tools', 'social.py'), encoding='utf-8') as handle:
+            social = handle.read()
         self.assertIn('Seguir', card)
         self.assertIn('Agregar', card)
         self.assertIn('Pueden seguirme', account)
         self.assertIn('Ir con él', account)
+        self.assertIn('Rechazar', account)
+        self.assertIn('auto = true', follow)
         self.assertIn('Dejar de seguir', follow)
+        self.assertIn('def reject_friend', social)
         self.assertIn('Caminar detrás', follow)
         self.assertNotIn('issue(', follow)
