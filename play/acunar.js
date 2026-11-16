@@ -14,8 +14,10 @@
 
   function count(id) {
     const S = window.__ELJARDIN;
-    if (!S || !S.inv) return 0;
-    return S.inv.reduce((sum, slot) => sum + (slot && slot.item === id ? Number(slot.qty) || 0 : 0), 0);
+    if (!S) return 0;
+    const fromInv = (S.inv || []).reduce((sum, slot) => sum + (slot && slot.item === id ? Number(slot.qty) || 0 : 0), 0);
+    const fromCrudo = S.crudo && S.crudo[id] != null ? Number(S.crudo[id]) || 0 : 0;
+    return Math.max(fromInv, fromCrudo);
   }
   function countRow(row) {
     const ids = row.items && row.items.length ? row.items : [row.item];
@@ -128,11 +130,16 @@
     const shown = quote(have, row, pieces);
     $('#acunar-tienes').textContent = `Tienes: ${num(shown.tienes)} ${row.metal}`;
     $('#acunar-alcanzan').textContent = `Con eso alcanzan: ${num(shown.alcanzan)} ${row.name}`;
-    $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.)`;
+    const supply = window.__ELJARDIN && __ELJARDIN.supply;
+    const copper = supply && supply.copperNote ? ' ' + supply.copperNote : '';
+    $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.).${copper}`;
     const ir = $('#acunar-ir');
     const corto = CORTO[coin] || 'metal';
-    const falta = shown.gastas < 1 ? textoFalta(shown.tienes, row.rate, corto) : '';
-    if (!aqui) {
+    const falta = shown.gastas <= 0 ? textoFalta(shown.tienes, row.rate, corto) : '';
+    if (shown.tienes <= 0) {
+      $('#acunar-vas').textContent = 'No tienes metal. ' + textoFalta(0, row.rate, corto) + '. Pica en la mina y vuelve al horno. No se acuñó nada.';
+      if (ir) { ir.hidden = false; ir.textContent = 'Ve a picar'; }
+    } else if (!aqui) {
       $('#acunar-vas').textContent = falta ? falta + ' Ve al horno de la mina.' : 'Ve al horno de la mina';
       if (ir) { ir.hidden = false; ir.textContent = 'Ve al horno de la mina'; }
     } else if (falta) {
@@ -146,7 +153,7 @@
     const slider = $('#acunar-cantidad');
     slider.max = String(shown.maxPieces);
     slider.value = String(shown.gastas);
-    $('#acunar-ok').disabled = busy || !aqui || shown.gastas < 1;
+    $('#acunar-ok').disabled = busy || !aqui || shown.gastas <= 0;
     $('#acunar').querySelectorAll('[data-coin]').forEach(button => {
       button.classList.toggle('activa', button.dataset.coin === coin);
     });
@@ -174,12 +181,16 @@
       return;
     }
     busy = true;
+    if (window.Simulacion && Simulacion.expectMint && coin === 'simoncoin') {
+      Simulacion.expectMint(Math.round(shown.recibes * Simulacion.SUBS));
+    }
     ws.send(JSON.stringify({ t: 'acunar', coin, pieces: shown.gastas }));
     $('#acunar-vas').textContent = 'Calculando prueba…';
     $('#acunar-ok').disabled = true;
   }
   function fallo(m) {
     busy = false;
+    if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance();
     paint();
     const box = $('#acunar-vas');
     if (box) box.textContent = (m && m.reason) || 'No se pudo acuñar.';
@@ -220,7 +231,10 @@
     if (!m.ok) return fallo(m), true;
     if (m.purse && window.__ELJARDIN) __ELJARDIN.purse = m.purse;
     if (m.moneda && window.meterMonedas) window.meterMonedas(m.moneda.item, m.moneda.total || m.moneda.qty);
-    if (window.Simulacion && Simulacion.renderLibro) Simulacion.renderLibro();
+    if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m);
+    else if (window.Simulacion && Simulacion.renderLibro) Simulacion.renderLibro();
+    if (m.registro && window.LibroMadre) LibroMadre.toast(m.registro);
+    if (window.Banco && Banco.paint) Banco.paint();
     if (window.Sonido) Sonido.fromMint(m);
     if (window.Cajon) Cajon.paint();
     paint();

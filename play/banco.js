@@ -78,11 +78,11 @@
     const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {}, sph: 0 };
     const smh = box.smh != null ? box.smh : (box.smcSubs || 0);
     const texto = window.Simulacion && Simulacion.formatSai ? Simulacion.formatSai(smh) : `${smh} SMH`;
-    saldo.innerHTML = 'En el depósito: <span class="smc">' + esc(texto) + '</span>';
+    saldo.innerHTML = 'En el banco: <span class="smc">' + esc(texto) + '</span>';
     const wallet = document.getElementById('banquito-billetera');
     if (wallet && window.Simulacion && Simulacion.walletSubs && Simulacion.formatSai) {
       const name = (window.LiveInk && LiveInk.state && LiveInk.state.me && LiveInk.state.me.name) || '';
-      wallet.innerHTML = 'En la billetera: <span class="smc">' + esc(Simulacion.formatSai(Simulacion.walletSubs(name))) + '</span>';
+      wallet.innerHTML = 'En tu cuenta: <span class="smc">' + esc(Simulacion.formatSai(Simulacion.walletSubs(name))) + '</span>';
     }
     const sph = box.sph || 0;
     const plataSaldo = document.getElementById('banquito-plata-saldo');
@@ -124,7 +124,7 @@
     }
     const dockBalance = document.getElementById('bank-dock-balance');
     if (dockBalance) dockBalance.textContent = online ? 'Depósito ' + texto : 'Ver depósito';
-    for (const id of ['banquito-depositar', 'banquito-retirar', 'banquito-depositar-plata', 'banquito-retirar-plata', 'banco-cambiar']) {
+    for (const id of ['banquito-depositar', 'banquito-retirar', 'banquito-todo-banco', 'banquito-todo-billetera', 'banquito-depositar-plata', 'banquito-retirar-plata', 'banco-cambiar']) {
       const button = document.getElementById(id);
       if (button) button.disabled = !online;
     }
@@ -163,6 +163,22 @@
     const amount = document.getElementById('banquito-monto').value;
     if (window.Simulacion) Simulacion.bankSmc('out', amount);
   });
+  function transferirTodo(dest) {
+    const state = window.LiveInk && LiveInk.state;
+    const ws = state && state.net && state.net.ws;
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ t: 'transferir_todo', dest: dest }));
+      return;
+    }
+    if (!window.Simulacion || !state) return;
+    const name = state.me && state.me.name;
+    const smh = dest === 'banco'
+      ? Simulacion.walletSubs(name)
+      : ((state.vault && (state.vault.smh || state.vault.smcSubs)) || 0);
+    if (smh > 0) Simulacion.bankSmc(dest === 'banco' ? 'in' : 'out', String(smh) + ' SMH');
+  }
+  document.getElementById('banquito-todo-banco')?.addEventListener('click', () => transferirTodo('banco'));
+  document.getElementById('banquito-todo-billetera')?.addEventListener('click', () => transferirTodo('billetera'));
   document.getElementById('banquito-depositar-plata')?.addEventListener('click', () => {
     const amount = document.getElementById('banquito-plata-monto').value;
     if (window.Simulacion) Simulacion.bankSmp('in', amount);

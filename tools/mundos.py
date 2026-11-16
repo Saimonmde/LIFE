@@ -178,6 +178,8 @@ def presence(people, boxes_=None):
             'place': place,
             'placeName': place_name(place, boxes_),
             'zone': getattr(person, 'zone', 'city') or 'city',
+            'key': getattr(person, 'identity', '') or '',
+            'pace': 'casa' if getattr(person, 'zone', '') == 'casa' else (getattr(person, 'pace', '') or ''),
         })
     rows.sort(key=lambda row: (row['world'], str(row['nick']).lower(), row['id']))
     body['players'] = rows

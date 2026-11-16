@@ -37,10 +37,19 @@
       simonplata = (S.plata && S.plata.balanceSph) || 0;
       simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
+    const subs = window.Simulacion ? Simulacion.SUBS : 100;
+    const compact = (base, whole) => {
+      const value = Number(base) || 0;
+      if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
+      return grupo(whole ? value : value / subs);
+    };
     return {
-      simoncoin: coinText(simoncoin, window.Simulacion ? Simulacion.SUBS : 100000000),
-      simonplata: window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(simonplata).replace(/\s*SMP$/, '') : grupo(simonplata),
-      simonchis: grupo(simonchis),
+      simoncoin: compact(simoncoin, false),
+      simonplata: compact(simonplata, false),
+      simonchis: compact(simonchis, true),
+      exactSimoncoin: window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(simoncoin) : grupo(simoncoin) + ' SMH',
+      exactSimonplata: window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(simonplata) : grupo(simonplata) + ' SPH',
+      exactSimonchis: grupo(simonchis) + ' Simonchis',
     };
   }
   function paint() {
@@ -50,7 +59,10 @@
     if (clock && clockLabel) clock.textContent = clockLabel;
     const money = balances();
     const line = $('#hud-saldos');
-    if (line) line.textContent = `Simoncoin ${money.simoncoin} · Simonplata ${money.simonplata} · Simonchis ${money.simonchis}`;
+    if (line) {
+      line.textContent = `Simoncoin ${money.simoncoin} SMC · Simonplata ${money.simonplata} SMP · Simonchis ${money.simonchis}`;
+      line.title = [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+    }
     const box = $('#cajon-monedas');
     if (!box) return;
     box.replaceChildren();
@@ -82,6 +94,7 @@
       if (window.__ELJARDIN) {
         const prev = __ELJARDIN.ledger && __ELJARDIN.ledger.balances;
         __ELJARDIN.ledger = Object.assign({}, ledger, prev ? { balances: prev } : {});
+        if (window.Simulacion && Simulacion.reflejarMonedas) Simulacion.reflejarMonedas();
       }
       paint();
     } catch (e) {}
@@ -176,7 +189,10 @@
       '<button type="button" id="cajon-simon">Simon</button>',
       '<button type="button" id="cajon-ajustes">Ajustes de la pantalla</button>',
       '<button type="button" id="cajon-finca">Cafetal de Las Palmas</button>',
+      '<button type="button" id="cajon-chat">Chat del mundo</button>',
+      '<button type="button" id="cajon-gente">Jugadores en línea</button>',
       '<button type="button" id="cajon-libro">Libro Mayor</button>',
+      '<button type="button" id="cajon-madre">Libro madre</button>',
       '<div id="cajon-panel"></div>',
     ].join('');
     const closer = document.createElement('button');
@@ -203,6 +219,18 @@
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
     $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
+    const madre = $('#cajon-madre');
+    if (madre) madre.onclick = () => { closeDrawer(); if (window.LibroMadre) LibroMadre.open(); };
+    const chatBtn = $('#cajon-chat');
+    if (chatBtn) chatBtn.onclick = () => { closeDrawer(); if (window.ChatUI) ChatUI.setOpen(true, true); };
+    const genteBtn = $('#cajon-gente');
+    if (genteBtn) genteBtn.onclick = () => {
+      closeDrawer();
+      const list = document.getElementById('mundo-lista');
+      const tab = document.getElementById('mundo-tab');
+      if (list) list.hidden = false;
+      if (tab) tab.setAttribute('aria-expanded', 'true');
+    };
     $('#cajon-plata').onclick = () => showPiece('plata-panel');
     $('#cajon-herramientas').onclick = () => showPiece('world-tools');
     $('#cajon-barra').onclick = () => showPiece('hotbar');

@@ -43,7 +43,7 @@ class LibroTests(unittest.TestCase):
         dust = libro.acuñar(doc, SEED, 'Ana', 12345, 'Quebrada La Presidenta · 81,257', ts=21, bits=BITS, presupuesto=2)
         self.assertEqual(dust['amountSmh'], 12345)
         self.assertIsInstance(dust['amountSmh'], int)
-        self.assertEqual(economy.format_pair(dust['amountSmh']), '0,00012345 SMC = 12.345 SMH')
+        self.assertEqual(economy.format_pair(dust['amountSmh']), '123,45 SMC = 12.345 SMH')
         ok, message = libro.verificar(doc)
         self.assertTrue(ok, message)
         uno = libro.verificar_uno(doc, first['id'])

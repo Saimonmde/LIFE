@@ -6,7 +6,7 @@ SUBS = eco.SUBS
 # 100 Simonplata = 1 Simoncoin. Igual que el fondo de plata.
 SMP_POR_SMC = 100
 # El puesto ya paga esto por cada mineral. No es una emisión nueva.
-MINERAL_SMH = 1_000_000
+MINERAL_SMH = 1  # 0,01 SMC, la misma fracción de antes con la escala de 100 SMH
 MINERALES = {
     'mineral_cobre': 'cobre',
     'mineral_plata': 'plata',
@@ -71,7 +71,7 @@ def _smc(smh):
     frac = smh % SUBS
     if not frac:
         return str(whole)
-    text = f'{whole},{frac:08d}'.rstrip('0')
+    text = f'{whole},{frac:02d}'.rstrip('0')
     return text
 
 

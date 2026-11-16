@@ -101,7 +101,7 @@ class ProofTests(unittest.TestCase):
         self.assertEqual(sup.daily_cap_smh(0, 0, 0), sup.BASE_DAILY_SMH)
         self.assertEqual(sup.daily_cap_smh(sup.DAY, 0, 0), sup.BASE_DAILY_SMH + sup.AGE_SMH)
         full = sup.daily_cap_smh(60 * sup.DAY, 40 * 3600, 10)
-        self.assertEqual(full, 625_000_000)
+        self.assertEqual(full, 625)
         self.assertEqual(sup.daily_cap_smh(0, 0, 0), sup.daily_cap_smh(0, 0, 0))
         owner = profile(admin=True, owner=True, bypass=True, premine=True, role='admin', account='jay')
         plain = profile(account='jay')
@@ -113,17 +113,17 @@ class ProofTests(unittest.TestCase):
         now = 1_800_000_000
         owned = prove(state, owner, 'mint', 'oro_1', now)
         self.assertTrue(owned['ok'], owned.get('reason'))
-        self.assertEqual(owned['smh'], sup.BASE_DAILY_SMH)
-        self.assertLess(owned['smh'], eco.SUBS)
+        self.assertEqual(owned['smh'], min(eco.SUBS, sup.enforced_daily_smh(owner['age'], owner['play'], owner['quests'])))
+        self.assertGreaterEqual(owned['smh'], sup.BASE_DAILY_SMH)
         state = self.fresh()
-        state['minedSmh'] = eco.smc_to_smh(eco.MAX_SUPPLY - eco.TREASURY) - 1000
+        state['minedSmh'] = eco.smc_to_smh(eco.MAX_SUPPLY - eco.TREASURY) - 20
         state['supply']['epochSubs'] = 0
         room = eco.issuance_room(state)
         veteran = profile(account='veterana', ip='203.0.113.8', age=60 * sup.DAY, play=40 * 3600, quests=10)
         first = prove(state, veteran, 'mint', 'oro_1', now)
         self.assertTrue(first['ok'], first.get('reason'))
-        self.assertEqual(first['smh'], min(eco.SUBS, full, room))
-        self.assertEqual(first['smh'], 1000)
+        self.assertEqual(first['smh'], min(eco.reward_smh(state['minedSmh']), full, room))
+        self.assertEqual(first['smh'], 20)
         state['minedSmh'] += first['smh']
         blocked = prove(state, profile(account='otra', ip='203.0.113.9'), 'mint', 'oro_2', now + 5)
         self.assertFalse(blocked['ok'])
@@ -234,7 +234,7 @@ class ServerMintTests(unittest.TestCase):
             proof = dict(challenge)
             proof['nonce'] = nonce
             s.mint_for(who, 'oro_fluvial_1', proof)
-            self.assertEqual(int(s.ECON.get('minedSmh') or 0) - before, sup.BASE_DAILY_SMH)
+            self.assertEqual(int(s.ECON.get('minedSmh') or 0) - before, min(eco.SUBS, sup.enforced_daily_smh(0, 0, 0)))
             mid = int(s.ECON.get('minedSmh') or 0)
             s.mint_for(who, 'oro_fluvial_1', proof)
             self.assertEqual(int(s.ECON.get('minedSmh') or 0), mid)

@@ -49,9 +49,9 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(copper['sobran'], 3)
 
     def test_defaults_match_the_reference_caps(self):
-        self.assertEqual(topes.simoncoin_daily_smh(0, 0, 0), int(0.25 * topes.SUBS))
+        self.assertEqual(topes.simoncoin_daily_smh(0, 0, 0), int(0.25 * 100))
         full = 60 * 86400, 40 * 3600, 10
-        self.assertEqual(topes.simoncoin_daily_smh(*full), int(6.25 * topes.SUBS))
+        self.assertEqual(topes.simoncoin_daily_smh(*full), int(6.25 * 100))
         self.assertEqual(topes.simonplata_daily_sph(0, 0, 0), 5 * topes.SUBS)
         self.assertEqual(topes.simonchis_daily(), 200)
 
@@ -96,8 +96,8 @@ class LetreroTests(unittest.TestCase):
         self.assertIn(str(topes.rate('simoncoin')) + ' oros crudos hacen 1 Simoncoin.', text)
         self.assertIn(str(topes.rate('simonplata')) + ' de plata cruda hacen 1 Simonplata.', text)
         self.assertIn(str(topes.rate('simonchis')) + ' de cobre crudo hacen 1 Simonchis.', text)
-        base = topes.simoncoin_daily_smh(0, 0, 0) / topes.SUBS
-        top = topes.simoncoin_daily_smh(60 * 86400, 40 * 3600, 10) / topes.SUBS
+        base = topes.simoncoin_daily_smh(0, 0, 0) / 100
+        top = topes.simoncoin_daily_smh(60 * 86400, 40 * 3600, 10) / 100
         self.assertIn(topes._cantidad(base), text)
         self.assertIn(topes._cantidad(top), text)
         self.assertIn(topes._cantidad(topes.simonplata_daily_sph(0, 0, 0) / topes.SUBS), text)
@@ -122,7 +122,7 @@ class LetreroTests(unittest.TestCase):
                 os.environ.pop('MINT_SIMONCHIS_DAILY', None)
             else:
                 os.environ['MINT_SIMONCHIS_DAILY'] = old
-        base = topes.simoncoin_daily_smh(0, 0, 0) / topes.SUBS
+        base = topes.simoncoin_daily_smh(0, 0, 0) / 100
         plata_base = topes.simonplata_daily_sph(0, 0, 0) / topes.SUBS
         chis = topes.simonchis_daily()
         left = topes.hoy({
@@ -138,7 +138,7 @@ class LetreroTests(unittest.TestCase):
         steps = topes.siguiente(0, 0, 0)
         edad = next(step for step in steps if step['kind'] == 'edad')
         self.assertEqual(edad['wait'], topes.DAY)
-        delta = topes.simoncoin_daily_smh(topes.DAY, 0, 0) / topes.SUBS - topes.simoncoin_daily_smh(0, 0, 0) / topes.SUBS
+        delta = topes.simoncoin_daily_smh(topes.DAY, 0, 0) / 100 - topes.simoncoin_daily_smh(0, 0, 0) / 100
         self.assertAlmostEqual(edad['simoncoin'], delta)
         juego = next(step for step in steps if step['kind'] == 'juego')
         self.assertEqual(juego['wait'], 3600)

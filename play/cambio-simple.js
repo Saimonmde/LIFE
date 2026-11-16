@@ -6,9 +6,9 @@
   if (typeof root !== 'undefined') root.CambioSimple = api;
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
-  const SUBS = 100000000;
+  const SUBS = 100;
   const SMP_POR_SMC = 100;
-  const MINERAL_SMH = 1000000;
+  const MINERAL_SMH = 1;
   const MINERALES = { mineral_cobre: 'cobre', mineral_plata: 'plata', mineral_oro: 'oro' };
 
   function texto(das, nombreDas, recibes, nombreRecibes, extra) {
@@ -18,7 +18,7 @@
     const whole = Math.floor(smh / SUBS);
     const frac = smh % SUBS;
     if (!frac) return String(whole);
-    return (whole + ',' + String(frac).padStart(8, '0')).replace(/0+$/, '');
+    return (whole + ',' + String(frac).padStart(2, '0')).replace(/0+$/, '');
   }
   function no(line) {
     return { ok: false, das: 0, recibes: 0, maximo: 0, texto: line };

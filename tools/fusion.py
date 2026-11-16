@@ -6,7 +6,7 @@ que sigue en tesoro_genesis. No toca la Plata (SMP): ni sus billeteras,
 ni lo minado, ni lo quemado. El fondo de cambio guarda SMC ya emitido
 (un quinto de cada acuñación); ese oro sí se mueve, la plata no.
 
-Reglas, en SMH enteros (1 SMC = 100.000.000 SMH):
+Reglas, en SMH enteros (1 SMC = 100 SMH):
 
 1. Si founderFusion.status ya es «done», no se vuelve a mover nada.
 2. La cuenta destino es la de accounts.users cuyo email, sin distinguir
