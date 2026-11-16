@@ -699,12 +699,13 @@ function switchMap(id,restored=false){
  document.body.classList.toggle('in-central',id==='central');
  document.body.dataset.zone=id;
  if(id!=='casa'&&window.Casa)Casa.setEditing(false);
- const zoneLabel=id==='casa'?'Tu casa · Medellín':id==='mine'?'Mina de Las Palmas · interior':id==='banco'?'Casa bancaria':id==='central'?'Banco Central':null;
+ const mundo=window.Vida?Vida.world():3;
+ const zoneLabel=id==='casa'?'Tu casa · Medellín':id==='mine'?('Mina de Las Palmas · Mundo '+mundo):id==='banco'?'Casa bancaria':id==='central'?'Banco Central':null;
  if(zoneLabel){$('#zona-nombre').textContent=zoneLabel;}
  drawMinimapBase();
  if(!restored){
   save();
-  if(id==='mine')game('Pica el metal. En el horno, Acuñar lo guarda como monedas en tu inventario.');
+  if(id==='mine')game('Pica el metal. En el horno, Acuñar lo guarda como monedas en tu inventario. Estás en el Mundo '+(window.Vida?Vida.world():3)+'. Aquí se ven y pueden hablar quienes estén en este mismo mundo.');
   else if(id==='city'&&prev==='mine')game('Sales de la mina y vuelves a Las Palmas.');
   else if(id==='casa'){ greetPet(); game('Estás en casa. Tu mascota te espera.'); }
   else if(id==='city'&&prev==='casa')game('Sales al <b>Parque de Envigado</b>. El botón Casa te devuelve a tu casa.');
@@ -713,7 +714,9 @@ function switchMap(id,restored=false){
   else if(id==='central')game('Entras al Banco Central.');
   else if(id==='city'&&prev==='central')game('Sales del Banco Central.');
  }
- if(S.net.ok)sendMove(true);
+ S.others.clear();
+ renderNearby();
+ if(S.net.ok){sendMove(true); if(S.net.ws)S.net.ws.send(JSON.stringify({t:'cerca'}));}
 }
 
 // ---------------- cantera y fundición ----------------
@@ -765,6 +768,7 @@ function setupMiningUI(){
  const chip=document.createElement('button');chip.id='mina-brujula';chip.type='button';chip.hidden=true;chip.innerHTML='<span id="mina-flecha" aria-hidden="true">➤</span><span id="mina-texto">Mina</span>';chip.onclick=()=>irALaMina();document.body.append(chip);
  const enter=document.createElement('button');enter.id='mine-enter';enter.className='hud';enter.type='button';enter.hidden=true;enter.textContent='⛏ Entrar a la mina';enter.onclick=()=>{const e=S.nodes.get('entrada_mina_palmas');if(started&&W.mapId!=='mine'&&e)approach({kind:'node',n:e});};document.body.append(enter);
  const exit=document.createElement('button');exit.id='mine-exit-route';exit.className='hud';exit.textContent='↗ Salir a Las Palmas';exit.onclick=()=>{if(started&&W.mapId==='mine')approach({kind:'node',n:S.nodes.get('salida_mina')});};document.body.append(exit);
+ const jay=document.createElement('button');jay.id='mina-mundo-jay';jay.type='button';jay.className='hud';jay.textContent='Ir al mundo de Jay';jay.onclick=()=>{if(!S.net.ok||!S.net.ws){game('Entra al mundo para cambiar de sala.','aviso');return;}const aqui=window.Vida?Vida.world():3;if(aqui===5){game('Ya estás en el Mundo 5, el de Jay.','juego');return;}try{sessionStorage.setItem('lifeinc.mundo','5');}catch(e){}S.net.ws.send(JSON.stringify({t:'mundo',id:5}));game('Vas al Mundo 5, el de Jay. En la mina se ven quienes estén en ese mismo mundo.','juego');};document.body.append(jay);
 }
 function openFurnace(n){furnaceNode=n;if(pendingFurnaceDrop?.nodeId===n.def.id){pendingFurnaceDrop=null;}closeForgeChat();if(window.Acunar){Acunar.open();return;}const id=selected();if(MiningRules.recipes[id])$('#forge-ore').value=id;$('#forge-result').textContent='';$('#furnace-panel').hidden=false;renderForge();}
 let forgeTimer=0;
@@ -1423,7 +1427,7 @@ function connect() {
     else if (m.t === 'cerca' && Array.isArray(m.players)) { S.others.clear(); m.players.forEach(addOther); renderNearby(); }
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
-    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.fx = m.x; o.fy = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.pace = m.pace || ''; o.zone = m.zone || o.zone; o.lastMove = now(); if (window.Seguir) Seguir.paso(o); } }
+    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { if ((m.zone || o.zone || 'city') !== (W.mapId || 'city')) { S.others.delete(m.id); renderNearby(); } else { o.x = m.x; o.y = m.y; o.fx = m.x; o.fy = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.pace = m.pace || ''; o.zone = m.zone || o.zone; o.lastMove = now(); if (window.Seguir) Seguir.paso(o); } } }
     else if (m.t === 'seguir_aviso') { game(esc(m.text || ((m.from || 'Alguien') + ' te está siguiendo')), 'juego'); }
     else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { if (S.vistaLock) return; const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
@@ -1448,11 +1452,18 @@ function connect() {
     scheduleReconnect();
   };
 }
-function addOther(p) { if(p.id===S.net.id||p.zone==='casa')return; if(p.pet&&window.Vida&&Vida.decorate)p.pet=Vida.decorate(p.pet); S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
+function addOther(p) { if(p.id===S.net.id)return; if((p.zone||'city')!==(W.mapId||'city'))return; if(p.pet&&window.Vida&&Vida.decorate)p.pet=Vida.decorate(p.pet); S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
 function sendMove(force) {
-  if (S.vistaLock) return;
-  if (W.mapId==='mine' || W.mapId==='banco' || W.mapId==='central' || W.mapId==='casa') {
-    if (!S.net.ok) return;
+  if (S.vistaLock || !S.net.ok) return;
+  if (W.mapId==='mine') {
+    const p = S.player;
+    const key = `mine:${p.fx.toFixed(2)},${p.fy.toFixed(2)},${p.dir},${!!p.path.length}`;
+    if (!force && (key === S.net.sentKey || performance.now() - S.net.lastSent < 120)) return;
+    S.net.sentKey = key; S._zoneSent = 'mine'; S.net.lastSent = performance.now();
+    S.net.ws.send(JSON.stringify({ t:'move', zone:'mine', x:p.fx, y:p.fy, dir:p.dir, moving:!!p.path.length, level: totalLevel() }));
+    return;
+  }
+  if (W.mapId==='banco' || W.mapId==='central' || W.mapId==='casa') {
     const zone = W.mapId;
     if (!force && S._zoneSent === zone) return;
     S._zoneSent = zone;
@@ -1460,14 +1471,6 @@ function sendMove(force) {
     return;
   }
   S._zoneSent = 'city';
-  if(W.mapId==='mine')return;
-  if (!S.net.ok) return;
-  if(W.mapId==='casa'){
-    if(!force && S.net.sentZone==='casa')return;
-    S.net.sentZone='casa'; S.net.sentKey=''; S.net.lastSent=performance.now();
-    S.net.ws.send(JSON.stringify({ t:'move', zone:'casa', level: totalLevel() }));
-    return;
-  }
   const p = S.player, key = `${p.fx.toFixed(2)},${p.fy.toFixed(2)},${p.dir},${!!p.path.length}`;
   if (!force && (key === S.net.sentKey || performance.now() - S.net.lastSent < 120)) return;
   S.net.sentKey = key; S.net.sentZone='city'; S.net.lastSent = performance.now();

@@ -15,6 +15,8 @@ OWNER_FAVORITE_WORLD = 5
 PRIVATE = frozenset({'casa'})
 # La mina, el banco y la casa son otros mapas. El valle y los parques son la misma ciudad.
 INTERIOR = frozenset({'casa', 'mina-palmas', 'casa-bancaria', 'banco-central'})
+# La mina se comparte. La casa, la casa bancaria y el Banco Central siguen privados.
+SHARED_INTERIOR = frozenset({'mina-palmas'})
 FIXED_NAMES = {
     'valle': 'Valle de Aburrá',
     'mina-palmas': 'Mina de Las Palmas',
@@ -157,8 +159,17 @@ def outdoors(person):
 
 
 def same_sight(a, b):
-    """Se ven los avatares. Mismo mundo y los dos en la ciudad, aunque el parque sea otro."""
-    return same_world(a, b) and outdoors(a) and outdoors(b)
+    """Se ven los avatares. Mismo mundo y los dos afuera, o los dos en la misma mina.
+
+    La casa y el Banco Central no se comparten.
+    """
+    if not same_world(a, b):
+        return False
+    if outdoors(a) and outdoors(b):
+        return True
+    place_a = getattr(a, 'place', '')
+    place_b = getattr(b, 'place', '')
+    return bool(place_a) and place_a == place_b and place_a in SHARED_INTERIOR
 
 
 def presence(people, boxes_=None):
