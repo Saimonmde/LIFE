@@ -13,6 +13,9 @@ import {buildBridge4Sur, bridgeHeight, onBridge} from './bridge4sur.js?v=puente-
 import {createHorse, poseRider} from './caballo3d.js?v=afuera-r1';
 import {createGuacharaca} from './guacharaca3d.js?v=guacha-r2';
 import {createGallo, createGallina} from './gallo3d.js?v=corral-r1';
+import {createPuma} from './puma3d.js?v=fauna-r2';
+import {createGavilan} from './gavilan3d.js?v=fauna-r2';
+import {createSaco} from './saco3d.js?v=fauna-r2';
 import {board as mineBoard} from './letrero3d.js?v=sara-cartel';
 // The existing game remains the sole owner of simulation, actions, chat and saves.
 const BUILD='saimoncity-camera360-r1';
@@ -467,6 +470,46 @@ function boot(api){
   for(const [id,g] of guachaMeshes)if(!ids.has(id))g.root.visible=false;
   for(const [id,el] of guachaLabels)if(!ids.has(id))el.hidden=true;
  }
+ const pumaMeshes=new Map(),hawkMeshes=new Map(),sackMeshes=new Map();
+ function drawFauna(away,time){
+  if(!window.Fauna||!Fauna.animals)return;
+  const pack=Fauna.animals();
+  const limit=phoneGfx()?40:72;
+  const close=(x,y)=>Math.hypot((x||0)-S.player.fx,(y||0)-S.player.fy)<limit;
+  const seen=new Set();
+  for(const puma of (away?[]:pack.pumas||[])){
+   if(!close(puma.fx,puma.fy)||puma.hp<=0)continue;
+   seen.add(puma.id);
+   let g=pumaMeshes.get(puma.id);
+   if(!g){g=createPuma();scene.add(g.root);pumaMeshes.set(puma.id,g);}
+   g.root.visible=true;
+   g.root.position.set(puma.fx*2+1,height(puma.fx,puma.fy),puma.fy*2+1);
+   g.pose(puma,time);
+  }
+  for(const [id,g] of pumaMeshes)if(!seen.has(id))g.root.visible=false;
+  const birds=new Set();
+  for(const hawk of (away?[]:pack.hawks||[])){
+   if(!close(hawk.x,hawk.y))continue;
+   birds.add(hawk.id);
+   let g=hawkMeshes.get(hawk.id);
+   if(!g){g=createGavilan();scene.add(g.root);hawkMeshes.set(hawk.id,g);}
+   g.root.visible=true;
+   g.root.position.set(hawk.x*2+1,height(hawk.x,hawk.y)+(hawk.alt||6),hawk.y*2+1);
+   g.pose(hawk,time);
+  }
+  for(const [id,g] of hawkMeshes)if(!birds.has(id))g.root.visible=false;
+  const bags=new Set();
+  for(const drop of (away?[]:pack.drops||[])){
+   if(!close(drop.x,drop.y))continue;
+   bags.add(drop.id);
+   let g=sackMeshes.get(drop.id);
+   if(!g){g=createSaco(drop.label||'Tu mochila');scene.add(g.root);sackMeshes.set(drop.id,g);}
+   g.root.visible=true;
+   const bob=Math.sin(time*2)*0.06;
+   g.root.position.set(drop.x*2+1,height(drop.x,drop.y)+bob,drop.y*2+1);
+  }
+  for(const [id,g] of sackMeshes)if(!bags.has(id))g.root.visible=false;
+ }
  const routeDots=new T.Group();scene.add(routeDots);const routeMat=new T.MeshBasicMaterial({color:'#ffe14d',transparent:true,opacity:.8});
  function syncRouteDots(){const ruta=S.dest&&S.dest.ruta&&(W.mapId||'city')==='city'?(S.player.path||[]):[];const sig=ruta.length+':'+(S.dest&&S.dest.ruta?(S.dest.x+','+S.dest.y):'');if(sig===status._routeSig)return;status._routeSig=sig;while(routeDots.children.length)routeDots.remove(routeDots.children[0]);if(ruta.length<2)return;const step=Math.max(1,Math.ceil(ruta.length/36));for(let i=0;i<ruta.length;i+=step){const x=ruta[i][0],y=ruta[i][1];const dot=new T.Mesh(new T.SphereGeometry(.16,6,4),routeMat);dot.position.set(x*2+1,height(x,y)+.4,y*2+1);routeDots.add(dot);}}
  function frame(){requestAnimationFrame(frame);syncRouteDots();const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='central'){if(!status._centralCam){yaw=-0.4;pitch=0.82;distance=14;status._centralCam=true;status._bancoCam=false;status._casaCam=false;}}else if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;status._centralCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;status._centralCam=false;}}else if(status._casaCam||status._bancoCam||status._centralCam){status._casaCam=false;status._bancoCam=false;status._centralCam=false;yaw=0;pitch=1.12;distance=36;}
@@ -494,7 +537,7 @@ if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colo
  const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':region?.name||'Valle de Aburrá';
  for(const n of W.npcs)actor(n.id,n.x,n.y,'#ab8338');
  for(const m of W.memories){m.mesh.rotation.y+=.01;m.mesh.visible=!found.has(m.id);if(api.started&&!found.has(m.id)&&Math.hypot(p.fx-m.x,p.fy-m.y)<2){found.add(m.id);localStorage.setItem('lifeinc.aburra.memories.v1',JSON.stringify([...found]));document.querySelector('#book').style.outline='2px solid #edc76b';}}
- document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);drawGuacharacas(away,time/1000);drawGallos(away);drawCorral(away);if(status.onEditFrame)status.onEditFrame();renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
+ document.querySelector('#book').textContent=W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());vida3d.sync(S,api,view,away,time);drawGuacharacas(away,time/1000);drawGallos(away);drawCorral(away);drawFauna(away,time/1000);if(status.onEditFrame)status.onEditFrame();renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
  status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(status.ovni||status.heli||window.LIFE_WANT_INTRO==='ovni'||window.LIFE_WANT_INTRO==='heli')return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:7000};};

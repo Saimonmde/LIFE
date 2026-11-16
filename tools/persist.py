@@ -19,6 +19,7 @@ NAMES = {
     'accounts.json': 'accounts',
     'libro-madre.json': 'libro_madre',
     'vida.json': 'vida',
+    'fauna.json': 'fauna',
 }
 
 
