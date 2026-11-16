@@ -61,6 +61,7 @@ body:not(.in-game) #libro-open { display: none !important; }
   vertical-align: -1px;
 }
 #login-bienvenida { margin: 0; font: 700 18px/1.3 system-ui, sans-serif; color: #3a2412; }
+#login-nuevo { margin: 0 0 8px; color: #3a2412; font: 700 15px/1.35 system-ui, sans-serif; }
 #login #b-facebook,
 #login #b-correo,
 #login #correo-login,

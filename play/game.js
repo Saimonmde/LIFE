@@ -237,7 +237,9 @@ async function continuarSesion(sessionUser) {
   const nick = apodoCuenta(sessionUser) || 'Viajero';
   if (hi) { hi.hidden = false; hi.textContent = 'Bienvenido de vuelta, ' + nick; }
   window.SaimonSession.favoritePlace = sessionUser.favoritePlace || '';
-  if (window.Partida) { try { await Partida.pull(); } catch (e) {} }
+  let saved = null;
+  if (window.Partida) { try { saved = await Partida.pull(); } catch (e) { saved = null; } }
+  window.LIFE_PARTIDA = !!(saved && saved.saved && saved.position);
   if (!sessionUser.favoritePlace && window.Hogar) {
     document.body.classList.add('eligiendo-casa');
     Hogar.openPicker(id => elegirLugar(id, true), false);
@@ -285,6 +287,25 @@ const bEntrar = $('#b-entrar'); if (bEntrar) bEntrar.onclick = async () => {
   } catch (error) { $('#login-status').textContent = error.message; }
   finally { bEntrar.disabled = false; }
 };
+const nickNuevo = $('#e-nick');
+const lineaNueva = $('#login-nuevo');
+if (nickNuevo && lineaNueva) {
+  let nickTimer = 0;
+  nickNuevo.addEventListener('input', () => {
+    clearTimeout(nickTimer);
+    const value = nickNuevo.value.trim();
+    if (!value) { lineaNueva.hidden = true; return; }
+    nickTimer = setTimeout(() => {
+      fetch('/auth/nick', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nick: value }) })
+        .then(r => r.json())
+        .then(m => {
+          if (nickNuevo.value.trim() !== value) return;
+          lineaNueva.hidden = !m.nuevo;
+        })
+        .catch(() => { lineaNueva.hidden = true; });
+    }, 200);
+  });
+}
 [['p-nick', 'p-apodo-vista'], ['l-nombre', 'l-apodo-vista']].forEach(([inputId, viewId]) => {
   const input = document.getElementById(inputId);
   const vista = document.getElementById(viewId);
@@ -354,6 +375,7 @@ async function elegirLugar(id, remember) {
       window.SaimonSession = { id: result.user.id, municipio: S.me.municipio, favoritePlace: result.user.favoritePlace || '' };
       const spot = result.home || (window.Lugares && Lugares.get(id));
       if (!started) {
+        window.LIFE_PARTIDA = false;
         window.LIFE_OVNI = spot;
         window.LIFE_WANT_INTRO = window.Hogar ? Hogar.entryMode(true) : 'ovni';
       }
@@ -437,10 +459,12 @@ function startGame() {
     hy: home && home.y,
     flew: !!localStorage.getItem('lifeinc.vuelo.v1'),
   }) : { kind: 'none' });
-  const ovni = trip.kind === 'ovni';
-  const heliSpot = trip.kind === 'heli' ? { x: trip.x, y: trip.y } : null;
+  const ovni = !window.LIFE_PARTIDA && trip.kind === 'ovni';
+  const heliSpot = !window.LIFE_PARTIDA && trip.kind === 'heli' ? { x: trip.x, y: trip.y } : null;
   let fly = false;
-  if (ovni) {
+  if (window.LIFE_PARTIDA) {
+    fly = false;
+  } else if (ovni) {
     placeAtTown({ x: trip.x, y: trip.y });
     launchRide('ovni', trip.x, trip.y);
   } else if (heliSpot) {
@@ -464,7 +488,7 @@ function startGame() {
     }
   }
   Casa.load(S.me.name);
-  if (!fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
+  if (!window.LIFE_PARTIDA && !fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();
   sys(`Saimon City. Valle de Aburrá, 1777. Hola, ${esc(nombrePropio())}.`);
   connect(); updateTutorial(true);
   if (!fly && !ovni && !heliSpot && window.Tutorial) Tutorial.afterFly();
@@ -1220,7 +1244,7 @@ function connect() {
   S.net.ws = ws;
   S.net.seen = 0;
   addEventListener('pagehide', () => { try { ws.close(); } catch (e) {} }, { once: true });
-  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(S.me.municipio) && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':W.mapId==='central'&&S.canMintIngots?'central':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && S.net.hasJoined ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
+  ws.onopen = () => { if(!started || S.net.ws!==ws) {ws.close();return;} reconnectDelay = 1000; S.net.seen = performance.now(); if(!S.net.hasJoined && !window.LIFE_WANT_FLY && window.LIFE_WANT_INTRO!=='ovni' && window.LIFE_WANT_INTRO!=='heli' && !(S.me.municipio) && !window.LIFE_PARTIDA && !Q.has('forja')) beginAtHome(); const zone = W.mapId==='casa'?'casa':W.mapId==='mine'?'mine':W.mapId==='banco'?'banco':W.mapId==='central'&&S.canMintIngots?'central':'city'; ws.send(JSON.stringify({ t: 'hello', name: S.me.name, color: S.me.color, clan: S.me.clan || '', group: S.me.group || '', level: totalLevel(), zone, world: window.Vida ? Vida.world() : 1, pet: window.Vida ? Vida.petPayload() : null, walletToken: window.Simulacion ? Simulacion.walletToken(S.me.name) : '', resume: zone==='city' && (S.net.hasJoined || window.LIFE_PARTIDA) ? {x:S.player.fx,y:S.player.fy} : (W.mapId==='mine'?cityReturn:null) })); };
   ws.onmessage = (ev) => {
     if (!started || S.net.ws!==ws) return;
     S.net.seen = performance.now();
@@ -1256,7 +1280,7 @@ function connect() {
     if (m.t === 'welcome') {
       S.net.ok = true; S.net.id = m.id; S.me.name = m.you.name; S.me.nick = m.you.nick ? textoNombre(m.you.nick) : (S.sessionUser ? 'Viajero' : textoNombre(m.you.name)); $('#mi-nombre').textContent = nombrePropio();
       S.net.serverId = m.serverId || null;
-      if (!S.net.hasJoined && W.mapId==='casa') placeAtHouseSpawn();
+      if (!S.net.hasJoined && W.mapId==='casa' && !window.LIFE_PARTIDA) placeAtHouseSpawn();
       S.net.hasJoined=true; S.others.clear();
       for (const p of m.players || []) addOther(p);
       renderNearby();

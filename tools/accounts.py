@@ -204,6 +204,64 @@ def _login_bucket(doc, key, now, client_ip):
     _hit_rate(doc, key, now)
 
 
+def _nick_user(doc, nick):
+    key = name_key(game_name(nick))
+    if not key:
+        return None
+    for item in doc['users']:
+        if name_key(item.get('name')) == key or name_key(item.get('wallet_name')) == key:
+            return item
+    return None
+
+
+def nick_preview(doc, nick):
+    """Dice si ese nickname todavía no tiene cuenta. No crea nada."""
+    cleaned = game_name(nick)
+    if not cleaned or simon_reserved(cleaned):
+        return {'nuevo': False, 'reservado': bool(cleaned) and simon_reserved(cleaned)}
+    return {'nuevo': _nick_user(doc, cleaned) is None, 'reservado': False}
+
+
+def enter_or_create(doc, nick, password, now=None, client_ip=None):
+    """Entra si el nickname existe. Si no existe, crea la cuenta con scrypt y entra.
+
+    Una clave equivocada no reescribe el hash. Simon sigue reservado.
+    """
+    now = _now(now)
+    cleaned = game_name(nick)
+    if not cleaned:
+        raise AuthError('Escribe un nickname de hasta 16 letras.')
+    if not isinstance(password, str) or len(password) > 1024:
+        raise AuthError('Contraseña incorrecta')
+    _login_bucket(doc, 'login-nick:' + (name_key(cleaned) or 'vacio'), now, client_ip)
+    user = _nick_user(doc, cleaned)
+    if user:
+        stored = user.get('password_hash') or _dummy_hash()
+        before = user.get('password_hash')
+        verified = bool(password) and bool(before) and verify_password(password, stored)
+        if not verified:
+            raise AuthError('Contraseña incorrecta')
+        doc['rates'].pop('login-nick:' + name_key(cleaned), None)
+        return open_session(doc, user, now)
+    if simon_reserved(cleaned):
+        raise AuthError('Ese apodo está reservado.')
+    user = {
+        'id': secrets.token_hex(8),
+        'name': cleaned,
+        'email': '',
+        'phone': '',
+        'password_hash': hash_password(password),
+        'providers': {},
+        'wallet_name': cleaned,
+        'wallet_token': '',
+        'createdAt': now,
+        'verified': True,
+    }
+    doc['users'].append(user)
+    doc['rates'].pop('login-nick:' + name_key(cleaned), None)
+    return open_session(doc, user, now)
+
+
 def login_nick(doc, nick, password, now=None, client_ip=None):
     """Entra con el apodo. El error es el mismo si el apodo no existe o la clave no sirve."""
     now = _now(now)
