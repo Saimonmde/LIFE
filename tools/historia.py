@@ -9,6 +9,7 @@ from collections import Counter
 
 LABELS = {
     'mint': ('minado', 'Minado'),
+    'fundicion': ('minado', 'Acuñación'),
     'mina': ('minado', 'Minado'),
     'migrate': ('minado', 'Minado'),
     'exchange': ('cambio', 'Cambio plata→oro'),
@@ -54,6 +55,14 @@ def _extra(state, seen_exchange, seen_pool):
                 'amountSubs': int(tx.get('gotSmh') or 0),
                 'note': 'Cambio de plata por oro',
             }))
+        elif kind == 'mint':
+            rows.append((int(tx.get('t') or 0), 10 ** 8, index, {
+                'type': 'fundicion',
+                'to': tx.get('to') or tx.get('name') or '',
+                'amountSph': int(tx.get('amountSph') or 0),
+                'coin': 'SMP',
+                'note': 'Acuñación de Simonplata',
+            }))
         elif kind == 'pool':
             key = (str(tx.get('from') or ''), int(tx.get('amountSmh') or 0))
             if seen_pool[key]:
@@ -89,8 +98,19 @@ def filas(state):
         amount = int(tx.get('amountSubs') or 0)
         coin = str(tx.get('coin') or '')
         sph = int(tx.get('amountSph') or 0)
+        if str(tx.get('coin') or '') == 'SMCH':
+            rows.append({
+                'ts': int(ts),
+                'type': 'minado',
+                'label': 'Acuñación',
+                'amountSubs': 0,
+                'account': str(tx.get('to') or ''),
+                'balanceSubs': 0,
+                'note': str(tx.get('note') or ''),
+            })
+            continue
         if coin == 'SMP' and sph > 0:
-            kind, _label_text = _label('bank')
+            kind, label = ('minado', 'Acuñación') if tx.get('type') == 'fundicion' else _label('bank')
             origin = str(tx.get('from') or '')
             dest = str(tx.get('to') or '')
             if origin:
@@ -102,7 +122,7 @@ def filas(state):
             rows.append({
                 'ts': int(ts),
                 'type': kind,
-                'label': 'Banquito Plata',
+                'label': label,
                 'amountSubs': 0,
                 'amountSph': sph,
                 'coin': 'SMP',

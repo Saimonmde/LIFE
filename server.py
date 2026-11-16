@@ -302,8 +302,12 @@ def mover_billetera(old, new):
     save_econ()
 
 
-def bind_wallet(name, presented):
-    """Crea la billetera o reconoce a quien guarda el token. No revela el secreto ajeno."""
+def bind_wallet(name, presented, owner=False):
+    """Crea la billetera o reconoce a quien guarda el token. No revela el secreto ajeno.
+
+    Quien ya entró con su cuenta es el dueño de ese nombre: la cookie basta.
+    Un invitado sin token no puede acuñar con el nombre de otro.
+    """
     wallets = ECON.setdefault('wallets', {})
     tokens = ECON.setdefault('walletTokens', {})
     if name not in wallets:
@@ -313,7 +317,7 @@ def bind_wallet(name, presented):
         tokens[name] = token
         save_econ()
         return token
-    if token_matches(tokens[name], presented):
+    if token_matches(tokens[name], presented) or owner:
         return tokens[name]
     return None
 
@@ -776,9 +780,14 @@ def acunar_for(sender, coin, pieces, proof=None):
         return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
     items = CRUDO.items_for(coin)
     stock = CRUDO.total(ECON, profile['account'], items)
+    import acunar_credito as ACU
+    falta = ACU.motivo(stock, row['rate'], row['left'], row['room'], row['metal'], row['name'])
+    if falta:
+        code = 'metal' if stock < row['rate'] else ('cap' if row['left'] <= 0 else 'supply')
+        return _acunar_fail(sender, falta, code)
     quote = TOPES.cotizar(stock, row['rate'], row['left'], row['room'], min(pieces, stock) if pieces else None, whole=(coin == 'simonchis'))
     if quote['recibes'] <= 0:
-        return _acunar_fail(sender, 'Hoy no alcanza para acuñar más, o no hay metal suficiente.', 'cap')
+        return _acunar_fail(sender, falta or 'Hoy no alcanza para acuñar más.', 'cap')
     whole = coin == 'simonchis'
     if coin == 'simoncoin':
         want = int(round(quote['recibes'] * ECO.SUBS))
@@ -832,11 +841,22 @@ def acunar_for(sender, coin, pieces, proof=None):
     spent = CRUDO.debit(ECON, profile['account'], items, done['gastas'])
     if spent is None:
         return _acunar_fail(sender, 'No hay suficiente metal en la cuenta.', 'metal')
+    moneda = ACU.acreditar_mochila(VAULT_STATE, sender.name, coin, got)
+    if moneda:
+        save_vault()
+    if coin == 'simonchis':
+        ECO.append_tx(ECON, {
+            'type': 'fundicion', 'to': sender.name, 'coin': 'SMCH', 'qty': int(got),
+            'amountSubs': 0, 'note': f'Acuñación de {int(got)} Simonchis',
+        })
     view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
+    view['historia'] = HISTORIA.filas(ECON)
     save_econ()
+    broadcast_econ()
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
         'item': row['item'], 'spent': done['gastas'], 'spentItems': spent, 'recibes': done['recibes'],
+        'moneda': moneda, 'purse': PURSES.public(VAULT_STATE, sender.name),
         'reason': f'Se acuñó {done["recibes"]} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
         'ledger': view, 'cupos': cupos_public(profile),
         'crudo': {item: CRUDO.nuggets(ECON, profile['account'], item) for item in CRUDO.CAPS},
@@ -1918,9 +1938,12 @@ def handle_client_message(c, m, t):
                 c.pet = adopted
                 save_vida()
         presented = clean(token_src, 64)
-        owned = bind_wallet(c.name, presented)
+        owned = bind_wallet(c.name, presented, owner=bool(getattr(c, 'user', None)))
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''
+        if owned and getattr(c, 'user', None) is not None and c.user.get('wallet_token') != owned:
+            c.user['wallet_token'] = owned
+            save_accounts()
         welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                  'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}

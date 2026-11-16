@@ -479,7 +479,15 @@ function applyServer(m) {
   if (m.cupos) api.S.cupos = m.cupos;
   if (window.Acunar) Acunar.paint();
   if (m.ledger) api.S.ledger = m.ledger;
-  if (m.purse) api.S.purse = m.purse;
+  if (m.purse) {
+    api.S.purse = m.purse;
+    const bag = m.purse.items || {};
+    if (window.meterMonedas) {
+      for (const id of ['moneda_oro', 'moneda_plata', 'moneda_cobre']) {
+        if (bag[id]) window.meterMonedas(id, bag[id]);
+      }
+    }
+  }
   if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
