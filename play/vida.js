@@ -610,6 +610,7 @@
 
   window.Vida = {
     allowsConnect, queueConnect, world, onNet, onLayout, openPoste, petPayload: petLocal, decorate: withColors, DEFAULT_WORLD,
+    presence() { return presence; },
     rememberFavorite(n) { favorite = Number(n) || null; paintWorlds(); },
   };
   loadCatalog();

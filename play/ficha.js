@@ -81,8 +81,7 @@
   $('ficha-agregar').onclick = () => {
     if (!current) return;
     if (!window.Amigos) { note('Agregar todavía no está listo.'); return; }
-    Amigos.pedir(current);
-    note('Pedido enviado a ' + current.nick + '.');
+    note(Amigos.pedir(current));
   };
 
   window.Ficha = { open, close, personOf };

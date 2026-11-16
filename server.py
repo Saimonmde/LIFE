@@ -39,6 +39,7 @@ import cambio_simple as CAMBIO
 import bridge4sur
 import mundos as MUNDOS
 import social as SOCIAL
+import seguir as SEGUIR
 import topes as TOPES
 import crudo as CRUDO
 import vida_api as VIDA_API
@@ -1690,7 +1691,8 @@ def room_shift(c, old_world, old_place):
             send(other, {'t': 'join', 'player': c.public()})
         elif after:
             send(other, {'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2),
-                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'})
+                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city',
+                         'pace': getattr(c, 'pace', '') or ('caminando' if c.moving else 'quieto')})
     if old_world != c.world or old_place != c.place:
         broadcast(presence_msg())
 
@@ -2098,6 +2100,21 @@ def handle_client_message(c, m, t):
             c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
             room_shift(c, old_world, old_place)
             send(c, {'t': 'travel_result', 'ok': True, 'id': 'mina', 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
+    elif t == 'seguir' and c.hello:
+        try:
+            target = clients.get(int(m.get('id')))
+        except (TypeError, ValueError):
+            target = None
+        result = SEGUIR.pedir(getattr(target, 'user', None) if target else None, bool(target and target.hello and target is not c), True)
+        if not result['ok']:
+            send(c, {'t': 'seguir_result', 'ok': False, 'reason': result['reason']})
+        else:
+            c.following = target.id
+            send(c, {'t': 'seguir_result', 'ok': True, 'id': target.id, 'nick': visible_nick(target)})
+            send(target, {'t': 'seguir_aviso', 'from': visible_nick(c), 'text': visible_nick(c) + ' te está siguiendo'})
+    elif t == 'dejar_seguir' and c.hello:
+        c.following = None
+        send(c, {'t': 'seguir_result', 'ok': True, 'id': 0})
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
@@ -2109,6 +2126,7 @@ def handle_client_message(c, m, t):
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
             c.zone = zone
+            c.pace = 'casa' if zone == 'casa' else getattr(c, 'pace', '') or 'quieto'
             c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
             if (old_world, old_place) != (c.world, c.place):
                 room_shift(c, old_world, old_place)
@@ -2137,6 +2155,7 @@ def handle_client_message(c, m, t):
         c.zone = 'city'
         c.dir = m.get('dir') if m.get('dir') in ('up', 'down', 'left', 'right') else c.dir
         c.moving = bool(m.get('moving')); c.level = clamp_level(m.get('level'), c.level)
+        c.pace = SEGUIR.pace_of(m.get('pace'), 'city', c.moving)
         c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
         room_shift(c, old_world, old_place)
     elif t == 'ping':
@@ -2713,7 +2732,18 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
         import mi_cuenta as MICUENTA
         body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000))
+        body['followable'] = SEGUIR.allow(user)
+        social = SOCIAL.friend_view(VIDA, 'acct:' + str(user.get('id') or ''), ACCOUNTS, clients.values())
+        body['amigos'] = social.get('friends') or []
+        body['pedidos'] = social.get('in') or []
         return auth_response('200 OK', body, headers)
+    if path == '/auth/seguir' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para cambiar eso.'}, headers)
+        user['followable'] = bool(payload.get('on', True))
+        save_accounts()
+        return auth_response('200 OK', {'ok': True, 'followable': SEGUIR.allow(user)}, headers)
     if path == '/auth/delete-account' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         user = ACC.session_user(ACCOUNTS, token)

@@ -1361,7 +1361,9 @@ function connect() {
     else if (m.t === 'cerca' && Array.isArray(m.players)) { S.others.clear(); m.players.forEach(addOther); renderNearby(); }
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
-    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
+    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.fx = m.x; o.fy = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.pace = m.pace || ''; o.zone = m.zone || o.zone; o.lastMove = now(); if (window.Seguir) Seguir.paso(o); } }
+    else if (m.t === 'seguir_aviso') { game(esc(m.text || ((m.from || 'Alguien') + ' te está siguiendo')), 'juego'); }
+    else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
     else if (m.t === 'chat') {
@@ -1406,7 +1408,7 @@ function sendMove(force) {
   const p = S.player, key = `${p.fx.toFixed(2)},${p.fy.toFixed(2)},${p.dir},${!!p.path.length}`;
   if (!force && (key === S.net.sentKey || performance.now() - S.net.lastSent < 120)) return;
   S.net.sentKey = key; S.net.sentZone='city'; S.net.lastSent = performance.now();
-  S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel() }));
+  S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel(), pace: S.pace || 'quieto' }));
 }
 setInterval(() => {
   const ws = S.net.ws;
@@ -2154,6 +2156,7 @@ function update(dt) {
   if (S.dest && S.dest.ruta && steer) { p.path = []; S.dest = null; S.rideAuto = false; }
   const running = S.keys.has('x') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k => S.keys.has(k));
   const sprinting = running && !S.mounted && !S.sprintLock && S.energy > 0;
+  S.pace = S.mounted ? 'caballo' : (sprinting ? 'corriendo' : ((S.player.path && S.player.path.length) ? 'caminando' : 'quieto'));
   if (S.houseEdit) { p.path = []; S.dest = null; }
   else if (S.rideAuto && S.mounted && S.keys.size && !S.dialog) { p.path = []; S.dest = null; S.rideAuto = false; }
   else if (!p.path.length && S.keys.size && !S.dialog) {
@@ -2496,6 +2499,7 @@ function drawMinimap(at) {
     mctx.beginPath(); mctx.arc(x, y, 6, 0, Math.PI * 2); mctx.stroke();
     mctx.beginPath(); mctx.moveTo(x - 8, y); mctx.lineTo(x + 8, y); mctx.moveTo(x, y - 8); mctx.lineTo(x, y + 8); mctx.stroke();
   }
+  if (window.Seguir) Seguir.dibujar(mctx, point);
   playerStar(mctx,...point(S.player.fx,S.player.fy),7);mctx.restore();
   if(!$('#city-map').hidden && !window.LIVE3D?.mapOpen) drawCityMap();
 }
@@ -2543,7 +2547,7 @@ function drawCityMap() {
   if (window.ValleMapa && window.VALLE_GEO && canvas) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
-    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null, route: routeSamples() });
+    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null, route: routeSamples(), follow: window.Seguir ? Seguir.vista() : null });
     const home = window.Hogar && S.me.municipio && Hogar.casa(S.me.municipio);
     $('#city-map-location').textContent = home ? ('Tu casa · ' + home.name + ' · ★ Tú') : ('Tu posición: ' + S.player.fx.toFixed(1) + ', ' + S.player.fy.toFixed(1) + ' · ★ Tú');
     return;
@@ -2714,7 +2718,7 @@ function goMine(){
  approach({kind:'node',n:e});
  game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
 }
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); }, partidaSnapshot, applyPartida,
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, setRoute, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); }, partidaSnapshot, applyPartida,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
