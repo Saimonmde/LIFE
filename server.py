@@ -2311,13 +2311,15 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         except (ACC.AuthError, urllib.error.URLError, TimeoutError, OSError):
             return redirect(fallo, headers, [ACC.cookie('life_return', '', 0, secure)])
         return redirect(back, headers, [ACC.cookie('life_session', result['token'], result['max_age'], secure), ACC.cookie('oauth_state', '', 0, secure), ACC.cookie('life_return', '', 0, secure)])
+    if path == '/auth/nick' and method == 'POST':
+        return auth_response('200 OK', ACC.nick_preview(ACCOUNTS, payload.get('nick')), headers)
     if path == '/auth/entrar' and method == 'POST':
         try:
             login = payload.get('nick') if payload.get('nick') else payload.get('email')
             if '@' in str(login or ''):
                 result = ACC.login_password(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
             else:
-                result = ACC.login_nick(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
+                result = ACC.enter_or_create(ACCOUNTS, login, payload.get('password'), client_ip=remote_ip)
             save_accounts()
         except ACC.AuthError as exc:
             save_accounts()
