@@ -2409,6 +2409,19 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
             CASA.mirror(VIDA, 'acct:' + user['id'], user)
             save_vida()
         return auth_response('200 OK', {'ok': True, 'user': shown, 'home': {'x': spot[0], 'y': spot[1], 'name': HOGAR.NOMBRES[shown['municipio']]}}, headers)
+    if path == '/auth/lugar' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para elegir el lugar.'}, headers)
+        try:
+            shown = ACC.set_favorite_place(ACCOUNTS, user, payload.get('id'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        import lugares as LUGARES
+        item = LUGARES.get(shown.get('favoritePlace'))
+        home = {'x': item['x'], 'y': item['y'], 'name': item['name'], 'id': item['id']} if item else None
+        return auth_response('200 OK', {'ok': True, 'user': shown, 'home': home}, headers)
     if path == '/auth/casa' and method == 'GET':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:

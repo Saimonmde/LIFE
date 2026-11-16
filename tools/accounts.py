@@ -391,10 +391,27 @@ def public_user(user):
         'avatar_id': 'avatar_' + user['id'],
         'municipio': shown['municipio'],
         'favoriteWorld': __import__('mundos').normalize(user.get('favorite_world')),
+        'favoritePlace': __import__('lugares').get(user.get('favorite_place')) and user.get('favorite_place') or '',
         'casa': shown,
         'caballo': caballo_cuenta.view(user),
         'role': __import__('social').role_of(user),
     }
+
+
+def set_favorite_place(doc, user, place_id):
+    """Guarda el lugar donde esta cuenta aparece. No toca la contraseña ni crea monedas."""
+    import lugares
+    import casa_cuenta
+    item = lugares.get(place_id)
+    if not item:
+        raise AuthError('Ese lugar no está en el valle.')
+    user['favorite_place'] = item['id']
+    if item.get('municipio'):
+        try:
+            casa_cuenta.apply(user, {'municipio': item['municipio']})
+        except casa_cuenta.CasaError as exc:
+            raise AuthError(str(exc)) from exc
+    return public_user(user)
 
 
 def set_municipio(doc, user, municipio):
