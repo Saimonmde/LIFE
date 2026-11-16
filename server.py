@@ -1339,7 +1339,7 @@ class Client:
         self.name = f'Jugador{self.id}'; self.color = 'azul'; self.clan = 'LIFE INC'; self.group = ''
         self.x, self.y, self.dir, self.moving = float(SPAWN[0]), float(SPAWN[1]), 'down', False
         self.level = 1; self.hello = False; self.stamps = []; self.zone = 'city'
-        self.world = 1; self.place = 'valle'; self.pet = None; self.identity = ''
+        self.world = MUNDOS.DEFAULT_WORLD; self.place = 'valle'; self.pet = None; self.identity = ''
         self.note_stamps = []; self.feedback_stamps = []
     def public(self):
         pet = self.pet if isinstance(self.pet, dict) else None
@@ -1590,14 +1590,53 @@ class _Spot:
         self.world = world
         self.place = place
 
+def presence_msg():
+    body = MUNDOS.presence(clients.values(), PLACES)
+    for row in body['players']:
+        person = clients.get(row['id'])
+        if person is not None:
+            row['nick'] = visible_nick(person)
+    return body
+
+def city_peers(c):
+    return [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_sight(c, o)]
+
+def stand_beside(x, y):
+    """Una casilla caminable al lado, no encima de otra persona."""
+    ix, iy = int(float(x)), int(float(y))
+    occupied = {(int(o.x), int(o.y)) for o in clients.values() if o.hello}
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, 1), (1, -1), (-1, -1)):
+        nx, ny = ix + dx, iy + dy
+        if (nx, ny) in occupied:
+            continue
+        if VIAJES.walkable(WORLD, nx, ny):
+            return float(nx), float(ny)
+    try:
+        nx, ny = VIAJES.nearest_spawn(WORLD, ix, iy)
+        return float(nx), float(ny)
+    except VIAJES.ViajeError:
+        return float(ix), float(iy)
+
+def meet_point(target):
+    """Al lado de quien está en la ciudad. Si está adentro, a la puerta pública."""
+    zone = getattr(target, 'zone', 'city')
+    if zone == 'city':
+        return float(target.x), float(target.y)
+    if zone == 'casa':
+        return 94.0, 267.0
+    saved_x, saved_y = getattr(target, 'city_x', None), getattr(target, 'city_y', None)
+    if saved_x is not None and saved_y is not None:
+        return float(saved_x), float(saved_y)
+    return float(target.x), float(target.y)
+
 def room_shift(c, old_world, old_place):
-    """Quien sale de la sala deja de verse. Quien entra aparece. En la misma sala, se mueve."""
+    """Quien sale de la ciudad deja de verse. En la misma ciudad, se mueve aunque cambie de parque."""
     previous = _Spot(old_world, old_place)
     for other in list(clients.values()):
         if other is c or not other.hello:
             continue
-        before = MUNDOS.same_room(previous, other)
-        after = MUNDOS.same_room(c, other)
+        before = MUNDOS.same_sight(previous, other)
+        after = MUNDOS.same_sight(c, other)
         if before and not after:
             send(other, {'t': 'leave', 'id': c.id})
         elif after and not before:
@@ -1605,6 +1644,8 @@ def room_shift(c, old_world, old_place):
         elif after:
             send(other, {'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2),
                          'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city'})
+    if old_world != c.world or old_place != c.place:
+        broadcast(presence_msg())
 
 def refresh_social(c, other_key=None):
     send(c, {'t': 'social', 'social': SOCIAL.friend_view(VIDA, c.identity, ACCOUNTS, clients.values())})
@@ -1642,7 +1683,7 @@ def vida_try(c, m, t):
             save_accounts()
         save_vida()
         send(c, {'t': 'pet', 'id': c.id, 'pet': pet})
-        broadcast({'t': 'pet', 'id': c.id, 'pet': pet}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+        broadcast({'t': 'pet', 'id': c.id, 'pet': pet}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
         return True
     if t == 'hogar':
         layout = SOCIAL.save_home(VIDA, key, m.get('layout'))
@@ -1660,8 +1701,9 @@ def vida_try(c, m, t):
         old_world, old_place = c.world, c.place
         c.world = chosen
         room_shift(c, old_world, old_place)
-        payload = MUNDOS.counts(clients.values())
+        payload = presence_msg()
         send(c, {'t': 'mundo', 'world': chosen, 'presence': payload})
+        send(c, {'t': 'cerca', 'players': city_peers(c)})
         broadcast(payload)
         return True
     if t == 'amigo_buscar':
@@ -1783,8 +1825,8 @@ async def handle_ws(reader, writer, cookie='', ip=''):
         TRADES.cancel(c.id, 'Intercambio cancelado por desconexión.')
         clients.pop(c.id, None)
         if c.hello:
-            broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_room(c, o))
-            broadcast(MUNDOS.counts(clients.values()))
+            broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_sight(c, o))
+            broadcast(presence_msg())
         try: writer.close()
         except Exception: pass
 
@@ -1944,17 +1986,18 @@ def handle_client_message(c, m, t):
         if owned and getattr(c, 'user', None) is not None and c.user.get('wallet_token') != owned:
             c.user['wallet_token'] = owned
             save_accounts()
-        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': [o.public() for o in clients.values() if o.hello and o is not c and MUNDOS.same_room(c, o)],
+        welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': city_peers(c),
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
                  'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
+        welcome['presence'] = presence_msg()
         welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
         send(c, welcome)
-        if c.place not in MUNDOS.PRIVATE:
-            broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
+        if MUNDOS.outdoors(c):
+            broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
             place = MUNDOS.place_name(c.place, PLACES)
-            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_room(c, o), exclude=c)
-        broadcast(MUNDOS.counts(clients.values()))
+            broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
+        broadcast(presence_msg())
         send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
         if c.wallet_ok:
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
@@ -1962,6 +2005,28 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
     elif t == 'travel' and c.hello:
         travel_for(c, m.get('id'))
+    elif t == 'ir_con' and c.hello:
+        try:
+            target = clients.get(int(m.get('id')))
+        except (TypeError, ValueError):
+            target = None
+        if target is None or not target.hello or target is c:
+            send(c, {'t': 'travel_result', 'ok': False, 'reason': 'Ese jugador ya no está en línea.'})
+        else:
+            old_world, old_place = c.world, getattr(c, 'place', 'valle')
+            tx, ty = meet_point(target)
+            c.world = target.world
+            c.zone = 'city'
+            c.x, c.y = stand_beside(tx, ty)
+            c.moving = False
+            c.move_at = time.time()
+            c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
+            room_shift(c, old_world, old_place)
+            payload = presence_msg()
+            send(c, {'t': 'mundo', 'world': c.world, 'presence': payload})
+            send(c, {'t': 'cerca', 'players': city_peers(c)})
+            send(c, {'t': 'travel_result', 'ok': True, 'id': 'junto', 'name': visible_nick(target), 'x': c.x, 'y': c.y, 'world': c.world})
+            broadcast(payload)
     elif t == 'ir_mina' and c.hello:
         try:
             dest = VIAJES.mine_stand(WORLD)

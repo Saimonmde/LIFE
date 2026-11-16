@@ -15,7 +15,11 @@
   let applyingHome = false;
   let favorite = null;
   let presence = null;
-  sessionStorage.setItem('lifeinc.mundo', String(DEFAULT_WORLD));
+  const params = new URLSearchParams(location.search);
+  const askedWorld = Number(params.get('mundo'));
+  const entryWorld = askedWorld >= 1 && askedWorld <= 5 ? askedWorld : DEFAULT_WORLD;
+  let invitePlace = params.get('lugar') || '';
+  sessionStorage.setItem('lifeinc.mundo', String(entryWorld));
 
   function skip() {
     const q = new URLSearchParams(location.search);
@@ -69,6 +73,56 @@
     const tab = $('mundo-tab');
     if (tab) tab.textContent = 'Mundo ' + world() + ' · ' + mine + ' en línea';
     paintWorlds();
+    paintPlayers();
+  }
+  function travelId(place) {
+    const raw = String(place || '').trim();
+    if (!raw || raw === 'casa' || raw === 'valle') return '';
+    if (raw === 'mina-palmas') return 'las_palmas';
+    if (raw.indexOf('parque-') === 0) return raw.slice(7).replace(/-/g, '_');
+    return raw.replace(/-/g, '_');
+  }
+  function paintPlayers() {
+    const box = $('mundo-jugadores');
+    if (!box) return;
+    box.replaceChildren();
+    const me = state() && state().net ? state().net.id : 0;
+    const rows = ((presence && presence.players) || []).filter(row => row.id !== me);
+    if (!rows.length) {
+      const empty = document.createElement('p');
+      empty.className = 'mundo-vacio';
+      empty.textContent = 'Nadie más en línea.';
+      box.append(empty);
+      return;
+    }
+    for (const row of rows) {
+      const line = document.createElement('div');
+      line.className = 'mundo-jugador';
+      const text = document.createElement('p');
+      text.textContent = row.nick + ' · Mundo ' + row.world + ' · ' + (row.placeName || row.place || 'Valle de Aburrá');
+      const go = document.createElement('button');
+      go.type = 'button';
+      go.textContent = 'Ir con él';
+      go.onclick = () => {
+        send({ t: 'ir_con', id: row.id });
+        const list = $('mundo-lista');
+        if (list) list.hidden = true;
+      };
+      line.append(text, go);
+      box.append(line);
+    }
+  }
+  function inviteHere() {
+    const me = state() && state().net ? state().net.id : 0;
+    const mine = ((presence && presence.players) || []).find(row => row.id === me);
+    const place = mine && mine.place && mine.place !== 'casa' ? mine.place : 'parque-envigado';
+    const url = location.origin + '/play/?mundo=' + world() + '&lugar=' + encodeURIComponent(place);
+    const note = $('mundo-nota');
+    const show = (copied) => {
+      if (note) note.textContent = copied ? 'Enlace copiado. Quien lo abra entra a tu mundo y a tu lugar.' : url;
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(() => show(true)).catch(() => show(false));
+    else show(false);
   }
 
   function finishGate() {
@@ -245,6 +299,9 @@
     list.innerHTML = [
       '<header><strong>Mundos</strong><button type="button" id="mundo-cerrar" aria-label="Cerrar mundos">✕</button></header>',
       '<div id="mundo-opciones"></div>',
+      '<h3>Jugadores en línea</h3>',
+      '<div id="mundo-jugadores"></div>',
+      '<p class="fila"><button type="button" id="mundo-invitar">Invitar a mi lugar</button></p>',
       '<p class="fila"><button type="button" id="mundo-favorito">Marcar como favorito</button></p>',
       '<p id="mundo-nota">Entras al Mundo ' + DEFAULT_WORLD + '.</p>',
     ].join('');
@@ -268,6 +325,8 @@
     };
     $('mundo-cerrar').onclick = () => { list.hidden = true; tab.setAttribute('aria-expanded', 'false'); };
     $('mundo-favorito').onclick = markFavorite;
+    $('mundo-invitar').onclick = inviteHere;
+    paintPlayers();
     paintWorlds();
     loadFavorite();
     $('amigos-cerrar').onclick = () => { panel.hidden = true; };
@@ -447,6 +506,11 @@
     role = m.role || 'player';
     if (m.placeName) placeName = m.placeName;
     if (m.presence) paintCount(m.presence);
+    if (invitePlace) {
+      const id = travelId(invitePlace);
+      invitePlace = '';
+      if (id) send({ t: 'travel', id });
+    }
     if (m.social) { social = m.social; paintFriends(); }
     if (m.pet) {
       localStorage.setItem('lifeinc.mascota.v1', JSON.stringify(m.pet));
@@ -504,6 +568,11 @@
       paintBoard();
       $('poste-estado').textContent = m.error || '';
       return true;
+    }
+    if (m.t === 'travel_result' && m.world) {
+      sessionStorage.setItem('lifeinc.mundo', String(m.world));
+      paintCount(presence || { total: 0, worlds: {} });
+      return false;
     }
     if (m.t === 'mundo' && m.presence) {
       if (m.world) sessionStorage.setItem('lifeinc.mundo', String(m.world));
