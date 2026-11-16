@@ -15,7 +15,7 @@
     document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTap < 300 && !e.target.closest('input,textarea')) e.preventDefault(); lastTap = n; }, { passive: false });
     document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !e.target.closest('.ventana,#hud-chat,#chat-log,#ayuda,#memories,#camera-panel,#furnace-panel,#city-map,.panel,.hud-pieza,.hud-shell,#hud-gear-menu,#hud-edit-bar,#mando,#city-joystick')) e.preventDefault(); }, { passive: false });
   }
-  const ORDEN = ['b-descansar', 'bank-dock', 'b-montar', 'touch-extra', 'b-emote', 'finca-open', 'libro-open', 'chat-toggle', 'b-bajar', 'b-cerrar-casa', 'b-salir-parque', 'b-editar-casa'];
+  const ORDEN = ['bank-dock', 'b-montar', 'touch-extra', 'b-emote', 'finca-open', 'libro-open', 'chat-toggle', 'b-bajar', 'b-cerrar-casa', 'b-salir-parque', 'b-editar-casa'];
   const casa = new Map();
   function barra() {
     let box = document.getElementById('mando');
