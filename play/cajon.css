@@ -120,6 +120,19 @@ body:not(.in-game) #b-picar, body:not(.in-game) #b-acunar-pulgar { display: none
   border: 0; border-radius: 14px; background: #e2b23c; color: #1c1208;
   font: 800 16px/1 system-ui, sans-serif; padding: 8px 12px;
 }
+@media (orientation: landscape) and (max-height: 520px) {
+  #b-picar, #b-acunar-pulgar, #mine-enter, #mine-route {
+    left: auto !important;
+    right: max(10px, env(safe-area-inset-right)) !important;
+    top: auto !important;
+    min-width: 96px;
+    min-height: 48px;
+  }
+  #b-acunar-pulgar { bottom: calc(76px + env(safe-area-inset-bottom)); }
+  #b-picar { bottom: calc(132px + env(safe-area-inset-bottom)); }
+  #mine-enter, #mine-route { bottom: calc(188px + env(safe-area-inset-bottom)); }
+  #mina-brujula { bottom: calc(248px + env(safe-area-inset-bottom)); }
+}
 @media (max-width: 820px) and (orientation: portrait) {
   #b-picar, #b-acunar-pulgar, #mine-enter {
     left: auto; right: max(8px, env(safe-area-inset-right));

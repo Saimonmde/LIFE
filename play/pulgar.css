@@ -14,7 +14,7 @@ html.movil #b-descansar,
   width: min(168px, calc(100vw - 20px));
 }
 #objetivo { z-index: 21; max-height: 96px; overflow: auto; }
-@media (max-width: 820px) {
+@media (max-width: 820px), (orientation: landscape) and (max-height: 520px) {
   #pulgar {
     position: fixed;
     z-index: 44;
@@ -70,6 +70,23 @@ html.movil #b-descansar,
   #hoja-cerrar {
     min-width: 48px;
     min-height: 48px;
+  }
+  @media (orientation: landscape) and (max-height: 520px) {
+    #pulgar {
+      left: auto;
+      right: 0;
+      width: min(58%, 520px);
+      padding-left: 6px;
+      padding-right: max(6px, env(safe-area-inset-right));
+    }
+    body.in-game #city-map:not([hidden]),
+    body.in-game #mi-cuenta:not([hidden]),
+    body.in-game #hoja-cambio:not([hidden]),
+    body.in-game #hud-gear-menu:not([hidden]),
+    body.in-game .ventana:not([hidden]) {
+      left: max(156px, calc(env(safe-area-inset-left) + 140px)) !important;
+      right: max(8px, env(safe-area-inset-right)) !important;
+    }
   }
   #hoja-cambio {
     box-sizing: border-box;
