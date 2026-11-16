@@ -22,6 +22,6 @@ assert.ok(world.includes('visualViewport'));
 assert.ok(world.includes('orientationchange'));
 assert.ok(world.includes('status.editorApi'));
 assert.ok(!world.includes('onlostpointercapture'));
-assert.ok(page.includes('unified3d.js?v=mover-r1'));
+assert.ok(page.includes('unified3d.js?v=ruta-mina'));
 assert.ok(page.includes('id="b-acunar-pulgar"') || read('play/cajon.js').includes('b-acunar-pulgar'));
 console.log('joystick vertical ok');
