@@ -2536,9 +2536,35 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return auth_response('200 OK', {'ok': True, 'user': shown, 'caballo': shown['caballo']}, headers)
     if path == '/auth/salir' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
-        ACCOUNTS['sessions'].pop(token, None)
+        ACC.end_session(ACCOUNTS, token)
         save_accounts()
         return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    if path == '/auth/salir-todos' and method == 'POST':
+        token = ACC.read_cookie(cookie, 'life_session')
+        user = ACC.session_user(ACCOUNTS, token)
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
+        ACC.end_all_sessions(ACCOUNTS, user['id'])
+        save_accounts()
+        return auth_response('200 OK', {'ok': True}, headers, ['Set-Cookie: ' + ACC.cookie('life_session', '', 0, secure)])
+    if path == '/auth/clave' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra otra vez.'}, headers)
+        try:
+            shown = ACC.change_password(ACCOUNTS, user, payload.get('current'), payload.get('password'))
+            save_accounts()
+        except ACC.AuthError as exc:
+            save_accounts()
+            return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+        return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
+    if path == '/auth/cuenta' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
+        import mi_cuenta as MICUENTA
+        body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000))
+        return auth_response('200 OK', body, headers)
     if path == '/auth/delete-account' and method == 'POST':
         token = ACC.read_cookie(cookie, 'life_session')
         user = ACC.session_user(ACCOUNTS, token)

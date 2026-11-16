@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   const estrecho = () => matchMedia('(max-width: 820px)').matches || document.documentElement.classList.contains('movil');
-  const HOJAS = ['w-inv', 'w-hab', 'city-map', 'hoja-cambio', 'hud-gear-menu', 'w-libro', 'furnace-panel'];
+  const HOJAS = ['w-inv', 'w-hab', 'city-map', 'hoja-cambio', 'hud-gear-menu', 'w-libro', 'furnace-panel', 'mi-cuenta'];
   let cantidad = 1;
 
   function $(id) { return document.getElementById(id); }
@@ -73,6 +73,7 @@
       ['niv', 'Niveles', () => { const b = $('b-hab'); if (b) b.click(); }],
       ['mapa', 'Mapa', () => { const b = $('b-globo'); if (b) b.click(); }],
       ['menu', 'Menú', () => { const b = $('hud-gear'); if (b) b.click(); }],
+      ['cuenta', 'Cuenta', () => { if (window.MiCuenta) MiCuenta.abrir(); }],
     ];
     items.forEach(([id, label, fn]) => {
       const b = document.createElement('button');

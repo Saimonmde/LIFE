@@ -456,6 +456,30 @@ def public_user(user):
     }
 
 
+def change_password(doc, user, current, new, now=None):
+    """Cambia la clave sólo si la actual coincide. No devuelve el hash."""
+    if not user:
+        raise AuthError('Entra otra vez.')
+    _hit_rate(doc, 'clave:' + user['id'], _now(now))
+    before = user.get('password_hash') or ''
+    if not before:
+        raise AuthError('Esta cuenta todavía no tiene contraseña.')
+    if not isinstance(current, str) or not verify_password(current, before):
+        raise AuthError('Contraseña incorrecta')
+    user['password_hash'] = hash_password(new)
+    return public_user(user)
+
+
+def end_session(doc, token):
+    doc.get('sessions', {}).pop(token or '', None)
+
+
+def end_all_sessions(doc, user_id):
+    for token, row in list((doc.get('sessions') or {}).items()):
+        if row.get('user_id') == user_id:
+            doc['sessions'].pop(token, None)
+
+
 def set_favorite_place(doc, user, place_id):
     """Guarda el lugar donde esta cuenta aparece. No toca la contraseña ni crea monedas."""
     import lugares
