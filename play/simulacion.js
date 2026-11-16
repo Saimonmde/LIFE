@@ -2,7 +2,7 @@
 /* SaiMonCoins (SMC), caballos, Libro Mayor y lecciones. Simulación educativa: sin valor real. */
 (() => {
 'use strict';
-const SUBS = 100000000, MAX_SUPPLY = 21000000, MAX_SMH = 2100000000000000, INITIAL_REWARD_SMH = 1 * SUBS, HALVING_SMH = 10500000 * SUBS, TREASURY_SMH = 210000 * SUBS;
+const SMH_PER_SMC = 100, SUBS = SMH_PER_SMC, PLATA_SUBS = 100000000, MAX_SUPPLY = 21000000, MAX_SMH = 2100000000, INITIAL_REWARD_SMH = 1 * SUBS, HALVING_SMH = 10500000 * SUBS, TREASURY_SMH = 210000 * SUBS;
 const GENESIS_PREV = '0'.repeat(64), BLOCK_SECONDS = 60;
 const DOOR_TYPES = new Set(['home_door', 'mine_entrance', 'mine_exit', 'casa_exit']);
 
@@ -81,8 +81,8 @@ function parseAmount(text) {
   if (raw.includes('.')) { const bits = raw.split('.'); whole = bits[0]; frac = bits.slice(1).join(''); }
   if (whole === '') whole = '0';
   if (!/^\d+$/.test(whole) || (frac && !/^\d+$/.test(frac))) throw new Error('monto ilegible');
-  if (frac.length > 8) throw new Error('como máximo 8 decimales');
-  frac = frac.padEnd(8, '0');
+  if (frac.length > 2) throw new Error('como máximo 2 decimales');
+  frac = frac.padEnd(2, '0');
   const smh = Number(whole) * SUBS + Number(frac || 0);
   return neg ? -smh : smh;
 }
@@ -100,19 +100,61 @@ function formatSmc(smh) {
   const frac = smh % SUBS;
   const grouped = whole.toLocaleString('es-CO');
   if (!frac) return (neg ? '-' : '') + grouped + ' SMC';
-  return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(8, '0').replace(/0+$/, '') + ' SMC';
+  return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(2, '0').replace(/0+$/, '') + ' SMC';
 }
 function formatSmh(smh) {
   smh = Math.trunc(Number(smh) || 0);
   return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
 }
 function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function formatCompact(amount) {
+  let value = Number(amount);
+  if (!Number.isFinite(value)) return '0';
+  const sign = value < 0 ? '-' : '';
+  value = Math.abs(value);
+  function soft(number) {
+    const text = number.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    const bits = text.split('.');
+    const whole = Number(bits[0]).toLocaleString('es-CO');
+    return bits[1] ? whole + ',' + bits[1] : whole;
+  }
+  if (value < 1000) {
+    if (value === 0) return '0';
+    if (Math.abs(value - Math.round(value)) < 1e-9) return sign + Math.round(value).toLocaleString('es-CO');
+    if (value >= 0.01) return sign + soft(value);
+    const tiny = value.toFixed(8).replace(/0+$/, '').replace(/\.$/, '');
+    const bits = tiny.split('.');
+    return sign + bits[0] + (bits[1] ? ',' + bits[1] : '');
+  }
+  if (value < 1000000) return sign + soft(value / 1000) + ' k';
+  if (value < 1000000000) return sign + soft(value / 1000000) + ' M';
+  return sign + soft(value / 1000000000) + ' mil M';
+}
+let pendingSmh = 0;
+function bankSmh() {
+  const box = api && api.S && api.S.vault;
+  if (!box) return 0;
+  return Math.trunc(Number(box.smh != null ? box.smh : box.smcSubs) || 0);
+}
+function holdingsSmh(name) {
+  return Math.trunc(Number(walletSubs(name)) || 0) + bankSmh() + Math.trunc(pendingSmh || 0);
+}
+function expectMint(smh) {
+  const next = Math.trunc(Number(smh) || 0);
+  if (next <= 0) return;
+  pendingSmh = next;
+  paintHud();
+}
+function reconcileBalance() {
+  pendingSmh = 0;
+  paintHud();
+}
 function formatSmp(sph) {
   sph = Math.trunc(Number(sph) || 0);
   const neg = sph < 0;
   sph = Math.abs(sph);
-  const whole = Math.floor(sph / SUBS);
-  const frac = sph % SUBS;
+  const whole = Math.floor(sph / PLATA_SUBS);
+  const frac = sph % PLATA_SUBS;
   const grouped = whole.toLocaleString('es-CO');
   if (!frac) return (neg ? '-' : '') + grouped + ' SMP';
   return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(8, '0').replace(/0+$/, '') + ' SMP';
@@ -129,8 +171,20 @@ function formatPlata(sph) { return unidadPlata() === 'SPH' ? formatSph(sph) : fo
 function parsePlata(text) {
   const raw = String(text == null ? '' : text).trim();
   if (!raw) return 0;
-  if (/sph|platica/i.test(raw)) return parseAmount(raw.replace(/platicas?|sph/ig, '').trim() + ' SMH');
-  return parseAmount(raw.replace(/plata|smp/ig, '').trim() + ' SMC');
+  if (/sph|platica/i.test(raw)) {
+    const digits = raw.replace(/platicas?|sph/ig, '').replace(/[.\s]/g, '').replace(',', '');
+    if (!/^\d+$/.test(digits)) throw new Error('monto de plata');
+    return Number(digits);
+  }
+  const body = raw.replace(/plata|smp/ig, '').trim().replace(/\s+/g, '').replace(',', '.');
+  const neg = body.startsWith('-');
+  const clean = neg ? body.slice(1) : body;
+  let whole = clean, frac = '';
+  if (clean.includes('.')) { const bits = clean.split('.'); whole = bits[0] || '0'; frac = bits.slice(1).join(''); }
+  if (!/^\d+$/.test(whole) || (frac && !/^\d+$/.test(frac)) || frac.length > 8) throw new Error('monto de plata');
+  frac = frac.padEnd(8, '0');
+  const sph = Number(whole) * PLATA_SUBS + Number(frac || 0);
+  return neg ? -sph : sph;
 }
 function moneyHtml(text) { return `<span class="smc">${api.esc(text)}</span>`; }
 function unidadActiva() {
@@ -200,11 +254,18 @@ function syncButton() {
 function paintHud() {
   const el = $('#sai-saldo');
   if (!el || !api.S.econ) return;
-  const subs = walletSubs(walletName());
-  const text = formatSai(subs).replace(/\s*SMC$/, ' Simoncoin');
+  const subs = holdingsSmh(walletName());
+  const exact = formatPair(subs);
+  const text = unidadActiva() === 'SMH'
+    ? formatCompact(subs) + ' SMH'
+    : formatCompact(subs / SUBS) + ' SMC';
   el.textContent = text;
+  el.title = exact + ' · billetera ' + formatPair(walletSubs(walletName())) + ' · banco ' + formatPair(bankSmh());
   const pill = $('#smc-pill-saldo');
-  if (pill) pill.textContent = text;
+  if (pill) {
+    pill.textContent = text;
+    pill.title = exact;
+  }
   const chip = $('#sai-chip');
   const always = $('#smc-pill');
   function bindUnit(node) {
@@ -223,17 +284,20 @@ function paintHud() {
         ? ' Invitado: puedes jugar y recoger objetos, no SMC.'
         : ` Tope de hoy ${formatPair(api.S.supply.dailyCapSubs || 0)}. Te quedan ${formatPair(api.S.supply.remainingSubs || 0)}.`)
       : '';
-    const title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))}${extra} · 1 SMC = 100.000.000 SMH · simulación, sin valor real. Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
+    const copper = (api.S.supply && api.S.supply.copperNote) ? ` ${api.S.supply.copperNote}` : '';
+    const title = `${formatPair(subs)} · minadas ${formatSmc(api.S.econ.minedSmh || 0)} / ${MAX_SUPPLY.toLocaleString('es-CO')} SMC · premio ${formatPair(rewardSmh(api.S.econ.minedSmh || 0))}${extra} · 1 SMC = 100 SMH · simulación, sin valor real.${copper} Pulsa para ver ${unidadActiva() === 'SMH' ? 'SMC' : 'SMH'}.`;
     chip.title = title;
     if (always) always.title = title;
     bindUnit(chip);
   }
   const plata = (api.S.plata && api.S.plata.balanceSph) || 0;
-  const plataText = formatPlata(plata).replace(/\s*SMP$/, ' Simonplata');
+  const plataText = unidadPlata() === 'SPH'
+    ? formatCompact(plata) + ' SPH'
+    : formatCompact(plata / PLATA_SUBS) + ' SMP';
   const saldo = $('#plata-saldo');
   const saldoPanel = $('#plata-saldo-panel');
-  if (saldo) saldo.textContent = plataText;
-  if (saldoPanel) saldoPanel.textContent = plataText;
+  if (saldo) { saldo.textContent = plataText; saldo.title = formatPlataPair(plata); }
+  if (saldoPanel) { saldoPanel.textContent = plataText; saldoPanel.title = formatPlataPair(plata); }
   const pchip = $('#plata-chip');
   if (pchip) {
     const view = api.S.plata;
@@ -453,6 +517,40 @@ function grantTreasury(sai, note) {
 function tokenKey(name) { return 'lifeinc.sai.token.' + (name || ''); }
 function walletToken(name) { try { return localStorage.getItem(tokenKey(name || walletName())) || ''; } catch (e) { return ''; } }
 function saveToken(name, token) { if (!token) return; try { localStorage.setItem(tokenKey(name), token); } catch (e) {} }
+function reflejarMonedas() {
+  if (!api || !window.ponerMetal) return;
+  const b = api.S.ledger && api.S.ledger.balances;
+  if (!b) return;
+  window.ponerMetal('moneda_oro', (Number(b.simoncoin) || 0) / SUBS);
+  window.ponerMetal('moneda_plata', (Number(b.simonplata) || 0) / PLATA_SUBS);
+  window.ponerMetal('moneda_cobre', Number(b.simonchis) || 0);
+}
+function aplicarCredito(m) {
+  if (!api || !m) return;
+  if (!api.S.econ) api.S.econ = emptyEcon();
+  ensureSmh(api.S.econ);
+  const name = m.walletName || walletName();
+  const locked = !!m.walletLocked;
+  if (m.ledger) api.S.ledger = m.ledger;
+  if (m.purse) api.S.purse = m.purse;
+  const balances = (m.ledger && m.ledger.balances) || {};
+  if (!locked && (m.balanceSubs != null || balances.simoncoin != null)) {
+    const smh = m.balanceSubs != null ? m.balanceSubs : balances.simoncoin;
+    api.S.econ.wallets[name] = smh;
+    if (walletName() !== name) api.S.econ.wallets[walletName()] = smh;
+  }
+  if (!locked && (m.balanceSph != null || balances.simonplata != null)) {
+    api.S.plata = api.S.plata || {};
+    api.S.plata.balanceSph = m.balanceSph != null ? m.balanceSph : balances.simonplata;
+  }
+  if (m.historia) api.S.econ.historia = m.historia;
+  if (m.ledger && m.ledger.historia) api.S.econ.historia = m.ledger.historia;
+  reconcileBalance();
+  reflejarMonedas();
+  paintHud();
+  renderLibro();
+  if (window.Cajon) Cajon.paint();
+}
 function applyServer(m) {
   if (!m || !m.state) return;
   const prev = api.S.econ ? (api.S.econ.minedSmh || 0) : 0;
@@ -470,7 +568,11 @@ function applyServer(m) {
   if (st.historia) api.S.econ.historia = st.historia;
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
-  if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
+  if (m.balanceSubs != null) {
+    const shown = m.walletLocked ? 0 : m.balanceSubs;
+    api.S.econ.wallets[walletName()] = shown;
+    if (m.walletName) api.S.econ.wallets[m.walletName] = shown;
+  }
   if (m.plata) {
     api.S.plata = m.plata;
     if (m.balanceSph != null) api.S.plata.balanceSph = m.walletLocked ? 0 : m.balanceSph;
@@ -490,6 +592,8 @@ function applyServer(m) {
   }
   if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
+  pendingSmh = 0;
+  reflejarMonedas();
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();
 }
@@ -529,8 +633,8 @@ function renderLibro() {
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   const filtro = el.dataset.filtro || 'todo';
   const rows = historiaRows().filter(row => filtro === 'todo' || row.type === filtro);
-  const monto = (row) => row.coin === 'SMP' ? formatPlata(row.amountSph || 0) : formatSai(row.amountSubs || 0);
-  const saldo = (row) => row.coin === 'SMP' ? formatPlata(row.balanceSph || 0) : formatSai(row.balanceSubs || 0);
+  const monto = (row) => row.coin === 'SMP' ? formatPlata(row.amountSph || 0) : (row.coin === 'SMCH' ? (Number(row.amountQty) || 0).toLocaleString('es-CO') + ' Simonchis' : formatSai(row.amountSubs || 0));
+  const saldo = (row) => row.coin === 'SMP' ? formatPlata(row.balanceSph || 0) : (row.coin === 'SMCH' ? (Number(row.balanceQty) || 0).toLocaleString('es-CO') + ' Simonchis' : formatSai(row.balanceSubs || 0));
   const body = rows.length ? rows.slice().reverse().map(row => `<tr title="${api.esc(row.note || '')}">
       <td>${api.esc(libroWhen(row.ts))}</td>
       <td>${api.esc(row.label || row.type || '')}</td>
@@ -547,10 +651,15 @@ function renderLibro() {
   };
   const cupo = (window.__LIBRO_CUPO && window.__LIBRO_CUPO.lines) || [];
   const cupoHtml = cupo.map(line => `<p>${api.esc(line)}</p>`).join('');
+  const tuyo = (api.S.ledger && api.S.ledger.balances) || {};
+  const tuyoTxt = 'Tuyo: ' + formatSai(tuyo.simoncoin || 0) + ' · ' + formatPlata(tuyo.simonplata || 0) + ' · ' + (Number(tuyo.simonchis) || 0).toLocaleString('es-CO') + ' Simonchis';
   el.innerHTML = `<aside class="libro-guia" aria-label="Las tres monedas">
       <p>Hay tres monedas y el total ya está cerrado. Nadie puede crear de más, cambiar ese máximo ni copiar una moneda.</p>
       <p><b>Simoncoin</b>, el oro. <b>Simonplata</b>, la plata. <b>Simonchis</b>, el cobre.</p>
       <p id="libro-totales">${api.esc(libroLine('simoncoin', 'Simoncoin'))} · ${api.esc(libroLine('simonplata', 'Simonplata'))} · ${api.esc(libroLine('simonchis', 'Simonchis'))}</p>
+      <p id="libro-minado">SMC minadas en total: ${api.esc(formatSmc(api.S.econ.minedSmh || 0))}.</p>
+      <p id="libro-finca">${api.esc((() => { const farm = (api.S.ledger && api.S.ledger.finca) || {}; const kg = farm.harvestedKg || {}; const bags = farm.processedBags || {}; const crops = farm.crops || {}; const cafeUnit = (crops.cafe && crops.cafe.unitCount) || 'sacos de 70 kg'; const cacaoUnit = (crops.cacao && crops.cacao.unitCount) || 'cajones de 150 kg'; return 'Café: ' + (Number(kg.cafe) || 0).toLocaleString('es-CO') + ' kg, ' + (Number(bags.cafe) || 0).toLocaleString('es-CO') + ' ' + cafeUnit + '. Cacao: ' + (Number(kg.cacao) || 0).toLocaleString('es-CO') + ' kg, ' + (Number(bags.cacao) || 0).toLocaleString('es-CO') + ' ' + cacaoUnit + '.'; })())}</p>
+      <p id="libro-tuyo">${api.esc(tuyoTxt)}</p>
       <div id="libro-cupo">${cupoHtml}</div>
       <p>Arriba ves cuántas van y cuántas pueden existir. La tabla de abajo es tu historial. Si todavía no hay movimientos, el libro te lo dice con calma.</p>
       <p>Si querés mirar los bloques y los códigos, abrí <b>Bloques y hashes</b>. No hace falta entenderlos para jugar.</p>
@@ -803,7 +912,26 @@ function onNet(m) {
   }
   if (m.t === 'vault') {
     if (m.plata) rememberPlata(m.plata);
-    if (window.Banco) Banco.paint(m.account || { smcSubs: 0, items: {}, sph: 0 });
+    api.S.vault = m.account || api.S.vault || { smh: 0, smcSubs: 0, items: {}, sph: 0 };
+    pendingSmh = 0;
+    paintHud();
+    if (window.Banco) Banco.paint(api.S.vault);
+    return true;
+  }
+  if (m.t === 'transfer_result') {
+    pendingSmh = 0;
+    if (m.balanceSubs != null) {
+      api.S.econ = api.S.econ || emptyEcon();
+      api.S.econ.wallets[m.walletName || walletName()] = m.balanceSubs;
+    }
+    if (m.bankSmh != null) {
+      api.S.vault = api.S.vault || { smh: 0, smcSubs: 0, items: {} };
+      api.S.vault.smh = m.bankSmh;
+      api.S.vault.smcSubs = m.bankSmh;
+    }
+    paintHud();
+    if (m.reason) api.game(m.reason, m.ok ? 'oro' : 'aviso');
+    if (window.Banco) Banco.paint(api.S.vault);
     return true;
   }
   if (m.t === 'vault_item') {
@@ -857,6 +985,8 @@ function onRiverGold(nodeId) {
   if ((api.W().mapId || 'city') !== 'city') return 0;
   if (api.S.net.ok) {
     if (api.S.walletLocked) { api.game('Esta billetera SMC se creó en otro aparato. Puedes jugar, pero no emitir con ese nombre.', 'aviso'); return 0; }
+    const expected = (api.S.supply && api.S.supply.nextSubs) || rewardSmh((api.S.econ && api.S.econ.minedSmh) || 0);
+    expectMint(expected);
     api.S.net.ws.send(JSON.stringify({ t: 'mint', node: nodeId || '' }));
     return 0;
   }
@@ -1010,9 +1140,9 @@ window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, summonAndMount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
-  rememberSupply, rememberPlata, net,
+  rememberSupply, rememberPlata, net, aplicarCredito, reflejarMonedas, formatCompact, expectMint, reconcileBalance, holdingsSmh, bankSmh,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
-  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, unidadActiva, unidadPlata, walletToken, SUBS, GENESIS_PREV,
+  hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, unidadActiva, unidadPlata, walletToken, SUBS, SMH_PER_SMC, PLATA_SUBS, GENESIS_PREV,
 };
 const legal = document.getElementById('sai-legal');
 if (legal) legal.onclick = () => { const open = legal.classList.toggle('open'); legal.setAttribute('aria-expanded', open ? 'true' : 'false'); };

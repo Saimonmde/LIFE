@@ -124,7 +124,8 @@
       const row = byId[id] || {};
       const max = row.max != null ? row.max : fallback;
       const minted = row.minted || 0;
-      return `<article class="libro-coin"><div class="libro-ico">${icon(kind)}</div><h3>${name}</h3><p>${esc(blurbs[id])}</p><p>Van <b>${esc(formatEs(minted))}</b> de ${esc(formatEs(max))}</p>${bar(minted, max)}</article>`;
+      const total = id === 'simoncoin' ? `<p>SMC minadas en total: <b>${esc(formatEs(minted))}</b> de ${esc(formatEs(max))}.</p>` : '';
+      return `<article class="libro-coin"><div class="libro-ico">${icon(kind)}</div><h3>${name}</h3><p>${esc(blurbs[id])}</p><p>Van <b>${esc(formatEs(minted))}</b> de ${esc(formatEs(max))}</p>${total}${bar(minted, max)}</article>`;
     }).join('');
     const ingots = ingotRows(data);
     const ingotHtml = `<section class="libro-ingots"><div class="libro-ico">${icon('ingot')}</div><h3>Lingotes</h3><p>Los cuenta el Banco Central. Acá sólo se leen. Este libro no los crea.</p><ul><li>Oro <b>${esc(formatEs(ingots.oro))}</b></li><li>Plata <b>${esc(formatEs(ingots.plata))}</b></li><li>Cobre <b>${esc(formatEs(ingots.cobre))}</b></li></ul></section>`;

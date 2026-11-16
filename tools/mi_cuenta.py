@@ -67,21 +67,28 @@ def _animals(user):
     return found
 
 
-def resumen(user, econ, finca_accounts, now_ms=0):
+def resumen(user, econ, finca_accounts, now_ms=0, vault_state=None):
     """Vista para el panel. No incluye contraseña, hash ni el identificador de Google."""
     user = user if isinstance(user, dict) else {}
     saved = partida.recall(user)
     name = str(user.get('wallet_name') or user.get('name') or '')
     import lugares
     import mundos
+    import vault as vault_mod
     place = lugares.get(user.get('favorite_place'))
+    coins = _coins(econ, name)
+    bank = 0
+    if isinstance(vault_state, dict):
+        bank = vault_mod.smh_of((vault_state.get('accounts') or {}).get(name))
+    coins['bankSmh'] = int(bank)
+    coins['totalSmh'] = int(coins['simoncoinSmh']) + int(bank)
     return {
         'nick': name[:16],
         'google': bool((user.get('providers') or {}).get('google')),
         'place': _place(saved),
         'saved': _minutes(saved.get('rev'), now_ms),
         'inventory': list(saved.get('inv') or [])[:12],
-        'coins': _coins(econ, name),
+        'coins': coins,
         'crops': _finca(finca_accounts, name),
         'animals': _animals(user),
         'favoritePlace': (place or {}).get('name') or '',

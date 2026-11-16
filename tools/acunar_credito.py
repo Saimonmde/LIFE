@@ -9,13 +9,32 @@ ITEMS = {
 }
 
 
+def explicar(stock, rate, metal, whole=False):
+    """Qué falta del metal. El oro y la plata aceptan una parte; el cobre, monedas enteras."""
+    try:
+        stock = float(stock or 0)
+    except (TypeError, ValueError):
+        stock = 0.0
+    rate = max(1, int(rate or 1))
+    if whole:
+        have = int(stock)
+        if have <= 0:
+            return f'No tienes {metal}. Hacen falta {rate}.'
+        if have < rate:
+            return f'Tienes {have} de {metal}, te falta {rate - have}.'
+        return ''
+    if stock <= 0:
+        return f'No tienes {metal} suficiente. Con una parte ya se puede acuñar; {rate} hacen 1.'
+    return ''
+
+
 def motivo(stock, rate, left, room, metal, name):
     """Frase clara. El metal y el tope del día no se mezclan."""
     stock = float(stock or 0)
     rate = max(1, int(rate or 1))
     left = float(left or 0)
     room = float(room or 0)
-    if stock < rate:
+    if stock <= 0:
         return f'No tienes {metal} suficiente para acuñar {name}. Hacen falta {rate}.'
     if left <= 0:
         return 'Hoy ya llegaste al tope. Se reinicia a las 7:00 p. m.'
@@ -36,7 +55,7 @@ def piezas(coin, recibes):
 
 
 def acreditar_mochila(vault, name, coin, recibes):
-    """Suma las monedas ya acuñadas a la mochila. No emite saldo nuevo."""
+    """Suma las monedas enteras ya acuñadas a la mochila. No emite saldo nuevo."""
     row = piezas(coin, recibes)
     if not row:
         return None
@@ -45,3 +64,20 @@ def acreditar_mochila(vault, name, coin, recibes):
         return None
     row['total'] = total
     return row
+
+
+def vista(vault, econ, name, account=None):
+    """Lo que la mochila muestra. El saldo fino vive aquí aunque no llegue a una moneda entera.
+
+    No acuña: sólo lee la billetera y las piezas que ya se guardaron.
+    """
+    import monedas
+    purse = purses.public(vault, name)
+    book = monedas.ledger(econ, name, account)
+    balances = book.get('balances') or {}
+    purse['monedas'] = {
+        'moneda_oro': int(balances.get('simoncoin') or 0),
+        'moneda_plata': int(balances.get('simonplata') or 0),
+        'moneda_cobre': int(balances.get('simonchis') or 0),
+    }
+    return purse

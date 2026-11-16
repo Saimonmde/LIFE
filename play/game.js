@@ -20,7 +20,7 @@ const NOMBRES = {
   manzana: 'Manzano', pera: 'Peral', naranja: 'Naranjo', mango: 'Palo de mango', banano: 'Mata de banano', coco: 'Palma de coco',
   conejo: 'Conejo', venado: 'Venado', ave: 'Ave silvestre', cobre: 'Roca de cobre', plata: 'Roca de plata', piedra: 'Roca de piedra', pino: 'Pino',
 };
-const CANALES = { global: 'Global', proximidad: 'Proximidad', clan: 'Clan', grupo: 'Grupo' };
+const CANALES = { global: 'Mundo', proximidad: 'Cerca', clan: 'Clan', grupo: 'Grupo' };
 function textoNombre(raw) {
   const text = String(raw || '').trim();
   if (!text || text.includes('@')) return 'Viajero';
@@ -70,7 +70,7 @@ const S = window.__ELJARDIN = {
   quest: { stage: 0, steps: {}, done: false, turnedIn: false },
   floaters: [], cam: { x: 0, y: 0 }, hover: null, dest: null, keys: new Set(), night: false, circadianIndex: null, nightOverride: null, mmZoom: 1,
   others: new Map(), net: { ws: null, ok: false, hasJoined: false, serverId: null, id: 0, ping: 0, lastSent: 0, sentKey: '' },
-  chat: { tab: 'proximidad', lines: [], unread: {} }, dialog: null, bubbles: new Map(), lastPrompt: '',
+  chat: { tab: 'global', lines: [], unread: {} }, dialog: null, bubbles: new Map(), lastPrompt: '',
 };
 
 function load() {
@@ -1282,8 +1282,8 @@ function renderChat() {
   if (atBottom) el.scrollTop = el.scrollHeight;
   const inRange = [...S.others.values()].filter(o => dist(o) * 2 <= 30).length;
   const notas = {
-    global: '(Global) Visible para quienes están en tu mundo',
-    proximidad: `(Proximidad) En tu mundo y a ≤ 30 m · ${inRange} en rango`,
+    global: '(Mundo) Lo leen todos los que están en tu mundo, cerca o lejos.',
+    proximidad: `(Cerca) Sólo a ≤ 30 m en tu mundo · ${inRange} en rango`,
     clan: S.me.clan ? `(Clan) Visible para tu clan: ${esc(S.me.clan)}` : '(Clan) Sin clan · escribe /clan nombre',
     grupo: S.me.group ? `(Grupo) Visible para tu grupo: ${esc(S.me.group)}` : '(Grupo) No estás en un grupo · escribe /grupo nombre',
   };
@@ -1292,6 +1292,21 @@ function renderChat() {
 function renderTabs() { document.querySelectorAll('.pestanas button[data-canal]').forEach(b => { const c = b.dataset.canal; b.classList.toggle('activa', c === S.chat.tab); b.innerHTML = CANALES[c] + (S.chat.unread[c] ? '<span class="nuevo"></span>' : ''); }); }
 document.querySelectorAll('.pestanas button[data-canal]').forEach(b => b.onclick = () => { S.chat.tab = b.dataset.canal; S.chat.unread[S.chat.tab] = false; renderTabs(); renderChat(); });
 $('#chat-min').onclick = () => window.ChatUI.setOpen(false);
+const chatGente = $('#chat-gente-btn');
+if (chatGente) chatGente.onclick = () => {
+  const list = document.getElementById('mundo-lista');
+  const tab = document.getElementById('mundo-tab');
+  if (!list) return;
+  list.hidden = false;
+  if (tab) tab.setAttribute('aria-expanded', 'true');
+};
+const chatInvitar = $('#chat-invitar');
+if (chatInvitar) chatInvitar.onclick = () => {
+  const list = document.getElementById('mundo-lista');
+  if (list) list.hidden = false;
+  const invite = document.getElementById('mundo-invitar');
+  if (invite) invite.click();
+};
 $('#chat-form').onsubmit = (e) => {
   e.preventDefault(); const inp = $('#chat-input'); const text = inp.value.trim(); inp.value = ''; inp.blur(); if (!text) return;
   if (window.Simulacion && Simulacion.offlineCommand(text)) return;
@@ -1349,7 +1364,7 @@ function connect() {
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
     if (m.t === 'recoger' && m.ok && S.espera && S.espera.done) { const done = S.espera.done; S.espera = null; done('mochila'); return; }
-    if (m.t === 'mochila_llena') { if (S.espera) S.espera.server = true; avisarMochilaLlena(); game(m.reason || 'Tu mochila está llena', 'aviso'); return; }
+    if (m.t === 'mochila_llena') { if (S.metalOptimistic) { invRemove(S.metalOptimistic.item, S.metalOptimistic.qty); S.metalOptimistic = null; } if (S.espera) S.espera.server = true; avisarMochilaLlena(); game(m.reason || 'Tu mochila está llena', 'aviso'); if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance(); return; }
     if (m.t === 'mochila_op') {
       if (!m.ok) { game(m.reason || 'No se perdió nada.', 'aviso'); if (S.espera) avisarMochilaLlena(); return; }
       const done = S.espera && S.espera.done;
@@ -1382,16 +1397,22 @@ function connect() {
       S.net.hasJoined=true; S.others.clear();
       for (const p of m.players || []) addOther(p);
       renderNearby();
-      $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; S.canMintIngots = !!m.canMintIngots; if ((W.mapId || 'city') === 'central' && !S.canMintIngots) switchMap('city'); if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
+      $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; if (m.purse) S.purse = m.purse; if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m); S.canMintIngots = !!m.canMintIngots; if ((W.mapId || 'city') === 'central' && !S.canMintIngots) switchMap('city'); if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
     } else if (m.t === 'crudo') {
+      S.crudo = Object.assign({}, S.crudo || {}, m.crudo || {});
+      if (m.item != null && m.total != null) S.crudo[m.item] = m.total;
+      S.metalOptimistic = null;
       if (m.crudo) Object.keys(m.crudo).forEach(id => ponerMetal(id, m.crudo[id]));
       else if (m.item != null) ponerMetal(m.item, m.total);
+      if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance();
       if (m.migrado) { try { localStorage.setItem('lifeinc.crudo.migrado', '1'); } catch (e) {} }
     } else if (m.t === 'join' && m.player) addOther(m.player);
     else if (m.t === 'cerca' && Array.isArray(m.players)) { S.others.clear(); m.players.forEach(addOther); renderNearby(); }
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
-    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
+    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.fx = m.x; o.fy = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.pace = m.pace || ''; o.zone = m.zone || o.zone; o.lastMove = now(); if (window.Seguir) Seguir.paso(o); } }
+    else if (m.t === 'seguir_aviso') { game(esc(m.text || ((m.from || 'Alguien') + ' te está siguiendo')), 'juego'); }
+    else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
     else if (m.t === 'chat') {
@@ -1436,7 +1457,7 @@ function sendMove(force) {
   const p = S.player, key = `${p.fx.toFixed(2)},${p.fy.toFixed(2)},${p.dir},${!!p.path.length}`;
   if (!force && (key === S.net.sentKey || performance.now() - S.net.lastSent < 120)) return;
   S.net.sentKey = key; S.net.sentZone='city'; S.net.lastSent = performance.now();
-  S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel() }));
+  S.net.ws.send(JSON.stringify({ t: 'move', zone:'city', x: p.fx, y: p.fy, dir: p.dir, moving: !!p.path.length, level: totalLevel(), pace: S.pace || 'quieto' }));
 }
 setInterval(() => {
   const ws = S.net.ws;
@@ -1579,7 +1600,7 @@ function followRoad(id) {
   p.path=path;p.pending=null;S.dest={x,y,t:now()};
 }
 function approach(t) {
-  if (t.kind === 'peer') { window.TradeUI?.openTrade(t.id); return; }
+  if (t.kind === 'peer') { if (window.Ficha) Ficha.open(S.others.get(t.id) || { id: t.id }); else window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t);
   const goal = t.kind === 'door' ? ((x, y) => x === t.d.approach.x && y === t.d.approach.y) : ((x, y) => cheb(x, y, tt.x, tt.y) === 1);
   if (goal(p.x, p.y) && !p.path.length) { p.pending = null; S.dest = null; act(t); return; }
@@ -1632,7 +1653,7 @@ function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * 
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
 function act(t) {
-  if (t.kind === 'peer') { window.TradeUI?.openTrade(t.id); return; }
+  if (t.kind === 'peer') { if (window.Ficha) Ficha.open(S.others.get(t.id) || { id: t.id }); else window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t); face(tt.x, tt.y);
   if (t.kind === 'mount') { if (S.skating) S.skating = false; return Simulacion.mountHorse(t.m); }
   if (t.kind === 'npc') return t.d.id === 'profesora_cadena' ? Simulacion.talkProfesora() : talkCapataz();
@@ -1690,8 +1711,10 @@ function act(t) {
     if (n.state !== 'active') return game(`Ya lavaste esta arena. El río trae más oro en ${secs()} s.`, 'aviso');
     if (Math.random() > d.successChance) { floatText(d.x, d.y, 'Sólo arena…', '#e8d9b0'); return game('Mueves la batea en la corriente… sólo arena. Intenta otra vez.', 'aviso'); }
     if (S.net && S.net.ok) {
-      S.espera = { server: true, item: d.yield.item, qty: 1, done: (where) => { if (where === 'mochila' && !invAdd(d.yield.item, 1)) return; addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); if (where === 'mochila') game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro'); } };
-      S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: 1, kind: 'lavar' }));
+      const item = d.yield.item;
+      S.metalOptimistic = invAdd(item, 1) ? { item, qty: 1 } : null;
+      S.espera = { server: true, item, qty: 1, done: (where) => { const pending = S.metalOptimistic; S.metalOptimistic = null; if (where === 'mochila') { if (!(pending && pending.item === item)) { if (!invAdd(item, 1)) return; } } else if (pending && pending.item === item) invRemove(item, 1); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); if (where === 'mochila') game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro'); } };
+      S.net.ws.send(JSON.stringify({ t: 'recoger', item, qty: 1, kind: 'lavar' }));
       return;
     }
     if (!give(d.yield.item, 1, d.x, d.y)) { S.espera = { item: d.yield.item, qty: 1, done: () => { n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } }; return; }
@@ -1702,7 +1725,21 @@ function act(t) {
     if (n.state !== 'active') return game(`La roca está agotada. Vuelve en ${secs()} s.`, 'aviso');
     const q = rnd(d.yield.min, d.yield.max);
     const guardar = (where) => { if (where === 'mochila' && !invAdd(d.yield.item, q)) return; tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; if (where === 'mochila') game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save(); };
-    if (S.net && S.net.ok) { S.espera = { server: true, item: d.yield.item, qty: q, done: guardar }; S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: q, kind: 'ore' })); return; }
+    if (S.net && S.net.ok) {
+      S.metalOptimistic = invAdd(d.yield.item, q) ? { item: d.yield.item, qty: q } : null;
+      S.espera = { server: true, item: d.yield.item, qty: q, done: (where) => {
+        const pending = S.metalOptimistic;
+        S.metalOptimistic = null;
+        if (where === 'mochila' && pending && pending.item === d.yield.item) {
+          tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();
+          return;
+        }
+        if (pending && pending.item === d.yield.item) invRemove(pending.item, pending.qty);
+        guardar(where);
+      } };
+      S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: q, kind: 'ore' }));
+      return;
+    }
     if (!invAdd(d.yield.item, q)) { S.espera = { item: d.yield.item, qty: q, done: (where) => { if (where === 'banco') guardar('banco'); } }; return; }
     tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`);
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();
@@ -2185,6 +2222,7 @@ function update(dt) {
   if (S.dest && S.dest.ruta && steer) { p.path = []; S.dest = null; S.rideAuto = false; }
   const running = S.keys.has('x') && ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].some(k => S.keys.has(k));
   const sprinting = running && !S.mounted && !S.sprintLock && S.energy > 0;
+  S.pace = S.mounted ? 'caballo' : (sprinting ? 'corriendo' : ((S.player.path && S.player.path.length) ? 'caminando' : 'quieto'));
   if (S.houseEdit) { p.path = []; S.dest = null; }
   else if (S.rideAuto && S.mounted && S.keys.size && !S.dialog) { p.path = []; S.dest = null; S.rideAuto = false; }
   else if (!p.path.length && S.keys.size && !S.dialog) {
@@ -2534,6 +2572,7 @@ function drawMinimap(at) {
     mctx.beginPath(); mctx.arc(x, y, 6, 0, Math.PI * 2); mctx.stroke();
     mctx.beginPath(); mctx.moveTo(x - 8, y); mctx.lineTo(x + 8, y); mctx.moveTo(x, y - 8); mctx.lineTo(x, y + 8); mctx.stroke();
   }
+  if (window.Seguir) Seguir.dibujar(mctx, point);
   playerStar(mctx,...point(S.player.fx,S.player.fy),7);mctx.restore();
   if(!$('#city-map').hidden && !window.LIVE3D?.mapOpen) drawCityMap();
 }
@@ -2581,7 +2620,7 @@ function drawCityMap() {
   if (window.ValleMapa && window.VALLE_GEO && canvas) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
-    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null, route: routeSamples() });
+    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null, route: routeSamples(), follow: window.Seguir ? Seguir.vista() : null });
     const home = window.Hogar && S.me.municipio && Hogar.casa(S.me.municipio);
     $('#city-map-location').textContent = home ? ('Tu casa · ' + home.name + ' · ★ Tú') : ('Tu posición: ' + S.player.fx.toFixed(1) + ', ' + S.player.fy.toFixed(1) + ' · ★ Tú');
     return;
@@ -2752,7 +2791,7 @@ function goMine(){
  approach({kind:'node',n:e});
  game('Vamos a la mina de Las Palmas. Al llegar, entra y pica una veta.');
 }
-window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); }, partidaSnapshot, applyPartida,
+window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals(){return cityAnimals||S.animals;},get world(){return W;}, state:S, walkable, goTo, setRoute, followRoad, approach, advanceDialog, enterHouse, exitHouse, enterMine(){ if((W.mapId||'city')!=='mine') switchMap('mine'); }, askTravel, summonPersonalHorse, ensurePersonalHorse, rideHorseTo, goMine, damage: damagePlayer, markMap(x, y){ askMapSpot(x, y); }, partidaSnapshot, applyPartida,
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); },
  interact(id){if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},

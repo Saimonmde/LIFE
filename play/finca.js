@@ -111,7 +111,9 @@
       <p>${view.ripeningNote || ''}</p>
       <p>Esos kilos cosechados se suman y no bajan. El taller no crea kilos ni monedas.</p>
       <h3>Café, junto al cacao</h3>${list('cafe') || '<p>Sin parcelas.</p>'}
+      <div class="finca-actions"><button type="button" data-op="recoger" data-crop="cafe">Recoger café</button><button type="button" data-op="procesar" data-crop="cafe">Procesar café</button><button type="button" data-op="exportar" data-crop="cafe">Exportar café</button></div>
       <h3>Cacao, junto al café</h3>${list('cacao') || '<p>Sin parcelas.</p>'}
+      <div class="finca-actions"><button type="button" data-op="recoger" data-crop="cacao">Recoger cacao</button><button type="button" data-op="procesar" data-crop="cacao">Procesar cacao</button><button type="button" data-op="exportar" data-crop="cacao">Exportar cacao</button></div>
       ${workshop('cafe', 'Taller de café · despulpar, secar, trillar')}
       ${workshop('cacao', 'Taller de cacao · fermentar, secar')}
       <h3>En la mano</h3>
@@ -189,7 +191,7 @@
     if (message.t === 'finca') {
       if (message.view) view = message.view;
       if (message.error) say(message.error);
-      else if (message.ok && message.view) say('Listo.');
+      else if (message.ok && message.view) say(message.note || 'Listo.');
       paintFarm();
       paintDock();
       if (window.LIVE3D && LIVE3D.syncFinca) LIVE3D.syncFinca(view);
@@ -291,6 +293,12 @@
         buttons.push(`<button type="button" data-op="cosechar" data-plot="${esc(row.id)}">Cosechar<small>${name}</small></button>`);
       });
       if (ripe.length > 1) buttons.push('<button type="button" data-op="cosechar_todo">Cosechar todo</button>');
+      buttons.push('<button type="button" data-op="recoger" data-crop="cafe">Recoger café</button>');
+      buttons.push('<button type="button" data-op="procesar" data-crop="cafe">Procesar café</button>');
+      buttons.push('<button type="button" data-op="exportar" data-crop="cafe">Exportar café</button>');
+      buttons.push('<button type="button" data-op="recoger" data-crop="cacao">Recoger cacao</button>');
+      buttons.push('<button type="button" data-op="procesar" data-crop="cacao">Procesar cacao</button>');
+      buttons.push('<button type="button" data-op="exportar" data-crop="cacao">Exportar cacao</button>');
       const goods = view.goods || {};
       const batches = view.batches || {};
       [['cafe', 'café', goods.cafe_cereza], ['cacao', 'cacao', goods.cacao_baba]].forEach(([crop, name, have]) => {

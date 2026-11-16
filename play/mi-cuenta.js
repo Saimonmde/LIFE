@@ -40,6 +40,9 @@
     '<p id="mi-cuenta-finca"></p>',
     '<p id="mi-cuenta-favorito"></p>',
     '<p class="mi-cuenta-nota">Cambiar el nickname cuesta 5 Simoncoin, que se pagan al Banco Central. Simon está reservado.</p>',
+    '<label class="mi-cuenta-seguir"><input id="mi-cuenta-seguir" type="checkbox" checked> Pueden seguirme</label>',
+    '<h3>Amigos</h3><div id="mi-cuenta-amigos"></div>',
+    '<h3>Pedidos</h3><div id="mi-cuenta-pedidos"></div>',
     '<button type="button" id="mi-cuenta-guardar">Guardar ahora</button>',
     '<form id="mi-cuenta-clave">',
     '<label>Contraseña actual<input id="mi-cuenta-actual" type="password" autocomplete="current-password"></label>',
@@ -66,11 +69,76 @@
     $('mi-cuenta-hora').textContent = data.saved || 'Todavía no hay un guardado en la cuenta.';
     $('mi-cuenta-inv').textContent = 'Inventario: ' + inventario(data.inventory);
     const coins = data.coins || {};
-    $('mi-cuenta-monedas').textContent = 'Simoncoin: ' + texto(coins.simoncoinSmh) + ' SMH · Simonplata: ' + texto(coins.simonplataSph) + ' SPH · Simonchis: ' + texto(coins.simonchis);
+    const subs = window.Simulacion ? Simulacion.SUBS : 100;
+    const compact = (base, whole) => {
+      const value = Number(base) || 0;
+      if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
+      return texto(whole ? value : value / subs);
+    };
+    const total = coins.totalSmh != null ? coins.totalSmh : coins.simoncoinSmh;
+    const line = $('mi-cuenta-monedas');
+    line.textContent = 'Simoncoin: ' + compact(total, false) + ' SMC · Simonplata: ' + compact(coins.simonplataSph, false) + ' SMP · Simonchis: ' + compact(coins.simonchis, true);
+    const exactSmc = window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(total || 0) : (texto(total) + ' SMH');
+    const exactSmp = window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(coins.simonplataSph || 0) : (texto(coins.simonplataSph) + ' SPH');
+    line.title = exactSmc + ' · ' + exactSmp + ' · ' + texto(coins.simonchis) + ' Simonchis';
     $('mi-cuenta-finca').textContent = 'Finquita: ' + lista(data.crops, { cafe: 'Café', cacao: 'Cacao' }) + ' · Animales: ' + lista(data.animals, { gallo: 'Gallos', gallina: 'Gallinas' });
     $('mi-cuenta-favorito').textContent = 'Favorito: ' + (data.favoritePlace || 'sin lugar') + (data.favoriteWorld ? ' · Mundo ' + data.favoriteWorld : '');
     const google = $('mi-cuenta-google-btn');
     if (google) google.hidden = !!data.google;
+    const seguir = $('mi-cuenta-seguir');
+    if (seguir) seguir.checked = data.followable !== false;
+    pintarGente('mi-cuenta-amigos', data.amigos, false);
+    pintarGente('mi-cuenta-pedidos', data.pedidos, true);
+  }
+  function pintarGente(id, rows, pedido) {
+    const box = $(id);
+    if (!box) return;
+    box.replaceChildren();
+    if (!rows || !rows.length) {
+      const empty = document.createElement('p');
+      empty.textContent = pedido ? 'No hay pedidos.' : 'Todavía no hay amigos.';
+      box.append(empty);
+      return;
+    }
+    rows.forEach((row) => {
+      const line = document.createElement('p');
+      line.textContent = (row.nick || 'Viajero') + (row.online ? ' · en línea' : ' · fuera de línea');
+      if (row.online && window.Vida && Vida.presence) {
+        const live = (Vida.presence().players || []).find((item) => item.key === row.key);
+        if (live) {
+          const go = document.createElement('button');
+          go.type = 'button';
+          go.textContent = 'Ir con él';
+          go.onclick = () => {
+            const S = window.__ELJARDIN;
+            if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'ir_con', id: live.id }));
+          };
+          const follow = document.createElement('button');
+          follow.type = 'button';
+          follow.textContent = 'Seguir';
+          follow.onclick = () => { if (window.Seguir) Seguir.empezar(live); };
+          line.append(' ', go, ' ', follow);
+        }
+      }
+      if (pedido) {
+        const yes = document.createElement('button');
+        yes.type = 'button';
+        yes.textContent = 'Aceptar';
+        yes.onclick = () => {
+          const S = window.__ELJARDIN;
+          if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'amigo_aceptar', key: row.key }));
+        };
+        const no = document.createElement('button');
+        no.type = 'button';
+        no.textContent = 'Rechazar';
+        no.onclick = () => {
+          const S = window.__ELJARDIN;
+          if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'amigo_rechazar', key: row.key }));
+        };
+        line.append(' ', yes, ' ', no);
+      }
+      box.append(line);
+    });
   }
   async function abrir() {
     panel.hidden = false;
@@ -140,6 +208,22 @@
   };
   $('mi-cuenta-google-btn').onclick = () => {
     location.href = '/auth/google?vuelta=' + encodeURIComponent(vuelta());
+  };
+  $('mi-cuenta-seguir').onchange = async () => {
+    const on = $('mi-cuenta-seguir').checked;
+    estado('');
+    try {
+      const response = await fetch('/auth/seguir', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ on: on }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se guardó.');
+      estado(on ? 'Otras personas pueden seguirte.' : 'Nadie puede seguirte.');
+    } catch (error) {
+      estado(error.message);
+    }
   };
   $('mi-cuenta-lugar-btn').onclick = () => {
     cerrar();

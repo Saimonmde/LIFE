@@ -528,6 +528,48 @@ def harvest(state, config, account, plot_id, now):
     return {'kg': kg, 'totalKg': total, 'item': item, 'hash': digest, 'prev': prev}
 
 
+def harvest_crop(state, config, account, crop, now):
+    """Recoge el fruto maduro de un cultivo y lo deja en el inventario (los goods)."""
+    if crop not in CROPS:
+        raise FincaError('ese cultivo no está en Las Palmas')
+    box = _account(state, config, account)
+    ready = []
+    for plot_id, plot in box['plots'].items():
+        migrate_plot(plot, now, config)
+        if plot.get('crop') == crop and stage_of(plot, now, config) == 'maduro':
+            ready.append(plot_id)
+    fruto = 'café cereza' if crop == 'cafe' else 'cacao en baba'
+    if not ready:
+        raise FincaError(f'No hay {fruto} maduro para recoger.')
+    kilos = 0
+    for plot_id in ready:
+        kilos += harvest(state, config, account, plot_id, now)['kg']
+    return {'plots': ready, 'kg': kilos, 'note': f'Se recogieron {kilos} kg de {fruto}. Quedaron en el inventario.'}
+
+
+def export_crop(state, purse, config, account, crop, now):
+    """Vende los bultos de exportación por Simonplata ya existente. No acuña SMC."""
+    if crop not in CROPS:
+        raise FincaError('ese cultivo no está en Las Palmas')
+    bags = [
+        bag for bag in state['bags'].values()
+        if bag.get('owner') == account and bag.get('place') == 'mochila' and bag.get('crop') == crop
+    ]
+    if not bags:
+        name = 'café excelso' if crop == 'cafe' else 'cacao seco'
+        raise FincaError(f'No hay {name} en el inventario para exportar.')
+    done = []
+    for bag in list(bags):
+        result = sell(state, purse, config, account, bag['serial'], 'simonplata', now)
+        done.append({
+            'serial': bag['serial'],
+            'crop': crop,
+            'coin': 'simonplata',
+            'amount': int(result.get('amount') or 0),
+        })
+    return done
+
+
 def harvest_all(state, config, account, now):
     """Cosecha cada parcela madura. No crea kilos ni monedas."""
     box = _account(state, config, account)
@@ -832,6 +874,8 @@ def act(state, purse, config, account, op, args, now, present=True):
         return {'ok': False, 'error': 'Entra con tu cuenta para cultivar.', 'changed': False, 'movedCoins': False}
     moved = fund_buyer(state, purse, config) if purse else False
     changed = bool(moved)
+    exports = []
+    note = ''
     try:
         place = 'banco' if str(args.get('place') or '') == 'banco' else 'mochila'
         if account and op != 'procesar':
@@ -849,6 +893,15 @@ def act(state, purse, config, account, op, args, now, present=True):
         elif op == 'cosechar_todo':
             harvest_all(state, config, account, now)
             changed = True
+        elif op == 'recoger':
+            picked = harvest_crop(state, config, account, str(args.get('crop') or ''), now)
+            note = picked.get('note') or ''
+            changed = True
+        elif op == 'exportar':
+            exports = export_crop(state, purse, config, account, str(args.get('crop') or ''), now)
+            note = 'Se exportó por Simonplata. No se acuñó SMC.'
+            changed = True
+            moved = True
         elif op == 'procesar':
             process(state, config, account, str(args.get('crop') or ''), now)
             changed = True
@@ -865,6 +918,6 @@ def act(state, purse, config, account, op, args, now, present=True):
         else:
             return {'ok': False, 'error': 'esa acción no existe', 'changed': changed, 'movedCoins': moved}
     except FincaError as exc:
-        return {'ok': False, 'error': str(exc), 'changed': changed, 'movedCoins': moved, 'view': player_view(state, config, account, purse, now) if account else None}
+        return {'ok': False, 'error': str(exc), 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'view': player_view(state, config, account, purse, now) if account else None}
     view = player_view(state, config, account, purse, now) if account else None
-    return {'ok': True, 'error': '', 'changed': changed, 'movedCoins': moved, 'view': view}
+    return {'ok': True, 'error': '', 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'view': view}

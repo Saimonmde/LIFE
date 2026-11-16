@@ -57,6 +57,7 @@ def empty(pubkey_hex):
         'disclaimer': DISCLAIMER,
         'symbol': economy.SYMBOL,
         'maxSupply': economy.MAX_SUPPLY,
+        'smhPerSmc': economy.SMH_PER_SMC,
     }
 
 
@@ -84,6 +85,14 @@ def save(path, chain, new_ids):
     persist.save_reserved('libro_madre', path, chain, new_ids)
 
 
+def accounted_smh(chain, amount):
+    """Una cadena sin la bandera nueva sigue firmada en la escala de 100.000.000."""
+    amount = int(amount or 0)
+    if int((chain or {}).get('smhPerSmc') or 0) == economy.SMH_PER_SMC:
+        return amount
+    return economy._scale_old_smh(amount)
+
+
 def cupo_subs(chain):
     return max(0, MAX_SUBS - _emitido(chain))
 
@@ -92,7 +101,7 @@ def _emitido(chain):
     total = 0
     for block in chain.get('blocks') or []:
         if block.get('kind') in KINDS_MINT:
-            total += int(block.get('amountSmh') or 0)
+            total += accounted_smh(chain, block.get('amountSmh') or 0)
     return total
 
 
@@ -107,10 +116,10 @@ def balances(chain):
 
     for block in chain.get('blocks') or []:
         if block.get('kind') in (KIND_MOVE, KIND_TRADE):
-            add(block.get('from'), -int(block.get('amountSmh') or 0))
-            add(block.get('to'), int(block.get('amountSmh') or 0))
+            add(block.get('from'), -accounted_smh(chain, block.get('amountSmh') or 0))
+            add(block.get('to'), accounted_smh(chain, block.get('amountSmh') or 0))
         else:
-            add(block.get('owner'), int(block.get('amountSmh') or 0))
+            add(block.get('owner'), accounted_smh(chain, block.get('amountSmh') or 0))
     return got
 
 
@@ -362,7 +371,7 @@ def verificar(chain, pubkey_hex=None):
         if not ok:
             return False, f'{why} en {ident}'
         if record.get('kind') in KINDS_MINT:
-            total += int(record.get('amountSmh') or 0)
+            total += accounted_smh(chain, record.get('amountSmh') or 0)
         prev = record.get('hash')
     if total > MAX_SUBS:
         return False, 'la emisión supera 21.000.000 SMC'

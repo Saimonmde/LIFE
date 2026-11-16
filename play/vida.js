@@ -71,7 +71,7 @@
     const head = $('amigos-conteo');
     if (head) head.textContent = total + ' en línea · ' + mine + ' en tu mundo';
     const tab = $('mundo-tab');
-    if (tab) tab.textContent = 'Mundo ' + world() + ' · ' + mine + ' en línea';
+    if (tab) tab.textContent = 'Jugadores en línea · ' + mine;
     paintWorlds();
     paintPlayers();
   }
@@ -107,8 +107,10 @@
     for (const row of rows) {
       const line = document.createElement('div');
       line.className = 'mundo-jugador';
-      const text = document.createElement('p');
+      const text = document.createElement('button');
+      text.type = 'button';
       text.textContent = row.nick + ' · Mundo ' + row.world + ' · ' + lugarEnLinea(row);
+      text.onclick = () => { if (window.Ficha) Ficha.open(row); };
       const go = document.createElement('button');
       go.type = 'button';
       go.textContent = 'Ir con él';
@@ -298,7 +300,7 @@
     const tab = document.createElement('button');
     tab.id = 'mundo-tab';
     tab.type = 'button';
-    tab.textContent = 'Mundo ' + DEFAULT_WORLD + ' · 0 en línea';
+    tab.textContent = 'Jugadores en línea';
     tab.setAttribute('aria-expanded', 'false');
     tab.setAttribute('aria-controls', 'mundo-lista');
     const list = document.createElement('section');
@@ -608,6 +610,7 @@
 
   window.Vida = {
     allowsConnect, queueConnect, world, onNet, onLayout, openPoste, petPayload: petLocal, decorate: withColors, DEFAULT_WORLD,
+    presence() { return presence; },
     rememberFavorite(n) { favorite = Number(n) || null; paintWorlds(); },
   };
   loadCatalog();

@@ -46,7 +46,7 @@
     }
     const blocks = page.blocks || [];
     body.innerHTML = `<p class="madre-aviso">${esc(page.disclaimer || '')}</p>
-      <p>Altura ${page.height || 0} · emitidas <span class="smc">${esc(String(page.supply))}</span> · tope <span class="smc">${Number(page.maxSupply || 0).toLocaleString('es-CO')} SMC</span>. <span class="smc">1 SMC = 100.000.000 SMH</span>.</p>
+      <p>Altura ${page.height || 0} · emitidas <span class="smc">${esc(String(page.supply))}</span> · tope <span class="smc">${Number(page.maxSupply || 0).toLocaleString('es-CO')} SMC</span>. <span class="smc">1 SMC = 100 SMH</span>.</p>
       <button type="button" id="madre-verificar">Verificar la cadena</button>
       <p id="madre-estado" role="status"></p>
       ${blocks.map(card).join('') || '<p>Todavía no hay acuñaciones.</p>'}`;

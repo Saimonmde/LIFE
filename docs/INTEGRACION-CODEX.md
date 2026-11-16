@@ -20,7 +20,7 @@ Oferta, en enteros:
 {'smc': 0, 'smp': 0, 'cobre': 0, 'items': {'bolsa_cafe': 1, 'bolsa_cacao': 1}}
 ```
 
-`smc` son SMH (1 SMC = 100.000.000). `smp` son SPH. `cobre` son Simonchis enteras. `amountSmh` sigue siendo alias de `smc`.
+`smc` son SMH (1 SMC = 100). `smp` son SPH. `cobre` son Simonchis enteras. `amountSmh` sigue siendo alias de `smc`.
 
 WebSocket, sólo entre las dos conexiones:
 

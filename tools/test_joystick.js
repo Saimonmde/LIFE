@@ -22,7 +22,7 @@ assert.ok(world.includes('visualViewport'));
 assert.ok(world.includes('orientationchange'));
 assert.ok(world.includes('status.editorApi'));
 assert.ok(!world.includes('onlostpointercapture'));
-assert.ok(page.includes('unified3d.js?v=paso-fluido'));
+assert.ok(page.includes('unified3d.js?v=seguir-camina'));
 assert.ok(world.includes('phoneGfx()?1.5:2'));
 assert.ok(world.includes('shadowMap.enabled=!phoneGfx()'));
 assert.ok(!world.includes('Math.round(camera.position'));

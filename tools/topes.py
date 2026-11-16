@@ -14,6 +14,9 @@ Se reinicia a las 00:00 UTC, las 7:00 p. m. en Bogotá.
 """
 import os
 
+import economy as _eco
+
+# SPH por SMP. El oro usa economy.SMH_PER_SMC (100). No mezclar las dos escalas.
 SUBS = 100_000_000
 DAY = 86400
 RESET_LABEL = '7:00 p. m. Bogotá (00:00 UTC)'
@@ -81,7 +84,11 @@ def _int_env(name, default):
 
 
 def _smh(smc):
-    return int(round(float(smc) * SUBS))
+    return int(round(float(smc) * _eco.SMH_PER_SMC))
+
+
+def _sph(smp):
+    return int(round(float(smp) * SUBS))
 
 
 def rate(coin):
@@ -115,10 +122,10 @@ def simoncoin_daily_smh(age_seconds, play_seconds, quests):
 
 def simonplata_daily_sph(age_seconds, play_seconds, quests):
     days, hours, done = _growth(age_seconds, play_seconds, quests)
-    base = _smh(_float_env('MINT_SIMONPLATA_BASE_SMP', DEFAULT_SIMONPLATA_BASE))
-    age = _smh(_float_env('MINT_SIMONPLATA_AGE_SMP', DEFAULT_SIMONPLATA_AGE))
-    play = _smh(_float_env('MINT_SIMONPLATA_PLAY_SMP', DEFAULT_SIMONPLATA_PLAY))
-    quest = _smh(_float_env('MINT_SIMONPLATA_QUEST_SMP', DEFAULT_SIMONPLATA_QUEST))
+    base = _sph(_float_env('MINT_SIMONPLATA_BASE_SMP', DEFAULT_SIMONPLATA_BASE))
+    age = _sph(_float_env('MINT_SIMONPLATA_AGE_SMP', DEFAULT_SIMONPLATA_AGE))
+    play = _sph(_float_env('MINT_SIMONPLATA_PLAY_SMP', DEFAULT_SIMONPLATA_PLAY))
+    quest = _sph(_float_env('MINT_SIMONPLATA_QUEST_SMP', DEFAULT_SIMONPLATA_QUEST))
     return base + days * age + hours * play + done * quest
 
 
@@ -180,7 +187,7 @@ def _techo_simoncoin():
     days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
     hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
     quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
-    return simoncoin_daily_smh(days * DAY, hours * 3600, quests) / SUBS
+    return simoncoin_daily_smh(days * DAY, hours * 3600, quests) / _eco.SMH_PER_SMC
 
 
 def _techo_simonplata():
@@ -199,12 +206,12 @@ def siguiente(age_seconds, play_seconds, quests):
     max_days = _int_env('MINT_AGE_DAYS', DEFAULT_AGE_DAYS)
     max_hours = _int_env('MINT_PLAY_HOURS', DEFAULT_PLAY_HOURS)
     max_quests = _int_env('MINT_QUEST_CAP', DEFAULT_QUEST_CAP)
-    now_smc = simoncoin_daily_smh(age_seconds, play_seconds, quests) / SUBS
+    now_smc = simoncoin_daily_smh(age_seconds, play_seconds, quests) / _eco.SMH_PER_SMC
     now_smp = simonplata_daily_sph(age_seconds, play_seconds, quests) / SUBS
     steps = []
 
     def add(kind, wait, future_age, future_play, future_quests, when):
-        smc = simoncoin_daily_smh(future_age, future_play, future_quests) / SUBS - now_smc
+        smc = simoncoin_daily_smh(future_age, future_play, future_quests) / _eco.SMH_PER_SMC - now_smc
         smp = simonplata_daily_sph(future_age, future_play, future_quests) / SUBS - now_smp
         steps.append({
             'kind': kind,
@@ -254,7 +261,7 @@ def letrero(age_seconds=0, play_seconds=0, quests=0, now=None):
     oro = rate('simoncoin')
     plata_rate = rate('simonplata')
     cobre_rate = rate('simonchis')
-    oro_base = simoncoin_daily_smh(0, 0, 0) / SUBS
+    oro_base = simoncoin_daily_smh(0, 0, 0) / _eco.SMH_PER_SMC
     oro_top = _techo_simoncoin()
     plata_base = simonplata_daily_sph(0, 0, 0) / SUBS
     plata_top = _techo_simonplata()

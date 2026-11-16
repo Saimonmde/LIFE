@@ -60,6 +60,17 @@ html.movil #b-descansar,
     z-index: 36;
     border-radius: 16px 16px 0 0;
   }
+  body.in-game #hud-chat:not([hidden]) {
+    position: fixed !important;
+    top: auto !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: calc(132px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    max-height: min(46dvh, 420px) !important;
+    transform: none !important;
+    z-index: 56 !important;
+  }
   body.in-game #city-joystick,
   body.in-game #b-picar,
   body.in-game #b-acunar-pulgar,

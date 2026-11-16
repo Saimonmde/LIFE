@@ -34,7 +34,7 @@ No hay un sistema de muerte que tire la mochila. Si más adelante una caída sue
 
 ## Monedas acuñadas en el horno
 
-En el horno, «Acuñar monedas» crea objetos de la mochila (`moneda_cobre`, `moneda_plata`, `moneda_oro`) y lingotes. Esos objetos no son SMC y no pasan por el libro mayor. «Acreditar SMC» sigue siendo la única vía de la fundidora que emite SaiMonCoins, y sólo después de la prueba de trabajo y del tope del día: lo hace el servidor, con código `SMC-…` y la subunidad SMH (1 SMC = 100.000.000 SMH). Sin esa prueba el mineral no se gasta y no aparece saldo. La mochila de objetos se guarda en el navegador, igual que el resto del inventario.
+En el horno, «Acuñar monedas» crea objetos de la mochila (`moneda_cobre`, `moneda_plata`, `moneda_oro`) y lingotes. Esos objetos no son SMC y no pasan por el libro mayor. «Acreditar SMC» sigue siendo la única vía de la fundidora que emite SaiMonCoins, y sólo después de la prueba de trabajo y del tope del día: lo hace el servidor, con código `SMC-…` y la subunidad SMH (1 SMC = 100 SMH). Sin esa prueba el mineral no se gasta y no aparece saldo. La mochila de objetos se guarda en el navegador, igual que el resto del inventario.
 
 ## Turno de la cantera
 
