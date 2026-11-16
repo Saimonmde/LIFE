@@ -130,7 +130,9 @@
     const shown = quote(have, row, pieces);
     $('#acunar-tienes').textContent = `Tienes: ${num(shown.tienes)} ${row.metal}`;
     $('#acunar-alcanzan').textContent = `Con eso alcanzan: ${num(shown.alcanzan)} ${row.name}`;
-    $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.)`;
+    const supply = window.__ELJARDIN && __ELJARDIN.supply;
+    const copper = supply && supply.copperNote ? ' ' + supply.copperNote : '';
+    $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.).${copper}`;
     const ir = $('#acunar-ir');
     const corto = CORTO[coin] || 'metal';
     const falta = shown.gastas <= 0 ? textoFalta(shown.tienes, row.rate, corto) : '';

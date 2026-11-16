@@ -208,8 +208,8 @@
       if (n % subs === 0) return String(n / subs);
       return String(n / subs);
     };
-    $('#trade-smc').value = whole(o.smc, Simulacion.SUBS || 100000000);
-    $('#trade-smp').value = whole(o.smp, Simulacion.SUBS || 100000000);
+    $('#trade-smc').value = whole(o.smc, Simulacion.SUBS || 100);
+    $('#trade-smp').value = whole(o.smp, Simulacion.PLATA_SUBS || 100000000);
     $('#trade-cobre').value = String(o.cobre || 0);
     panel.querySelectorAll('[data-item]').forEach(input => {
       input.value = String((o.items && o.items[input.dataset.item]) || 0);

@@ -20,7 +20,7 @@ class CambioSimpleTests(unittest.TestCase):
         self.assertIn('Recibes 2 Simoncoin', quoted['texto'])
 
     def test_mineral_stops_when_the_stall_runs_out(self):
-        quoted = cambio.quote('mineral_cobre', 'simoncoin', 10, 10, puesto_smh=2_000_000)
+        quoted = cambio.quote('mineral_cobre', 'simoncoin', 10, 10, puesto_smh=2)
         self.assertEqual(quoted['das'], 2)
         self.assertEqual(quoted['maximo'], 2)
         self.assertIn('Das 2 de cobre', quoted['texto'])
@@ -33,12 +33,12 @@ class CambioSimpleTests(unittest.TestCase):
         self.assertFalse(same['ok'])
 
     def test_moving_a_mineral_keeps_the_same_total(self):
-        econ = {'wallets': {'puesto_frutas': 5_000_000, 'Ana': 1_000_000}}
+        econ = {'wallets': {'puesto_frutas': 5, 'Ana': 1}}
         before = sum(econ['wallets'].values())
         moved = cambio.mover_mineral(econ, 'Ana', 3)
-        self.assertEqual(moved, 3_000_000)
+        self.assertEqual(moved, 3)
         self.assertEqual(sum(econ['wallets'].values()), before)
-        self.assertEqual(econ['wallets']['Ana'], 4_000_000)
+        self.assertEqual(econ['wallets']['Ana'], 4)
         self.assertEqual(eco.MAX_SUPPLY, 21_000_000)
 
 

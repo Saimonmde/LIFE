@@ -31,14 +31,14 @@ class CompactTests(unittest.TestCase):
         self.assertEqual(eco.format_compact(0.5), '0,5')
 
     def test_balance_is_smc_not_the_raw_simonchi_count(self):
-        half = 50_000_000
-        hundreds = 500 * eco.SUBS
+        half = 50
+        hundreds = 500 * eco.SMH_PER_SMC
+        self.assertEqual(eco.SMH_PER_SMC, 100)
         self.assertEqual(eco.format_smc(half), '0,5 SMC')
-        self.assertNotIn('50.000.000 SMC', eco.format_smc(half))
-        self.assertEqual(eco.format_compact(half / eco.SUBS), '0,5')
+        self.assertEqual(eco.format_compact(half / eco.SMH_PER_SMC), '0,5')
         self.assertEqual(eco.format_smc(hundreds), '500 SMC')
-        self.assertEqual(eco.format_compact(hundreds / eco.SUBS), '500')
-        self.assertEqual(eco.format_smh(hundreds), '50.000.000.000 SMH')
+        self.assertEqual(eco.format_compact(hundreds / eco.SMH_PER_SMC), '500')
+        self.assertEqual(eco.format_smh(hundreds), '50.000 SMH')
         page = open(os.path.join(ROOT, 'play', 'simulacion.js'), encoding='utf-8').read()
         self.assertIn('function formatCompact', page)
         self.assertIn('holdingsSmh', page)
@@ -47,12 +47,12 @@ class CompactTests(unittest.TestCase):
 class RepairTests(unittest.TestCase):
     def test_only_impossible_balances_are_divided_and_logged(self):
         state = eco.empty_state()
-        state['wallets']['Ana'] = 12 * eco.SUBS
-        state['wallets']['Luz'] = 3 * eco.SUBS * eco.SUBS
+        state['wallets']['Ana'] = 12 * eco.SMH_PER_SMC
+        state['wallets']['Luz'] = eco.MAX_SMH * eco.SMH_PER_SMC
         lines = []
         eco.repair_balances(state, log=lines.append)
-        self.assertEqual(state['wallets']['Ana'], 12 * eco.SUBS)
-        self.assertEqual(state['wallets']['Luz'], 3 * eco.SUBS)
+        self.assertEqual(state['wallets']['Ana'], 12 * eco.SMH_PER_SMC)
+        self.assertEqual(state['wallets']['Luz'], eco.MAX_SMH)
         self.assertEqual(state['wallets']['tesoro_genesis'], eco.TREASURY_SMH)
         self.assertTrue(any('Luz' in line and 'antes' in line and 'después' in line for line in lines))
         self.assertFalse(any('Ana' in line for line in lines))
@@ -84,6 +84,36 @@ class MintTests(unittest.TestCase):
         self.assertLessEqual(state['minedSmh'] + eco.TREASURY_SMH, eco.MAX_SMH)
 
 
+class DenominationTests(unittest.TestCase):
+    def test_old_smh_converts_once_and_repair_does_not_divide_again(self):
+        state = eco.empty_state()
+        state.pop('meta', None)
+        state['wallets']['Ana'] = 500 * 100_000_000
+        state['plata'] = {'wallets': {'Ana': 5 * 100_000_000}, 'smcPoolSmh': 2 * 100_000_000, 'minedSph': 9}
+        lines = []
+        self.assertTrue(eco.migrate_denomination(state, log=lines.append))
+        self.assertEqual(state['wallets']['Ana'], 500 * eco.SMH_PER_SMC)
+        self.assertEqual(state['plata']['wallets']['Ana'], 5 * 100_000_000)
+        self.assertEqual(state['plata']['minedSph'], 9)
+        self.assertEqual(state['plata']['smcPoolSmh'], 200)
+        self.assertTrue(any('Ana' in line and 'antes' in line and 'después' in line for line in lines))
+        eco.repair_balances(state, log=lines.append)
+        self.assertEqual(state['wallets']['Ana'], 500 * 100)
+        state['meta'].pop('denomJustMigrated', None)
+        eco.repair_balances(state, log=lines.append)
+        self.assertEqual(state['wallets']['Ana'], 500 * 100)
+        self.assertFalse(eco.migrate_denomination(state, log=lines.append))
+        self.assertEqual(state['wallets']['Ana'], 500 * 100)
+        box = vault.empty()
+        vault.account(box, 'Ana')['smh'] = 500 * 100_000_000
+        vault.account(box, 'Ana')['smcSubs'] = 500 * 100_000_000
+        vault.account(box, 'Ana')['sph'] = 3 * 100_000_000
+        self.assertTrue(eco.migrate_vault_smc(state, box, log=lines.append))
+        self.assertEqual(box['accounts']['Ana']['smh'], 500 * 100)
+        self.assertEqual(box['accounts']['Ana']['sph'], 3 * 100_000_000)
+        self.assertFalse(eco.migrate_vault_smc(state, box, log=lines.append))
+
+
 class MineLimitTests(unittest.TestCase):
     def test_daily_limit_is_loose_and_configurable_without_duplicating(self):
         self.assertGreaterEqual(sup.enforced_daily_smh(0, 0, 0), 50 * eco.SUBS)
@@ -112,6 +142,22 @@ class MineLimitTests(unittest.TestCase):
         self.assertFalse(again['ok'])
         self.assertEqual(again['reason'], 'replay')
         self.assertEqual(first['smh'], min(eco.SUBS, sup.enforced_daily_smh(0, 0, 0)))
+        self.assertEqual(sup.GOLD_DAILY_SMC, 50)
+        self.assertEqual(sup.COPPER_DAILY_SMC, 150)
+        self.assertEqual(sup.copper_daily_smh(), 150 * eco.SMH_PER_SMC)
+        copper_open = sup.open_challenge(state, who, 'mint_cobre', 'cobre', now=3_000)
+        self.assertTrue(copper_open['ok'], copper_open.get('reason'))
+        copper_proof = dict(copper_open['challenge'])
+        copper_proof['nonce'] = sup.search_nonce(copper_proof['payload'], copper_proof['bits'])
+        copper = sup.redeem(state, who, 'mint_cobre', 'cobre', copper_proof, now=3_001, kind='copper')
+        self.assertTrue(copper['ok'], copper.get('reason'))
+        self.assertEqual(copper['smh'], 150 * eco.SMH_PER_SMC)
+        blocked = sup.redeem(state, who, 'mint_cobre', 'cobre', copper_proof, now=3_002, kind='copper')
+        self.assertEqual(blocked.get('reason'), 'replay')
+        page = open(os.path.join(ROOT, 'docs', 'economia-smc.md'), encoding='utf-8').read()
+        self.assertIn('COPPER_DAILY_SMC = 150', page)
+        self.assertIn('1 SMC = 100', page)
+        self.assertIn('Oro agotado: mina cobre, hasta 150 SMC hoy', open(os.path.join(ROOT, 'tools', 'supply.py'), encoding='utf-8').read())
 
 
 class TransferTests(unittest.TestCase):

@@ -69,7 +69,7 @@
     $('mi-cuenta-hora').textContent = data.saved || 'Todavía no hay un guardado en la cuenta.';
     $('mi-cuenta-inv').textContent = 'Inventario: ' + inventario(data.inventory);
     const coins = data.coins || {};
-    const subs = window.Simulacion ? Simulacion.SUBS : 100000000;
+    const subs = window.Simulacion ? Simulacion.SUBS : 100;
     const compact = (base, whole) => {
       const value = Number(base) || 0;
       if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);

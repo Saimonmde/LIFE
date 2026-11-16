@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Plata (SMP): segunda moneda del libro, con tope fijo y cambio hacia SMC.
 
-1 SMP = 100.000.000 platicas (SPH), el mismo corte que 1 SMC = 100.000.000 SMH.
+1 SMP = 100.000.000 platicas (SPH). El SMC ya no usa esa escala: 1 SMC = 100 SMH.
 Todo el libro se guarda en enteros. No hay premine ni reserva inicial.
 
 El tope es 84.000.000 SMP, cuatro veces el de SMC. Cabe en un entero exacto
@@ -22,7 +22,7 @@ import economy as eco
 import supply as sup
 import topes as TOPES
 
-SUBS = eco.SUBS
+SUBS = 100_000_000  # SPH por SMP. No sigue a economy.SMH_PER_SMC.
 MAX_SUPPLY = 84_000_000
 MAX_SPH = MAX_SUPPLY * SUBS
 HALVING_MINED = 42_000_000
@@ -35,7 +35,8 @@ UNIT = 'Plata'
 BASE_NAME = 'platica'
 POOL = 'fondo_cambio'
 POOL_DEN = 5
-RATE_SPH_PER_SMH = 100
+# 100 SMP siguen siendo 1 SMC. Con la escala nueva, cada SMH cuesta más platicas.
+RATE_SPH_PER_SMH = (100 * SUBS) // eco.SMH_PER_SMC
 EXCHANGE_DEN = 5
 NETWORK_OUT_DEN = 2
 ACCOUNT_SLICE_DEN = 10

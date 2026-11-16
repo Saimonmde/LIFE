@@ -114,6 +114,10 @@ def save_nft():
 def save_vault():
     VAULT.save(VAULT_PATH, VAULT_STATE)
 
+if ECO.migrate_vault_smc(ECON, VAULT_STATE, log=print):
+    save_econ()
+    save_vault()
+
 def save_play():
     PLAY.save(PLAY_PATH, PLAYERS)
 
@@ -267,6 +271,11 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     view = SUP.public_view(ECON, profile)
     if who:
         view['owedSubs'] = int((ECON.get('questOwed') or {}).get(who) or 0)
+    view['copperDailySmc'] = SUP.COPPER_DAILY_SMC
+    rivers_rest = bool(GOLD_NODES) and all(time.time() < NODE_READY.get(n.get('id'), 0) for n in GOLD_NODES)
+    gold_done = bool(profile and profile.get('account') and int(view.get('remainingSubs') or 0) <= 0)
+    view['copperOpen'] = rivers_rest or gold_done
+    view['copperNote'] = SUP.COPPER_NOTE if view['copperOpen'] else ''
     m['supply'] = view
     plata_profile = dict(profile or {})
     if who and not locked:
@@ -473,7 +482,7 @@ def fail_claim(sender, code, channel='system'):
         send(sender, {'t': 'system', 'text': text})
     return {'ok': False, 'reason': code, 'smh': 0}
 
-def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False):
+def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False, kind='gold'):
     if getattr(sender, 'bot', False):
         return fail_claim(sender, 'guest', channel='acunar' if action == 'acunar' else ('smelt' if action == 'fundicion' else 'system'))
     if not getattr(sender, 'wallet_ok', False):
@@ -488,7 +497,7 @@ def take_proof(sender, action, context, proof, resume, want_smh=None, exact=Fals
         result = SUP.redeem(
             ECON, profile, action, context, proof,
             want_smh=want_smh, room_smh=room_smh, exact=exact, counts_as_mint=counts_as_mint,
-            pay_request=pay_request,
+            pay_request=pay_request, kind=kind,
         )
         save_econ()
         if not result.get('ok'):
@@ -551,6 +560,50 @@ def emitir(sender, smh, note, kind, foundry, tile, location):
     save_econ()
     broadcast_econ()
     return granted, token, pub
+
+def oro_agotado(sender=None):
+    """El río no da más oro: el cupo de oro de hoy se acabó, o todas las vetas están en descanso."""
+    profile = account_profile(sender) if sender is not None else {}
+    try:
+        view = SUP.public_view(ECON, profile)
+    except Exception:
+        view = {}
+    if int(view.get('remainingSubs') or 0) <= 0 and profile.get('account'):
+        return True
+    if GOLD_NODES and all(time.time() < NODE_READY.get(n.get('id'), 0) for n in GOLD_NODES):
+        return True
+    return False
+
+
+def nota_cobre(sender=None):
+    if not oro_agotado(sender):
+        return ''
+    return SUP.COPPER_NOTE
+
+
+def mint_cobre_for(sender, proof=None):
+    """El cobre paga SMC sólo cuando el oro del río ya no da. El tope es COPPER_DAILY_SMC."""
+    if getattr(sender, 'zone', '') != 'mine':
+        return send(sender, {'t': 'system', 'text': 'El cobre se pica en la mina. El oro sigue saliendo sólo del río.'})
+    if not oro_agotado(sender):
+        return send(sender, {'t': 'system', 'text': 'El oro del río todavía da SMC. El cobre paga SMC cuando ese oro se agota.'})
+    if not getattr(sender, 'wallet_ok', False):
+        return send(sender, {'t': 'system', 'text': 'Esta billetera se creó en otro aparato. Puedes picar, pero no recibir SMC.'})
+    result = take_proof(
+        sender, 'mint_cobre', 'cobre', proof, {'t': 'mint_cobre'},
+        want_smh=SUP.copper_daily_smh(), kind='copper',
+    )
+    if not result.get('ok'):
+        return
+    granted, _token, _pub = emitir(
+        sender, result['smh'], 'Emisión por cobre cuando el oro del río no da más', 'mint',
+        'mina', 'cobre', 'Mina de cobre',
+    )
+    if granted <= 0:
+        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
+    send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)} con cobre. {SUP.COPPER_NOTE}'})
+    send(sender, {'t': 'issued', 'amountSmh': int(getattr(sender, 'kept_smh', granted) or 0), 'mintedSmh': granted, 'kind': 'mint_cobre', 'amountText': ECO.format_pair(int(getattr(sender, 'kept_smh', granted) or 0)), 'supply': result.get('view')})
+
 
 def mint_for(sender, node_id, proof=None):
     if not getattr(sender, 'wallet_ok', False):
@@ -1054,6 +1107,9 @@ def swing_for(sender, mineral, qty=1):
     send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0, 'qty': int(qty or 1),
                   'note': 'El mineral quedó en tu cuenta. Las monedas se acuñan en el horno, con el tope del día.'})
     _avisar_crudo(sender, item)
+    if mineral == 'cobre' and oro_agotado(sender):
+        send(sender, {'t': 'system', 'text': SUP.COPPER_NOTE})
+        mint_cobre_for(sender)
 
 def lavar_for(sender, qty=1):
     """La batea acredita pepitas. Como mucho una por lavada."""
@@ -1618,7 +1674,7 @@ def chat(sender, channel, text):
             try:
                 smh = ECO.parse_amount(monto_s)
             except ECO.AmountError:
-                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC (hasta 8 decimales) o SMH enteros.'})
+                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC (hasta 2 decimales) o SMH enteros.'})
             return pagar(sender, dest, smh)
         arg = clean(rest, 24)
         if cmd == 'grupo':
@@ -2220,6 +2276,8 @@ def handle_client_message(c, m, t):
             chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
     elif t == 'mint' and c.hello:
         mint_for(c, clean(m.get('node'), 40), m.get('proof'))
+    elif t == 'mint_cobre' and c.hello:
+        mint_cobre_for(c, m.get('proof'))
     elif t == 'mint_plata' and c.hello:
         mint_plata(c, m.get('proof'))
     elif t == 'cambio_simple' and c.hello:
@@ -2265,6 +2323,9 @@ def handle_client_message(c, m, t):
         item = str(m.get('item') or '')
         if recibir(c, item, m.get('qty'), m.get('kind') or 'recoger'):
             send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0)})
+            if item == 'mineral_cobre' and oro_agotado(c):
+                send(c, {'t': 'system', 'text': SUP.COPPER_NOTE})
+                mint_cobre_for(c)
     elif t == 'mochila_op' and c.hello:
         mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:

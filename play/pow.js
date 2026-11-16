@@ -102,7 +102,7 @@
     if (!box || !input || !window.Simulacion || !Simulacion.parsePlata) return;
     let sph = 0;
     try { sph = Simulacion.parsePlata(input.value); } catch (e) { sph = 0; }
-    const nominal = Math.floor((Number(sph) || 0) / 100);
+    const nominal = Math.floor((Number(sph) || 0) / 100000000);
     const left = plataView && plataView.exchangeLeftSmh != null ? Number(plataView.exchangeLeftSmh) : nominal;
     const capped = Math.max(0, Math.min(nominal, left));
     const state = exchangeState(plataView);
@@ -110,9 +110,9 @@
     const daily = plataView && !plataView.guest ? money(plataView.exchangeLeftSmh || 0) : 'nada';
     let line;
     if (state.code === 'pool') line = POOL_MSG;
-    else if (nominal <= 0) line = 'Hacen falta 100 SMP (100.000.000 SPH) para recibir 0,00000001 SMC.';
-    else if (capped < nominal) line = `Pagas ${plataMoney(capped * 100)}. Recibes ${money(capped)}. A 100 SMP = 1 SMC serían ${money(nominal)}, pero hoy te quedan ${daily}.`;
-    else line = `Pagas ${plataMoney(nominal * 100)}. Recibes ${money(nominal)}.`;
+    else if (nominal <= 0) line = 'Hacen falta 100 SMP (10.000.000.000 SPH) para recibir 1 SMC.';
+    else if (capped < nominal) line = `Pagas ${plataMoney(capped * 100000000)}. Recibes ${money(capped)}. A 100 SMP = 1 SMC serían ${money(nominal)}, pero hoy te quedan ${daily}.`;
+    else line = `Pagas ${plataMoney(nominal * 100000000)}. Recibes ${money(nominal)}.`;
     box.textContent = `${line} Fondo: ${state.code === 'pool' ? 'vacío' : fund}. Tope de cambio que te queda hoy: ${daily}.`;
     const buttons = ['#pow-cambiar', '#pow-cambiar-max', '#banco-cambiar'];
     buttons.forEach((sel) => {

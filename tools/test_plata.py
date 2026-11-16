@@ -59,7 +59,7 @@ class PlataTests(unittest.TestCase):
         full = plata.daily_cap_sph(60 * sup.DAY, 40 * 3600, 10)
         self.assertEqual(full, 125 * plata.SUBS)
         self.assertEqual(plata.exchange_cap_smh(0, 0, 0), sup.BASE_DAILY_SMH // 5)
-        self.assertEqual(plata.exchange_cap_smh(60 * sup.DAY, 40 * 3600, 10), 625_000_000 // 5)
+        self.assertEqual(plata.exchange_cap_smh(60 * sup.DAY, 40 * 3600, 10), 625 // 5)
 
     def test_old_smc_balances_stay_and_admin_is_ignored(self):
         state = eco.empty_state()

@@ -37,7 +37,7 @@
       simonplata = (S.plata && S.plata.balanceSph) || 0;
       simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
-    const subs = window.Simulacion ? Simulacion.SUBS : 100000000;
+    const subs = window.Simulacion ? Simulacion.SUBS : 100;
     const compact = (base, whole) => {
       const value = Number(base) || 0;
       if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);

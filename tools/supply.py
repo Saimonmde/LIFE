@@ -131,9 +131,19 @@ def _env_number(name, default):
         return float(default)
 
 
+COPPER_DAILY_SMC = 150
+GOLD_DAILY_SMC = 50
+COPPER_NOTE = 'Oro agotado: mina cobre, hasta 150 SMC hoy'
+
+
+def copper_daily_smh():
+    """Tope de SMC que el cobre puede pagar cuando el oro del río no da más."""
+    return int(COPPER_DAILY_SMC * eco.SMH_PER_SMC)
+
+
 def loose_daily_smc():
     """Piso holgado del día, en SMC. MINE_DAILY_SMC lo cambia sin tocar la fórmula."""
-    value = _env_number('MINE_DAILY_SMC', 50)
+    value = _env_number('MINE_DAILY_SMC', GOLD_DAILY_SMC)
     return value if value > 0 else 0.0
 
 
@@ -214,8 +224,10 @@ def _account(box, account, now):
     if int(acc.get('epoch') or -1) != epoch:
         acc['epoch'] = epoch
         acc['earned'] = 0
+        acc['copperEarned'] = 0
         acc['proofs'] = 0
     acc.setdefault('earned', 0)
+    acc.setdefault('copperEarned', 0)
     acc.setdefault('proofs', 0)
     acc.setdefault('lastClaim', 0)
     acc.setdefault('challenges', [])
@@ -468,7 +480,7 @@ def _read_proof(proof):
         return None
 
 
-def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None, pay_request=False):
+def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None, pay_request=False, kind='gold'):
     """Verifica la prueba y reserva los SMH que caben. No escribe la billetera."""
     ensure(state, now=now)
     now = int(now if now is not None else time.time())
@@ -515,21 +527,29 @@ def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None,
         _pause(box, acc, row, now, profile['account'], profile['ip'], 'rate')
         return {'ok': False, 'reason': 'rate', 'smh': 0, 'view': _view(state, profile, now)}
     reward = _era_reward(state)
-    cap = enforced_daily_smh(profile['age'], profile['play'], profile['quests'])
-    earned = int(acc.get('earned') or 0)
-    personal_left = max(0, cap - earned)
-    diminished = personal_left if pay_request else _diminished(reward, int(acc.get('proofs') or 0))
     room = eco.issuance_room(state) if room_smh is None else max(0, int(room_smh))
-    grant = min(diminished, personal_left, room)
-    if counts_as_mint and not pay_request:
-        epoch_left = max(0, _ceiling(reward) - int(box.get('epochSubs') or 0))
-        grant = min(grant, epoch_left)
-    if want_smh is not None:
-        grant = min(grant, max(0, int(want_smh)))
+    if kind == 'copper':
+        cap = copper_daily_smh()
+        earned = int(acc.get('copperEarned') or 0)
+        personal_left = max(0, cap - earned)
+        grant = min(personal_left, room)
+        if want_smh is not None:
+            grant = min(grant, max(0, int(want_smh)))
+    else:
+        cap = enforced_daily_smh(profile['age'], profile['play'], profile['quests'])
+        earned = int(acc.get('earned') or 0)
+        personal_left = max(0, cap - earned)
+        diminished = personal_left if pay_request else _diminished(reward, int(acc.get('proofs') or 0))
+        grant = min(diminished, personal_left, room)
+        if counts_as_mint and not pay_request:
+            epoch_left = max(0, _ceiling(reward) - int(box.get('epochSubs') or 0))
+            grant = min(grant, epoch_left)
+        if want_smh is not None:
+            grant = min(grant, max(0, int(want_smh)))
     if grant <= 0:
         if room <= 0:
             code = 'supply'
-        elif counts_as_mint and _ceiling(reward) - int(box.get('epochSubs') or 0) <= 0:
+        elif kind != 'copper' and counts_as_mint and not pay_request and _ceiling(reward) - int(box.get('epochSubs') or 0) <= 0:
             code = 'ceiling'
         else:
             code = 'cap'
@@ -537,7 +557,10 @@ def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None,
     if exact and want_smh is not None and grant < int(want_smh):
         return {'ok': False, 'reason': 'partial', 'smh': 0, 'view': view}
     box.setdefault('used', {})[parsed['id']] = parsed['exp']
-    acc['earned'] = earned + grant
+    if kind == 'copper':
+        acc['copperEarned'] = earned + grant
+    else:
+        acc['earned'] = earned + grant
     acc['proofs'] = int(acc.get('proofs') or 0) + 1
     acc['lastClaim'] = now
     acc.setdefault('claims', []).append(now)

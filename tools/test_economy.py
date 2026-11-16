@@ -28,9 +28,10 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual(eco.reward_sai(21_000_000), 0)
         self.assertEqual(eco.reward_smh(0), eco.SUBS)
         self.assertEqual(eco.reward_smh(eco.HALVING_SMH), eco.SUBS // 2)
-        self.assertEqual(eco.SUBS, 100_000_000)
+        self.assertEqual(eco.SMH_PER_SMC, 100)
+        self.assertEqual(eco.SUBS, 100)
         self.assertEqual(eco.MAX_SUPPLY, 21_000_000)
-        self.assertEqual(eco.MAX_SMH, 2_100_000_000_000_000)
+        self.assertEqual(eco.MAX_SMH, 2_100_000_000)
 
     def test_chain_and_payment(self):
         st = eco.empty_state()
@@ -102,15 +103,16 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual(st['migrations']['Beto']['requested'], eco.smc_to_smh(9))
 
     def test_simonchis_are_exact_integers(self):
-        self.assertEqual(eco.parse_amount('0.00012345'), 12_345)
-        self.assertEqual(eco.parse_amount('0,00012345 SMC'), 12_345)
+        self.assertEqual(eco.parse_amount('1.5'), 150)
+        self.assertEqual(eco.parse_amount('0,5 SMC'), 50)
         self.assertEqual(eco.parse_amount('12.345 SMH'), 12_345)
         self.assertEqual(eco.parse_amount('12,345 SMH'), 12_345)
-        self.assertEqual(eco.format_pair(12_345), '0,00012345 SMC = 12.345 SMH')
+        self.assertEqual(eco.format_pair(50), '0,5 SMC = 50 SMH')
+        self.assertEqual(eco.format_pair(12_345), '123,45 SMC = 12.345 SMH')
         self.assertEqual(sum(eco.parse_amount('0.1') for _ in range(10)), eco.parse_amount('1'))
         self.assertEqual(eco.parse_amount('1') + eco.parse_amount('0'), eco.SUBS)
         with self.assertRaises(eco.AmountError):
-            eco.parse_amount('0.000000001')
+            eco.parse_amount('0.001')
         with self.assertRaises(eco.AmountError):
             eco.parse_amount('1.5 SMH')
         old = eco.empty_state()
