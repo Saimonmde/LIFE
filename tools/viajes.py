@@ -110,6 +110,23 @@ def resolve(world, dest_id):
     return {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind']}
 
 
+def mine_stand(world):
+    """Casilla caminable frente a la entrada de la mina, junto a Las Palmas."""
+    palmas = next((item for item in world.get('waypoints') or [] if item.get('id') == 'las_palmas'), None)
+    if not palmas:
+        raise ViajeError('no hay mina')
+    px, py = int(palmas['x']), int(palmas['y'])
+    for ring in range(2, 12):
+        for dy in range(-ring, ring + 1):
+            for dx in range(-ring, ring + 1):
+                if max(abs(dx), abs(dy)) != ring:
+                    continue
+                x, y = px + dx, py + dy
+                if walkable(world, x, y) and walkable(world, x, y + 1):
+                    return {'id': 'mina', 'name': 'Mina de Las Palmas', 'x': x, 'y': y + 1}
+    raise ViajeError('no hay acceso a la mina')
+
+
 def step_allowed(step, dt):
     """Un paso de a pie o a caballo cabe. Un salto de decenas de casillas, no."""
     step = abs(float(step or 0))

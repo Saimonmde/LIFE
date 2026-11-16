@@ -710,7 +710,7 @@ function setupMiningUI(){
  const modes=document.createElement('div');modes.id='bag-modes';modes.innerHTML='<button id="bag-summary" type="button">Resumen 4×6</button><button id="bag-full" type="button">Completo</button>';$('#w-inv header').append(modes);$('#bag-summary').onclick=()=>setBagMode('summary');$('#bag-full').onclick=()=>setBagMode('full');
  const pages=document.createElement('nav');pages.id='bag-pages';pages.setAttribute('aria-label','Páginas del inventario resumido');pages.innerHTML='<button type="button" id="bag-prev" aria-label="Página anterior del inventario">‹</button><span id="bag-page-label"></span><button type="button" id="bag-next" aria-label="Página siguiente del inventario">›</button>';$('#inventario').after(pages);$('#bag-prev').onclick=()=>{bagPage=Math.max(0,bagPage-1);renderInv();};$('#bag-next').onclick=()=>{bagPage=Math.min(Math.ceil(SLOTS/24)-1,bagPage+1);renderInv();};
  setupBagForge();updateBagMode();renderInv();
- const guide=document.createElement('button');guide.id='mine-route';guide.textContent='⛏ Cantera y horno';guide.className='hud';guide.onclick=()=>{if(W.mapId==='casa'){game('Sal de tu casa para ir a la mina.','aviso');return;}if(started&&W.mapId!=='mine'){const e=S.nodes.get('entrada_mina_palmas');if(e)return approach({kind:'node',n:e});}const d=W.waypoints.find(w=>w.id===(W.mapId==='mine'?'horno':'cantera'));if(started&&d)goTo(d.x,d.y);};document.body.append(guide);
+ const guide=document.createElement('button');guide.id='mine-route';guide.textContent='Ir a la mina';guide.className='hud';guide.onclick=()=>irALaMina();document.body.append(guide);
  const enter=document.createElement('button');enter.id='mine-enter';enter.className='hud';enter.type='button';enter.hidden=true;enter.textContent='⛏ Entrar a la mina';enter.onclick=()=>{const e=S.nodes.get('entrada_mina_palmas');if(started&&W.mapId!=='mine'&&e)approach({kind:'node',n:e});};document.body.append(enter);
  const exit=document.createElement('button');exit.id='mine-exit-route';exit.className='hud';exit.textContent='↗ Salir a Las Palmas';exit.onclick=()=>{if(started&&W.mapId==='mine')approach({kind:'node',n:S.nodes.get('salida_mina')});};document.body.append(exit);
 }
@@ -1646,6 +1646,11 @@ function fillMapPlaces() {
   const row = $('#city-map-muni');
   if (!row || !window.VALLE_GEO) return;
   row.replaceChildren();
+  const mina = document.createElement('button');
+  mina.type = 'button';
+  mina.textContent = 'Ir a la mina';
+  mina.onclick = (ev) => { ev.stopPropagation(); irALaMina(); };
+  row.append(mina);
   for (const park of VALLE_GEO.parques || []) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -2408,7 +2413,7 @@ function drawCityMap() {
   if (window.ValleMapa && window.VALLE_GEO && canvas) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
-    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy } });
+    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null });
     const home = window.Hogar && S.me.municipio && Hogar.casa(S.me.municipio);
     $('#city-map-location').textContent = home ? ('Tu casa · ' + home.name + ' · ★ Tú') : ('Tu posición: ' + S.player.fx.toFixed(1) + ', ' + S.player.fy.toFixed(1) + ' · ★ Tú');
     return;
@@ -2551,6 +2556,22 @@ function rideHorseTo(place){
  if((W.mapId||'city')==='casa')exitHouse();
  else if((W.mapId||'city')!=='city')switchMap('city');
  mountAndGo(place.x,place.y);
+}
+function irALaMina() {
+  if (!started) {
+    const where = $('#city-map-location');
+    if (where) where.textContent = 'Entra al mundo para ir a la mina.';
+    return;
+  }
+  closeCityMap();
+  if ((W.mapId || 'city') === 'mine') { game('Ya estás en la mina. Toca una veta con la pica.', 'juego'); return; }
+  if ((W.mapId || 'city') === 'casa') exitHouse();
+  if ((W.mapId || 'city') !== 'city') switchMap('city');
+  const e = W.mineEntrance;
+  if (S.mounted && e) { mountAndGo(e.x, e.y + 1); return; }
+  if (S.net.ok && S.net.ws) { S.net.ws.send(JSON.stringify({ t: 'ir_mina' })); return; }
+  if (e) placeAtTown({ x: e.x, y: e.y + 1 });
+  game('Llegaste a la entrada de la mina.', 'juego');
 }
 function goMine(){
  if(!started)return;
