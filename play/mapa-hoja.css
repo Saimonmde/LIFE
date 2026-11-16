@@ -23,6 +23,13 @@ body:not(.in-game) #hud-mapa {
   max-height: min(42dvh, 360px);
   flex: 0 1 auto;
 }
+#mine-route {
+  min-height: 48px;
+  min-width: 148px;
+  padding: 10px 14px;
+  font: 800 16px/1.2 system-ui, sans-serif;
+  z-index: 46;
+}
 #city-map-muni button {
   min-height: 48px;
   width: 100%;

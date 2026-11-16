@@ -135,6 +135,22 @@
     ctx.fillText('S', canvas.width / 2, canvas.height - 10);
     ctx.fillText('OC', 18, canvas.height / 2);
     ctx.fillText('OR', canvas.width - 18, canvas.height / 2);
+    if (opts.mine && opts.player && world) {
+      const [plat, plon] = playerLatLon(opts.player.x, opts.player.y, world);
+      const [mlat, mlon] = latlonOfTile(opts.mine.x, opts.mine.y, world);
+      const [px, py] = xy(frame, plat, plon);
+      const [mx, my] = xy(frame, mlat, mlon);
+      ctx.strokeStyle = '#ffc93c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(mx, my);
+      ctx.stroke();
+      ctx.fillStyle = '#ffc93c';
+      ctx.font = '700 14px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Mina', mx + 8, my);
+    }
     if (opts.player && world) {
       const [lat, lon] = playerLatLon(opts.player.x, opts.player.y, world);
       const [x, y] = xy(frame, lat, lon);

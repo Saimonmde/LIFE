@@ -1939,6 +1939,19 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'system', 'text': 'Ese nombre ya tiene una billetera SMC en otro aparato. Puedes entrar, pero no gastar ni emitir esas monedas.'})
     elif t == 'travel' and c.hello:
         travel_for(c, m.get('id'))
+    elif t == 'ir_mina' and c.hello:
+        try:
+            dest = VIAJES.mine_stand(WORLD)
+        except VIAJES.ViajeError as exc:
+            send(c, {'t': 'travel_result', 'ok': False, 'reason': str(exc)})
+        else:
+            old_world, old_place = c.world, getattr(c, 'place', 'valle')
+            c.zone = 'city'
+            c.x, c.y = float(dest['x']), float(dest['y'])
+            c.moving = False
+            c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
+            room_shift(c, old_world, old_place)
+            send(c, {'t': 'travel_result', 'ok': True, 'id': 'mina', 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
