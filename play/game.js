@@ -1229,6 +1229,24 @@ function chatLine(m, mine) {
 function bubble(id, text) { S.bubbles.set(id, { text: text.length > 60 ? text.slice(0, 58) + '…' : text, until: now() + 6000 }); }
 
 // ---------------- red (WebSocket) ----------------
+(function watchBuild() {
+  const meta = document.querySelector('meta[name="life-revision"]');
+  const mine = (meta && meta.content || '').trim();
+  let busy = false;
+  async function check() {
+    if (busy) return;
+    try {
+      const res = await fetch('/session.json?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const stalePage = mine && data.revision && data.revision !== mine;
+      const otherRoom = S.net.serverId && data.serverId && data.serverId !== S.net.serverId;
+      if (stalePage || otherRoom) { busy = true; location.reload(); }
+    } catch (e) {}
+  }
+  setInterval(check, 15000);
+  check();
+})();
 function scheduleReconnect() {
   if (!started) return;
   const wait = reconnectDelay;

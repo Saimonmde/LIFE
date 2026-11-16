@@ -78,6 +78,16 @@ class ServerSightTests(unittest.TestCase):
         self.assertNotIn(b'"t": "move"', muted)
         self.assertNotIn(b'"t": "join"', muted)
 
+    def test_leaving_a_town_house_becomes_visible(self):
+        ana = self.person('Ana', 3, 'casa', 94, 267, 'casa')
+        ana.city_x, ana.city_y = 122, 130
+        sol = self.person('Sol', 3, 'parque-envigado', 108, 272)
+        sol.w.buf.clear()
+        server.handle_client_message(ana, {'t': 'move', 'zone': 'city', 'x': 122, 'y': 130, 'dir': 'down', 'moving': False}, 'move')
+        self.assertEqual(ana.zone, 'city')
+        self.assertEqual((int(ana.x), int(ana.y)), (122, 130))
+        self.assertIn(b'"t": "join"', b''.join(sol.w.buf))
+
     def test_ir_con_el_switches_world_and_stands_beside(self):
         ana = self.person('Ana', 5, 'valle', 10, 10)
         sol = self.person('Sol', 3, 'parque-envigado', 108, 272)
@@ -91,7 +101,9 @@ class ServerSightTests(unittest.TestCase):
         self.assertIn(b'cerca', raw)
         page = open(os.path.join(ROOT, 'play', 'vida.js'), encoding='utf-8').read()
         self.assertIn('Jugadores en línea', page)
+        self.assertIn('en su casa', page)
         self.assertIn('Ir con él', page)
+        self.assertIn('life-revision', open(os.path.join(ROOT, 'play', 'game.js'), encoding='utf-8').read())
         self.assertIn('Invitar a mi lugar', page)
         self.assertIn("params.get('mundo')", page)
         self.assertIn('const DEFAULT_WORLD = 3', page)

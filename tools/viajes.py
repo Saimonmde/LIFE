@@ -136,17 +136,45 @@ def step_allowed(step, dt):
     return step <= HORSE_SPEED * STEP_SLACK * dt + STEP_BURST
 
 
+def _house_doors():
+    """Cada municipio tiene su puerta. Salir de casa no es sólo la de Envigado."""
+    try:
+        import hogar
+    except Exception:
+        return []
+    doors = []
+    for item in hogar.CASAS.values():
+        try:
+            doors.append((float(item['x']), float(item['y'])))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return doors
+
+
 def portal_arrival(zone, x, y, back=None):
-    """La primera casilla al salir de un interior es la puerta, no un punto cualquiera."""
+    """La salida vale si caes en la puerta, en tu casa del municipio, o donde entraste."""
+    try:
+        fx, fy = float(x), float(y)
+    except (TypeError, ValueError):
+        return False
+    points = []
     if zone == 'mine':
         if not back or back[0] is None or back[1] is None:
             return True
-        ax, ay = float(back[0]), float(back[1])
-    elif zone in PORTALS:
-        ax, ay = PORTALS[zone]
+        points.append((float(back[0]), float(back[1])))
     else:
-        return True
-    return max(abs(float(x) - ax), abs(float(y) - ay)) <= 3
+        if zone in PORTALS:
+            points.append((float(PORTALS[zone][0]), float(PORTALS[zone][1])))
+        if zone == 'casa':
+            points.extend(_house_doors())
+        if back and back[0] is not None and back[1] is not None:
+            try:
+                points.append((float(back[0]), float(back[1])))
+            except (TypeError, ValueError):
+                pass
+        if not points:
+            return True
+    return any(max(abs(fx - ax), abs(fy - ay)) <= 3 for ax, ay in points)
 
 
 class Gate:
