@@ -621,24 +621,91 @@ def unpark(state, name, sph):
 
 
 def _parse_sph(value):
+    """Lee platicas. Un entero ya está en SPH. «1,5 SMP» son 150.000.000 SPH.
+
+    No pasa por economy.parse_amount: esa función usa la escala del oro (100).
+    """
     if isinstance(value, bool) or value is None:
         raise eco.AmountError('monto vacío')
     if isinstance(value, int):
         if value < 0:
             raise eco.AmountError('monto ilegible')
         return value
-    raw = str(value).strip().lower()
+    if isinstance(value, float):
+        if value != value or value < 0 or value in (float('inf'), float('-inf')) or int(value) != value:
+            raise eco.AmountError('monto ilegible')
+        return int(value)
+    raw = str(value).strip().lower().replace('\u00a0', ' ')
     if not raw:
         raise eco.AmountError('monto vacío')
     unit = 'smp'
-    for name, kind in (('platicas', 'sph'), ('platica', 'sph'), ('sph', 'sph'), ('plata', 'smp'), ('smp', 'smp')):
+    for name, kind in (
+        ('platicas', 'sph'), ('platica', 'sph'), ('sph', 'sph'),
+        ('simonplata', 'smp'), ('plata', 'smp'), ('smp', 'smp'),
+    ):
         if raw.endswith(name):
             unit = kind
             raw = raw[: -len(name)].strip()
             break
+    raw = raw.replace(' ', '')
+    if not raw:
+        raise eco.AmountError('monto vacío')
+    if raw.startswith('+'):
+        raw = raw[1:]
+    if not raw or raw.startswith('-'):
+        raise eco.AmountError('monto ilegible')
     if unit == 'sph':
-        return eco.parse_amount(raw + ' SMH')
-    return eco.parse_amount(raw + ' SMC')
+        return _sph_entero(raw)
+    return _smp_a_sph(raw)
+
+
+def _sph_entero(raw):
+    """Platicas enteras. El punto o la coma agrupan de a tres; no hay decimales."""
+    if raw.count(',') and raw.count('.'):
+        grouped = raw.replace('.', '').replace(',', '')
+    elif ',' in raw or '.' in raw:
+        parts = raw.replace(',', '.').split('.')
+        if not all(parts) or any(len(part) != 3 for part in parts[1:]):
+            raise eco.AmountError('una platica no se parte')
+        grouped = ''.join(parts)
+    else:
+        grouped = raw
+    if not grouped.isdigit():
+        raise eco.AmountError('monto ilegible')
+    return int(grouped)
+
+
+def _smp_a_sph(raw):
+    """Simonplata con hasta 8 decimales. «1,5» y «1.5» valen una SMP y media."""
+    if raw.count(',') and raw.count('.'):
+        if raw.rfind(',') > raw.rfind('.'):
+            raw = raw.replace('.', '').replace(',', '.')
+        else:
+            raw = raw.replace(',', '')
+    elif ',' in raw:
+        bits = raw.split(',')
+        if len(bits) > 2 and all(len(part) == 3 for part in bits[1:]):
+            raw = ''.join(bits)
+        else:
+            left, _, right = raw.partition(',')
+            raw = (left or '0') + '.' + right
+    elif raw.count('.') > 1:
+        parts = raw.split('.')
+        if all(part and len(part) == 3 for part in parts[1:]):
+            raw = ''.join(parts)
+        else:
+            raise eco.AmountError('monto ilegible')
+    if raw.startswith('.'):
+        raw = '0' + raw
+    whole, dot, frac = raw.partition('.')
+    if whole == '':
+        whole = '0'
+    if not whole.isdigit() or (dot and not frac.isdigit()):
+        raise eco.AmountError('monto ilegible')
+    if len(frac) > 8:
+        raise eco.AmountError('como máximo 8 decimales')
+    frac = frac.ljust(8, '0') if frac else '0' * 8
+    return int(whole) * SUBS + int(frac)
 
 
 def exchange(state, profile, sph=None, now=None):

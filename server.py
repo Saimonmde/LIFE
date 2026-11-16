@@ -697,7 +697,7 @@ def cambio_simple_msg(sender, message):
         quoted = CAMBIO.quote('simonplata', 'simoncoin', qty, have, fondo_smh=fondo)
         if not quoted.get('ok'):
             return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': quoted.get('texto') or 'No se movió nada.'})
-        result = exchange_plata(sender, f"{quoted['das']} smp")
+        result = exchange_plata(sender, int(quoted['das']) * PLATA.SUBS)
         ok = bool(isinstance(result, dict) and result.get('ok'))
         return send(sender, {'t': 'cambio_result', 'ok': ok, 'give': give, 'das': quoted['das'] if ok else 0, 'recibes': quoted['recibes'] if ok else 0, 'reason': quoted['texto'] if ok else 'No se movió nada.'})
     if give not in CAMBIO.MINERALES or receive != 'simoncoin':
@@ -793,21 +793,29 @@ def _dia(account, box):
         return 0
     return int(acc.get('earned') or 0)
 
+def _en_smp(sph):
+    """Pasa platicas a Simonplata. 1 SMP = 100.000.000 SPH, no 100."""
+    sph = max(0, int(sph or 0))
+    whole, frac = divmod(sph, PLATA.SUBS)
+    if frac == 0:
+        return whole
+    return whole + frac / PLATA.SUBS
+
 def cupos_public(profile=None):
     profile = profile or {}
     age, play, quests = profile.get('age') or 0, profile.get('play') or 0, profile.get('quests') or 0
     account = profile.get('account') or ''
     oro_cap = TOPES.simoncoin_daily_smh(age, play, quests) / ECO.SUBS
     oro_earned = _dia(account, (ECON.get('supply') or {}).get('accounts')) / ECO.SUBS
-    plata_cap = TOPES.simonplata_daily_sph(age, play, quests) / ECO.SUBS
-    plata_earned = _dia(account, (ECON.get('plata') or {}).get('accounts')) / ECO.SUBS
+    plata_cap = _en_smp(TOPES.simonplata_daily_sph(age, play, quests))
+    plata_earned = _en_smp(_dia(account, (ECON.get('plata') or {}).get('accounts')))
     chis_cap = TOPES.simonchis_daily()
     key = f'{account}:{int(time.time()) // TOPES.DAY}'
     chis_earned = int(((ECON.get('simonchis') or {}).get('earnedDay') or {}).get(key) or 0)
     coins = {}
     for coin, cap, earned, room in (
         ('simoncoin', max(oro_cap, SUP.loose_daily_smc()), oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
-        ('simonplata', plata_cap, plata_earned, PLATA.issuance_room(ECON) / ECO.SUBS),
+        ('simonplata', plata_cap, plata_earned, _en_smp(PLATA.issuance_room(ECON))),
         ('simonchis', chis_cap, chis_earned, COBRE.room(ECON)),
     ):
         spec = TOPES.metal(coin)
@@ -893,7 +901,7 @@ def acunar_for(sender, coin, pieces, proof=None):
         got = granted / ECO.SUBS
         sender.registro = pub
     elif coin == 'simonplata':
-        want = int(round(quote['recibes'] * ECO.SUBS))
+        want = int(round(quote['recibes'] * PLATA.SUBS))
         if not proof:
             opened = PLATA.open_challenge(ECON, profile, 'acunar', f'{coin}:{pieces}')
             save_econ()
@@ -906,7 +914,7 @@ def acunar_for(sender, coin, pieces, proof=None):
         save_econ()
         if not result.get('ok'):
             return _acunar_fail(sender, SUP.reason_text(result.get('reason') or 'signature'), result.get('reason') or 'signature')
-        got = int(result.get('sph') or 0) / ECO.SUBS
+        got = int(result.get('sph') or 0) / PLATA.SUBS
         broadcast_econ()
     else:
         want = int(quote['recibes'])
@@ -944,13 +952,19 @@ def acunar_for(sender, coin, pieces, proof=None):
     if coin == 'simoncoin' and getattr(sender, 'kept_smh', None) is not None:
         recibido = sender.kept_smh / ECO.SUBS
     saldos = view.get('balances') or {}
-    razon = (
-        f'Se acuñó {recibido} {row["name"]}. '
-        f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}, '
-        f'{PLATA.format_smp(saldos.get("simonplata") or 0)}, '
-        f'{int(saldos.get("simonchis") or 0)} Simonchis. '
-        f'Se gastaron {done["gastas"]} {row["metal"]}.'
-    )
+    if coin == 'simonplata':
+        acuñada = PLATA.format_smp(int(result.get('sph') or 0))
+        if acuñada.endswith(' SMP'):
+            acuñada = acuñada[:-4] + ' Simonplata'
+        razon = f'Acuñaste {acuñada}. Saldo: {PLATA.format_smp(int(saldos.get("simonplata") or 0))}'
+    else:
+        razon = (
+            f'Se acuñó {recibido} {row["name"]}. '
+            f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}, '
+            f'{PLATA.format_smp(saldos.get("simonplata") or 0)}, '
+            f'{int(saldos.get("simonchis") or 0)} Simonchis. '
+            f'Se gastaron {done["gastas"]} {row["metal"]}.'
+        )
     registro = getattr(sender, 'registro', None) if coin == 'simoncoin' else None
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
@@ -1129,12 +1143,12 @@ def lavar_for(sender, qty=1):
     _avisar_crudo(sender, 'pepita_oro')
 
 SELL_SMH = {
-    'mineral_oro': 1_000_000,
-    'mineral_plata': 1_000_000,
-    'mineral_cobre': 1_000_000,
-    'pepita_oro': 1_000_000,
-    'bolsa_cafe': 5_000_000,
-    'bolsa_cacao': 5_000_000,
+    'mineral_oro': 1,
+    'mineral_plata': 1,
+    'mineral_cobre': 1,
+    'pepita_oro': 1,
+    'bolsa_cafe': 5,
+    'bolsa_cacao': 5,
 }
 
 
