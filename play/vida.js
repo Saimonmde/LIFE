@@ -107,8 +107,10 @@
     for (const row of rows) {
       const line = document.createElement('div');
       line.className = 'mundo-jugador';
-      const text = document.createElement('p');
+      const text = document.createElement('button');
+      text.type = 'button';
       text.textContent = row.nick + ' · Mundo ' + row.world + ' · ' + lugarEnLinea(row);
+      text.onclick = () => { if (window.Ficha) Ficha.open(row); };
       const go = document.createElement('button');
       go.type = 'button';
       go.textContent = 'Ir con él';

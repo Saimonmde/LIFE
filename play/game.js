@@ -1549,7 +1549,7 @@ function followRoad(id) {
   p.path=path;p.pending=null;S.dest={x,y,t:now()};
 }
 function approach(t) {
-  if (t.kind === 'peer') { window.TradeUI?.openTrade(t.id); return; }
+  if (t.kind === 'peer') { if (window.Ficha) Ficha.open(S.others.get(t.id) || { id: t.id }); else window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t);
   const goal = t.kind === 'door' ? ((x, y) => x === t.d.approach.x && y === t.d.approach.y) : ((x, y) => cheb(x, y, tt.x, tt.y) === 1);
   if (goal(p.x, p.y) && !p.path.length) { p.pending = null; S.dest = null; act(t); return; }
@@ -1602,7 +1602,7 @@ function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * 
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
 function act(t) {
-  if (t.kind === 'peer') { window.TradeUI?.openTrade(t.id); return; }
+  if (t.kind === 'peer') { if (window.Ficha) Ficha.open(S.others.get(t.id) || { id: t.id }); else window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t); face(tt.x, tt.y);
   if (t.kind === 'mount') return Simulacion.mountHorse(t.m);
   if (t.kind === 'npc') return t.d.id === 'profesora_cadena' ? Simulacion.talkProfesora() : talkCapataz();

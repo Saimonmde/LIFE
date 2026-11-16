@@ -291,7 +291,8 @@ function boot(api){
   for(const [id,el] of playerNames)if(id!=='self'&&!S.others.has(id)){el.remove();playerNames.delete(id);}
   for(const [id,p] of S.others){
    let el=playerNames.get(id);if(!el){el=document.createElement('button');el.type='button';el.className='player-name';el.onclick=()=>{if(!p.bot)window.TradeUI?.openTrade(id);};speechLayer.append(el);playerNames.set(id,el);}
-   el.textContent=(window.nombreAjeno?window.nombreAjeno(p):p.name)+(p.bot?'':' · Intercambiar');el.classList.toggle('bot-name',!!p.bot);el.classList.toggle('can-trade',!p.bot);el.disabled=!!p.bot;
+   el.textContent=window.nombreAjeno?window.nombreAjeno(p):p.name;el.classList.toggle('bot-name',!!p.bot);el.classList.toggle('can-trade',!p.bot);el.disabled=!!p.bot;
+   if(!el.dataset.ficha){el.dataset.ficha='1';let hold=0;const abrir=()=>{if(!p.bot&&window.Ficha)Ficha.open(p);};el.onclick=abrir;el.oncontextmenu=(ev)=>{ev.preventDefault();abrir();};el.onpointerdown=()=>{hold=setTimeout(abrir,450);};el.onpointerup=()=>clearTimeout(hold);el.onpointercancel=()=>clearTimeout(hold);}
    placeName(el, actorMap.get('peer'+id));
   }
   let mine=playerNames.get('self');
