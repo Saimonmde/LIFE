@@ -151,6 +151,31 @@
       ctx.textAlign = 'left';
       ctx.fillText('Mina', mx + 8, my);
     }
+    const route = opts.route;
+    if (route && route.pts && route.pts.length > 1 && world) {
+      ctx.save();
+      ctx.setLineDash([6, 8]);
+      ctx.strokeStyle = '#ffe14d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      route.pts.forEach((pt, index) => {
+        const [lat, lon] = latlonOfTile(pt[0], pt[1], world);
+        const [x, y] = xy(frame, lat, lon);
+        if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+      const [lat, lon] = latlonOfTile(route.x, route.y, world);
+      const [x, y] = xy(frame, lat, lon);
+      ctx.fillStyle = '#ff8a3d';
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff6df';
+      ctx.font = '700 14px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(route.name || 'Destino', x + 10, y);
+    }
     if (opts.player && world) {
       const [lat, lon] = playerLatLon(opts.player.x, opts.player.y, world);
       const [x, y] = xy(frame, lat, lon);
