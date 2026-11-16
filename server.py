@@ -50,6 +50,7 @@ import gallos as GALLOS
 import guardado as GUARDADO
 import partida as PARTIDA
 import world_edits as EDITS
+import fauna as FAUNA
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -129,6 +130,68 @@ def save_finca():
 
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
+
+FAUNA_PATH = os.path.join(ROOT, 'state', 'fauna.json')
+FAUNA_STATE = FAUNA.normalize(PERSIST.load_named('fauna', FAUNA_PATH) or FAUNA.empty_state())
+with open(os.path.join(ROOT, 'data', 'vida.json'), encoding='utf-8') as f:
+    FAUNA_PLACES = json.load(f).get('places') or []
+FAUNA_LAND = FAUNA.Range(WORLD, FAUNA_PLACES)
+FAUNA_BOOK = FAUNA.Book(FAUNA_STATE, FAUNA.gear_ids(WORLD), purse_state=VAULT_STATE)
+FAUNA.ensure_pumas(FAUNA_BOOK.state, FAUNA_LAND)
+
+def save_fauna():
+    PERSIST.save_named('fauna', FAUNA_PATH, FAUNA.dump(FAUNA_BOOK.state))
+
+def fauna_morir(c, m):
+    token = m.get('token')
+    try:
+        x = max(0.0, min(WORLD['width'] - 1.0, float(m.get('x'))))
+        y = max(0.0, min(WORLD['height'] - 1.0, float(m.get('y'))))
+    except (TypeError, ValueError):
+        return send(c, {'t': 'fauna_caida', 'ok': False, 'reason': 'falta el lugar', 'token': token})
+    try:
+        drop = FAUNA_BOOK.commit(c.name, x, y, m.get('items'), token, time.time())
+    except FAUNA.FaunaError as exc:
+        return send(c, {'t': 'fauna_caida', 'ok': False, 'reason': str(exc), 'token': token})
+    save_vault()
+    save_fauna()
+    send(c, {'t': 'fauna_caida', 'ok': True, 'token': token, 'drop': FAUNA_BOOK.public_drop(drop, True)})
+    broadcast_fauna()
+
+def fauna_recoger(c, m):
+    try:
+        got = FAUNA_BOOK.pickup(c.name, m.get('id'), time.time())
+    except FAUNA.FaunaError as exc:
+        return send(c, {'t': 'fauna_recoger', 'ok': False, 'reason': str(exc), 'id': m.get('id')})
+    save_vault()
+    save_fauna()
+    send(c, {'t': 'fauna_recoger', 'ok': True, 'id': got['id'], 'items': got['items']})
+    broadcast_fauna()
+
+def fauna_golpe(c, m):
+    puma = next((row for row in FAUNA_BOOK.state.get('pumas') or [] if row.get('id') == m.get('id')), None)
+    dmg = FAUNA.strike(puma, c.x, c.y, bool(m.get('lanza')), time.time()) if puma else 0
+    if dmg:
+        broadcast_fauna()
+    send(c, {'t': 'fauna_golpe', 'ok': dmg > 0, 'dmg': dmg, 'hp': int((puma or {}).get('hp') or 0), 'id': m.get('id')})
+
+def fauna_players():
+    found = []
+    for person in clients.values():
+        if person.hello and not person.bot and person.zone == 'city':
+            found.append({'id': person.id, 'name': person.name, 'x': person.x, 'y': person.y})
+    return found
+
+def fauna_packet(name):
+    FAUNA.ensure_pumas(FAUNA_BOOK.state, FAUNA_LAND)
+    pumas = [FAUNA.public_puma(puma) for puma in FAUNA_BOOK.state.get('pumas') or []]
+    drops = [FAUNA_BOOK.public_drop(drop, drop.get('owner') == name) for drop in FAUNA_BOOK.state.get('drops') or []]
+    return {'t': 'fauna', 'pumas': pumas, 'drops': drops}
+
+def broadcast_fauna():
+    for person in list(clients.values()):
+        if person.hello and not person.bot:
+            send(person, fauna_packet(person.name))
 
 WORLD_EDITS_PATH = os.path.join(ROOT, 'state', EDITS.storage_filename())
 WORLD_EDITS = EDITS.normalize(PERSIST.load_named(EDITS.storage_name(), WORLD_EDITS_PATH), env=EDITS.env_name())
@@ -2163,6 +2226,7 @@ def handle_client_message(c, m, t):
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         welcome['presence'] = presence_msg()
         welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
+        welcome['fauna'] = fauna_packet(c.name)
         send(c, welcome)
         if MUNDOS.outdoors(c):
             broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
@@ -2350,6 +2414,12 @@ def handle_client_message(c, m, t):
         migrate_for(c, m.get('amount'), m.get('proof'))
     elif t == 'quest' and c.hello:
         quest_for(c, m.get('id'), m.get('proof'))
+    elif t == 'fauna_morir' and c.hello:
+        fauna_morir(c, m)
+    elif t == 'fauna_recoger' and c.hello:
+        fauna_recoger(c, m)
+    elif t == 'fauna_golpe' and c.hello:
+        fauna_golpe(c, m)
     elif t == 'heartbeat' and c.hello and c.wallet_ok:
         send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
     elif t == 'vault' and c.hello:
@@ -3172,6 +3242,27 @@ async def main():
                 save_econ()
                 broadcast(econ_msg())
     asyncio.create_task(ledger_loop())
+    async def fauna_loop():
+        rng = random.Random()
+        last = time.time()
+        while True:
+            await asyncio.sleep(0.4)
+            now = time.time()
+            dt = min(1.0, now - last)
+            last = now
+            try:
+                events = FAUNA.step_world(FAUNA_BOOK.state, FAUNA_LAND, fauna_players(), now, dt, rng)
+                for event in events:
+                    target = clients.get(event.get('id'))
+                    if target and target.hello and not target.bot:
+                        send(target, {'t': 'fauna_dano', 'amount': event['amount'], 'puma': event['puma']})
+                if FAUNA_BOOK.expire(now):
+                    save_fauna()
+                if any(person.hello and not person.bot for person in clients.values()):
+                    broadcast_fauna()
+            except Exception:
+                pass
+    asyncio.create_task(fauna_loop())
     async def _serve(srv):
         async with srv:
             await srv.serve_forever()
