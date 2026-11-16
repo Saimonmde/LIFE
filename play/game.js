@@ -858,6 +858,7 @@ window.avisarMochilaLlena = avisarMochilaLlena;
 function invAdd(id,qty){if(window.Guacharaca&&Guacharaca.blockedItem(id)){game('La <b>Guacharaca</b> es fauna protegida. No se caza, no se captura y no se vende.','aviso');return false;}const next=MiningRules.add(S.inv,W.items,id,qty,SLOTS);if(!next){avisarMochilaLlena();return false;}S.inv=next;save();renderInv();return true;}
 function invRemove(id,qty){const next=MiningRules.remove(S.inv,id,qty);if(!next)return false;S.inv=next;if(!S.inv[S.sel])S.sel=-1;save();renderInv();if(window.Acunar)Acunar.paint();return true;}
 window.quitarDelInventario = invRemove;
+window.meterMonedas = (item, qty) => { const have = invCount(item); if (qty > have) invAdd(item, qty - have); };
 const selected = () => S.sel >= 0 && S.inv[S.sel] ? S.inv[S.sel].item : null;
 function selectItem(id) { const i = S.inv.findIndex(s => s && s.item === id); if (i >= 0) { S.sel = i; renderInv(); } return i >= 0; }
 const level = (xp) => Math.floor(Math.sqrt(xp / 25)) + 1;

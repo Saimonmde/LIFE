@@ -218,6 +218,9 @@
       Object.keys(m.spentItems).forEach(id => window.quitarMetal(id, m.spentItems[id]));
     }
     if (!m.ok) return fallo(m), true;
+    if (m.purse && window.__ELJARDIN) __ELJARDIN.purse = m.purse;
+    if (m.moneda && window.meterMonedas) window.meterMonedas(m.moneda.item, m.moneda.total || m.moneda.qty);
+    if (window.Simulacion && Simulacion.renderLibro) Simulacion.renderLibro();
     if (window.Sonido) Sonido.fromMint(m);
     if (window.Cajon) Cajon.paint();
     paint();
