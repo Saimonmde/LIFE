@@ -26,8 +26,8 @@ assert.ok(!bar.includes('hud-gear-menu') || bar.includes("id === 'hud-gear-menu'
 assert.ok(!read('play/pulgar.js').includes('cajon-editor'));
 assert.ok(game.includes('Nivel ${lv} de'));
 assert.ok(game.includes('no se abre una herramienta nueva'));
-assert.ok(page.includes('pulgar.css?v=joy-horizontal'));
-assert.ok(page.includes('pulgar.js?v=mi-cuenta'));
+assert.ok(page.includes('pulgar.css?v=chat-mundo'));
+assert.ok(page.includes('pulgar.js?v=chat-mundo'));
 assert.ok(bar.includes('Cuenta'));
 assert.ok(read('play/mi-cuenta.js').includes('Mi cuenta'));
 assert.ok(read('play/mi-cuenta.js').includes('id = \'cajon-cuenta\''));

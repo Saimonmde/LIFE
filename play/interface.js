@@ -3,7 +3,7 @@
  const panel=document.querySelector('#hud-chat'), toggle=document.querySelector('#chat-toggle'), count=document.querySelector('#chat-count');
  let unread=0;
  function badge(){count.hidden=!unread;count.textContent=unread>99?'99+':String(unread);toggle.setAttribute('aria-label',unread?`Abrir chat, ${unread} mensajes nuevos`:'Abrir chat');}
- window.ChatUI={setOpen(open,focus=false){panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));if(open){unread=0;badge();const log=document.querySelector('#chat-log');log.scrollTop=log.scrollHeight;if(focus)document.querySelector('#chat-input').focus();}else{document.querySelector('#chat-input').blur();toggle.focus({preventScroll:true});}},received(channel){if(panel.hidden&& !['sys','juego'].includes(channel)){unread++;badge();}}};
+ window.ChatUI={setOpen(open,focus=false){panel.hidden=!open;panel.classList.toggle('hud-minimo',!open);toggle.setAttribute('aria-expanded',String(open));if(open){unread=0;badge();const log=document.querySelector('#chat-log');log.scrollTop=log.scrollHeight;if(focus)document.querySelector('#chat-input').focus();}else{document.querySelector('#chat-input').blur();toggle.focus({preventScroll:true});}},received(channel){if(panel.hidden&& !['sys','juego'].includes(channel)){unread++;badge();}}};
  toggle.onclick=()=>window.ChatUI.setOpen(panel.hidden);
  const clean=document.querySelector('#hud-toggle');
  clean.onclick=()=>{const on=document.body.classList.toggle('solo-mundo');clean.textContent=on?'Mostrar interfaz':'Solo mundo';clean.setAttribute('aria-pressed',String(on));if(on)window.ChatUI.setOpen(false);clean.focus({preventScroll:true});};
