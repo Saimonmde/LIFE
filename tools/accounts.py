@@ -612,6 +612,42 @@ def _token_hash(raw):
     return hashlib.sha256(str(raw or '').encode('utf-8')).hexdigest()
 
 
+def create_local_email_account(doc, name, email, password, now=None):
+    """Sin servidor de correo, en local, el nickname y el correo entran ya.
+
+    No deja un registro pendiente. La contraseña sale con scrypt, como las demás.
+    """
+    now = _now(now)
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
+    name = game_name(name)
+    email = str(email or '').strip().lower()
+    if simon_reserved(name):
+        raise AuthError('Ese apodo está reservado.')
+    if not name:
+        raise AuthError('Escribe un apodo de hasta 16 letras.')
+    if not EMAIL_RE.match(email) or len(email) > 254:
+        raise AuthError('El correo no parece válido.')
+    if _user_by(doc, email=email):
+        raise AuthError('Ese correo ya tiene cuenta. Entra o restablece la contraseña.')
+    if not name_available(doc, name, email=email, now=now):
+        raise AuthError('Ese apodo ya pertenece a otra cuenta.')
+    user = {
+        'id': secrets.token_hex(8),
+        'name': name,
+        'email': email,
+        'phone': '',
+        'password_hash': hash_password(password),
+        'providers': {},
+        'wallet_name': name,
+        'wallet_token': '',
+        'createdAt': now,
+        'verified': True,
+    }
+    doc['users'].append(user)
+    return open_session(doc, user, now)
+
+
 def begin_email_account(doc, name, email, password, send_link, now=None):
     """Crea un registro pendiente. La cuenta no existe hasta abrir el enlace."""
     now = _now(now)

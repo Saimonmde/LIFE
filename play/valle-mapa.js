@@ -3,6 +3,7 @@
 (() => {
   'use strict';
   const FONT = '600 13px system-ui, "Segoe UI", sans-serif';
+  let recursos = [];
 
   function geo() { return window.VALLE_GEO; }
 
@@ -66,6 +67,7 @@
   function draw(ctx, canvas, view, opts) {
     const data = geo();
     if (!data) return null;
+    recursos = (opts && opts.recursos) || [];
     const frame = fit(canvas, view);
     const world = opts.world;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -114,6 +116,32 @@
       ctx.fillStyle = '#f4fff0';
       ctx.fillText(park.name, x + 8, ly + 7);
     }
+    ctx.font = '600 12px system-ui, "Segoe UI", sans-serif';
+    for (const spot of recursos) {
+      if (!world || spot.x == null) continue;
+      const [lat, lon] = latlonOfTile(spot.x, spot.y, world);
+      const [x, y] = xy(frame, lat, lon);
+      const tag = spot.corto || spot.name;
+      const w = ctx.measureText(tag).width + 8;
+      let ly = y - 8;
+      let guard = 0;
+      while (guard++ < 10 && placed.some(box => overlaps(box, { x: x + 12, y: ly, w: w, h: 16 }))) ly += 15;
+      placed.push({ x: x + 12, y: ly, w: w, h: 16 });
+      ctx.fillStyle = '#1c140c';
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = spot.color || '#f4e2a8';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(spot.mark || '•', x, y + 0.5);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(20, 24, 18, 0.9)';
+      ctx.fillRect(x + 12, ly, w, 16);
+      ctx.fillStyle = '#fff6e4';
+      ctx.fillText(tag, x + 16, ly + 8);
+    }
+    ctx.font = FONT;
     for (const town of data.municipios) {
       const [x, y] = xy(frame, town.lat, town.lon);
       house(ctx, x, y, 7);
@@ -232,6 +260,16 @@
     const marks = [];
     const ctx = canvas.getContext('2d');
     ctx.font = FONT;
+    for (const spot of recursos) {
+      if (!world || spot.x == null) continue;
+      const [lat, lon] = latlonOfTile(spot.x, spot.y, world);
+      const [x, y] = xy(frame, lat, lon);
+      const tag = spot.corto || spot.name;
+      const w = ctx.measureText(tag).width + 22;
+      if (px >= x - 12 && px <= x + 12 + w && py >= y - 12 && py <= y + 12) {
+        return { id: spot.id, tx: spot.x, ty: spot.y, pt: { x: px, y: py }, frame: frame };
+      }
+    }
     for (const town of geo().municipios) {
       const [x, y] = xy(frame, town.lat, town.lon);
       const w = ctx.measureText(town.name).width + 22;

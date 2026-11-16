@@ -18,7 +18,7 @@ assert.ok(game.includes('fillMapPlaces'));
 assert.ok(game.includes('VALLE_GEO.parques'));
 assert.ok(page.includes('✕ Cerrar'));
 assert.ok(page.includes('mapa-hoja.css?v=ruta-mina'));
-assert.ok(page.includes('valle-mapa.js?v=seguir-amigo'));
+assert.ok(page.includes('valle-mapa.js?v=teleport-r1'));
 assert.ok(game.includes('Ir a la mina'));
 assert.ok(game.includes("t: 'ir_mina'"));
 assert.ok(game.includes('S.mounted && e'));

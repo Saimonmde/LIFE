@@ -167,15 +167,7 @@ async function init() {
   if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con ese proveedor. Intenta otra vez.';
   if (Q.get('auth') === 'enlace') $('#login-status').textContent = 'El enlace caducó o ya se usó. Pide otro.';
   let sessionUser = null;
-  if (Q.get('auth') !== 'error') {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 4000);
-      const ses = await fetch('/auth/sesion', { signal: ctrl.signal, cache: 'no-store' }).then(r => r.ok ? r.json() : null);
-      clearTimeout(timer);
-      sessionUser = ses && ses.user;
-    } catch (e) { sessionUser = null; }
-  }
+  if (Q.get('auth') !== 'error') sessionUser = await leerSesion();
   if (sessionUser) {
     if (window.Hogar && Hogar.migrate) {
       try { sessionUser = await Hogar.migrate(sessionUser) || sessionUser; } catch (e) {}
@@ -193,10 +185,43 @@ async function init() {
       const label = g.querySelector('span');
       if (label) label.textContent = 'Continuar con Google';
     }
+    const reg = $('#b-registro');
+    if (reg) reg.hidden = !p.registro;
+    const olvide = $('#b-olvide');
+    if (olvide) olvide.hidden = !p.reset;
   }).catch(() => {
     const g = $('#b-google');
     if (g) g.hidden = true;
   });
+}
+async function leerSesion() {
+  const red = $('#login-red');
+  const once = async () => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const response = await fetch('/auth/sesion', { signal: ctrl.signal, cache: 'no-store' });
+      if (!response.ok) return { awake: true, user: null };
+      const ses = await response.json();
+      return { awake: true, user: ses && ses.user };
+    } catch (e) {
+      return { awake: false, user: null };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  let got = await once();
+  if (!got.awake) {
+    if (red) red.textContent = 'Despertando servidor…';
+    got = await once();
+  }
+  return got.user || null;
+}
+async function leerCuerpo(response) {
+  let text = '';
+  try { text = await response.text(); } catch (e) { text = ''; }
+  try { return JSON.parse(text || '{}'); }
+  catch (e) { return { error: 'No se pudo conectar. Espera a que despierte el servidor y vuelve a intentar.' }; }
 }
 function buildColorPicker() {
   const box = $('#l-colores'); if (!box) return; box.innerHTML = '';
@@ -277,14 +302,18 @@ function fuerzaClave(text) {
 $('#b-correo').onclick=()=>{ $('#correo-login').hidden=!$('#correo-login').hidden;$('#registro').hidden=true;$('#olvide').hidden=true; };
 const bEntrar = $('#b-entrar'); if (bEntrar) bEntrar.onclick = async () => {
   if (bEntrar.disabled) return;
+  const nick = $('#e-nick').value.trim();
+  const password = $('#e-clave').value;
+  if (!nick) { avisoLogin('Escribe un nickname de hasta 16 letras.'); return; }
+  if (password.length < 8 || password.length > 1024) { avisoLogin('La contraseña necesita entre 8 y 1024 caracteres.'); return; }
   bEntrar.disabled = true;
   try {
-    const response = await fetch('/auth/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nick: $('#e-nick').value.trim(), password: $('#e-clave').value }) });
-    const result = await response.json();
+    const response = await fetch('/auth/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nick, password }) });
+    const result = await leerCuerpo(response);
     $('#e-clave').value = '';
     if (!response.ok || !result.user) throw Error(result.error || 'Apodo o contraseña incorrectos.');
     location.replace(vueltaJuego());
-  } catch (error) { $('#login-status').textContent = error.message; }
+  } catch (error) { avisoLogin(error.message || 'No se pudo conectar. Espera a que despierte el servidor y vuelve a intentar.'); }
   finally { bEntrar.disabled = false; }
 };
 const nickNuevo = $('#e-nick');
@@ -338,11 +367,15 @@ const bGuardar = $('#p-guardar'); if (bGuardar) bGuardar.onclick = async () => {
   } finally { bGuardar.disabled = false; }
 };
 $('#b-correo-entrar').onclick=async()=>{
- const button=$('#b-correo-entrar');if(button.disabled)return;button.disabled=true;
- try{const response=await fetch('/auth/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:$('#e-email').value.trim(),password:$('#e-password').value})});const result=await response.json();$('#e-password').value='';
+ const button=$('#b-correo-entrar');if(button.disabled)return;
+ const email=$('#e-email').value.trim();
+ const password=$('#e-password').value;
+ if(!email||password.length<8){avisoLogin('Escribe el correo y una contraseña de al menos 8 caracteres.');return;}
+ button.disabled=true;
+ try{const response=await fetch('/auth/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});const result=await leerCuerpo(response);$('#e-password').value='';
   if(!response.ok||!result.user)throw Error(result.error||'No se pudo entrar.');
   location.replace(vueltaJuego());
- }catch(error){$('#login-status').textContent=error.message;}finally{button.disabled=false;}
+ }catch(error){avisoLogin(error.message||'No se pudo conectar. Espera a que despierte el servidor y vuelve a intentar.');}finally{button.disabled=false;}
 };
 $('#correo-login').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('#b-correo-entrar').click();}};
 const bGoogle = $('#b-google'); if (bGoogle) bGoogle.onclick = () => { linkCookie(); location.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego()); };
@@ -351,8 +384,19 @@ const bRegistro = $('#b-registro'); if (bRegistro) bRegistro.onclick = () => { $
 const bOlvide = $('#b-olvide'); if (bOlvide) bOlvide.onclick = () => { $('#correo-login').hidden=true; $('#registro').hidden=true; const box = $('#olvide'); if (box) box.hidden = !box.hidden; if ($('#o-email') && $('#e-email')) $('#o-email').value = $('#e-email').value; };
 function avisoLogin(text) { const box = $('#login-status'); if (box) box.textContent = text || ''; }
 const bPedir = $('#b-pedir-codigo'); if (bPedir) bPedir.onclick = () => {
+  const name = ($('#l-nombre') || {}).value.trim();
+  const email = $('#r-email').value.trim();
+  const password = $('#r-pass').value;
+  if (!name) { avisoLogin('Escribe un apodo de hasta 16 letras.'); return; }
+  if (!email) { avisoLogin('El correo no parece válido.'); return; }
+  if (password.length < 8 || password.length > 1024) { avisoLogin('La contraseña necesita entre 8 y 1024 caracteres.'); return; }
   linkCookie();
-  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name:($('#l-nombre')||{}).value.trim(), email:$('#r-email').value.trim(), password:$('#r-pass').value})}).then(r => r.json().then(m => ({ok:r.ok, m}))).then(({ok, m}) => { avisoLogin(m.error || (ok ? 'Te enviamos un enlace. La cuenta no sirve hasta que lo abras.' : 'No se pudo crear la cuenta.')); });
+  fetch('/auth/registro', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, email, password})}).then(r => leerCuerpo(r).then(m => ({ok:r.ok, m}))).then(({ok, m}) => {
+    if (ok && m.user) { location.replace(vueltaJuego()); return; }
+    avisoLogin(m.error || (ok ? 'Te enviamos un enlace. La cuenta no sirve hasta que lo abras.' : 'No se pudo crear la cuenta.'));
+    const again = $('#b-reenviar');
+    if (again && ok) again.hidden = false;
+  }).catch(() => avisoLogin('No se pudo conectar. Espera a que despierte el servidor y vuelve a intentar.'));
 };
 const bRe = $('#b-reenviar'); if (bRe) bRe.onclick = () => {
   fetch('/auth/reenviar', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:$('#r-email').value.trim()})}).then(r => r.json()).then(m => avisoLogin(m.error || 'Si hay un registro pendiente, enviamos otro enlace. El anterior ya no sirve.'));
@@ -412,12 +456,15 @@ async function elegirCasa(id) {
     if (status) status.textContent = error.message;
   }
 }
-function launchRide(kind, x, y) {
+function launchRide(kind, x, y, name) {
+  if (name) window.LIFE_LAND_NAME = name;
+  mostrarLeyenda(name || window.LIFE_LAND_NAME || 'el valle', true);
   const go = () => {
     const view = window.LIVE3D;
     if (!view) return false;
     if (kind === 'ovni' && view.startOvni) { view.startOvni(x, y); return true; }
     if (kind === 'heli' && view.startHeli) { view.startHeli(x, y); return true; }
+    if (kind === 'land' && view.startLanding) { view.startLanding(x, y, name || window.LIFE_LAND_NAME); return true; }
     return false;
   };
   const later = () => {
@@ -426,7 +473,7 @@ function launchRide(kind, x, y) {
     const id = setInterval(() => {
       n += 1;
       if (go()) { clearInterval(id); return; }
-      if (n > 40) { clearInterval(id); if (window.Tutorial) Tutorial.afterFly(); }
+      if (n > 40) { clearInterval(id); ocultarLeyenda(); if (window.Tutorial) Tutorial.afterFly(); }
     }, 100);
   };
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(later));
@@ -466,23 +513,26 @@ function startGame() {
     fly = false;
   } else if (ovni) {
     placeAtTown({ x: trip.x, y: trip.y });
-    launchRide('ovni', trip.x, trip.y);
+    launchRide('ovni', trip.x, trip.y, (window.LIFE_OVNI && window.LIFE_OVNI.name) || 'tu parque');
   } else if (heliSpot) {
     placeAtTown(heliSpot);
     window.LIFE_WANT_INTRO = 'heli';
     window.LIFE_HELI = heliSpot;
-    launchRide('heli', heliSpot.x, heliSpot.y);
+    launchRide('heli', heliSpot.x, heliSpot.y, (home && home.name) || 'tu parque');
   } else {
     const fav = window.Lugares && S.sessionUser ? Lugares.get(S.sessionUser.favoritePlace) : null;
     if (fav && fav.kind === 'poi') {
       placeAtTown(fav);
+      if (!AUTOTEST) launchRide('land', fav.x, fav.y, fav.name);
     } else {
     fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
     if (fly) {
       if ((W.mapId || 'city') === 'casa') switchMap('city');
       const stand = window.Casa.PARK_STAND;
       S.player.x = S.player.fx = stand.x; S.player.y = S.player.fy = stand.y; S.player.dir = 'up';
+      window.LIFE_LAND_NAME = 'Parque de Envigado';
       window.LIFE_WANT_FLY = true;
+      mostrarLeyenda('Parque de Envigado', true);
       if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
     } else beginAtHome();
     }
@@ -583,6 +633,8 @@ function prepareCave(){
   }
  }
  if (cityMap) cityMap.signs3d = W.signs3d;
+ W._destinos=null;
+ destinosLocales();
  W.homeDoor={x:home.x,y:home.y,standX:window.Casa.PARK_STAND.x,standY:window.Casa.PARK_STAND.y};
  if (window.EnvigadoPark) EnvigadoPark.block(W);
  if (window.Banco) Banco.stamp(W);
@@ -622,17 +674,39 @@ function finishAstral(){
  astralTimer = 0;
  const veil = document.getElementById('astral');
  if (veil) veil.hidden = true;
- irACasa();
+ if ((W.mapId || 'city') !== 'casa') irACasa();
+ rest();
 }
 function irACasaAstral(){
  if (!started) return;
- if ((W.mapId||'city')==='casa') { greetPet(); return; }
+ if (S.mounted && window.Simulacion) Simulacion.dismount();
  const veil = document.getElementById('astral');
- if (!veil) { irACasa(); return; }
+ const caption = veil && veil.querySelector('p');
+ if (caption) caption.textContent = 'Aterrizando en tu casa';
+ if (!veil) { if ((W.mapId || 'city') !== 'casa') irACasa(); rest(); return; }
  veil.hidden = false;
  clearTimeout(astralTimer);
  astralTimer = setTimeout(finishAstral, 1500);
 }
+function mostrarLeyenda(name, intro){
+ const el = document.getElementById('viaje-leyenda');
+ const pasos = document.getElementById('viaje-pasos');
+ const titulo = name || 'el valle';
+ if (el) { el.hidden = false; el.textContent = 'Aterrizando en ' + titulo; }
+ if (pasos) pasos.hidden = !intro;
+ const skip = document.getElementById('ovni-saltar');
+ if (skip) skip.hidden = false;
+}
+function ocultarLeyenda(){
+ const el = document.getElementById('viaje-leyenda');
+ const pasos = document.getElementById('viaje-pasos');
+ if (el) el.hidden = true;
+ if (pasos) pasos.hidden = true;
+ const skip = document.getElementById('ovni-saltar');
+ if (skip) skip.hidden = true;
+}
+window.mostrarLeyenda = mostrarLeyenda;
+window.ocultarLeyenda = ocultarLeyenda;
 const astralVeil = document.getElementById('astral');
 if (astralVeil) {
   astralVeil.addEventListener('click', (event) => {
@@ -1778,11 +1852,27 @@ function fillMapPlaces() {
       closeCityMap();
       const id = travelIdForPark(park);
       const src = id && ((W.waypoints || []).find(item => item.id === id) || (W.mapLabels || []).find(item => item.id === id));
+      if (id) { viajarA(id); return; }
       if (src) { setRoute(src.x, src.y, park.name); return; }
       const box = VALLE_GEO.bounds;
       const x = (park.lon - box.lonW) / (box.lonE - box.lonW) * (W.width - 1);
       const y = (box.latN - park.lat) / (box.latN - box.latS) * (W.height - 1);
       setRoute(x, y, park.name);
+    };
+    row.append(b);
+  }
+  for (const spot of destinosVisibles()) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = spot.name + ' · ' + spot.recurso;
+    b.onclick = (ev) => {
+      ev.stopPropagation();
+      if (!started) {
+        const where = $('#city-map-location');
+        if (where) where.textContent = 'Entra al mundo para ir a ' + spot.name + '.';
+        return;
+      }
+      viajarA(spot.id);
     };
     row.append(b);
   }
@@ -1809,6 +1899,71 @@ function closeCityMap() {
   clearMapPin();
 }
 const TRAVEL_IDS=new Set(['barbosa','girardota','copacabana','bello','medellin','itagui','envigado','sabaneta','la_estrella','caldas','parque_bolivar','las_palmas']);
+const DESTINO_IDS=new Set(['mina','cantera','rio_claro','finca','cafetal','madera','banco','skate','parque_envigado','casa']);
+const SAFE_KINDS=new Set(['cobble','path','grass','grass_worn','grass_flowers','bridge','asphalt','pavement']);
+const SKATE_BLOCK=new Set(['84,273','85,273','84,274','85,274','86,273','86,274']);
+function tileKindAt(x,y){return inside(x,y)?W.tiles[W.ground[y][x]].kind:'';}
+function tileSafe(x,y,blocked){if(!inside(x,y)||W.collision[y][x]!==0)return false;if(blocked&&blocked.has(x+','+y))return false;const kind=tileKindAt(x,y);return kind!=='water'&&SAFE_KINDS.has(kind);}
+function tileBeside(x,y,radius,blocked){for(let ring=0;ring<=radius;ring++)for(let dy=-ring;dy<=ring;dy++)for(let dx=-ring;dx<=ring;dx++)if(Math.max(Math.abs(dx),Math.abs(dy))===ring&&tileSafe(x+dx,y+dy,blocked))return [x+dx,y+dy];return null;}
+function destinosLocales(){
+ if(!W)return [];
+ if(W._destinos)return W._destinos;
+ const nodes=W.nodes||[];
+ const block=list=>new Set(list.map(n=>n.x+','+n.y));
+ const list=[];
+ const push=(id,name,x,y,recurso,mark,color,corto)=>{if(x==null||y==null)return;list.push({id,name,x,y,recurso,mark,color,corto:corto||name});};
+ const river=new Set((((W.waterBodies||{}).rio_claro||{}).tiles||[]).map(t=>t[0]+','+t[1]));
+ const gold=nodes.filter(n=>n.type==='nodo_oro_fluvial'&&river.has(n.x+','+n.y));
+ if(gold.length){const spot=tileBeside(gold[0].x,gold[0].y,3,block(gold));if(spot)push('rio_claro','Río Claro',spot[0],spot[1],'oro (río, batea)','Au','#e2b23c','oro · batea');}
+ const ores=nodes.filter(n=>n.type==='mineral_rock'&&(n.mineral==='cobre'||n.mineral==='plata'));
+ if(ores.length){const spot=tileBeside(ores[0].x,ores[0].y,2,block(ores));if(spot)push('cantera','Cantera',spot[0],spot[1],'plata, cobre (pico)','Ag','#c46a3a','plata/cobre');}
+ const pines=nodes.filter(n=>n.type==='wood_tree');
+ if(pines.length){const spot=tileBeside(pines[0].x,pines[0].y,2,block(pines));if(spot)push('madera','Pinos',spot[0],spot[1],'madera','Md','#2f6a32','madera');}
+ const palmas=(W.waypoints||[]).find(p=>p.id==='las_palmas');
+ if(palmas){const spot=tileBeside(palmas.x,palmas.y,4,null);if(spot)push('finca','Cafetal',spot[0],spot[1],'café, cacao','Cf','#6f8f55','café, cacao');}
+ const mina=(W.waypoints||[]).find(p=>p.id==='cantera');
+ if(mina)push('mina','Mina de Las Palmas',mina.x,mina.y,'plata, cobre (pico)','Pk','#d7c4a3','mina · pico');
+ else if(W.mineEntrance)push('mina','Mina de Las Palmas',W.mineEntrance.x,W.mineEntrance.y+1,'plata, cobre (pico)','Pk','#d7c4a3','mina · pico');
+ if(window.Banco){const spot=tileBeside(Banco.OUTSIDE.x,Banco.OUTSIDE.y,1,null);if(spot)push('banco','Banco Envigado',spot[0],spot[1],'casa bancaria','Bn','#f3ead7','banco');}
+ if(window.EnvigadoPark&&EnvigadoPark.skateTiles){const tile=EnvigadoPark.skateTiles()[0];if(tile){const spot=tileBeside(tile.x,tile.y,2,SKATE_BLOCK);if(spot)push('skate','Skate',spot[0],spot[1],'skate','Sk','#9ecbff','skate');}}
+ const park=(W.waypoints||[]).find(p=>p.id==='envigado');
+ if(park){const spot=nearestSafe(park.x,park.y);if(spot)push('parque_envigado','Parque de Envigado',spot[0],spot[1],'parque','Pq','#7dcea0','parque');}
+ W._destinos=list;
+ window.SaimonDestinos=list;
+ return list;
+}
+function destinosVisibles(){
+ const list=destinosLocales().slice();
+ const home=(window.Hogar&&S.me&&Hogar.stand(S.me.municipio))||(window.Casa&&{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y});
+ if(home){const spot=tileBeside(home.x,home.y,1,null);if(spot)list.push({id:'casa',name:'Tu casa',x:spot[0],y:spot[1],recurso:'hogar',mark:'Ca',color:'#f7f1e4',corto:'casa'});}
+ return list;
+}
+window.destinosVisibles = destinosVisibles;
+function puntoDe(id){
+ const key=id==='cafetal'?'finca':id;
+ const extra=destinosVisibles().find(s=>s.id===key);
+ if(extra)return extra;
+ const wp=(W.waypoints||[]).find(item=>item.id===id)||(W.mapLabels||[]).find(item=>item.id===id);
+ if(!wp)return null;
+ const spot=nearestSafe(wp.x,wp.y);
+ if(!spot)return null;
+ return {id,name:wp.name||travelName(id),x:spot[0],y:spot[1],recurso:''};
+}
+function destinoCerca(tx,ty){
+ let best=null,bestD=3;
+ for(const spot of destinosVisibles()){
+  const d=Math.max(Math.abs(spot.x-tx),Math.abs(spot.y-ty));
+  if(d<bestD){best=spot;bestD=d;}
+ }
+ for(const label of W.mapLabels||[]){
+  if(!TRAVEL_IDS.has(label.id))continue;
+  const d=Math.max(Math.abs(label.x-tx),Math.abs(label.y-ty));
+  if(d<bestD){best={id:label.id,name:label.name,x:label.x,y:label.y,recurso:''};bestD=d;}
+ }
+ return best;
+}
+let viajeEn=0;
+let mmHits=[];
 let travelPick=null;
 function travelName(id){const label=(W.mapLabels||[]).find(item=>item.id===id);return label?label.name:id;}
 function closeTravelAsk(){const box=$('#viaje-dialogo'); if(box) box.hidden=true; travelPick=null;}
@@ -1821,16 +1976,29 @@ function openTravelAsk(pick, name){
   box.hidden=false;
   if(yes) yes.focus();
 }
+function viajarA(id){
+  if(!started) return;
+  if(!TRAVEL_IDS.has(id)&&!DESTINO_IDS.has(id)){ game('No se puede teletransportar ahí.', 'aviso'); return; }
+  const ahora=performance.now();
+  if(ahora<viajeEn){ game('Espera un momento para volver a viajar.', 'aviso'); return; }
+  viajeEn=ahora+2500;
+  closeTravelAsk();
+  closeCityMap();
+  if(S.net.ok&&S.net.ws&&S.net.ws.readyState===1){ S.net.ws.send(JSON.stringify({t:'travel', id})); return; }
+  const spot=puntoDe(id);
+  if(!spot){ game('No se puede teletransportar ahí.', 'aviso'); return; }
+  aterrizar(spot.x, spot.y, spot.name);
+}
 function askTravel(id){
-  if(!started||!TRAVEL_IDS.has(id)) return;
-  openTravelAsk(id, travelName(id));
+  if(!started||(!TRAVEL_IDS.has(id)&&!DESTINO_IDS.has(id))) return;
+  viajarA(id);
 }
 function askMapSpot(x, y){
   if(!started) return;
+  const near=destinoCerca(Math.floor(x), Math.floor(y));
+  if(near){ viajarA(near.id); return; }
   setMapPin(x, y);
-  const spot=nearestSafe(Math.floor(x), Math.floor(y));
-  if(!spot){ game('No se puede teletransportar ahí.', 'aviso'); return; }
-  openTravelAsk({ map:true, x:spot[0], y:spot[1] }, 'ese punto del mapa');
+  game('Ese punto no es un destino. Pulsa Ir aquí para caminar.', 'aviso');
 }
 function canvasPoint(canvas,event){
   const rect=canvas.getBoundingClientRect();
@@ -1868,13 +2036,16 @@ function placeOnCity(x,y){
   save();
   if(S.net.ok&&S.net.ws) S.net.ws.send(JSON.stringify({t:'move', zone:'city', x, y, dir:p.dir, moving:false, level:totalLevel()}));
 }
-function flyTo(x,y,name){
+function aterrizar(x,y,name){
   const veil=$('#viaje-vuelo');
-  if(!veil){placeOnCity(x,y); closeCityMap(); return;}
-  veil.textContent='Viajando a '+name+'…';
-  veil.classList.add('activo');
-  setTimeout(()=>{ placeOnCity(x,y); closeCityMap(); veil.classList.remove('activo'); }, 480);
+  if(veil) veil.classList.remove('activo');
+  placeOnCity(x,y);
+  closeCityMap();
+  const titulo=name||'el valle';
+  mostrarLeyenda(titulo, false);
+  if(window.LIVE3D&&LIVE3D.startLanding) LIVE3D.startLanding(x,y,titulo);
 }
+function flyTo(x,y,name){ aterrizar(x,y,name); }
 function nearestSafe(tx,ty){
   const kindAt=(x,y)=>W.tiles[W.ground[y][x]].kind;
   const open=(x,y)=>inside(x,y)&&W.collision[y][x]===0&&kindAt(x,y)!=='water';
@@ -1887,21 +2058,8 @@ function nearestSafe(tx,ty){
 }
 function confirmTravel(){
   const id=travelPick; if(!id) return;
-  if(typeof id==='object' && id.map){
-    const x=id.x, y=id.y;
-    closeTravelAsk();
-    flyTo(x, y, 'ese punto');
-    return;
-  }
-  const name=travelName(id);
-  closeTravelAsk();
-  if(S.net.ok&&S.net.ws){ S.net.ws.send(JSON.stringify({t:'travel', id})); return; }
-  const wp=(W.waypoints||[]).find(item=>item.id===id);
-  const label=(W.mapLabels||[]).find(item=>item.id===id);
-  const src=wp||label; if(!src) return;
-  const spot=nearestSafe(src.x,src.y);
-  if(!spot){ game('No hay un sitio caminable en '+name+'.','aviso'); return; }
-  flyTo(spot[0],spot[1],name);
+  if(typeof id==='object'){ closeTravelAsk(); game('Ese punto no es un destino. Pulsa Ir aquí para caminar.', 'aviso'); return; }
+  viajarA(id);
 }
 $('#viaje-si').onclick=confirmTravel;
 $('#viaje-no').onclick=closeTravelAsk;
@@ -1947,7 +2105,15 @@ function zoomMap(dir) {
 mm.addEventListener('click', (e) => {
   e.stopPropagation();
   const rect = mm.getBoundingClientRect();
-  walkFromMinimap((e.clientX - rect.left) * (mm.width / rect.width), (e.clientY - rect.top) * (mm.height / rect.height));
+  const px = (e.clientX - rect.left) * (mm.width / rect.width);
+  const py = (e.clientY - rect.top) * (mm.height / rect.height);
+  let best = null, bestD = 14;
+  for (const hit of mmHits) {
+    const d = Math.hypot(px - hit.x, py - hit.y);
+    if (d < bestD) { best = hit; bestD = d; }
+  }
+  if (best) { viajarA(best.id); return; }
+  walkFromMinimap(px, py);
 });
 const mapSurface = $('#city-map-view');
 const mapPointers = new Map();
@@ -2011,14 +2177,9 @@ if (mapSurface) {
     const hit = mapEventTile(e);
     if (!hit) return;
     const placeId = hit.id || (hit.frame && hit.frame.scale != null ? labelHit(hit.pt.x, hit.pt.y, (x, y) => [hit.frame.left + (x + .5) * hit.frame.scale, hit.frame.top + (y + .5) * hit.frame.scale], hit.frame.scale) : null);
-    if (placeId) {
-      const src = (W.waypoints || []).find(item => item.id === placeId) || (W.mapLabels || []).find(item => item.id === placeId);
-      const spot = src ? { x: src.x, y: src.y, name: src.name || travelName(placeId) } : null;
-      closeCityMap();
-      if (spot) setRoute(spot.x, spot.y, spot.name);
-      else if (placeId === 'mina' && W.mineEntrance) setRoute(W.mineEntrance.x, W.mineEntrance.y + 1, 'la mina');
-      return;
-    }
+    if (placeId && (TRAVEL_IDS.has(placeId) || DESTINO_IDS.has(placeId))) { viajarA(placeId); return; }
+    const near = destinoCerca(hit.tx, hit.ty);
+    if (near) { viajarA(near.id); return; }
     closeCityMap();
     setRoute(hit.tx, hit.ty, 'ese punto');
   };
@@ -2494,6 +2655,7 @@ function playerStar(c,x,y,r=6) {
 }
 function drawMinimap(at) {
   const v=mmView(),size=mm.width,K=size/v.span,k=4;
+  mmHits=[];
   mctx.clearRect(0,0,size,size);mctx.save();mctx.beginPath();mctx.arc(size/2,size/2,size/2,0,Math.PI*2);mctx.clip();
   mctx.fillStyle='#233827';mctx.fillRect(0,0,size,size);mctx.drawImage(mmBase,v.x0*k,v.y0*k,v.span*k,v.span*k,0,0,size,size);
   const point=(x,y)=>[(x+.5-v.x0)*K,(y+.5-v.y0)*K];
@@ -2501,7 +2663,22 @@ function drawMinimap(at) {
   if(at){const [x,y]=point(at.x,at.y);mctx.strokeStyle='#f8bd54';mctx.lineWidth=2;mctx.strokeRect(x-4,y-4,8,8);}
   if((W.mapId||'city')==='city'&&W.mineEntrance){let [x,y]=point(W.mineEntrance.x,W.mineEntrance.y);const cx=size/2,cy=size/2,dd=Math.hypot(x-cx,y-cy),lim=size/2-9;if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}const pulse=5+Math.sin(performance.now()/260)*1.5;mctx.fillStyle='rgba(255,196,60,.35)';mctx.beginPath();mctx.arc(x,y,pulse+4,0,7);mctx.fill();mctx.fillStyle='#ffc93c';mctx.strokeStyle='#2c1a0c';mctx.lineWidth=2;mctx.beginPath();mctx.arc(x,y,5,0,7);mctx.fill();mctx.stroke();mctx.fillStyle='#2c1a0c';mctx.fillRect(x-1,y-3,2,6);}
   if((W.mapId||'city')==='city'&&W.homeDoor){let [x,y]=point(W.homeDoor.x,W.homeDoor.y);const cx=size/2,cy=size/2,dd=Math.hypot(x-cx,y-cy),lim=size/2-9;if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}mctx.fillStyle='#7dcea0';mctx.strokeStyle='#1c3324';mctx.lineWidth=2;mctx.fillRect(x-4,y-5,8,7);mctx.strokeRect(x-4,y-5,8,7);mctx.beginPath();mctx.moveTo(x-5,y-4);mctx.lineTo(x,y-8);mctx.lineTo(x+5,y-4);mctx.closePath();mctx.fill();mctx.stroke();}
-  if((W.mapId||'city')==='city') drawMapLabels(mctx,(x,y)=>point(x,y), K, {x:size/2,y:size/2,r:size/2-6});
+  if((W.mapId||'city')==='city'){
+    drawMapLabels(mctx,(x,y)=>point(x,y), K, {x:size/2,y:size/2,r:size/2-6});
+    const cx=size/2, cy=size/2, lim=size/2-12;
+    for(const spot of destinosVisibles()){
+      let [x,y]=point(spot.x,spot.y);
+      const dd=Math.hypot(x-cx,y-cy);
+      if(dd>lim){x=cx+(x-cx)/dd*lim;y=cy+(y-cy)/dd*lim;}
+      mctx.fillStyle='#1c140c';
+      mctx.beginPath();mctx.arc(x,y,8,0,7);mctx.fill();
+      mctx.fillStyle=spot.color||'#f4e2a8';
+      mctx.font='700 9px Inter, "Segoe UI", Arial, sans-serif';
+      mctx.textAlign='center';mctx.textBaseline='middle';
+      mctx.fillText(spot.mark||'•',x,y+0.5);
+      mmHits.push({id:spot.id,x,y});
+    }
+  }
   const route = routeSamples();
   if (route && route.pts.length > 1) {
     mctx.save(); mctx.setLineDash([3, 5]); mctx.strokeStyle = '#ffe14d'; mctx.lineWidth = 2; mctx.beginPath();
@@ -2567,7 +2744,7 @@ function drawCityMap() {
   if (window.ValleMapa && window.VALLE_GEO && canvas) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
-    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null, route: routeSamples(), follow: window.Seguir ? Seguir.vista() : null });
+    ValleMapa.draw(ctx, canvas, cityView, { world: W, player: { x: S.player.fx, y: S.player.fy }, mine: W.mineEntrance || null, route: routeSamples(), follow: window.Seguir ? Seguir.vista() : null, recursos: destinosVisibles() });
     const home = window.Hogar && S.me.municipio && Hogar.casa(S.me.municipio);
     $('#city-map-location').textContent = home ? ('Tu casa · ' + home.name + ' · ★ Tú') : ('Tu posición: ' + S.player.fx.toFixed(1) + ', ' + S.player.fy.toFixed(1) + ' · ★ Tú');
     return;

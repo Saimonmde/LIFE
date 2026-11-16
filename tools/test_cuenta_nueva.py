@@ -74,3 +74,16 @@ class CuentaNuevaTests(unittest.TestCase):
         self.assertEqual(user['favorite_place'], 'envigado')
         self.assertEqual(user['finca']['cafe'], 4)
         self.assertTrue(user['password_hash'].startswith('scrypt$'))
+
+    def test_local_email_signup_creates_one_verified_account(self):
+        doc = acc.empty()
+        made = acc.create_local_email_account(doc, 'Lucia', 'lucia@ejemplo.co', 'secreto-largo', now=4_000)
+        user = next(u for u in doc['users'] if u['id'] == made['user']['id'])
+        self.assertTrue(user['verified'])
+        self.assertEqual(user['email'], 'lucia@ejemplo.co')
+        self.assertNotIn('secreto-largo', user['password_hash'])
+        self.assertEqual(len(doc.get('pending') or {}), 0)
+        again = acc.login_password(doc, 'lucia@ejemplo.co', 'secreto-largo', now=4_100)
+        self.assertEqual(again['user']['id'], user['id'])
+        with self.assertRaises(acc.AuthError):
+            acc.create_local_email_account(doc, 'Otra', 'lucia@ejemplo.co', 'secreto-largo', now=4_200)

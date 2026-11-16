@@ -38,7 +38,9 @@
 <div id="intro-cielo" hidden></div>
 <canvas id="juego"></canvas>
 <button id="b-descansar" hidden>Descansar / Ir a casa</button><div id="rest-status" role="alert"></div>
-<div id="astral" hidden><p>Vas a casa…</p><button type="button" id="astral-saltar">Saltar</button></div>
+<div id="astral" hidden><p>Aterrizando en tu casa</p><button type="button" id="astral-saltar">Saltar</button></div>
+<p id="viaje-leyenda" hidden>Aterrizando en Parque de Envigado</p>
+<ol id="viaje-pasos" hidden><li>1 · Municipio</li><li>2 · Mascota</li><li>3 · Instructivo</li></ol>
 
 <!-- ===== Marca + perfil (arriba izquierda) ===== -->
 <div id="hud-perfil" class="hud">
@@ -296,7 +298,7 @@
   </div>
   <div id="city-map-go" hidden><span id="city-map-go-label">Destino marcado</span><button type="button" id="city-map-walk">Ir aquí</button><button type="button" id="city-map-clear">Quitar marca</button></div>
   <div id="city-map-muni" aria-label="Municipios de norte a sur. Teletransporte al parque."></div>
-  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Arrastra para mover el mapa. Pellizca o usa + y − para el zoom. Toca un lugar y confirma para teletransportarte. Toca el terreno: confirma el teletransporte o pulsa Ir aquí para caminar.</p></div>
+  <p id="city-map-location" role="status"></p><p class="map-note">N · Norte &nbsp; S · Sur &nbsp; OR · Oriente &nbsp; OC · Occidente<br>Arrastra para mover el mapa. Pellizca o usa + y − para el zoom. Toca un lugar marcado para teletransportarte junto a su recurso. En el terreno vacío, pulsa Ir aquí para caminar.</p></div>
 </section>
 <section id="banquito" class="ventana" hidden>
   <header>Banco e inventario <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
@@ -348,7 +350,7 @@
 <script src="mining-rules.js?v=lingote-puerta"></script>
 <script src="../data/hogares.js?v=hogar-r1"></script>
 <script src="../data/valle-geo.js?v=valle-geo-r1"></script>
-<script src="valle-mapa.js?v=seguir-amigo"></script>
+<script src="valle-mapa.js?v=teleport-r1"></script>
 <script src="lugares.js?v=lugar-r1"></script>
 <script src="hogar.js?v=lugar-r1"></script>
 <script src="casa.js?v=guardar-r1"></script>
@@ -372,14 +374,14 @@
 <script src="caballo.js?v=afuera-r1"></script>
 <script src="letrero.js?v=sara-cartel"></script>
 <script src="cambio-simple.js?v=barra-r1"></script>
-<script src="game.js?v=seguir-amigo"></script>
+<script src="game.js?v=teleport-r1"></script>
 <script src="pulgar.js?v=chat-mundo"></script>
 <script src="emotes.js?v=movimiento-r1"></script>
 <script src="economy-ui.js?v=mochila-llena"></script>
 <script src="ficha.js?v=ficha-trueque"></script>
 <script src="seguir.js?v=seguir-camina"></script>
 <script src="amigos.js?v=seguir-amigo"></script>
-<script type="module" src="unified3d.js?v=seguir-camina"></script>
+<script type="module" src="unified3d.js?v=aterrizaje-r1"></script>
 <script type="module" src="mascota-preview.js?v=mascota-r1"></script>
 <script src="interface.js?v=chat-mundo"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>

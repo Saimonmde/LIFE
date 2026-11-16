@@ -1910,11 +1910,25 @@ def correct_move(sender):
     send(sender, {'t': 'move_correct', 'x': round(sender.x, 2), 'y': round(sender.y, 2), 'zone': getattr(sender, 'zone', 'city')})
 
 
+def _loopback(headers, remote_ip):
+    host = str((headers or {}).get('host') or '').split(':')[0].strip().lower()
+    return host in ('localhost', '127.0.0.1', '::1') and str(remote_ip or '') in ('127.0.0.1', '::1', 'localhost', '')
+
+
 def travel_for(sender, dest_id):
-    """Lleva al jugador a un municipio o punto conocido. El servidor elige la casilla."""
+    """Lleva al jugador a un destino con nombre. El servidor elige la casilla."""
     now = time.time()
+    key = clean(dest_id, 32).lower()
     try:
-        dest = VIAJES.resolve(WORLD, clean(dest_id, 32).lower())
+        if key == 'casa':
+            municipio = ((getattr(sender, 'user', None) or {}).get('municipio')) or 'envigado'
+            spot = HOGAR.stand(municipio) or VIAJES.HOME_STAND
+            x, y = VIAJES.nearest_spawn(WORLD, spot[0], spot[1])
+            dest = {'id': 'casa', 'name': 'Tu casa', 'x': x, 'y': y, 'kind': 'hogar', 'recurso': 'hogar'}
+            if not VIAJES.walkable(WORLD, x, y) or VIAJES._kind(WORLD, x, y) == 'water':
+                raise VIAJES.ViajeError('el destino no es caminable')
+        else:
+            dest = VIAJES.resolve(WORLD, key)
     except VIAJES.ViajeError as exc:
         return send(sender, {'t': 'travel_result', 'ok': False, 'reason': str(exc)})
     if not TRAVEL_GATE.allow(sender.id, now):
@@ -1926,7 +1940,7 @@ def travel_for(sender, dest_id):
     sender.move_at = now
     sender.place = MUNDOS.place_of(sender.x, sender.y, 'city', PLACES)
     room_shift(sender, old_world, old_place)
-    send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
+    send(sender, {'t': 'travel_result', 'ok': True, 'id': dest['id'], 'name': dest['name'], 'x': dest['x'], 'y': dest['y'], 'recurso': dest.get('recurso') or ''})
 
 async def handle_ws(reader, writer, cookie='', ip=''):
     c = Client(writer); clients[c.id] = c
@@ -2185,6 +2199,9 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'travel_result', 'ok': True, 'id': 'junto', 'name': visible_nick(target), 'x': c.x, 'y': c.y, 'world': c.world})
             broadcast(payload)
     elif t == 'ir_mina' and c.hello:
+        if not TRAVEL_GATE.allow(c.id, time.time()):
+            send(c, {'t': 'travel_result', 'ok': False, 'reason': 'Espera un momento para volver a viajar.'})
+            return
         try:
             dest = VIAJES.mine_stand(WORLD)
         except VIAJES.ViajeError as exc:
@@ -2196,7 +2213,7 @@ def handle_client_message(c, m, t):
             c.moving = False
             c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
             room_shift(c, old_world, old_place)
-            send(c, {'t': 'travel_result', 'ok': True, 'id': 'mina', 'name': dest['name'], 'x': dest['x'], 'y': dest['y']})
+            send(c, {'t': 'travel_result', 'ok': True, 'id': 'mina', 'name': dest['name'], 'x': dest['x'], 'y': dest['y'], 'recurso': 'plata, cobre (pico)'})
     elif t == 'seguir' and c.hello:
         try:
             target = clients.get(int(m.get('id')))
@@ -2641,7 +2658,22 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         return auth_response('200 OK', {'ok': True, 'user': shown}, headers)
     if path == '/auth/registro' and method == 'POST':
         if not ACC.email_ready():
-            return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado. Entra con Google o Facebook.'}, headers)
+            if _loopback(headers, remote_ip):
+                try:
+                    result = ACC.create_local_email_account(
+                        ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('password') or '',
+                    )
+                    user = next(u for u in ACCOUNTS['users'] if u['id'] == result['user']['id'])
+                    settle_wallet(user, user.get('name') or '', '')
+                    save_accounts()
+                except ACC.AuthError as exc:
+                    save_accounts()
+                    return auth_response('400 Bad Request', {'error': str(exc)}, headers)
+                return auth_response(
+                    '200 OK', {'ok': True, 'local': True, 'user': ACC.public_user(user)}, headers,
+                    ['Set-Cookie: ' + ACC.cookie('life_session', result['token'], result['max_age'], secure)],
+                )
+            return auth_response('503 Service Unavailable', {'error': 'El correo no está configurado. Crea la cuenta con nickname y contraseña, sin Google.'}, headers)
         try:
             ACC.begin_email_account(
                 ACCOUNTS, payload.get('name'), payload.get('email'), payload.get('password') or '',

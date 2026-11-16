@@ -120,6 +120,18 @@ export function createValleyView(T, opts) {
   scene.add(ufo);
   let ride = null;
   let deck = null;
+  const dust = new T.Mesh(
+    new T.RingGeometry(0.55, 1.05, 18),
+    new T.MeshBasicMaterial({ color: '#f4e7c4', transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false })
+  );
+  dust.rotation.x = -Math.PI / 2;
+  dust.visible = false;
+  scene.add(dust);
+  function landPoint(spec) {
+    const t = Math.max(0, Math.min(1, spec.t || 0));
+    const e = 1 - (1 - t) ** 3;
+    return { x: spec.x, z: spec.y, t, e };
+  }
   function ridePoint(spec) {
     const t = Math.max(0, Math.min(1, spec.t || 0));
     const glide = Math.min(1, t / 0.74);
@@ -203,7 +215,7 @@ export function createValleyView(T, opts) {
     geo.setIndex(index);
   }
 
-  function overviewOn() { return open || !!ride || (flyT != null && flyT < 0.84); }
+  function overviewOn() { return open || (!!ride && ride.mode !== 'land'); }
 
   function labels() {
     return (W.mapLabels || []).filter(item => item && item.name != null && Number.isFinite(item.x) && Number.isFinite(item.y));
@@ -341,6 +353,14 @@ export function createValleyView(T, opts) {
       b.onclick = (event) => { event.stopPropagation(); window.LiveInk?.askTravel?.(id); };
       row.append(b);
     }
+    const spots = (window.destinosVisibles ? window.destinosVisibles() : window.SaimonDestinos) || [];
+    for (const spot of spots) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = spot.name + ' · ' + (spot.recurso || '');
+      b.onclick = (event) => { event.stopPropagation(); window.LiveInk?.askTravel?.(spot.id); };
+      row.append(b);
+    }
   }
   function wireZoom() {
     const box = document.getElementById('city-map-zoom');
@@ -417,6 +437,17 @@ export function createValleyView(T, opts) {
   }
 
   function pose() {
+    if (ride && ride.mode === 'land') {
+      const p = landPoint(ride);
+      const ground = lift(ride.x, ride.y);
+      posedTarget.set(ride.x * 2 + 1, ground + 1, ride.y * 2 + 1);
+      return {
+        target: posedTarget,
+        yaw: 0.12,
+        pitch: 1.25 + (1.08 - 1.25) * p.e,
+        distance: 70 + (24 - 70) * p.e,
+      };
+    }
     if (ride) {
       const heli = ride.mode === 'heli';
       const p = heli ? heliPoint(ride) : ridePoint(ride);
@@ -445,7 +476,7 @@ export function createValleyView(T, opts) {
   }
 
   function atmosphere() {
-    if (open || flyT != null || ride) return { fogNear: 1800, fogFar: 5600, cameraFar: 6800 };
+    if (open || flyT != null || (ride && ride.mode !== 'land')) return { fogNear: 1800, fogFar: 5600, cameraFar: 6800 };
     if (narrow()) return { fogNear: 90, fogFar: 460, cameraFar: 1400 };
     return { fogNear: 160, fogFar: 920, cameraFar: 2400 };
   }
@@ -460,7 +491,19 @@ export function createValleyView(T, opts) {
     applyMask(show);
     beacon.visible = show && !ride;
     beacon.position.set(here.x * 2 + 1, lift(here.x, here.y), here.y * 2 + 1);
-    if (ride && ride.mode !== 'heli') {
+    if (ride && ride.mode === 'land') {
+      const p = landPoint(ride);
+      const touch = p.t > 0.72 ? Math.min(1, (p.t - 0.72) / 0.28) : 0;
+      dust.visible = touch > 0 && touch < 1;
+      if (dust.visible) {
+        dust.position.set(p.x * 2 + 1, lift(p.x, p.z) + 0.25, p.z * 2 + 1);
+        const s = 1 + touch * 3.4;
+        dust.scale.set(s, s, s);
+        dust.material.opacity = touch < 0.2 ? (touch / 0.2) * 0.7 : 0.7 * (1 - (touch - 0.2) / 0.8);
+      }
+      ufo.visible = false;
+      deck = null;
+    } else if (ride && ride.mode !== 'heli') {
       const p = ridePoint(ride);
       ufo.visible = p.t < 0.98;
       ufo.position.set(p.x * 2 + 1, p.h, p.z * 2 + 1);
@@ -469,6 +512,7 @@ export function createValleyView(T, opts) {
     } else {
       ufo.visible = false;
       deck = null;
+      if (!ride || ride.mode !== 'land') dust.visible = false;
     }
     pinGroup.visible = show && !!pin;
     if (pin) pinGroup.position.set(pin.x * 2 + 1, lift(pin.x, pin.y), pin.y * 2 + 1);
