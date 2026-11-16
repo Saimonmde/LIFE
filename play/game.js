@@ -67,7 +67,7 @@ window.nombreAjeno = nombreAjeno;
 const S = window.__ELJARDIN = {
   me: { name: 'Viajero', nick: 'Viajero', color: 'azul', clan: '', group: '' }, sessionUser: null, houseEdit: false,
   player: { x: 0, y: 0, fx: 0, fy: 0, path: [], dir: 'down', animT: 0, busyUntil: 0, pending: null, repaths: 0 },
-  nodes: new Map(), animals: [], inv: [], sel: -1, xp: {}, coins: 0, energy: 100, hp: 100, sprintLock: false, playtime: 0, createdAt: 0, lastInput: 0,
+  nodes: new Map(), animals: [], inv: [], sel: -1, xp: {}, coins: 0, energy: 100, hp: 100, sprintLock: false, skating: false, playtime: 0, createdAt: 0, lastInput: 0,
   quest: { stage: 0, steps: {}, done: false, turnedIn: false },
   floaters: [], cam: { x: 0, y: 0 }, hover: null, dest: null, keys: new Set(), night: false, circadianIndex: null, nightOverride: null, mmZoom: 1,
   others: new Map(), net: { ws: null, ok: false, hasJoined: false, serverId: null, id: 0, ping: 0, lastSent: 0, sentKey: '' },
@@ -92,12 +92,15 @@ async function init() {
     S, game, sys, esc, invAdd, save, addXp, renderAll, renderQuest, renderSkills, showDialog, act, update,
     W: () => W, imgs, capataz: () => capatazImg, invRemove, invCount, applySmelt, renderProfile,
   });
-  const bLibro = $('#b-libro'), bLibroMovil = $('#b-libro-movil'), bMontar = $('#b-montar'), bBajar = $('#b-bajar');
+  const bLibro = $('#b-libro'), bLibroMovil = $('#b-libro-movil'), bMontar = $('#b-montar'), bBajar = $('#b-bajar'), bSkate = $('#b-skate'), bSkateMovil = $('#b-skate-movil');
   if (bLibro) bLibro.onclick = () => Simulacion.toggleLibro();
   if (bLibroMovil) bLibroMovil.onclick = () => Simulacion.toggleLibro();
-  const toggleMount = () => { if (S.mounted) Simulacion.dismount(); else Simulacion.summonAndMount(); };
+  const toggleMount = () => { if (S.skating) S.skating = false; if (S.mounted) Simulacion.dismount(); else Simulacion.summonAndMount(); };
   if (bMontar) bMontar.onclick = toggleMount;
   const bMontarBarra = $('#b-montar-barra'); if (bMontarBarra) bMontarBarra.onclick = toggleMount;
+  const pressSkate = () => toggleSkate();
+  if (bSkate) bSkate.onclick = pressSkate;
+  if (bSkateMovil) bSkateMovil.onclick = pressSkate;
   if (bBajar) bBajar.onclick = () => { if (S.mounted) Simulacion.dismount(); };
   tileset = await loadImg(W.tileset.image);
   sheets.default = await loadImg(W.player.image);
@@ -139,7 +142,7 @@ async function init() {
     const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';
     return id ? ('id:' + id + ':' + mid) : S.me.name;
   };
-  Casa.enter = () => { if (S.mounted) { game('Baja del caballo para entrar a un edificio.', 'aviso'); return; } enterHouse(); };
+  Casa.enter = () => { if (S.mounted) { game('Baja del caballo para entrar a un edificio.', 'aviso'); return; } if (S.skating) S.skating = false; enterHouse(); };
   Casa.exit = () => exitHouse();
   Casa.onEdit = (on) => { S.houseEdit = on; if (on) { S.player.path = []; S.player.pending = null; S.keys.clear(); } };
   Casa.onLayout = () => { if ((W.mapId || 'city') === 'casa') applyCasaLayout(); if (window.LIVE3D && window.LIVE3D.rebuildHouse) window.LIVE3D.rebuildHouse(Casa.layout); if (window.Vida) Vida.onLayout(); };
@@ -453,7 +456,7 @@ function startGame() {
   if (started) return;
   if (window.Vida && !Vida.allowsConnect()) { Vida.queueConnect(startGame); return; }
   started = true;
-  document.body.classList.add('in-game'); $('#b-descansar').hidden = false; $('#login-status').textContent = '';
+  document.body.classList.add('in-game'); $('#b-descansar').hidden = false; updateSkateButton(); $('#login-status').textContent = '';
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
   const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';
@@ -681,7 +684,7 @@ function switchMap(id,restored=false){
  else if(id==='banco')xy={x:Banco.SPAWN.x,y:Banco.SPAWN.y};
  else if(id==='central')xy={x:Central.SPAWN.x,y:Central.SPAWN.y};
  else if(prev==='mine')xy=cityReturn||{x:W.mineEntrance.x,y:W.mineEntrance.y+1};
- else if(prev==='casa'){const home=window.Hogar&&Hogar.stand(S.me.municipio);xy=home?{x:home.x,y:home.y}:{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};}
+ else if(prev==='casa'){const mid=S.me.municipio;const home=window.Hogar&&mid&&mid!=='envigado'?Hogar.stand(mid):null;xy=home?{x:home.x,y:home.y}:{x:Casa.PARK_STAND.x,y:Casa.PARK_STAND.y};}
  else if(prev==='banco')xy={x:Banco.OUTSIDE.x,y:Banco.OUTSIDE.y};
  else if(prev==='central')xy={x:Central.OUTSIDE.x,y:Central.OUTSIDE.y};
  else xy={x:p.x,y:p.y};
@@ -733,6 +736,12 @@ function prepareMining(){
  W.skills.mining.methods.terrestre.minerals=['piedra','cobre','plata','oro'];
  W.skills.smelting={name:'Fundición',verb:'Fundir minerales',learn:'En el horno, Acuñar cambia el mineral por Simoncoin, Simonplata o Simonchis. El libro mayor acredita el saldo.'};
  if(W.skills.order&&!W.skills.order.includes('smelting'))W.skills.order.push('smelting');
+ W.skills.skate={name:'Patinaje',verb:'Patinar',learn:'En el Skate Park de la 4 Sur se recoge la patineta. Sobre la pista, patinar da experiencia. Todavía no hay trucos.'};
+ if(W.skills.order&&!W.skills.order.includes('skate'))W.skills.order.push('skate');
+ const icon={ '16':'graphics/icons/skate_icon.svg','32':'graphics/icons/skate_icon.svg','64':'graphics/icons/skate_icon.svg' };
+ W.items.patineta={id:'patineta',name:'Patineta',category:'ride',stackable:false,maxStack:1,icon};
+ const park=window.SKATE_4_SUR&&window.SKATE_4_SUR.placement;
+ if(park)for(let y=park.y;y<park.y+park.h;y++)for(let x=park.x;x<park.x+park.w;x++){if(W.tiles[String(W.ground[y][x])].kind==='water')continue;W.ground[y][x]=104;W.collision[y][x]=0;}
  W.sprites.rock_oro={...W.sprites.rock_cobre};W.sprites.furnace={...W.sprites.rock_piedra};
  const taken=new Set([...W.nodes,...W.npcs,...W.doors].map(n=>`${n.x},${n.y}`));
  function spot(cx,cy){for(let r=0;r<16;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const x=cx+dx,y=cy+dy;if(x<1||y<1||x>=W.width-1||y>=W.height-1||W.collision[y][x]!==0||taken.has(`${x},${y}`))continue;if(![[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>W.collision[y+b][x+a]===0))continue;taken.add(`${x},${y}`);return {x,y};}throw Error('No se encontró espacio para la cantera');}
@@ -906,6 +915,42 @@ const selected = () => S.sel >= 0 && S.inv[S.sel] ? S.inv[S.sel].item : null;
 function selectItem(id) { const i = S.inv.findIndex(s => s && s.item === id); if (i >= 0) { S.sel = i; renderInv(); } return i >= 0; }
 const level = (xp) => Math.floor(Math.sqrt(xp / 25)) + 1;
 const skillIds = () => (W.skills.order || Object.keys(W.skills).filter(k => W.skills[k] && W.skills[k].name));
+function inSkatePark(x, y) {
+  const box = window.SKATE_4_SUR && window.SKATE_4_SUR.placement;
+  return !!(box && x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h);
+}
+function updateSkateButton() {
+  const label = !invCount('patineta') ? 'Tomar tabla' : (S.skating ? 'A pie' : 'Patinar');
+  for (const id of ['b-skate', 'b-skate-movil']) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.hidden = false;
+    el.setAttribute('aria-label', label);
+    if (!el.querySelector('img')) el.textContent = label;
+  }
+}
+function toggleSkate() {
+  if (!started) return;
+  if (S.mounted) { game('Baja del caballo para patinar.', 'aviso'); return; }
+  if (!invCount('patineta')) {
+    if (!inSkatePark(S.player.x, S.player.y)) {
+      game('La patineta está en el Skate Park de la 4 Sur, al norte por el camino del valle.', 'aviso');
+      return;
+    }
+    if (!invAdd('patineta', 1)) return;
+    game('Recoges una patineta en el Skate Park de la 4 Sur.', 'juego');
+    S.skating = true;
+  } else S.skating = !S.skating;
+  updateSkateButton();
+}
+function skateTick(dt) {
+  if (S.mounted) S.skating = false;
+  if (!S.skating || !invCount('patineta')) { S.skating = false; return; }
+  S.skateAcc = (S.skateAcc || 0) + dt;
+  if (S.skateAcc < 2) return;
+  S.skateAcc = 0;
+  if (inSkatePark(S.player.x, S.player.y)) addXp('skate', 4);
+}
 function addXp(skill, n) {
   if (!W.skills[skill]) return;
   const before = level(S.xp[skill] || 0); S.xp[skill] = (S.xp[skill] || 0) + n; save(); renderSkills(); renderProfile();
@@ -1624,7 +1669,7 @@ function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 function act(t) {
   if (t.kind === 'peer') { if (window.Ficha) Ficha.open(S.others.get(t.id) || { id: t.id }); else window.TradeUI?.openTrade(t.id); return; }
   const p = S.player; const tt = targetTile(t); face(tt.x, tt.y);
-  if (t.kind === 'mount') return Simulacion.mountHorse(t.m);
+  if (t.kind === 'mount') { if (S.skating) S.skating = false; return Simulacion.mountHorse(t.m); }
   if (t.kind === 'npc') return t.d.id === 'profesora_cadena' ? Simulacion.talkProfesora() : talkCapataz();
   if (t.kind === 'door') { S.quest.doorOpened = true; game('Tocas la puerta… ¡el capataz sale a recibirte!', 'juego'); updateTutorial(); return talkCapataz(); }
   if (now() < p.busyUntil) return;
@@ -2082,7 +2127,8 @@ addEventListener('keydown', (e) => {
   if (k === 'h') $('#ayuda').hidden = !$('#ayuda').hidden;
   if (k === 'i') toggle('#w-inv'); if (k === 'k') toggle('#w-hab'); if (k === 'q') toggle('#p-misiones'); if (k === 'n') toggleNight();
   if (k === 'l' && window.Simulacion) Simulacion.toggleLibro();
-  if ((k === 'm' || k === 'e') && window.Simulacion) { if (S.mounted) Simulacion.dismount(); else Simulacion.mountHorse(Simulacion.nearestMount()); }
+  if ((k === 'm' || k === 'e') && window.Simulacion) { if (S.skating) S.skating = false; if (S.mounted) Simulacion.dismount(); else Simulacion.summonAndMount(); }
+  if (k === 'g') toggleSkate();
   if (k === 'escape') { $('#ayuda').hidden = true; $('#w-inv').hidden = true; $('#w-hab').hidden = true; const libro = $('#w-libro'); if (libro) libro.hidden = true; }
 });
 addEventListener('keyup', (e) => S.keys.delete(e.key.toLowerCase()));
@@ -2210,7 +2256,7 @@ function update(dt) {
   }
   const joy = S.keys.has('joystick');
   const power = joy && window.LiveInk && LiveInk.stickPower ? Math.max(0.28, LiveInk.stickPower()) : 1;
-  const cruise = SPEED * (joy ? power : 1) * (S.mounted ? Simulacion.speedMul() : (sprinting ? 1.75 : 1));
+  const cruise = SPEED * (joy ? power : 1) * (S.mounted ? Simulacion.speedMul() : (S.skating ? 1.9 : (sprinting ? 1.75 : 1)));
   if (p.emote === 'sit' && t < (p.emoteUntil || 0)) p.path = [];
   const want = p.path.length ? cruise * (p.path.length <= 1 ? 0.62 : 1) : 0;
   p.speed = window.Motion ? Motion.approach(p.speed || 0, want, dt, sprinting ? 10 : 6.5, 12) : want;
@@ -2232,7 +2278,7 @@ function update(dt) {
           else if (tg.kind === 'animal' && tg.a.state === 'alive' && p.repaths++ < 4) approach(tg);
           else if (tg.kind === 'animal') game('El animal se alejó.', 'aviso');
           budget = 0;
-        } else if ((S.mounted || S.keys.has('joystick')) && budget > 1e-4 && !S.dialog && !S.houseEdit) {
+        } else if ((S.mounted || S.skating || S.keys.has('joystick')) && budget > 1e-4 && !S.dialog && !S.houseEdit) {
           let mx = 0, my = 0; const K = S.keys;
           if (K.has('w') || K.has('arrowup')) my = -1; if (K.has('s') || K.has('arrowdown')) my = 1;
           if (K.has('a') || K.has('arrowleft')) mx = -1; if (K.has('d') || K.has('arrowright')) mx = 1;
@@ -2247,6 +2293,8 @@ function update(dt) {
     p.animT += dt * (1 + (p.speed || 0) / SPEED);
   } else p.animT += dt * 0.2;
   if (window.Simulacion) Simulacion.syncHorse();
+  skateTick(dt);
+  updateSkateButton();
   if (window.Caballo) Caballo.tick(dt, horseContext());
   if (window.Guacharaca) Guacharaca.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
   if (window.Gallos) Gallos.tick(dt, { mapId: W.mapId || 'city', x: S.player.fx, y: S.player.fy, now: Date.now() });
@@ -2372,6 +2420,10 @@ function draw() {
     const w = dc.w || 1, h = dc.h || 1;
     list.push({ y: (dc.y + h) * TS + (dc.sortOffset || 0), x: dc.x, draw: () => drawSpriteAt(frameKey(dc, t), (dc.x + w / 2) * TS, (dc.y + h) * TS) });
   }
+  if ((W.mapId || 'city') === 'city' && window.EnvigadoPark && EnvigadoPark.allProps) {
+    EnvigadoPark.drawn2d.length = 0;
+    for (const prop of EnvigadoPark.allProps()) list.push({ y: (prop.y + 1) * TS, x: prop.x, draw: () => EnvigadoPark.paint2d(ctx, prop, TS) });
+  }
   for (const a of S.animals) if (a.state === 'alive') list.push({ y: (a.fy + 1) * TS + 1, x: a.fx, draw: () => drawSprite(a.def.sprites.alive[a.frame], a.fx, a.fy) });
   for (const npc of W.npcs || []) list.push({ y: (npc.y + 1) * TS + 2, x: npc.x, draw: () => {
     const sheet = npc.id === 'profesora_cadena' && imgs._profesora ? imgs._profesora : capatazImg;
@@ -2389,6 +2441,7 @@ function draw() {
   list.push({ y: (p.fy + 1) * TS + 3, x: p.fx, draw: () => {
     ctx.strokeStyle = 'rgba(120,255,120,.75)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(p.fx * TS + 32, (p.fy + 1) * TS - 12, 20, 8, 0, 0, Math.PI * 2); ctx.stroke();
     if (S.mounted) drawHorseAt(p.fx, p.fy, p.dir, !!p.path.length);
+    if (S.skating) { ctx.fillStyle = '#e4d2ad'; ctx.fillRect(p.fx * TS + 18, (p.fy + 1) * TS - 18, 28, 10); ctx.fillStyle = '#2c3136'; ctx.fillRect(p.fx * TS + 20, (p.fy + 1) * TS - 16, 4, 4); ctx.fillRect(p.fx * TS + 40, (p.fy + 1) * TS - 16, 4, 4); }
     drawChar(sheets[S.me.color] || sheets.default, p.fx, S.mounted ? p.fy - 0.35 : p.fy, p.dir, !!p.path.length, p.animT);
     const sel = selected(); if (sel && W.items[sel].category === 'tool' && imgs['icon:' + sel]) ctx.drawImage(imgs['icon:' + sel], Math.round(p.fx * TS + 40), Math.round((p.fy + 1) * TS - 56), 24, 24);
     const cx = p.fx * TS + 32, top = (p.fy + 1) * TS - 96;
