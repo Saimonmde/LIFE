@@ -24,18 +24,18 @@
     <header><div><small>SAIMON CITY · INTERCAMBIO</small><h2 id="trade-title">Intercambiar</h2></div>
     <button id="trade-close" type="button" aria-label="Cancelar intercambio">×</button></header>
     <div class="economy-body">
-      <p class="trade-notice">Las dos personas aceptan y después confirman. Un cambio de oferta anula las aceptaciones. Se puede ofrecer Simoncoin, Simonplata, Simonchis y objetos de la mochila del servidor (bolsa de café, bolsa de cacao y los que el oficio acredite). Hace falta estar a 30 m, con la billetera desbloqueada. Nada se mueve hasta las cuatro respuestas. Las partes no salen en el libro público.</p>
+      <p class="trade-notice">Pasa Simoncoin, Simonplata y Simonchis de billetera a billetera. No hay puesto, banco ni comisión, y no se crean monedas. Las dos aceptan y después confirman. Hace falta estar a 30 m, en la ciudad o en la mina, con la billetera desbloqueada. 1 SMC = 100 SMH. Las partes no salen en el libro público.</p>
       <ol class="trade-steps"><li id="trade-step-one">1 · Preparar oferta</li><li id="trade-step-two">2 · Revisar y confirmar</li></ol>
       <div class="trade-columns">
         <article>
           <h3>Tu oferta</h3>
           <p id="trade-available"></p>
-          <label for="trade-smc">Simoncoin (SMC)</label>
-          <input id="trade-smc" inputmode="decimal" value="0" autocomplete="off">
+          <label for="trade-smc">Simoncoin (SMC o SMH)</label>
+          <input id="trade-smc" inputmode="decimal" value="0" autocomplete="off" placeholder="1,5 o 150 SMH">
           <label for="trade-smp">Simonplata (SMP)</label>
-          <input id="trade-smp" inputmode="decimal" value="0" autocomplete="off">
-          <label for="trade-cobre">Simonchis de cobre</label>
-          <input id="trade-cobre" inputmode="numeric" value="0" autocomplete="off">
+          <input id="trade-smp" inputmode="decimal" value="0" autocomplete="off" placeholder="1">
+          <label for="trade-cobre">Simonchis</label>
+          <input id="trade-cobre" inputmode="numeric" value="0" autocomplete="off" placeholder="0">
           <div id="trade-items"></div>
           <button id="trade-update" type="button">Actualizar oferta</button>
           <strong id="trade-mine">—</strong>
@@ -108,9 +108,11 @@
   function holdings() {
     const S = api().state;
     const chis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
+    const smh = Simulacion.walletSubs(S.me.name);
+    const sph = (S.plata && S.plata.balanceSph) || 0;
     const bag = (S.purse && S.purse.items) || {};
-    return 'Disponible: ' + money(Simulacion.walletSubs(S.me.name))
-      + ' · ' + plata((S.plata && S.plata.balanceSph) || 0)
+    return 'Tuyo: ' + (Simulacion.formatPair ? Simulacion.formatPair(smh) : money(smh))
+      + ' · ' + (Simulacion.formatPlataPair ? Simulacion.formatPlataPair(sph) : plata(sph))
       + ' · ' + chis + ' Simonchis'
       + (Object.keys(bag).length ? '' : ' · sin bolsas en la mochila del servidor');
   }
@@ -172,8 +174,14 @@
       $('#trade-status').textContent = 'Oferta sin enviar. Actualízala antes de aceptar.';
     }
   }
+  function readSmc(raw) {
+    const text = String(raw || '0').trim();
+    if (!text) return 0;
+    if (/smh|simonchi/i.test(text)) return Simulacion.parseAmount(text);
+    return Simulacion.parseAmount(/smc/i.test(text) ? text : text + ' SMC');
+  }
   function readOffer() {
-    const smc = Simulacion.parseAmount(($('#trade-smc').value || '0') + ' SMC');
+    const smc = readSmc($('#trade-smc').value);
     const smp = Simulacion.parsePlata(($('#trade-smp').value || '0') + ' SMP');
     const cobre = Number($('#trade-cobre').value || '0');
     if (!Number.isSafeInteger(smc) || smc < 0) throw Error('Simoncoin no válida.');
@@ -215,6 +223,21 @@
       input.value = String((o.items && o.items[input.dataset.item]) || 0);
     });
   }
+  function aplicarSaldos(box) {
+    const S = api() && api().state;
+    if (!S || !box) return;
+    S.ledger = S.ledger || {};
+    S.ledger.balances = Object.assign({}, S.ledger.balances || {}, {
+      simoncoin: box.smc || 0,
+      simonplata: box.smp || 0,
+      simonchis: box.cobre || 0,
+    });
+    S.plata = S.plata || {};
+    S.plata.balanceSph = box.smp || 0;
+    if (S.econ && S.econ.wallets && S.me && S.me.name) S.econ.wallets[S.me.name] = box.smc || 0;
+    if (window.Simulacion && Simulacion.paintHud) Simulacion.paintHud();
+    if (window.Cajon) Cajon.paint();
+  }
   function onNet(m) {
     if (!m.t || !m.t.startsWith('trade_')) return false;
     if (m.t === 'trade_state') {
@@ -243,9 +266,12 @@
     } else if (m.t === 'trade_end') {
       if (session && m.id !== session.id) return true;
       close();
-      if ($('#rest-status')) $('#rest-status').textContent = m.reason;
+      if (m.ok && m.balances) aplicarSaldos(m.balances);
+      if ($('#rest-status')) $('#rest-status').textContent = m.reason || '';
+      if (m.reason && typeof game === 'function') game(m.reason, m.ok ? 'juego' : 'aviso');
       if (m.reason && m.reason.indexOf('Tu mochila está llena') >= 0 && window.avisarMochilaLlena) window.avisarMochilaLlena();
       if (window.Banco) Banco.paint();
+      if (window.Cajon) Cajon.paint();
     }
     return true;
   }
