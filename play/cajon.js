@@ -38,14 +38,17 @@
       simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
     const subs = window.Simulacion ? Simulacion.SUBS : 100;
+    const plataSubs = window.Simulacion && Simulacion.PLATA_SUBS ? Simulacion.PLATA_SUBS : 100000000;
     const compact = (base, whole) => {
       const value = Number(base) || 0;
       if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
       return grupo(whole ? value : value / subs);
     };
+    const plata = (Number(simonplata) || 0) / plataSubs;
+    const plataTxt = window.Simulacion && Simulacion.formatCompact ? Simulacion.formatCompact(plata) : grupo(plata);
     return {
       simoncoin: compact(simoncoin, false),
-      simonplata: compact(simonplata, false),
+      simonplata: plataTxt,
       simonchis: compact(simonchis, true),
       exactSimoncoin: window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(simoncoin) : grupo(simoncoin) + ' SMH',
       exactSimonplata: window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(simonplata) : grupo(simonplata) + ' SPH',

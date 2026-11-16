@@ -550,6 +550,7 @@ function aplicarCredito(m) {
   paintHud();
   renderLibro();
   if (window.Cajon) Cajon.paint();
+  if (window.Banco && Banco.paint) Banco.paint();
 }
 function applyServer(m) {
   if (!m || !m.state) return;

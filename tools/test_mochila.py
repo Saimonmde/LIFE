@@ -107,6 +107,21 @@ class ServerPick(unittest.TestCase):
         self.assertFalse(again[-1]['ok'])
         self.assertEqual(self.server.VAULT.account(self.server.VAULT_STATE, 'Nica')['items']['mineral_oro'], 2)
 
+    def test_selling_one_mineral_pays_one_smh(self):
+        who = self.person()
+        who.pending_pick = {'item': 'mineral_plata', 'qty': 1, 'kind': 'ore'}
+        wallets = self.server.ECON.setdefault('wallets', {})
+        wallets['puesto_frutas'] = int(wallets.get('puesto_frutas') or 0) + 20
+        before = int(wallets.get('Nica') or 0)
+        self.server.mochila_op(who, 'vender')
+        done = [item for item in self.sent if item.get('t') == 'mochila_op']
+        self.assertTrue(done[-1].get('ok'), done[-1])
+        self.assertEqual(done[-1].get('paid'), 1)
+        self.assertEqual(int(wallets.get('Nica') or 0), before + 1)
+        self.assertEqual(self.server.SELL_SMH['mineral_oro'], 1)
+        self.assertEqual(self.server.SELL_SMH['bolsa_cafe'], 5)
+        self.assertEqual(self.server.SELL_SMH['bolsa_cacao'], 5)
+
     def test_staff_pick_is_stored_once(self):
         who = self.person()
         self.server.swing_for(who, 'cobre', 1)

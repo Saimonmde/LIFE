@@ -7,6 +7,7 @@
 })(typeof window !== 'undefined' ? window : globalThis, function () {
   'use strict';
   const SUBS = 100;
+  const PLATA_SUBS = 100000000;
   const SMP_POR_SMC = 100;
   const MINERAL_SMH = 1;
   const MINERALES = { mineral_cobre: 'cobre', mineral_plata: 'plata', mineral_oro: 'oro' };
@@ -31,8 +32,9 @@
     if (give === receive) return no('Elige dos cosas distintas.');
     if (receive !== 'simoncoin') return no('Eso crearía monedas o metal nuevo. Aquí solo se mueve lo que ya existe.');
     if (give === 'simonplata') {
+      const haveSmp = Math.max(0, Math.floor(have / PLATA_SUBS));
       const fondo = Math.max(0, Math.floor(fondoSmh / SUBS));
-      const maximo = Math.max(0, Math.min(Math.floor(have / SMP_POR_SMC), fondo));
+      const maximo = Math.max(0, Math.min(Math.floor(haveSmp / SMP_POR_SMC), fondo));
       const usado = Math.max(0, Math.min(Math.floor(Math.max(0, qty) / SMP_POR_SMC), maximo));
       return {
         ok: usado > 0,
