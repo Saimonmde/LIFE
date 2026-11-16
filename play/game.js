@@ -157,6 +157,12 @@ async function init() {
     startGame(); autotest(); return;
   }
   W.clientReady = true;
+  const login = $('#login');
+  if (login) login.hidden = false;
+  const cuentas = $('#login-cuentas');
+  if (cuentas) cuentas.hidden = true;
+  const red = $('#login-red');
+  if (red) { red.classList.remove('en-linea'); red.textContent = 'Conectando al mundo…'; }
   if (prof && prof.name && $('#l-nombre')) { $('#l-nombre').value = textoNombre(prof.name); if (prof.color) S.me.color = prof.color; buildColorPicker(); }
   if (Q.get('auth') === 'error') $('#login-status').textContent = 'No se pudo entrar con ese proveedor. Intenta otra vez.';
   if (Q.get('auth') === 'enlace') $('#login-status').textContent = 'El enlace caducó o ya se usó. Pide otro.';
@@ -177,40 +183,23 @@ async function init() {
     continuarSesion(sessionUser);
     return;
   }
-  beginAtHome();
-  $('#login').hidden = false;
+  if (cuentas) cuentas.hidden = false;
+  if (red) { red.classList.add('en-linea'); red.textContent = 'En línea'; }
   fetch('/auth/providers').then(r => r.json()).then(p => {
-    const g = $('#b-google'); if (g) { g.hidden = false; g.disabled = !p.google; }
-    const f = $('#b-facebook');
-    if (f) {
-      f.hidden = false;
-      f.disabled = !p.facebook;
-      const label = f.querySelector('span');
-      if (label) label.textContent = p.facebook ? 'Facebook' : 'Facebook disponible pronto';
-    }
-    const reg = $('#b-registro'); if (reg) reg.hidden = !p.registro;
-    const forgot = $('#b-olvide'); if (forgot) forgot.hidden = !p.reset;
-    const again = $('#b-reenviar'); if (again) again.hidden = !p.registro;
-    const mail = $('#b-correo'); if (mail) mail.hidden = !p.email_login;
-    const note = $('#login-nota');
-    if (note) {
-      if (p.registro) note.hidden = true;
-      else {
-        const vias = [];
-        if (p.google) vias.push('Google');
-        if (p.facebook) vias.push('Facebook');
-        if (p.email_login) vias.push('el correo si ya tienes contraseña');
-        note.hidden = false;
-        note.textContent = 'Sin correo en el servidor no se pueden crear cuentas nuevas ni enviar enlaces. Puedes entrar con ' + (vias.join(' o ') || 'una cuenta que ya exista') + '.';
-      }
+    const g = $('#b-google');
+    if (g) {
+      g.hidden = !p.google;
+      g.disabled = !p.google;
+      const label = g.querySelector('span');
+      if (label) label.textContent = 'Continuar con Google';
     }
   }).catch(() => {
-    const note = $('#login-nota');
-    if (note) { note.hidden = false; note.textContent = 'No se pudo leer la configuración. El correo de las cuentas que ya existen sigue disponible.'; }
+    const g = $('#b-google');
+    if (g) g.hidden = true;
   });
 }
 function buildColorPicker() {
-  const box = $('#l-colores'); box.innerHTML = '';
+  const box = $('#l-colores'); if (!box) return; box.innerHTML = '';
   const hex = { azul: '#2860d4', rojo: '#c82c2c', amarillo: '#ecb828', verde: '#2e9650', morado: '#7640b8' };
   for (const c of Object.keys(W.playerVariants || { azul: 1 })) {
     const b = document.createElement('button'); b.type = 'button'; b.style.background = hex[c] || '#888'; b.title = c;
@@ -239,26 +228,15 @@ async function continuarSesion(sessionUser) {
   if ($('#l-nombre')) $('#l-nombre').value = S.me.nick;
   try { localStorage.setItem('lifeinc.perfil', JSON.stringify(S.me)); } catch (e) {}
   const tomar = $('#b-tomar-simon');
-  if (tomar) tomar.hidden = !sessionUser.canClaimSimon;
-  if (sessionUser.needsPassword) {
-    $('#login').hidden = true;
-    const panel = $('#poner-clave');
-    if (panel) panel.hidden = false;
-    const propio = apodoCuenta(sessionUser);
-    const reservado = pareceSimon(propio);
-    const nick = (!sessionUser.canClaimSimon && reservado) || propio === 'Viajero' ? '' : propio;
-    if ($('#p-nick')) $('#p-nick').value = nick;
-    return;
-  }
-  const panel = $('#poner-clave');
-  if (panel) panel.hidden = true;
+  if (tomar) tomar.hidden = true;
+  const clave = $('#poner-clave');
+  if (clave) clave.hidden = true;
+  const red = $('#login-red');
+  if (red) { red.classList.add('en-linea'); red.textContent = 'En línea'; }
+  const hi = $('#login-bienvenida');
+  const nick = apodoCuenta(sessionUser) || 'Viajero';
+  if (hi) { hi.hidden = false; hi.textContent = 'Bienvenido de vuelta, ' + nick; }
   if (window.Partida) { try { await Partida.pull(); } catch (e) {} }
-  if (!S.me.municipio && window.Hogar) {
-    $('#login').hidden = true;
-    document.body.classList.add('eligiendo-casa');
-    Hogar.openPicker(elegirCasa);
-    return;
-  }
   startGame();
 }
 const bSimon = $('#b-tomar-simon'); if (bSimon) bSimon.onclick = async () => {

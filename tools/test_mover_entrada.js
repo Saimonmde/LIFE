@@ -13,8 +13,8 @@ assert.ok(game.includes('const tiles=city.tiles||(window.EL_JARDIN&&EL_JARDIN.ti
 assert.ok(game.includes('try { update(dt); } catch (err)'));
 assert.ok(game.includes("if (window.Vida && !Vida.allowsConnect())"));
 assert.ok(!login.includes('pointer-events: none'));
-assert.ok(page.includes('login.css?v=apodo-vista'));
-assert.ok(page.includes('game.js?v=mover-r1'));
+assert.ok(page.includes('login.css?v=login-limpio'));
+assert.ok(page.includes('game.js?v=login-limpio'));
 assert.ok(page.includes('unified3d.js?v=mover-r1'));
 assert.ok(page.includes('mover.css?v=mover-r1'));
 assert.ok(skin.includes('pointer-events: none !important'));
