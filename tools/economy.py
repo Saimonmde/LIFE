@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """SaiMonCoins (SMC): emisión, halvings y libro mayor.
 
-La unidad interna es el Simonchi (SMH): 1 SMC = 100.000.000 SMH, como un satoshi.
+La unidad interna es el Simonchi (SMH): 1 SMC = 100 SMH.
+Hasta 2026 la escala vieja fue 100.000.000. migrate_denomination la pasa una sola vez.
 Los saldos, el libro y el tope se guardan como enteros SMH. No se usa coma flotante.
 
 Nota histórica: hasta 2026 el nombre visible fue Saimon Coins (SAI), con alias Saimony.
 Ese alias ya no se muestra. Un state/economy.json antiguo se sigue leyendo; no se reescriben los bloques.
 El saimonito ya era esa unidad mínima: 1 saimonito = 1 SMH, así que esos enteros no se vuelven a multiplicar.
-Los contadores guardados en SMC (por ejemplo mined) sí se multiplican por 100.000.000 una sola vez.
+Un contador guardado en SMC (por ejemplo mined, antes de tener amountUnit) se pasa a SMH con la escala vigente, 100.
 
 Simulación educativa. No es dinero real, no tiene valor de canje y no transfiere derechos.
 Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT.
@@ -15,9 +16,14 @@ Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT.
 import hashlib, json, os, time
 from decimal import Decimal
 
-SUBS = 100_000_000
+# Una sola escala para el oro del juego. La Plata no usa este número.
+SMH_PER_SMC = 100
+OLD_SMH_PER_SMC = 100_000_000
+DENOM_DIVISOR = OLD_SMH_PER_SMC // SMH_PER_SMC  # 1.000.000
+DECIMALS = 2
+SUBS = SMH_PER_SMC
 MAX_SUPPLY = 21_000_000
-MAX_SMH = MAX_SUPPLY * SUBS  # 2.100.000.000.000.000
+MAX_SMH = MAX_SUPPLY * SMH_PER_SMC  # 2.100.000.000
 INITIAL_REWARD = 1  # SMC por prueba aceptada. 50 por bateada se minaba demasiado rápido.
 INITIAL_REWARD_SMH = INITIAL_REWARD * SUBS
 SYMBOL = 'SMC'
@@ -26,7 +32,7 @@ UNIT = 'SaiMonCoin'
 BASE_NAME = 'Simonchi'
 DISCLAIMER = (
     'Las SaiMonCoins (SMC) son una simulación educativa. '
-    '1 SMC = 100.000.000 Simonchis (SMH). Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. '
+    '1 SMC = 100 Simonchis (SMH). Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. '
     'No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.'
 )
 HALVING_MINED = 10_500_000
@@ -48,10 +54,10 @@ def _digits(text):
 
 
 def parse_amount(text):
-    """Devuelve SMH enteros. Acepta SMC con hasta 8 decimales, o SMH enteros.
+    """Devuelve SMH enteros. Acepta SMC con hasta 2 decimales, o SMH enteros.
 
-    '0.00012345' y '0,00012345 SMC' valen 12345. '12.345 SMH' vale 12345.
-    Más de 8 decimales se rechaza: no se redondea ni se crea ni se destruye un SMH.
+    '1,50 SMC' vale 150. '12.345 SMH' vale 12345.
+    Más de 2 decimales se rechaza: no se redondea ni se crea ni se destruye un SMH.
     """
     raw = str(text if text is not None else '').strip().lower()
     if not raw:
@@ -111,19 +117,19 @@ def parse_amount(text):
     _digits(whole)
     if dot:
         _digits(frac)
-        if len(frac) > 8:
-            raise AmountError('como máximo 8 decimales: un SMH no se fracciona')
-        frac = frac.ljust(8, '0')
+        if len(frac) > DECIMALS:
+            raise AmountError('como máximo 2 decimales: un SMH no se fracciona')
+        frac = frac.ljust(DECIMALS, '0')
     else:
-        frac = '00000000'
-    smh = int(whole) * SUBS + int(frac)
+        frac = '0' * DECIMALS
+    smh = int(whole) * SMH_PER_SMC + int(frac)
     if negative:
         smh = -smh
     return smh
 
 
 def smc_to_smh(value):
-    """Multiplica SMC × 100.000.000 y devuelve un entero. No pasa por float."""
+    """Multiplica SMC × 100 y devuelve un entero. No pasa por float."""
     if isinstance(value, bool) or value is None:
         return 0
     if isinstance(value, int):
@@ -142,11 +148,11 @@ def subunits(sai):
 def format_smc(smh):
     smh = int(smh or 0)
     sign = '-' if smh < 0 else ''
-    whole, frac = divmod(abs(smh), SUBS)
+    whole, frac = divmod(abs(smh), SMH_PER_SMC)
     grouped = f'{whole:,}'.replace(',', '.')
     if frac == 0:
         return f'{sign}{grouped} {SYMBOL}'
-    decimals = f'{frac:08d}'.rstrip('0')
+    decimals = f'{frac:0{DECIMALS}d}'.rstrip('0')
     return f'{sign}{grouped},{decimals} {SYMBOL}'
 
 
@@ -159,6 +165,194 @@ def format_smh(smh):
 
 def format_pair(smh):
     return f'{format_smc(smh)} = {format_smh(smh)}'
+
+
+def _soft_group(number, digits=2):
+    """Entero con punto de miles y, si hace falta, coma decimal. No usa float para el saldo guardado."""
+    text = f'{number:.{digits}f}'.rstrip('0').rstrip('.')
+    whole, dot, frac = text.partition('.')
+    grouped = f'{int(whole):,}'.replace(',', '.')
+    if frac:
+        return grouped + ',' + frac
+    return grouped
+
+
+def format_compact(amount):
+    """Resumen corto: 950, 1,2 k, 3,45 k, 1,2 M. La coma es decimal (es-CO).
+
+    El número exacto se muestra aparte. Esto no cambia el saldo guardado.
+    """
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return '0'
+    if amount != amount or amount in (float('inf'), float('-inf')):
+        return '0'
+    sign = '-' if amount < 0 else ''
+    value = abs(amount)
+    if value < 1000:
+        if value == 0:
+            return '0'
+        if abs(value - round(value)) < 1e-9:
+            return sign + f'{int(round(value)):,}'.replace(',', '.')
+        if value >= 0.01:
+            return sign + _soft_group(value, 2)
+        text = f'{value:.8f}'.rstrip('0').rstrip('.')
+        whole, _, frac = text.partition('.')
+        return sign + whole + (',' + frac if frac else '')
+    if value < 1_000_000:
+        return sign + _soft_group(value / 1_000) + ' k'
+    if value < 1_000_000_000:
+        return sign + _soft_group(value / 1_000_000) + ' M'
+    return sign + _soft_group(value / 1_000_000_000) + ' mil M'
+
+
+def repair_smh(value):
+    """Deshace un ×100 de más, ya en la escala nueva.
+
+    No usa el divisor 1.000.000 de la migración. Un saldo que la migración
+    acaba de convertir no entra aquí: haría falta que siguiera por encima
+    de un millón de topes. Devuelve (smh, cambió).
+    """
+    try:
+        smh = int(value)
+    except (TypeError, ValueError):
+        return 0, False
+    if smh > MAX_SMH and smh % SMH_PER_SMC == 0:
+        fixed = smh // SMH_PER_SMC
+        if 0 <= fixed <= MAX_SMH:
+            return int(fixed), True
+    return smh, False
+
+
+def repair_balances(state, log=None):
+    """Repara billeteras imposibles ya migradas. No toca la plata ni el cobre.
+
+    Si la denominación todavía no es 100, no hace nada: esa conversión es
+    migrate_denomination y no se aplica dos veces.
+    """
+    logs = []
+    if not isinstance(state, dict):
+        return logs
+    meta = state.get('meta') if isinstance(state.get('meta'), dict) else {}
+    if int(meta.get('smhPerSmc') or 0) != SMH_PER_SMC or meta.get('denomJustMigrated'):
+        return logs
+    wallets = state.get('wallets')
+    if not isinstance(wallets, dict):
+        return logs
+    for name, value in list(wallets.items()):
+        fixed, changed = repair_smh(value)
+        if not changed:
+            continue
+        line = f'[reparar] {name}: antes {value} SMH, después {fixed} SMH'
+        logs.append(line)
+        if log:
+            log(line)
+        wallets[name] = fixed
+    return logs
+
+
+def _scale_old_smh(value):
+    """Pasa SMH viejos (1e8 por SMC) a la escala de 100. El SMC no cambia."""
+    try:
+        smh = int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+    sign = -1 if smh < 0 else 1
+    smh = abs(smh)
+    return sign * ((smh + DENOM_DIVISOR // 2) // DENOM_DIVISOR)
+
+
+def _scale_tx_smh(tx):
+    if not isinstance(tx, dict) or 'amountSubs' not in tx:
+        return
+    tx['amountSubs'] = _scale_old_smh(tx.get('amountSubs') or 0)
+
+
+def migrate_denomination(state, log=None):
+    """Una vez: new_smh = round(old_smh / 1_000_000). La bandera meta.smhPerSmc lo impide otra vez.
+
+    No toca saldos de Plata (SPH). El fondo de cambio sí es SMC y se convierte.
+    """
+    if not isinstance(state, dict):
+        return False
+    meta = state.setdefault('meta', {})
+    if int(meta.get('smhPerSmc') or 0) == SMH_PER_SMC:
+        meta.pop('denomJustMigrated', None)
+        return False
+    def note(kind, name, before, after):
+        line = f'[denominacion] {kind} {name}: antes {before} SMH, después {after} SMH'
+        if log:
+            log(line)
+    for name, value in list((state.get('wallets') or {}).items()):
+        after = _scale_old_smh(value)
+        note('billetera', name, value, after)
+        state['wallets'][name] = after
+    if 'minedSmh' in state or state.get('mined') is None:
+        before = int(state.get('minedSmh') or 0)
+        after = _scale_old_smh(before)
+        note('minado', 'mundo', before, after)
+        state['minedSmh'] = after
+    owed = state.get('questOwed')
+    if isinstance(owed, dict):
+        for name, value in list(owed.items()):
+            after = _scale_old_smh(value)
+            note('mision', name, value, after)
+            owed[name] = after
+    box = state.get('supply')
+    if isinstance(box, dict):
+        before = int(box.get('epochSubs') or 0)
+        box['epochSubs'] = _scale_old_smh(before)
+        if before:
+            note('cupo-red', 'hoy', before, box['epochSubs'])
+        for name, acc in list((box.get('accounts') or {}).items()):
+            if not isinstance(acc, dict):
+                continue
+            before = int(acc.get('earned') or 0)
+            acc['earned'] = _scale_old_smh(before)
+            if before:
+                note('cupo', name, before, acc['earned'])
+    plata = state.get('plata')
+    if isinstance(plata, dict) and 'smcPoolSmh' in plata:
+        before = int(plata.get('smcPoolSmh') or 0)
+        plata['smcPoolSmh'] = _scale_old_smh(before)
+        if before:
+            note('fondo', 'cambio', before, plata['smcPoolSmh'])
+    for tx in state.get('mempool') or []:
+        _scale_tx_smh(tx)
+    prev = GENESIS_PREV
+    for block in state.get('blocks') or []:
+        for tx in block.get('txs') or []:
+            _scale_tx_smh(tx)
+        block['prev'] = prev
+        block['hash'] = hash_block(prev, block.get('ts'), block.get('txs'))
+        prev = block['hash']
+    meta['smhPerSmc'] = SMH_PER_SMC
+    meta['denomJustMigrated'] = True
+    return True
+
+
+def migrate_vault_smc(econ, vault_state, log=None):
+    """Convierte el SMC del banco una sola vez. No toca la Plata del depósito."""
+    if not isinstance(econ, dict) or not isinstance(vault_state, dict):
+        return False
+    meta = econ.setdefault('meta', {})
+    if int(meta.get('smhPerSmc') or 0) != SMH_PER_SMC:
+        return False
+    if int(meta.get('vaultSmhPerSmc') or 0) == SMH_PER_SMC:
+        return False
+    accounts = vault_state.get('accounts') if isinstance(vault_state.get('accounts'), dict) else {}
+    for name, box in list(accounts.items()):
+        if not isinstance(box, dict):
+            continue
+        before = int(box.get('smh') if box.get('smh') is not None else box.get('smcSubs') or 0)
+        after = _scale_old_smh(before)
+        box['smh'] = after
+        box['smcSubs'] = after
+        if log:
+            log(f'[denominacion] banco {name}: antes {before} SMH, después {after} SMH')
+    meta['vaultSmhPerSmc'] = SMH_PER_SMC
+    return True
 
 
 def format_sai(subs):
@@ -230,6 +424,7 @@ def empty_state():
         }],
         'mempool': [],
         'disclaimer': DISCLAIMER,
+        'meta': {'smhPerSmc': SMH_PER_SMC, 'vaultSmhPerSmc': SMH_PER_SMC},
     }
     import supply
     supply.ensure(state)
@@ -295,7 +490,8 @@ def migrate_amounts(state):
     """Pasa el estado a SMH enteros sin reescribir los bloques ya sellados.
 
     Los saldos enteros no se multiplican: ya estaban en la unidad mínima.
-    `mined`, si sigue en SMC, se multiplica una vez por 100.000.000.
+    `mined`, si sigue en SMC, se pasa a SMH con SMH_PER_SMC (100).
+    migrate_denomination recorta después la escala vieja, una sola vez.
     """
     wallets = state.setdefault('wallets', {})
     for name, value in list(wallets.items()):
@@ -318,6 +514,11 @@ def migrate_amounts(state):
         if 'credited' in record:
             record['credited'] = smc_to_smh(record.get('credited') or 0)
         record['unit'] = 'SMH'
+    migrate_denomination(state, log=print)
+    repair_balances(state, log=print)
+    meta = state.get('meta')
+    if isinstance(meta, dict):
+        meta.pop('denomJustMigrated', None)
     return state
 
 
@@ -395,7 +596,7 @@ def migration_lock(name):
 
 
 def migrate_monedas(state, name, monedas, now=None, limit_smh=None):
-    """Convierte monedas antiguas. 1 moneda = 1 SMC = 100.000.000 SMH.
+    """Convierte monedas antiguas. 1 moneda = 1 SMC = 100 SMH.
 
     Sin límite, acredita de una vez lo que quepa en el tope (el comportamiento de siempre).
     Con limit_smh, acredita sólo ese trozo y deja el resto pendiente para otro día.

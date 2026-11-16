@@ -303,7 +303,7 @@
   <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Guardar o retirar no crea monedas: sólo las mueve, y cada pase queda en el libro mayor.</p>
   <p id="bank-state" role="status"></p>
   <p id="bank-daily"></p>
-  <p class="banco-unidad">1 SMC = 100.000.000 SMH y 1 SMP = 100.000.000 SPH. Es la misma cantidad; el botón sólo cambia cómo se escribe.</p>
+  <p class="banco-unidad">1 SMC = 100 SMH. 1 SMP = 100.000.000 SPH. El botón sólo cambia cómo se escribe cada una.</p>
   <div class="banco-caja" id="banco-oro">
     <h3>Simoncoin</h3>
     <p id="banquito-billetera">En tu cuenta: <span class="smc">0 SMC</span></p>
@@ -313,6 +313,8 @@
       <input id="banquito-monto" inputmode="decimal" value="1" aria-label="Monto de oro a guardar o retirar" placeholder="1">
       <button type="button" id="banquito-depositar">Guardar Simoncoin</button>
       <button type="button" id="banquito-retirar">Retirar Simoncoin</button>
+      <button type="button" id="banquito-todo-banco">Transferir todo al banco</button>
+      <button type="button" id="banquito-todo-billetera">Transferir todo a la billetera</button>
     </div>
   </div>
   <div class="banco-caja" id="banco-plata">

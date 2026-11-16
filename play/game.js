@@ -1319,7 +1319,7 @@ function connect() {
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
     if (m.t === 'recoger' && m.ok && S.espera && S.espera.done) { const done = S.espera.done; S.espera = null; done('mochila'); return; }
-    if (m.t === 'mochila_llena') { if (S.espera) S.espera.server = true; avisarMochilaLlena(); game(m.reason || 'Tu mochila está llena', 'aviso'); return; }
+    if (m.t === 'mochila_llena') { if (S.metalOptimistic) { invRemove(S.metalOptimistic.item, S.metalOptimistic.qty); S.metalOptimistic = null; } if (S.espera) S.espera.server = true; avisarMochilaLlena(); game(m.reason || 'Tu mochila está llena', 'aviso'); if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance(); return; }
     if (m.t === 'mochila_op') {
       if (!m.ok) { game(m.reason || 'No se perdió nada.', 'aviso'); if (S.espera) avisarMochilaLlena(); return; }
       const done = S.espera && S.espera.done;
@@ -1354,8 +1354,12 @@ function connect() {
       renderNearby();
       $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; if (m.purse) S.purse = m.purse; if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m); S.canMintIngots = !!m.canMintIngots; if ((W.mapId || 'city') === 'central' && !S.canMintIngots) switchMap('city'); if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
     } else if (m.t === 'crudo') {
+      S.crudo = Object.assign({}, S.crudo || {}, m.crudo || {});
+      if (m.item != null && m.total != null) S.crudo[m.item] = m.total;
+      S.metalOptimistic = null;
       if (m.crudo) Object.keys(m.crudo).forEach(id => ponerMetal(id, m.crudo[id]));
       else if (m.item != null) ponerMetal(m.item, m.total);
+      if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance();
       if (m.migrado) { try { localStorage.setItem('lifeinc.crudo.migrado', '1'); } catch (e) {} }
     } else if (m.t === 'join' && m.player) addOther(m.player);
     else if (m.t === 'cerca' && Array.isArray(m.players)) { S.others.clear(); m.players.forEach(addOther); renderNearby(); }
@@ -1662,8 +1666,10 @@ function act(t) {
     if (n.state !== 'active') return game(`Ya lavaste esta arena. El río trae más oro en ${secs()} s.`, 'aviso');
     if (Math.random() > d.successChance) { floatText(d.x, d.y, 'Sólo arena…', '#e8d9b0'); return game('Mueves la batea en la corriente… sólo arena. Intenta otra vez.', 'aviso'); }
     if (S.net && S.net.ok) {
-      S.espera = { server: true, item: d.yield.item, qty: 1, done: (where) => { if (where === 'mochila' && !invAdd(d.yield.item, 1)) return; addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); if (where === 'mochila') game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro'); } };
-      S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: 1, kind: 'lavar' }));
+      const item = d.yield.item;
+      S.metalOptimistic = invAdd(item, 1) ? { item, qty: 1 } : null;
+      S.espera = { server: true, item, qty: 1, done: (where) => { const pending = S.metalOptimistic; S.metalOptimistic = null; if (where === 'mochila') { if (!(pending && pending.item === item)) { if (!invAdd(item, 1)) return; } } else if (pending && pending.item === item) invRemove(item, 1); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); if (where === 'mochila') game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro'); } };
+      S.net.ws.send(JSON.stringify({ t: 'recoger', item, qty: 1, kind: 'lavar' }));
       return;
     }
     if (!give(d.yield.item, 1, d.x, d.y)) { S.espera = { item: d.yield.item, qty: 1, done: () => { n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } }; return; }
@@ -1674,7 +1680,21 @@ function act(t) {
     if (n.state !== 'active') return game(`La roca está agotada. Vuelve en ${secs()} s.`, 'aviso');
     const q = rnd(d.yield.min, d.yield.max);
     const guardar = (where) => { if (where === 'mochila' && !invAdd(d.yield.item, q)) return; tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; if (where === 'mochila') game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save(); };
-    if (S.net && S.net.ok) { S.espera = { server: true, item: d.yield.item, qty: q, done: guardar }; S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: q, kind: 'ore' })); return; }
+    if (S.net && S.net.ok) {
+      S.metalOptimistic = invAdd(d.yield.item, q) ? { item: d.yield.item, qty: q } : null;
+      S.espera = { server: true, item: d.yield.item, qty: q, done: (where) => {
+        const pending = S.metalOptimistic;
+        S.metalOptimistic = null;
+        if (where === 'mochila' && pending && pending.item === d.yield.item) {
+          tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();
+          return;
+        }
+        if (pending && pending.item === d.yield.item) invRemove(pending.item, pending.qty);
+        guardar(where);
+      } };
+      S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: q, kind: 'ore' }));
+      return;
+    }
     if (!invAdd(d.yield.item, q)) { S.espera = { item: d.yield.item, qty: q, done: (where) => { if (where === 'banco') guardar('banco'); } }; return; }
     tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`);
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();

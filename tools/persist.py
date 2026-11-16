@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Estado duradero: Postgres si hay DATABASE_URL, si no los JSON de state/.
 
+Los saldos SMC son enteros SMH. La escala (100 por SMC) vive en economy.SMH_PER_SMC
+y se convierte al cargar, no aquí.
+
 Una tabla guarda cada almacén como JSON. El primer arranque con la base vacía
 copia los JSON que ya existan. Las escrituras van en una transacción.
 """

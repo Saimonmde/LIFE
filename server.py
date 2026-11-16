@@ -114,6 +114,10 @@ def save_nft():
 def save_vault():
     VAULT.save(VAULT_PATH, VAULT_STATE)
 
+if ECO.migrate_vault_smc(ECON, VAULT_STATE, log=print):
+    save_econ()
+    save_vault()
+
 def save_play():
     PLAY.save(PLAY_PATH, PLAYERS)
 
@@ -267,6 +271,11 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     view = SUP.public_view(ECON, profile)
     if who:
         view['owedSubs'] = int((ECON.get('questOwed') or {}).get(who) or 0)
+    view['copperDailySmc'] = SUP.COPPER_DAILY_SMC
+    rivers_rest = bool(GOLD_NODES) and all(time.time() < NODE_READY.get(n.get('id'), 0) for n in GOLD_NODES)
+    gold_done = bool(profile and profile.get('account') and int(view.get('remainingSubs') or 0) <= 0)
+    view['copperOpen'] = rivers_rest or gold_done
+    view['copperNote'] = SUP.COPPER_NOTE if view['copperOpen'] else ''
     m['supply'] = view
     plata_profile = dict(profile or {})
     if who and not locked:
@@ -473,7 +482,7 @@ def fail_claim(sender, code, channel='system'):
         send(sender, {'t': 'system', 'text': text})
     return {'ok': False, 'reason': code, 'smh': 0}
 
-def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False):
+def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False, kind='gold'):
     if getattr(sender, 'bot', False):
         return fail_claim(sender, 'guest', channel='acunar' if action == 'acunar' else ('smelt' if action == 'fundicion' else 'system'))
     if not getattr(sender, 'wallet_ok', False):
@@ -488,7 +497,7 @@ def take_proof(sender, action, context, proof, resume, want_smh=None, exact=Fals
         result = SUP.redeem(
             ECON, profile, action, context, proof,
             want_smh=want_smh, room_smh=room_smh, exact=exact, counts_as_mint=counts_as_mint,
-            pay_request=pay_request,
+            pay_request=pay_request, kind=kind,
         )
         save_econ()
         if not result.get('ok'):
@@ -551,6 +560,50 @@ def emitir(sender, smh, note, kind, foundry, tile, location):
     save_econ()
     broadcast_econ()
     return granted, token, pub
+
+def oro_agotado(sender=None):
+    """El río no da más oro: el cupo de oro de hoy se acabó, o todas las vetas están en descanso."""
+    profile = account_profile(sender) if sender is not None else {}
+    try:
+        view = SUP.public_view(ECON, profile)
+    except Exception:
+        view = {}
+    if int(view.get('remainingSubs') or 0) <= 0 and profile.get('account'):
+        return True
+    if GOLD_NODES and all(time.time() < NODE_READY.get(n.get('id'), 0) for n in GOLD_NODES):
+        return True
+    return False
+
+
+def nota_cobre(sender=None):
+    if not oro_agotado(sender):
+        return ''
+    return SUP.COPPER_NOTE
+
+
+def mint_cobre_for(sender, proof=None):
+    """El cobre paga SMC sólo cuando el oro del río ya no da. El tope es COPPER_DAILY_SMC."""
+    if getattr(sender, 'zone', '') != 'mine':
+        return send(sender, {'t': 'system', 'text': 'El cobre se pica en la mina. El oro sigue saliendo sólo del río.'})
+    if not oro_agotado(sender):
+        return send(sender, {'t': 'system', 'text': 'El oro del río todavía da SMC. El cobre paga SMC cuando ese oro se agota.'})
+    if not getattr(sender, 'wallet_ok', False):
+        return send(sender, {'t': 'system', 'text': 'Esta billetera se creó en otro aparato. Puedes picar, pero no recibir SMC.'})
+    result = take_proof(
+        sender, 'mint_cobre', 'cobre', proof, {'t': 'mint_cobre'},
+        want_smh=SUP.copper_daily_smh(), kind='copper',
+    )
+    if not result.get('ok'):
+        return
+    granted, _token, _pub = emitir(
+        sender, result['smh'], 'Emisión por cobre cuando el oro del río no da más', 'mint',
+        'mina', 'cobre', 'Mina de cobre',
+    )
+    if granted <= 0:
+        return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
+    send(sender, {'t': 'system', 'text': f'Se acuñaron {ECO.format_pair(granted)} con cobre. {SUP.COPPER_NOTE}'})
+    send(sender, {'t': 'issued', 'amountSmh': int(getattr(sender, 'kept_smh', granted) or 0), 'mintedSmh': granted, 'kind': 'mint_cobre', 'amountText': ECO.format_pair(int(getattr(sender, 'kept_smh', granted) or 0)), 'supply': result.get('view')})
+
 
 def mint_for(sender, node_id, proof=None):
     if not getattr(sender, 'wallet_ok', False):
@@ -753,7 +806,7 @@ def cupos_public(profile=None):
     chis_earned = int(((ECON.get('simonchis') or {}).get('earnedDay') or {}).get(key) or 0)
     coins = {}
     for coin, cap, earned, room in (
-        ('simoncoin', oro_cap, oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
+        ('simoncoin', max(oro_cap, SUP.loose_daily_smc()), oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
         ('simonplata', plata_cap, plata_earned, PLATA.issuance_room(ECON) / ECO.SUBS),
         ('simonchis', chis_cap, chis_earned, COBRE.room(ECON)),
     ):
@@ -818,7 +871,9 @@ def acunar_for(sender, coin, pieces, proof=None):
         return _acunar_fail(sender, falta, code)
     quote = TOPES.cotizar(stock, row['rate'], row['left'], row['room'], min(pieces, stock) if pieces else None, whole=(coin == 'simonchis'))
     if quote['recibes'] <= 0:
-        return _acunar_fail(sender, falta or 'Hoy no alcanza para acuñar más.', 'cap')
+        detail = ACU.explicar(stock, row['rate'], row['metal'], whole=(coin == 'simonchis'))
+        code = 'metal' if stock < row['rate'] else ('cap' if row['left'] <= 0 else 'supply')
+        return _acunar_fail(sender, detail or falta or 'Hoy no alcanza para acuñar más.', code)
     whole = coin == 'simonchis'
     if coin == 'simoncoin':
         want = int(round(quote['recibes'] * ECO.SUBS))
@@ -1052,6 +1107,9 @@ def swing_for(sender, mineral, qty=1):
     send(sender, {'t': 'shift', 'swings': 0, 'need': SHIFT_SWINGS, 'paidSmh': 0, 'mintedSmh': 0, 'qty': int(qty or 1),
                   'note': 'El mineral quedó en tu cuenta. Las monedas se acuñan en el horno, con el tope del día.'})
     _avisar_crudo(sender, item)
+    if mineral == 'cobre' and oro_agotado(sender):
+        send(sender, {'t': 'system', 'text': SUP.COPPER_NOTE})
+        mint_cobre_for(sender)
 
 def lavar_for(sender, qty=1):
     """La batea acredita pepitas. Como mucho una por lavada."""
@@ -1254,6 +1312,31 @@ def vault_for(sender):
         plata = {}
     send(sender, {'t': 'vault', 'account': VAULT.public_account(box), 'plata': plata,
                   'note': 'El banquito y el baúl de la casa son el mismo depósito. No se pierde al morir: sólo la mochila que llevas encima puede caerse.'})
+
+def transferir_todo(sender, dest):
+    """Pasa todo el SMC a la billetera o al banco. No acuña y no sale del juego."""
+    if not wallet_ready(sender):
+        return
+    import traslado
+    result = traslado.trasladar(ECON, VAULT_STATE, sender.name, dest)
+    if not result.get('ok'):
+        return send(sender, {'t': 'transfer_result', 'ok': False, 'reason': result.get('reason') or 'No se movió nada.', 'dest': result.get('dest') or dest})
+    try:
+        anotar_pase(result['from'], result['to'], result['smh'], result.get('note') or 'Transferir todo')
+    except (LIBRO.LibroError, persist_duplicate):
+        pass
+    save_econ()
+    save_vault()
+    broadcast_econ()
+    vault_for(sender)
+    send(sender, {
+        't': 'transfer_result', 'ok': True, 'dest': result['dest'], 'smh': result['smh'],
+        'reason': result.get('note') or 'Listo.',
+        'balanceSubs': int((ECON.get('wallets') or {}).get(sender.name) or 0),
+        'bankSmh': result.get('bankSmh') or 0,
+        'walletName': sender.name,
+    })
+
 
 def deposit_smc(sender, amount):
     if not wallet_ready(sender):
@@ -1591,7 +1674,7 @@ def chat(sender, channel, text):
             try:
                 smh = ECO.parse_amount(monto_s)
             except ECO.AmountError:
-                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC (hasta 8 decimales) o SMH enteros.'})
+                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC (hasta 2 decimales) o SMH enteros.'})
             return pagar(sender, dest, smh)
         arg = clean(rest, 24)
         if cmd == 'grupo':
@@ -2002,8 +2085,17 @@ def finca_msg(sender, message):
         save_finca()
         if result.get('movedCoins'):
             save_econ()
+        for row in result.get('exports') or []:
+            crop = str(row.get('crop') or '')
+            label = 'café excelso' if crop == 'cafe' else 'cacao seco'
+            ECO.append_tx(ECON, {
+                'type': 'pay', 'from': FINCA_CONFIG.get('buyer') or 'casa_de_contratacion', 'to': account,
+                'amountSubs': 0, 'amountSph': int(row.get('amount') or 0), 'coin': 'SMP',
+                'note': f'Exportación de {label}. No se acuñó SMC.',
+            })
+            save_econ()
         broadcast({'t': 'libro_publico', 'contadores': public_counters()})
-    send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'view': result.get('view')})
+    send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'note': result.get('note') or '', 'view': result.get('view')})
 
 
 def handle_client_message(c, m, t):
@@ -2184,6 +2276,8 @@ def handle_client_message(c, m, t):
             chat(c, str(m.get('channel', 'proximidad')).lower(), m.get('text'))
     elif t == 'mint' and c.hello:
         mint_for(c, clean(m.get('node'), 40), m.get('proof'))
+    elif t == 'mint_cobre' and c.hello:
+        mint_cobre_for(c, m.get('proof'))
     elif t == 'mint_plata' and c.hello:
         mint_plata(c, m.get('proof'))
     elif t == 'cambio_simple' and c.hello:
@@ -2229,6 +2323,9 @@ def handle_client_message(c, m, t):
         item = str(m.get('item') or '')
         if recibir(c, item, m.get('qty'), m.get('kind') or 'recoger'):
             send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0)})
+            if item == 'mineral_cobre' and oro_agotado(c):
+                send(c, {'t': 'system', 'text': SUP.COPPER_NOTE})
+                mint_cobre_for(c)
     elif t == 'mochila_op' and c.hello:
         mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:
@@ -2243,6 +2340,8 @@ def handle_client_message(c, m, t):
         send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
     elif t == 'vault' and c.hello:
         vault_for(c)
+    elif t == 'transferir_todo' and c.hello:
+        transferir_todo(c, m.get('dest') or m.get('to'))
     elif t == 'deposit_smc' and c.hello:
         try:
             deposit_smc(c, leer_smh(m))
@@ -2736,7 +2835,7 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         if not user:
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
         import mi_cuenta as MICUENTA
-        body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000))
+        body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000), VAULT_STATE)
         body['followable'] = SEGUIR.allow(user)
         social = SOCIAL.friend_view(VIDA, 'acct:' + str(user.get('id') or ''), ACCOUNTS, clients.values())
         body['amigos'] = social.get('friends') or []

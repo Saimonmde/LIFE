@@ -40,7 +40,7 @@ class QuoteTests(unittest.TestCase):
         quote = topes.cotizar(2, 5, 0.25, 21_000_000)
         self.assertAlmostEqual(quote['recibes'], 0.25)
         self.assertAlmostEqual(quote['gastas'], 1.25)
-        self.assertEqual(topes.simoncoin_daily_smh(60 * 86400, 40 * 3600, 10), int(6.25 * topes.SUBS))
+        self.assertEqual(topes.simoncoin_daily_smh(60 * 86400, 40 * 3600, 10), int(6.25 * 100))
 
 
 class ReasonTests(unittest.TestCase):
