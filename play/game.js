@@ -1634,17 +1634,52 @@ function clearMapPin() {
   if (window.LIVE3D && LIVE3D.setMapPin) LIVE3D.setMapPin(null);
   if ($('#city-map') && !$('#city-map').hidden && !window.LIVE3D?.mapOpen) drawCityMap();
 }
+function travelIdForPark(park) {
+  const id = park && park.id;
+  if (id === 'parque_envigado') return 'envigado';
+  if (id === 'parque_sabaneta') return 'sabaneta';
+  if (id === 'parque_itagui') return 'itagui';
+  if (id === 'parque_bello') return 'bello';
+  return TRAVEL_IDS.has(id) ? id : '';
+}
+function fillMapPlaces() {
+  const row = $('#city-map-muni');
+  if (!row || !window.VALLE_GEO) return;
+  row.replaceChildren();
+  for (const park of VALLE_GEO.parques || []) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = park.name;
+    b.onclick = (ev) => {
+      ev.stopPropagation();
+      const id = travelIdForPark(park);
+      if (!started || !id) {
+        const where = $('#city-map-location');
+        if (where) where.textContent = 'Entra al mundo para viajar a ' + park.name + '.';
+        return;
+      }
+      closeCityMap();
+      if (S.net.ok && S.net.ws) { S.net.ws.send(JSON.stringify({ t: 'travel', id: id })); return; }
+      const src = (W.waypoints || []).find(item => item.id === id) || (W.mapLabels || []).find(item => item.id === id);
+      const spot = src && nearestSafe(src.x, src.y);
+      if (!spot) { game('No hay un sitio caminable en ' + park.name + '.', 'aviso'); return; }
+      flyTo(spot[0], spot[1], park.name);
+    };
+    row.append(b);
+  }
+}
 function openCityMap() {
-  if (!started) return;
-  S.keys.clear();
+  if (S && S.keys) S.keys.clear();
   cityView.zoom = 1; cityView.panX = 0; cityView.panY = 0;
-  clearMapPin();
+  mapPin = null;
+  const bar = $('#city-map-go'); if (bar) bar.hidden = true;
   const canvas = $('#city-map-canvas');
   if (canvas) canvas.hidden = false;
   $('#city-map').hidden=false;
   const globe = $('#b-globo'); if (globe) globe.setAttribute('aria-expanded','true');
-  drawCityMap();
-  $('#city-map-close').focus();
+  fillMapPlaces();
+  try { drawCityMap(); } catch (err) {}
+  const close = $('#city-map-close'); if (close) close.focus();
 }
 function closeCityMap() {
   if (window.LIVE3D && LIVE3D.closeValleyMap) LIVE3D.closeValleyMap();
@@ -1791,9 +1826,8 @@ function zoomMap(dir) {
   zoomCity(dir);
 }
 mm.addEventListener('click', (e) => {
-  if (!started) return;
-  const pt = canvasPoint(mm, e);
-  walkFromMinimap(pt.x, pt.y);
+  e.stopPropagation();
+  openCityMap();
 });
 const mapSurface = $('#city-map-view');
 const mapPointers = new Map();
@@ -1871,6 +1905,13 @@ if (mapSurface) {
 }
 $('#city-map-close').onclick=closeCityMap;
 $('#city-map').addEventListener('click',e=>{if(e.target===$('#city-map'))closeCityMap();});
+(function () {
+  const head = document.querySelector('#city-map .city-map-panel header');
+  if (!head) return;
+  let y0 = 0;
+  head.addEventListener('pointerdown', (e) => { y0 = e.clientY; });
+  head.addEventListener('pointerup', (e) => { if (e.clientY - y0 > 48) closeCityMap(); });
+})();
 const globeBtn = $('#b-globo'); if (globeBtn) globeBtn.onclick = (e) => { e.stopPropagation(); openCityMap(); };
 const zoomIn = $('#city-map-in'); if (zoomIn) zoomIn.onclick = (e) => { e.stopPropagation(); zoomMap(-1); };
 const zoomOut = $('#city-map-out'); if (zoomOut) zoomOut.onclick = (e) => { e.stopPropagation(); zoomMap(1); };

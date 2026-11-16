@@ -1,0 +1,30 @@
+/* El mapa y la lista de lugares se ven encima del login y se pueden recorrer. */
+body:not(.in-game) #hud-mapa {
+  display: block !important;
+  z-index: 80;
+}
+#hud-mapa, #b-globo { z-index: 80; }
+#city-map { z-index: 90; }
+#city-map-close {
+  min-width: 112px;
+  min-height: 48px;
+  font: 800 18px/1 system-ui, sans-serif;
+  position: sticky;
+  top: 0;
+}
+#city-map-muni {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  max-height: min(42dvh, 360px);
+  flex: 0 1 auto;
+}
+#city-map-muni button {
+  min-height: 48px;
+  width: 100%;
+  text-align: left;
+}

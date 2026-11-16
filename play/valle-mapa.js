@@ -103,8 +103,6 @@
     const placed = [];
     const overlaps = (a, b) => !(a.x + a.w + 4 < b.x || b.x + b.w + 4 < a.x || a.y + a.h + 3 < b.y || b.y + b.h + 3 < a.y);
     for (const park of data.parques) {
-      const sameTown = data.municipios.some(m => Math.abs(m.lat - park.lat) < 0.0004 && Math.abs(m.lon - park.lon) < 0.0004);
-      if (sameTown) continue;
       const [x, y] = xy(frame, park.lat, park.lon);
       const w = ctx.measureText(park.name).width + 8;
       let ly = y - 8;
@@ -160,7 +158,6 @@
     ctx.fillStyle = 'rgba(255,255,255,0.78)';
     ctx.textAlign = 'left';
     ctx.fillText('Río Medellín · © OpenStreetMap · Relieve NASA SRTM', 10, canvas.height - 8);
-    frame.marks = marks;
     return frame;
   }
 
