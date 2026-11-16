@@ -1347,7 +1347,7 @@ function connect() {
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
     else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { o.x = m.x; o.y = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.lastMove = now(); } }
-    else if (m.t === 'move_correct') { const rider = S.player; rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; }
+    else if (m.t === 'move_correct') { const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
     else if (m.t === 'chat') {
       const mine = m.fromId === S.net.id;
@@ -1733,18 +1733,19 @@ function fillMapPlaces() {
     b.textContent = park.name;
     b.onclick = (ev) => {
       ev.stopPropagation();
-      const id = travelIdForPark(park);
-      if (!started || !id) {
+      if (!started) {
         const where = $('#city-map-location');
-        if (where) where.textContent = 'Entra al mundo para viajar a ' + park.name + '.';
+        if (where) where.textContent = 'Entra al mundo para caminar a ' + park.name + '.';
         return;
       }
       closeCityMap();
-      if (S.net.ok && S.net.ws) { S.net.ws.send(JSON.stringify({ t: 'travel', id: id })); return; }
-      const src = (W.waypoints || []).find(item => item.id === id) || (W.mapLabels || []).find(item => item.id === id);
-      const spot = src && nearestSafe(src.x, src.y);
-      if (!spot) { game('No hay un sitio caminable en ' + park.name + '.', 'aviso'); return; }
-      flyTo(spot[0], spot[1], park.name);
+      const id = travelIdForPark(park);
+      const src = id && ((W.waypoints || []).find(item => item.id === id) || (W.mapLabels || []).find(item => item.id === id));
+      if (src) { setRoute(src.x, src.y, park.name); return; }
+      const box = VALLE_GEO.bounds;
+      const x = (park.lon - box.lonW) / (box.lonE - box.lonW) * (W.width - 1);
+      const y = (box.latN - park.lat) / (box.latN - box.latS) * (W.height - 1);
+      setRoute(x, y, park.name);
     };
     row.append(b);
   }

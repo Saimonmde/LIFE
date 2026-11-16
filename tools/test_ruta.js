@@ -10,6 +10,10 @@ const map = read('play/valle-mapa.js');
 const world = JSON.parse(read('data/el-jardin.json'));
 
 assert.ok(game.includes('function setRoute'));
+const places = game.slice(game.indexOf('function fillMapPlaces'), game.indexOf('function openCityMap'));
+assert.ok(places.includes('setRoute(src.x, src.y, park.name)'));
+assert.ok(places.includes('setRoute(x, y, park.name)'));
+assert.ok(!places.includes("t: 'travel'"));
 assert.ok(game.includes('S.dest.ruta && steer'));
 assert.ok(game.includes('Llegaste a '));
 assert.ok(game.includes('Mina · '));
