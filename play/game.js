@@ -1337,7 +1337,7 @@ function connect() {
       S.net.hasJoined=true; S.others.clear();
       for (const p of m.players || []) addOther(p);
       renderNearby();
-      $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; S.canMintIngots = !!m.canMintIngots; if ((W.mapId || 'city') === 'central' && !S.canMintIngots) switchMap('city'); if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
+      $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; if (m.purse) S.purse = m.purse; if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m); S.canMintIngots = !!m.canMintIngots; if ((W.mapId || 'city') === 'central' && !S.canMintIngots) switchMap('city'); if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); migrarMetal();
     } else if (m.t === 'crudo') {
       if (m.crudo) Object.keys(m.crudo).forEach(id => ponerMetal(id, m.crudo[id]));
       else if (m.item != null) ponerMetal(m.item, m.total);

@@ -82,6 +82,7 @@
       if (window.__ELJARDIN) {
         const prev = __ELJARDIN.ledger && __ELJARDIN.ledger.balances;
         __ELJARDIN.ledger = Object.assign({}, ledger, prev ? { balances: prev } : {});
+        if (window.Simulacion && Simulacion.reflejarMonedas) Simulacion.reflejarMonedas();
       }
       paint();
     } catch (e) {}

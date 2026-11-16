@@ -93,19 +93,27 @@ def filas(state):
     events.sort(key=lambda item: (item[0], item[1], item[2]))
     balances = {}
     plata_balances = {}
+    chis_balances = {}
     rows = []
     for ts, _height, _index, tx in events:
         amount = int(tx.get('amountSubs') or 0)
         coin = str(tx.get('coin') or '')
         sph = int(tx.get('amountSph') or 0)
         if str(tx.get('coin') or '') == 'SMCH':
+            qty = int(tx.get('qty') or 0)
+            dest = str(tx.get('to') or '')
+            if dest and qty:
+                chis_balances[dest] = int(chis_balances.get(dest) or 0) + qty
             rows.append({
                 'ts': int(ts),
                 'type': 'minado',
                 'label': 'Acuñación',
                 'amountSubs': 0,
-                'account': str(tx.get('to') or ''),
+                'amountQty': qty,
+                'coin': 'SMCH',
+                'account': dest,
                 'balanceSubs': 0,
+                'balanceQty': int(chis_balances.get(dest) or 0) if dest else qty,
                 'note': str(tx.get('note') or ''),
             })
             continue
