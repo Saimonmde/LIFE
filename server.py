@@ -60,6 +60,8 @@ LEGAL_PAGES = {
     '/terminos': 'legal/terminos.html',
 }
 PROX_TILES = 15           # 30 m con 2 m por casilla
+MINE_W, MINE_H = 36, 32   # cueva de Las Palmas, la misma grilla del cliente
+MINE_SPAWN = (18.0, 27.0)
 MAX_TEXT = 160
 CHANNELS = ('global', 'proximidad', 'clan', 'grupo', 'lugar')
 SERVER_ID = uuid.uuid4().hex[:12]
@@ -1553,8 +1555,11 @@ class Client:
         pet = self.pet if isinstance(self.pet, dict) else None
         if pet:
             pet = {k: pet[k] for k in ('species', 'breed', 'variant', 'name') if k in pet}
+        x, y = self.x, self.y
+        if getattr(self, 'zone', 'city') == 'mine':
+            x, y = _mine_xy(self)
         return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'nick': visible_nick(self), 'color': self.color, 'clan': self.clan, 'group': self.group,
-                'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone,
+                'x': round(x, 2), 'y': round(y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone,
                 'world': self.world, 'place': self.place, 'pet': pet}
 
 def clean(s, n):
@@ -1679,9 +1684,19 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
 
 TRADES = TRADE.Trades(clients, send, _trade_balances, commit_trade)
 
+def _mine_xy(person):
+    return float(getattr(person, 'zx', 0) or 0), float(getattr(person, 'zy', 0) or 0)
+
 def dist(a, b):
     if a is b: return 0
-    if getattr(a, 'zone', 'city') == 'casa' or getattr(b, 'zone', 'city') == 'casa': return 1e9
+    za = getattr(a, 'zone', 'city') or 'city'
+    zb = getattr(b, 'zone', 'city') or 'city'
+    if za == 'casa' or zb == 'casa': return 1e9
+    if za != zb: return 1e9
+    if za == 'mine':
+        ax, ay = _mine_xy(a)
+        bx, by = _mine_xy(b)
+        return max(abs(ax - bx), abs(ay - by))
     return max(abs(a.x - b.x), abs(a.y - b.y))
 
 def visible_nick(client):
@@ -1850,8 +1865,9 @@ def room_shift(c, old_world, old_place):
         elif after and not before:
             send(other, {'t': 'join', 'player': c.public()})
         elif after:
-            send(other, {'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2),
-                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city',
+            sx, sy = (round(x, 2) for x in (_mine_xy(c) if getattr(c, 'zone', 'city') == 'mine' else (c.x, c.y)))
+            send(other, {'t': 'move', 'id': c.id, 'x': sx, 'y': sy,
+                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': getattr(c, 'zone', 'city') or 'city',
                          'pace': getattr(c, 'pace', '') or ('caminando' if c.moving else 'quieto')})
     if old_world != c.world or old_place != c.place:
         broadcast(presence_msg())
@@ -1983,8 +1999,67 @@ def vida_try(c, m, t):
 
 TRAVEL_GATE = VIAJES.Gate()
 
+def _punto_mina(message):
+    """Coordenadas de la cueva, o None si el mensaje sólo anuncia la zona.
+
+    False cuando el número no cabe en la grilla de 36×32.
+    """
+    if not isinstance(message, dict):
+        return False
+    if message.get('x') is None and message.get('y') is None:
+        return None
+    try:
+        nx, ny = float(message.get('x')), float(message.get('y'))
+    except (TypeError, ValueError):
+        return False
+    if nx != nx or ny != ny or nx < 0 or ny < 0 or nx > MINE_W - 1 or ny > MINE_H - 1:
+        return False
+    return nx, ny
+
+
+def _mover_en_mina(sender, message, old_world, old_place, now_move):
+    """Camina en la mina. x/y de la ciudad siguen siendo el punto de regreso."""
+    point = _punto_mina(message)
+    if point is False:
+        if sender.zone == 'mine':
+            correct_move(sender)
+        return False
+    entering = sender.zone != 'mine'
+    if entering and sender.zone == 'city':
+        sender.city_x, sender.city_y = sender.x, sender.y
+    if point is None:
+        if not entering and getattr(sender, 'zx', None) is not None:
+            point = (float(sender.zx), float(sender.zy))
+        else:
+            point = MINE_SPAWN
+    nx, ny = point
+    if not entering:
+        step = max(abs(nx - float(getattr(sender, 'zx', nx))), abs(ny - float(getattr(sender, 'zy', ny))))
+        elapsed = now_move - float(getattr(sender, 'move_at', now_move) or now_move)
+        if not VIAJES.step_allowed(step, elapsed):
+            correct_move(sender)
+            return False
+        note_motion(sender, step)
+    sender.zx, sender.zy = nx, ny
+    sender.zone = 'mine'
+    sender.place = 'mina-palmas'
+    sender.dir = message.get('dir') if message.get('dir') in ('up', 'down', 'left', 'right') else sender.dir
+    sender.moving = bool(message.get('moving'))
+    sender.level = clamp_level(message.get('level'), sender.level)
+    sender.pace = SEGUIR.pace_of(message.get('pace'), 'mine', sender.moving)
+    sender.move_at = now_move
+    room_shift(sender, old_world, old_place)
+    if entering:
+        send(sender, {'t': 'cerca', 'players': city_peers(sender)})
+    return True
+
+
 def correct_move(sender):
-    send(sender, {'t': 'move_correct', 'x': round(sender.x, 2), 'y': round(sender.y, 2), 'zone': getattr(sender, 'zone', 'city')})
+    if getattr(sender, 'zone', 'city') == 'mine':
+        x, y = _mine_xy(sender)
+    else:
+        x, y = sender.x, sender.y
+    send(sender, {'t': 'move_correct', 'x': round(x, 2), 'y': round(y, 2), 'zone': getattr(sender, 'zone', 'city')})
 
 
 def travel_for(sender, dest_id):
@@ -2290,11 +2365,17 @@ def handle_client_message(c, m, t):
     elif t == 'dejar_seguir' and c.hello:
         c.following = None
         send(c, {'t': 'seguir_result', 'ok': True, 'id': 0})
+    elif t == 'cerca' and c.hello:
+        send(c, {'t': 'cerca', 'players': city_peers(c)})
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
         now_move = time.time()
-        if zone in ('casa', 'mine', 'banco', 'central'):
+        if zone == 'mine':
+            if not _mover_en_mina(c, m, old_world, old_place, now_move):
+                return
+            return
+        if zone in ('casa', 'banco', 'central'):
             zone = zona_pedida(c, zone)
             if zone == 'city':
                 return
