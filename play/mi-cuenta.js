@@ -40,6 +40,9 @@
     '<p id="mi-cuenta-finca"></p>',
     '<p id="mi-cuenta-favorito"></p>',
     '<p class="mi-cuenta-nota">Cambiar el nickname cuesta 5 Simoncoin, que se pagan al Banco Central. Simon está reservado.</p>',
+    '<label class="mi-cuenta-seguir"><input id="mi-cuenta-seguir" type="checkbox" checked> Pueden seguirme</label>',
+    '<h3>Amigos</h3><div id="mi-cuenta-amigos"></div>',
+    '<h3>Pedidos</h3><div id="mi-cuenta-pedidos"></div>',
     '<button type="button" id="mi-cuenta-guardar">Guardar ahora</button>',
     '<form id="mi-cuenta-clave">',
     '<label>Contraseña actual<input id="mi-cuenta-actual" type="password" autocomplete="current-password"></label>',
@@ -71,6 +74,53 @@
     $('mi-cuenta-favorito').textContent = 'Favorito: ' + (data.favoritePlace || 'sin lugar') + (data.favoriteWorld ? ' · Mundo ' + data.favoriteWorld : '');
     const google = $('mi-cuenta-google-btn');
     if (google) google.hidden = !!data.google;
+    const seguir = $('mi-cuenta-seguir');
+    if (seguir) seguir.checked = data.followable !== false;
+    pintarGente('mi-cuenta-amigos', data.amigos, false);
+    pintarGente('mi-cuenta-pedidos', data.pedidos, true);
+  }
+  function pintarGente(id, rows, pedido) {
+    const box = $(id);
+    if (!box) return;
+    box.replaceChildren();
+    if (!rows || !rows.length) {
+      const empty = document.createElement('p');
+      empty.textContent = pedido ? 'No hay pedidos.' : 'Todavía no hay amigos.';
+      box.append(empty);
+      return;
+    }
+    rows.forEach((row) => {
+      const line = document.createElement('p');
+      line.textContent = (row.nick || 'Viajero') + (row.online ? ' · en línea' : ' · fuera de línea');
+      if (row.online && window.Vida && Vida.presence) {
+        const live = (Vida.presence().players || []).find((item) => item.key === row.key);
+        if (live) {
+          const go = document.createElement('button');
+          go.type = 'button';
+          go.textContent = 'Ir con él';
+          go.onclick = () => {
+            const S = window.__ELJARDIN;
+            if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'ir_con', id: live.id }));
+          };
+          const follow = document.createElement('button');
+          follow.type = 'button';
+          follow.textContent = 'Seguir';
+          follow.onclick = () => { if (window.Seguir) Seguir.empezar(live); };
+          line.append(' ', go, ' ', follow);
+        }
+      }
+      if (pedido) {
+        const yes = document.createElement('button');
+        yes.type = 'button';
+        yes.textContent = 'Aceptar';
+        yes.onclick = () => {
+          const S = window.__ELJARDIN;
+          if (S && S.net && S.net.ws) S.net.ws.send(JSON.stringify({ t: 'amigo_aceptar', key: row.key }));
+        };
+        line.append(' ', yes);
+      }
+      box.append(line);
+    });
   }
   async function abrir() {
     panel.hidden = false;
@@ -140,6 +190,22 @@
   };
   $('mi-cuenta-google-btn').onclick = () => {
     location.href = '/auth/google?vuelta=' + encodeURIComponent(vuelta());
+  };
+  $('mi-cuenta-seguir').onchange = async () => {
+    const on = $('mi-cuenta-seguir').checked;
+    estado('');
+    try {
+      const response = await fetch('/auth/seguir', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ on: on }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'No se guardó.');
+      estado(on ? 'Otras personas pueden seguirte.' : 'Nadie puede seguirte.');
+    } catch (error) {
+      estado(error.message);
+    }
   };
   $('mi-cuenta-lugar-btn').onclick = () => {
     cerrar();

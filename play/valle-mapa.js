@@ -176,6 +176,31 @@
       ctx.textAlign = 'left';
       ctx.fillText(route.name || 'Destino', x + 10, y);
     }
+    const follow = opts.follow;
+    if (follow && follow.x != null && world) {
+      ctx.save();
+      ctx.setLineDash([5, 7]);
+      ctx.strokeStyle = '#7fd0ff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      (follow.trail || []).forEach((pt, index) => {
+        const [lat, lon] = latlonOfTile(pt[0], pt[1], world);
+        const [x, y] = xy(frame, lat, lon);
+        if (index) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+      const [lat, lon] = latlonOfTile(follow.x, follow.y, world);
+      const [x, y] = xy(frame, lat, lon);
+      ctx.fillStyle = '#7fd0ff';
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#f4fbff';
+      ctx.font = '700 14px system-ui, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText((follow.name || 'Jugador') + ' · ' + (follow.state || '') + ' · ' + (follow.meters || 0) + ' m', x + 10, y);
+    }
     if (opts.player && world) {
       const [lat, lon] = playerLatLon(opts.player.x, opts.player.y, world);
       const [x, y] = xy(frame, lat, lon);
