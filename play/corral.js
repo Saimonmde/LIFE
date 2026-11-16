@@ -23,7 +23,12 @@
     return false;
   }
   function bounds(house, place) {
-    if (place === 'finca') return { place: 'finca', x: 148, y: 209, w: 4, h: 3 };
+    if (place === 'finca') {
+      if (house && house.id === 'envigado' && Number.isFinite(house.x) && Number.isFinite(house.y)) {
+        return { place: 'finca', x: house.x + 6, y: house.y + 1, w: 4, h: 3 };
+      }
+      return { place: 'finca', x: 148, y: 209, w: 4, h: 3 };
+    }
     const x = house && Number.isFinite(house.x) ? house.x + 2 : 0;
     const y = house && Number.isFinite(house.y) ? house.y + 1 : 0;
     return { place: 'patio', x: x, y: y, w: 4, h: 3 };

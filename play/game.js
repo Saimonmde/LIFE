@@ -236,7 +236,13 @@ async function continuarSesion(sessionUser) {
   const hi = $('#login-bienvenida');
   const nick = apodoCuenta(sessionUser) || 'Viajero';
   if (hi) { hi.hidden = false; hi.textContent = 'Bienvenido de vuelta, ' + nick; }
+  window.SaimonSession.favoritePlace = sessionUser.favoritePlace || '';
   if (window.Partida) { try { await Partida.pull(); } catch (e) {} }
+  if (!sessionUser.favoritePlace && window.Hogar) {
+    document.body.classList.add('eligiendo-casa');
+    Hogar.openPicker(id => elegirLugar(id, true), false);
+    return;
+  }
   startGame();
 }
 const bSimon = $('#b-tomar-simon'); if (bSimon) bSimon.onclick = async () => {
@@ -334,6 +340,34 @@ const bReset = $('#b-olvide-enviar'); if (bReset) bReset.onclick = () => {
   fetch('/auth/olvide', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email:$('#o-email').value.trim()})}).then(r => r.json()).then(m => avisoLogin(m.error || 'Si esa cuenta existe, enviamos un enlace para la contraseña.'));
 };
 $('#login-form').onsubmit = (e) => { e.preventDefault(); if (bEntrar && $('#correo-login').hidden) bEntrar.click(); };
+async function elegirLugar(id, remember) {
+  const buttons = [...document.querySelectorAll('#hogar-lista button')];
+  buttons.forEach(b => { b.disabled = true; });
+  const status = document.getElementById('hogar-status');
+  try {
+    if (remember) {
+      const response = await fetch('/auth/lugar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+      const result = await response.json();
+      if (!response.ok || !result.user) throw Error(result.error || 'No se pudo guardar el lugar.');
+      S.sessionUser = result.user;
+      S.me.municipio = result.user.municipio || '';
+      window.SaimonSession = { id: result.user.id, municipio: S.me.municipio, favoritePlace: result.user.favoritePlace || '' };
+      const spot = result.home || (window.Lugares && Lugares.get(id));
+      if (!started) {
+        window.LIFE_OVNI = spot;
+        window.LIFE_WANT_INTRO = window.Hogar ? Hogar.entryMode(true) : 'ovni';
+      }
+      if (status && started) status.textContent = 'Favorito: ' + ((spot && spot.name) || 'ese lugar') + '. Ahí apareces al entrar.';
+    }
+    if (window.Hogar) Hogar.closePicker();
+    document.body.classList.remove('eligiendo-casa');
+    if (!started) startGame();
+    else if (!remember) askTravel(id);
+  } catch (error) {
+    buttons.forEach(b => { b.disabled = false; });
+    if (status) status.textContent = error.message;
+  }
+}
 async function elegirCasa(id) {
   const buttons = [...document.querySelectorAll('#hogar-lista button')];
   buttons.forEach(b => { b.disabled = true; });
@@ -415,6 +449,10 @@ function startGame() {
     window.LIFE_HELI = heliSpot;
     launchRide('heli', heliSpot.x, heliSpot.y);
   } else {
+    const fav = window.Lugares && S.sessionUser ? Lugares.get(S.sessionUser.favoritePlace) : null;
+    if (fav && fav.kind === 'poi') {
+      placeAtTown(fav);
+    } else {
     fly = !AUTOTEST && !Q.has('forja') && !localStorage.getItem('lifeinc.vuelo.v1');
     if (fly) {
       if ((W.mapId || 'city') === 'casa') switchMap('city');
@@ -423,6 +461,7 @@ function startGame() {
       window.LIFE_WANT_FLY = true;
       if (window.LIVE3D && LIVE3D.startFly) LIVE3D.startFly();
     } else beginAtHome();
+    }
   }
   Casa.load(S.me.name);
   if (!fly && !ovni && !mid && (W.mapId || 'city') === 'casa') placeAtHouseSpawn();

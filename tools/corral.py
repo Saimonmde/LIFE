@@ -40,6 +40,11 @@ def bounds(house, place='patio'):
     """Rectángulo del corral. El patio queda al lado de la casa, no encima de la puerta."""
     place = 'finca' if place == 'finca' else 'patio'
     if place == 'finca':
+        if isinstance(house, dict) and house.get('id') == 'envigado':
+            try:
+                return {'place': 'finca', 'x': int(house['x']) + 6, 'y': int(house['y']) + 1, 'w': 4, 'h': 3}
+            except (TypeError, ValueError, KeyError):
+                pass
         return {'place': 'finca', 'x': 148, 'y': 209, 'w': 4, 'h': 3}
     try:
         x = int(house['x']) + 2
