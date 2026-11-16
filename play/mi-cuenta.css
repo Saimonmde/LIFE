@@ -1,0 +1,40 @@
+#mi-cuenta {
+  position: fixed;
+  inset: 0;
+  z-index: 92;
+  display: grid;
+  place-items: end center;
+  padding: 12px;
+  background: rgba(8, 12, 10, .45);
+}
+#mi-cuenta[hidden] { display: none !important; }
+.mi-cuenta-panel {
+  width: min(440px, calc(100vw - 16px));
+  max-height: min(86dvh, 760px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  box-sizing: border-box;
+  padding: 16px;
+  color: #3a2412;
+  background: #f4e2bc;
+  border: 8px solid #6b3e24;
+  border-radius: 18px;
+}
+.mi-cuenta-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mi-cuenta-panel h2 { margin: 0; font: 800 22px/1.2 system-ui, sans-serif; }
+.mi-cuenta-panel p { margin: 8px 0; font: 16px/1.35 system-ui, sans-serif; }
+.mi-cuenta-nota { font-size: 14px; }
+#mi-cuenta-cerrar,
+.mi-cuenta-panel button {
+  min-height: 48px;
+  border-radius: 12px;
+  border: 2px solid #3d2616;
+  background: #6b3e24;
+  color: #fff6e4;
+  font: 800 16px/1.2 system-ui, sans-serif;
+}
+.mi-cuenta-panel button { display: block; width: 100%; margin: 8px 0; }
+#mi-cuenta-cerrar { width: auto; min-width: 112px; }
+.mi-cuenta-panel label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.mi-cuenta-panel input { min-height: 48px; border: 2px solid #8a623c; border-radius: 10px; background: #fffaf0; color: #2a1c10; }
