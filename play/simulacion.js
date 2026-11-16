@@ -453,6 +453,39 @@ function grantTreasury(sai, note) {
 function tokenKey(name) { return 'lifeinc.sai.token.' + (name || ''); }
 function walletToken(name) { try { return localStorage.getItem(tokenKey(name || walletName())) || ''; } catch (e) { return ''; } }
 function saveToken(name, token) { if (!token) return; try { localStorage.setItem(tokenKey(name), token); } catch (e) {} }
+function reflejarMonedas() {
+  if (!api || !window.ponerMetal) return;
+  const b = api.S.ledger && api.S.ledger.balances;
+  if (!b) return;
+  window.ponerMetal('moneda_oro', (Number(b.simoncoin) || 0) / SUBS);
+  window.ponerMetal('moneda_plata', (Number(b.simonplata) || 0) / SUBS);
+  window.ponerMetal('moneda_cobre', Number(b.simonchis) || 0);
+}
+function aplicarCredito(m) {
+  if (!api || !m) return;
+  if (!api.S.econ) api.S.econ = emptyEcon();
+  ensureSmh(api.S.econ);
+  const name = m.walletName || walletName();
+  const locked = !!m.walletLocked;
+  if (m.ledger) api.S.ledger = m.ledger;
+  if (m.purse) api.S.purse = m.purse;
+  const balances = (m.ledger && m.ledger.balances) || {};
+  if (!locked && (m.balanceSubs != null || balances.simoncoin != null)) {
+    const smh = m.balanceSubs != null ? m.balanceSubs : balances.simoncoin;
+    api.S.econ.wallets[name] = smh;
+    if (walletName() !== name) api.S.econ.wallets[walletName()] = smh;
+  }
+  if (!locked && (m.balanceSph != null || balances.simonplata != null)) {
+    api.S.plata = api.S.plata || {};
+    api.S.plata.balanceSph = m.balanceSph != null ? m.balanceSph : balances.simonplata;
+  }
+  if (m.historia) api.S.econ.historia = m.historia;
+  if (m.ledger && m.ledger.historia) api.S.econ.historia = m.ledger.historia;
+  reflejarMonedas();
+  paintHud();
+  renderLibro();
+  if (window.Cajon) Cajon.paint();
+}
 function applyServer(m) {
   if (!m || !m.state) return;
   const prev = api.S.econ ? (api.S.econ.minedSmh || 0) : 0;
@@ -470,7 +503,11 @@ function applyServer(m) {
   if (st.historia) api.S.econ.historia = st.historia;
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
-  if (m.balanceSubs != null) api.S.econ.wallets[walletName()] = m.walletLocked ? 0 : m.balanceSubs;
+  if (m.balanceSubs != null) {
+    const shown = m.walletLocked ? 0 : m.balanceSubs;
+    api.S.econ.wallets[walletName()] = shown;
+    if (m.walletName) api.S.econ.wallets[m.walletName] = shown;
+  }
   if (m.plata) {
     api.S.plata = m.plata;
     if (m.balanceSph != null) api.S.plata.balanceSph = m.walletLocked ? 0 : m.balanceSph;
@@ -490,6 +527,7 @@ function applyServer(m) {
   }
   if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
+  reflejarMonedas();
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();
 }
@@ -529,8 +567,8 @@ function renderLibro() {
   const more = (api.S.econ.blockCount || blocks.length) > blocks.length;
   const filtro = el.dataset.filtro || 'todo';
   const rows = historiaRows().filter(row => filtro === 'todo' || row.type === filtro);
-  const monto = (row) => row.coin === 'SMP' ? formatPlata(row.amountSph || 0) : formatSai(row.amountSubs || 0);
-  const saldo = (row) => row.coin === 'SMP' ? formatPlata(row.balanceSph || 0) : formatSai(row.balanceSubs || 0);
+  const monto = (row) => row.coin === 'SMP' ? formatPlata(row.amountSph || 0) : (row.coin === 'SMCH' ? (Number(row.amountQty) || 0).toLocaleString('es-CO') + ' Simonchis' : formatSai(row.amountSubs || 0));
+  const saldo = (row) => row.coin === 'SMP' ? formatPlata(row.balanceSph || 0) : (row.coin === 'SMCH' ? (Number(row.balanceQty) || 0).toLocaleString('es-CO') + ' Simonchis' : formatSai(row.balanceSubs || 0));
   const body = rows.length ? rows.slice().reverse().map(row => `<tr title="${api.esc(row.note || '')}">
       <td>${api.esc(libroWhen(row.ts))}</td>
       <td>${api.esc(row.label || row.type || '')}</td>
@@ -547,10 +585,13 @@ function renderLibro() {
   };
   const cupo = (window.__LIBRO_CUPO && window.__LIBRO_CUPO.lines) || [];
   const cupoHtml = cupo.map(line => `<p>${api.esc(line)}</p>`).join('');
+  const tuyo = (api.S.ledger && api.S.ledger.balances) || {};
+  const tuyoTxt = 'Tuyo: ' + formatSai(tuyo.simoncoin || 0) + ' · ' + formatPlata(tuyo.simonplata || 0) + ' · ' + (Number(tuyo.simonchis) || 0).toLocaleString('es-CO') + ' Simonchis';
   el.innerHTML = `<aside class="libro-guia" aria-label="Las tres monedas">
       <p>Hay tres monedas y el total ya está cerrado. Nadie puede crear de más, cambiar ese máximo ni copiar una moneda.</p>
       <p><b>Simoncoin</b>, el oro. <b>Simonplata</b>, la plata. <b>Simonchis</b>, el cobre.</p>
       <p id="libro-totales">${api.esc(libroLine('simoncoin', 'Simoncoin'))} · ${api.esc(libroLine('simonplata', 'Simonplata'))} · ${api.esc(libroLine('simonchis', 'Simonchis'))}</p>
+      <p id="libro-tuyo">${api.esc(tuyoTxt)}</p>
       <div id="libro-cupo">${cupoHtml}</div>
       <p>Arriba ves cuántas van y cuántas pueden existir. La tabla de abajo es tu historial. Si todavía no hay movimientos, el libro te lo dice con calma.</p>
       <p>Si querés mirar los bloques y los códigos, abrí <b>Bloques y hashes</b>. No hace falta entenderlos para jugar.</p>
@@ -1009,7 +1050,7 @@ window.Simulacion = {
   installWorld, bind, resetProgress, restore, paintHud, renderLibro, toggleLibro, onRiverGold, buyStand,
   mountHorse, dismount, summonAndMount, nearestMount, blocksTile, buildingNode, speedMul, syncHorse, skillExtraHtml, questExtraHtml,
   grantTreasury, issueLocal, noteLegacy, flushMigration, onWelcome, walletSubs, localVault, requestVault, bankSmc, bankSmp, bankItem,
-  rememberSupply, rememberPlata, net,
+  rememberSupply, rememberPlata, net, aplicarCredito, reflejarMonedas,
   talkProfesora, offlineCommand, onNet, drawDialogFace, wireLessonButtons, describeMount, hitMount, study, autotest,
   hashBlock, verifyBlock, emptyEcon, rewardSai, rewardSmh, formatSai, formatPair, formatSmc, formatSmh, formatSmp, formatSph, formatPlata, formatPlataPair, parseAmount, parsePlata, unidadActiva, unidadPlata, walletToken, SUBS, GENESIS_PREV,
 };

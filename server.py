@@ -275,9 +275,14 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['plata'] = pview
     m['balanceSph'] = pview['balanceSph']
     m['reloj'] = RELOJ.payload(ECON)
+    m['walletName'] = '' if locked else (who or '')
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
     m['cupos'] = cupos_public(profile)
-    m['purse'] = PURSES.public(VAULT_STATE, who) if who and not locked else {'items': {}, 'catalog': dict(PURSES.CATALOG)}
+    if who and not locked:
+        import acunar_credito as ACU
+        m['purse'] = ACU.vista(VAULT_STATE, ECON, who, (profile or {}).get('account'))
+    else:
+        m['purse'] = {'items': {}, 'catalog': dict(PURSES.CATALOG), 'monedas': {}}
     m['puestoSmh'] = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
     return m
 
@@ -286,20 +291,45 @@ def token_matches(stored, presented):
         return False
     return secrets.compare_digest(stored, str(presented))
 
+def _sumar_clave(box, old, new):
+    """Pasa un saldo de un nombre a otro. La suma no cambia."""
+    if not isinstance(box, dict) or old not in box:
+        return False
+    box[new] = int(box.get(new) or 0) + int(box.pop(old) or 0)
+    return True
+
+
 def mover_billetera(old, new):
-    """El apodo nuevo se queda con las monedas del nombre anterior."""
+    """El apodo nuevo se queda con las monedas del nombre anterior.
+
+    Si el nombre nuevo ya tenía saldo, se suma. No se acuña ni se pierde.
+    """
     old, new = str(old or ''), str(new or '')
     if not old or not new or old == new:
         return
     wallets = ECON.setdefault('wallets', {})
     tokens = ECON.setdefault('walletTokens', {})
-    if new in wallets and int(wallets.get(new) or 0):
-        return
-    if old in wallets:
-        wallets[new] = wallets.pop(old)
-    if old in tokens:
+    moved = _sumar_clave(wallets, old, new)
+    if old in tokens and new not in tokens:
         tokens[new] = tokens.pop(old)
-    save_econ()
+        moved = True
+    elif old in tokens:
+        tokens.pop(old, None)
+    plata = ECON.get('plata') if isinstance(ECON.get('plata'), dict) else None
+    if plata:
+        moved = _sumar_clave(plata.get('wallets'), old, new) or moved
+    chis = ECON.get('simonchis') if isinstance(ECON.get('simonchis'), dict) else None
+    if chis:
+        moved = _sumar_clave(chis.get('wallets'), old, new) or moved
+    purses = VAULT_STATE.setdefault('purses', {})
+    if old in purses:
+        dest = purses.setdefault(new, {})
+        for item, qty in (purses.pop(old) or {}).items():
+            dest[item] = int(dest.get(item) or 0) + int(qty or 0)
+        moved = True
+    if moved:
+        save_econ()
+        save_vault()
 
 
 def bind_wallet(name, presented, owner=False):
@@ -853,11 +883,15 @@ def acunar_for(sender, coin, pieces, proof=None):
     view['historia'] = HISTORIA.filas(ECON)
     save_econ()
     broadcast_econ()
+    recibido = done['recibes']
+    if coin == 'simoncoin' and getattr(sender, 'kept_smh', None) is not None:
+        recibido = sender.kept_smh / ECO.SUBS
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
-        'item': row['item'], 'spent': done['gastas'], 'spentItems': spent, 'recibes': done['recibes'],
-        'moneda': moneda, 'purse': PURSES.public(VAULT_STATE, sender.name),
-        'reason': f'Se acuñó {done["recibes"]} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
+        'item': row['item'], 'spent': done['gastas'], 'spentItems': spent, 'recibes': recibido,
+        'moneda': moneda, 'purse': ACU.vista(VAULT_STATE, ECON, sender.name, profile.get('account')),
+        'walletName': sender.name,
+        'reason': f'Se acuñó {recibido} {row["name"]}. Se gastaron {done["gastas"]} {row["metal"]}.',
         'ledger': view, 'cupos': cupos_public(profile),
         'crudo': {item: CRUDO.nuggets(ECON, profile['account'], item) for item in CRUDO.CAPS},
     })
@@ -1990,9 +2024,16 @@ def handle_client_message(c, m, t):
         if owned and getattr(c, 'user', None) is not None and c.user.get('wallet_token') != owned:
             c.user['wallet_token'] = owned
             save_accounts()
+        perfil = account_profile(c)
+        libro_nombre = c.name if c.wallet_ok else None
+        import acunar_credito as ACU
         welcome = {'t': 'welcome', 'id': c.id, 'you': c.public(), 'canMintIngots': LINGOTES.autorizado(getattr(c, 'user', None)), 'players': city_peers(c),
                  'proximityTiles': PROX_TILES, 'serverId': SERVER_ID, 'worldBuild': WORLD.get('build'),
-                 'reloj': RELOJ.payload(ECON), 'ledger': MONEDAS.ledger(ECON), 'contadores': public_counters()}
+                 'reloj': RELOJ.payload(ECON),
+                 'ledger': MONEDAS.ledger(ECON, libro_nombre, perfil.get('account') if libro_nombre else None),
+                 'walletName': libro_nombre or '',
+                 'purse': ACU.vista(VAULT_STATE, ECON, c.name, perfil.get('account')) if libro_nombre else {'items': {}, 'catalog': dict(PURSES.CATALOG), 'monedas': {}},
+                 'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         welcome['presence'] = presence_msg()
         welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
