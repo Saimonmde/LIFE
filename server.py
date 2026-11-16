@@ -35,6 +35,7 @@ import persist as PERSIST
 import purses as PURSES
 import mochila as MOCHILA
 import trades as TRADE
+import cambio_simple as CAMBIO
 import bridge4sur
 import mundos as MUNDOS
 import social as SOCIAL
@@ -277,6 +278,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
     m['cupos'] = cupos_public(profile)
     m['purse'] = PURSES.public(VAULT_STATE, who) if who and not locked else {'items': {}, 'catalog': dict(PURSES.CATALOG)}
+    m['puestoSmh'] = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
     return m
 
 def token_matches(stored, presented):
@@ -591,6 +593,47 @@ def mint_plata(sender, proof=None):
     sender.pow_challenge = opened['challenge']
     send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'mint_plata'}, 'plata': opened.get('view'), 'coin': 'SMP'})
     return {'ok': False, 'pending': True, 'sph': 0}
+
+
+def cambio_simple_msg(sender, message):
+    """Mueve metal por SMC del puesto, o plata por oro del fondo. No acuña."""
+    give = str((message or {}).get('give') or '')
+    receive = str((message or {}).get('receive') or '')
+    try:
+        qty = int((message or {}).get('qty') or 0)
+    except (TypeError, ValueError):
+        qty = 0
+    if give == 'simonplata' and receive == 'simoncoin':
+        have = PLATA.balance_of(ECON, sender.name)
+        fondo = int((ECON.get('plata') or {}).get('smcPoolSmh') or 0)
+        quoted = CAMBIO.quote('simonplata', 'simoncoin', qty, have, fondo_smh=fondo)
+        if not quoted.get('ok'):
+            return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': quoted.get('texto') or 'No se movió nada.'})
+        result = exchange_plata(sender, f"{quoted['das']} smp")
+        ok = bool(isinstance(result, dict) and result.get('ok'))
+        return send(sender, {'t': 'cambio_result', 'ok': ok, 'give': give, 'das': quoted['das'] if ok else 0, 'recibes': quoted['recibes'] if ok else 0, 'reason': quoted['texto'] if ok else 'No se movió nada.'})
+    if give not in CAMBIO.MINERALES or receive != 'simoncoin':
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': 'Eso crearía monedas o metal nuevo. No se movió nada.'})
+    have = PURSES.count(VAULT_STATE, sender.name, give)
+    puesto = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
+    quoted = CAMBIO.quote(give, 'simoncoin', qty, have, puesto_smh=puesto)
+    if not quoted.get('ok'):
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': quoted.get('texto') or 'No se movió nada.'})
+    if not PURSES.debit(VAULT_STATE, sender.name, give, quoted['das']):
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': 'Ese metal no está en la cuenta. No se movió nada.'})
+    try:
+        CAMBIO.mover_mineral(ECON, sender.name, quoted['das'])
+    except ValueError as exc:
+        PURSES.credit(VAULT_STATE, sender.name, give, quoted['das'])
+        return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': str(exc)})
+    ECO.append_tx(ECON, {
+        'type': 'trade', 'from': 'puesto_frutas', 'to': sender.name,
+        'amountSubs': quoted['das'] * CAMBIO.MINERAL_SMH, 'note': 'Cambio de metal por Simoncoin ya existente',
+    })
+    save_econ()
+    save_vault()
+    broadcast_econ()
+    send(sender, {'t': 'cambio_result', 'ok': True, 'give': give, 'das': quoted['das'], 'recibes': quoted['recibes'], 'reason': quoted['texto'], 'purse': PURSES.public(VAULT_STATE, sender.name)})
 
 
 def exchange_plata(sender, sph=None):
@@ -1960,6 +2003,8 @@ def handle_client_message(c, m, t):
         mint_for(c, clean(m.get('node'), 40), m.get('proof'))
     elif t == 'mint_plata' and c.hello:
         mint_plata(c, m.get('proof'))
+    elif t == 'cambio_simple' and c.hello:
+        cambio_simple_msg(c, m)
     elif t == 'exchange_plata' and c.hello:
         try:
             if m.get('max'):

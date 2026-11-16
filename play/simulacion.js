@@ -480,6 +480,7 @@ function applyServer(m) {
   if (window.Acunar) Acunar.paint();
   if (m.ledger) api.S.ledger = m.ledger;
   if (m.purse) api.S.purse = m.purse;
+  if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();

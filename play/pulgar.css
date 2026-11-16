@@ -1,0 +1,92 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Barra inferior del celular. Una hoja a la vez. No tapa el joystick ni Picar. */
+#mando > #b-descansar,
+html.movil #b-descansar,
+#b-descansar,
+#shell-b-descansar {
+  position: fixed !important;
+  top: auto !important;
+  bottom: calc(280px + env(safe-area-inset-bottom)) !important;
+  left: max(10px, env(safe-area-inset-left)) !important;
+  right: auto !important;
+  transform: none !important;
+  z-index: 46;
+  width: min(168px, calc(100vw - 20px));
+}
+#objetivo { z-index: 21; max-height: 96px; overflow: auto; }
+@media (max-width: 820px) {
+  #pulgar {
+    position: fixed;
+    z-index: 44;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+    justify-content: space-between;
+    box-sizing: border-box;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: rgba(18, 14, 10, .94);
+  }
+  body:not(.in-game) #pulgar { display: none !important; }
+  #pulgar button {
+    flex: 1 1 0;
+    min-width: 48px;
+    min-height: 48px;
+    border: 0;
+    border-radius: 12px;
+    background: #f0d18b;
+    color: #251c12;
+    font: 700 11px/1.1 system-ui, sans-serif;
+    padding: 4px;
+  }
+  #pulgar button[aria-pressed="true"] { background: #e2b23c; box-shadow: inset 0 3px 0 #8a6420; }
+  body.in-game #mando { display: none !important; }
+  body.in-game .ventana:not([hidden]),
+  body.in-game #city-map:not([hidden]),
+  body.in-game #hoja-cambio:not([hidden]),
+  body.in-game #hud-gear-menu:not([hidden]) {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: auto !important;
+    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
+    width: auto !important;
+    height: auto !important;
+    max-height: min(46dvh, 420px);
+    transform: none !important;
+    z-index: 36;
+    border-radius: 16px 16px 0 0;
+  }
+  body.in-game #city-joystick,
+  body.in-game #b-picar,
+  body.in-game #b-acunar-pulgar,
+  body.in-game #mine-enter { z-index: 48 !important; }
+  .ventana header .x,
+  #city-map-close,
+  #cajon-cerrar,
+  #hoja-cerrar {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  #hoja-cambio {
+    box-sizing: border-box;
+    padding: 12px;
+    background: #241c14f5;
+    color: #f6e7c4;
+    border: 2px solid #b48a46;
+    overflow: auto;
+  }
+  #hoja-cambio[hidden] { display: none !important; }
+  #hoja-cambio header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  #hoja-cambio label { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; font: 14px/1.3 system-ui, sans-serif; }
+  #hoja-cambio select, #hoja-cambio button { min-height: 48px; font: 700 15px/1 system-ui, sans-serif; }
+  #cambio-pasos { display: flex; gap: 8px; align-items: center; }
+  #cambio-pasos b { min-width: 48px; text-align: center; font-size: 20px; }
+  #cambio-vista { margin: 8px 0; font: 16px/1.35 system-ui, sans-serif; }
+  .nivel-resumen { display: flex; flex-direction: column; gap: 6px; list-style: none; margin-bottom: 8px; }
+  .nivel-barra { display: block; height: 10px; border-radius: 8px; background: #3a2a1c; overflow: hidden; }
+  .nivel-barra i { display: block; height: 100%; background: #e2b23c; }
+}

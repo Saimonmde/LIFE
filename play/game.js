@@ -985,6 +985,13 @@ function renderInv() {
 }
 function renderSkills() {
   const el = $('#habilidades'); el.innerHTML = '';
+  const skill = 'mining';
+  const sk = W.skills[skill] || { name: 'Minería', learn: '' };
+  const xp = S.xp[skill] || 0;
+  const lv = level(xp);
+  const hi = 25 * lv * lv;
+  const falta = Math.max(0, hi - xp);
+  el.insertAdjacentHTML('beforeend', `<li class="nivel-resumen"><b>Nivel ${lv} de ${esc(sk.name)}</b><span class="nivel-barra" aria-hidden="true"><i style="width:${Math.round(100 * (xp - 25 * (lv - 1) ** 2) / Math.max(1, hi - 25 * (lv - 1) ** 2))}%"></i></span><span>Te faltan ${falta} de experiencia para el nivel ${lv + 1}. En ese nivel no se abre una herramienta nueva: sigues practicando. ${esc(sk.learn || '')}</span></li>`);
   for (const k of skillIds()) {
     const sk = W.skills[k]; if (!sk || !sk.name) continue;
     const xp = S.xp[k] || 0, lv = level(xp), lo = 25 * (lv - 1) ** 2, hi = 25 * lv ** 2;
@@ -1228,6 +1235,13 @@ function connect() {
       if (m.op === 'soltar') { game(m.reason || 'Lo dejaste donde estaba.', 'aviso'); return; }
       if (done) done(m.op);
       game(m.reason || 'Listo.', 'juego');
+      return;
+    }
+    if (m.t === 'cambio_result') {
+      if (m.purse) S.purse = m.purse;
+      if (m.ok && m.give && window.quitarDelInventario) quitarDelInventario(m.give, m.das || 1);
+      game(m.reason || (m.ok ? 'Listo.' : 'No se movió nada.'), m.ok ? 'juego' : 'aviso');
+      if (window.Pulgar && Pulgar.pintarCambio) Pulgar.pintarCambio();
       return;
     }
     if (m.t === 'central_result' && !m.ok) {

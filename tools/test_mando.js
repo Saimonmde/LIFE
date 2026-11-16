@@ -23,7 +23,7 @@ assert.ok(mando.includes('left: 518px'));
 assert.ok(mando.includes('#mando'));
 assert.ok(movil.includes("id !== principal") || movil.includes('b !== principal'));
 assert.ok(movil.includes("'b-montar'"));
-assert.ok(movil.includes("'b-descansar'"));
+assert.ok(!movil.includes("['b-descansar'"));
 assert.ok(movil.includes("'bank-dock'"));
 assert.ok(movil.includes("'finca-open'"));
 assert.ok(movil.includes("'b-emote'"));
