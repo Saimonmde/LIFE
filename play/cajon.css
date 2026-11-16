@@ -18,6 +18,33 @@ body.mapa-limpio #hud-toggle {
   display: none !important;
 }
 
+body.mapa-limpio #chat-toggle {
+  display: flex !important;
+}
+#chat-toggle { z-index: 55; }
+#hud-chat { z-index: 56; }
+#chat-gente { display: flex; gap: 6px; padding: 6px 8px 0; }
+#chat-gente button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid #b48a46;
+  border-radius: 8px;
+  background: #3a2a1c;
+  color: #f6e7c4;
+  font: 700 14px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+@media (max-width: 820px), (orientation: landscape) and (max-height: 520px) {
+  #chat-toggle { bottom: calc(76px + env(safe-area-inset-bottom)) !important; }
+  #hud-chat {
+    left: 8px !important;
+    right: 8px !important;
+    width: auto !important;
+    bottom: calc(132px + env(safe-area-inset-bottom)) !important;
+    max-height: min(46dvh, 420px);
+  }
+}
+
 #hud-minimo {
   position: fixed;
   z-index: 70;

@@ -177,6 +177,8 @@
       '<button type="button" id="cajon-simon">Simon</button>',
       '<button type="button" id="cajon-ajustes">Ajustes de la pantalla</button>',
       '<button type="button" id="cajon-finca">Cafetal de Las Palmas</button>',
+      '<button type="button" id="cajon-chat">Chat del mundo</button>',
+      '<button type="button" id="cajon-gente">Jugadores en línea</button>',
       '<button type="button" id="cajon-libro">Libro Mayor</button>',
       '<div id="cajon-panel"></div>',
     ].join('');
@@ -204,6 +206,16 @@
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
     $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
+    const chatBtn = $('#cajon-chat');
+    if (chatBtn) chatBtn.onclick = () => { closeDrawer(); if (window.ChatUI) ChatUI.setOpen(true, true); };
+    const genteBtn = $('#cajon-gente');
+    if (genteBtn) genteBtn.onclick = () => {
+      closeDrawer();
+      const list = document.getElementById('mundo-lista');
+      const tab = document.getElementById('mundo-tab');
+      if (list) list.hidden = false;
+      if (tab) tab.setAttribute('aria-expanded', 'true');
+    };
     $('#cajon-plata').onclick = () => showPiece('plata-panel');
     $('#cajon-herramientas').onclick = () => showPiece('world-tools');
     $('#cajon-barra').onclick = () => showPiece('hotbar');

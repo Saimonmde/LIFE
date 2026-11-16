@@ -72,6 +72,7 @@
       ['cam', 'Intercambio', () => abrir('hoja-cambio', bar.querySelector('[data-pulgar="cam"]'))],
       ['niv', 'Niveles', () => { const b = $('b-hab'); if (b) b.click(); }],
       ['mapa', 'Mapa', () => { const b = $('b-globo'); if (b) b.click(); }],
+      ['chat', 'Chat', () => { if (window.ChatUI) ChatUI.setOpen(true, true); }],
       ['menu', 'Menú', () => { const b = $('hud-gear'); if (b) b.click(); }],
       ['cuenta', 'Cuenta', () => { if (window.MiCuenta) MiCuenta.abrir(); }],
     ];

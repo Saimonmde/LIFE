@@ -71,7 +71,7 @@
     const head = $('amigos-conteo');
     if (head) head.textContent = total + ' en línea · ' + mine + ' en tu mundo';
     const tab = $('mundo-tab');
-    if (tab) tab.textContent = 'Mundo ' + world() + ' · ' + mine + ' en línea';
+    if (tab) tab.textContent = 'Jugadores en línea · ' + mine;
     paintWorlds();
     paintPlayers();
   }
@@ -298,7 +298,7 @@
     const tab = document.createElement('button');
     tab.id = 'mundo-tab';
     tab.type = 'button';
-    tab.textContent = 'Mundo ' + DEFAULT_WORLD + ' · 0 en línea';
+    tab.textContent = 'Jugadores en línea';
     tab.setAttribute('aria-expanded', 'false');
     tab.setAttribute('aria-controls', 'mundo-lista');
     const list = document.createElement('section');

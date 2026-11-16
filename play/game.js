@@ -20,7 +20,7 @@ const NOMBRES = {
   manzana: 'Manzano', pera: 'Peral', naranja: 'Naranjo', mango: 'Palo de mango', banano: 'Mata de banano', coco: 'Palma de coco',
   conejo: 'Conejo', venado: 'Venado', ave: 'Ave silvestre', cobre: 'Roca de cobre', plata: 'Roca de plata', piedra: 'Roca de piedra', pino: 'Pino',
 };
-const CANALES = { global: 'Global', proximidad: 'Proximidad', clan: 'Clan', grupo: 'Grupo' };
+const CANALES = { global: 'Mundo', proximidad: 'Cerca', clan: 'Clan', grupo: 'Grupo' };
 function textoNombre(raw) {
   const text = String(raw || '').trim();
   if (!text || text.includes('@')) return 'Viajero';
@@ -70,7 +70,7 @@ const S = window.__ELJARDIN = {
   quest: { stage: 0, steps: {}, done: false, turnedIn: false },
   floaters: [], cam: { x: 0, y: 0 }, hover: null, dest: null, keys: new Set(), night: false, circadianIndex: null, nightOverride: null, mmZoom: 1,
   others: new Map(), net: { ws: null, ok: false, hasJoined: false, serverId: null, id: 0, ping: 0, lastSent: 0, sentKey: '' },
-  chat: { tab: 'proximidad', lines: [], unread: {} }, dialog: null, bubbles: new Map(), lastPrompt: '',
+  chat: { tab: 'global', lines: [], unread: {} }, dialog: null, bubbles: new Map(), lastPrompt: '',
 };
 
 function load() {
@@ -1237,8 +1237,8 @@ function renderChat() {
   if (atBottom) el.scrollTop = el.scrollHeight;
   const inRange = [...S.others.values()].filter(o => dist(o) * 2 <= 30).length;
   const notas = {
-    global: '(Global) Visible para quienes están en tu mundo',
-    proximidad: `(Proximidad) En tu mundo y a ≤ 30 m · ${inRange} en rango`,
+    global: '(Mundo) Lo leen todos los que están en tu mundo, cerca o lejos.',
+    proximidad: `(Cerca) Sólo a ≤ 30 m en tu mundo · ${inRange} en rango`,
     clan: S.me.clan ? `(Clan) Visible para tu clan: ${esc(S.me.clan)}` : '(Clan) Sin clan · escribe /clan nombre',
     grupo: S.me.group ? `(Grupo) Visible para tu grupo: ${esc(S.me.group)}` : '(Grupo) No estás en un grupo · escribe /grupo nombre',
   };
@@ -1247,6 +1247,21 @@ function renderChat() {
 function renderTabs() { document.querySelectorAll('.pestanas button[data-canal]').forEach(b => { const c = b.dataset.canal; b.classList.toggle('activa', c === S.chat.tab); b.innerHTML = CANALES[c] + (S.chat.unread[c] ? '<span class="nuevo"></span>' : ''); }); }
 document.querySelectorAll('.pestanas button[data-canal]').forEach(b => b.onclick = () => { S.chat.tab = b.dataset.canal; S.chat.unread[S.chat.tab] = false; renderTabs(); renderChat(); });
 $('#chat-min').onclick = () => window.ChatUI.setOpen(false);
+const chatGente = $('#chat-gente-btn');
+if (chatGente) chatGente.onclick = () => {
+  const list = document.getElementById('mundo-lista');
+  const tab = document.getElementById('mundo-tab');
+  if (!list) return;
+  list.hidden = false;
+  if (tab) tab.setAttribute('aria-expanded', 'true');
+};
+const chatInvitar = $('#chat-invitar');
+if (chatInvitar) chatInvitar.onclick = () => {
+  const list = document.getElementById('mundo-lista');
+  if (list) list.hidden = false;
+  const invite = document.getElementById('mundo-invitar');
+  if (invite) invite.click();
+};
 $('#chat-form').onsubmit = (e) => {
   e.preventDefault(); const inp = $('#chat-input'); const text = inp.value.trim(); inp.value = ''; inp.blur(); if (!text) return;
   if (window.Simulacion && Simulacion.offlineCommand(text)) return;
