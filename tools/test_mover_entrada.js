@@ -15,7 +15,7 @@ assert.ok(game.includes("if (window.Vida && !Vida.allowsConnect())"));
 assert.ok(!login.includes('pointer-events: none'));
 assert.ok(page.includes('login.css?v=login-limpio'));
 assert.ok(page.includes('game.js?v=chat-mundo'));
-assert.ok(page.includes('unified3d.js?v=paso-fluido'));
+assert.ok(page.includes('unified3d.js?v=ficha-trueque'));
 assert.ok(page.includes('mover.css?v=mover-r1'));
 assert.ok(skin.includes('pointer-events: none !important'));
 const guest = game.slice(game.indexOf('beginAtHome();'), game.indexOf('beginAtHome();') + 80);
