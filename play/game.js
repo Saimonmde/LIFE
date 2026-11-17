@@ -549,7 +549,7 @@ function prepareCave(){
  W.sprites.mine_portal={...W.sprites.rock_piedra};W.sprites.mine_exit={...W.sprites.rock_piedra};
  cityMap=Object.fromEntries(MAP_FIELDS.map(k=>[k,W[k]]));
  const width=36,height=32,ground=Array.from({length:height},()=>Array(width).fill(W.ground[palmas.y][palmas.x])),collision=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x<2||y<2||x>33||y>29?1:0)),elevation=Array.from({length:height},()=>Array(width).fill(0));
- const nodes=[{id:'salida_mina',type:'mine_exit',x:18,y:29,initialState:'active',states:['active'],sprites:{active:'mine_exit'},solid:true},{id:'letrero_salida',type:'mine_sign',x:19,y:28,solid:false,facing:Math.PI,initialState:'active',states:['active'],sprites:{active:'mine_exit'}},{id:'horno_cantera',type:'furnace',x:18,y:15,solid:true,states:['active'],initialState:'active',sprites:{active:'furnace'}}];
+ const nodes=[{id:'salida_mina',type:'mine_exit',x:18,y:29,initialState:'active',states:['active'],sprites:{active:'mine_exit'},solid:true},{id:'letrero_salida',type:'mine_sign',x:19,y:28,solid:false,facing:Math.PI,initialState:'active',states:['active'],sprites:{active:'mine_exit'}},{id:'horno_cantera',type:'furnace',x:18,y:15,solid:true,states:['active'],initialState:'active',sprites:{active:'furnace'}},{id:'baul_mina',type:'mine_chest',x:15,y:16,solid:true,states:['active'],initialState:'active',sprites:{active:'mine_exit'}}];
  const layout={cobre:[[6,6],[9,4],[5,12],[8,22],[12,8]],plata:[[27,5],[30,10],[28,22],[24,9]],oro:[[5,3],[17,3],[28,3],[32,17],[3,18],[24,27]]};
  for(const [metal,coords] of Object.entries(layout))coords.forEach(([x,y],i)=>nodes.push({id:'mina_'+metal+'_'+i,type:'mineral_rock',mineral:metal,x,y,skill:'mining',method:'terrestre',tool:'pico',solid:true,states:['active','depleted'],initialState:'active',sprites:{active:'rock_'+metal,depleted:'rock_depleted'},yield:{item:'mineral_'+metal,min:2,max:metal==='oro'?3:4},xp:metal==='oro'?26:metal==='plata'?18:12,respawnMs:metal==='oro'?32000:18000}));
  const rocks=[[10,13],[26,15],[12,21],[22,23],[8,17],[28,26],[16,7]];for(const [x,y] of rocks){collision[y][x]=1;}
@@ -716,7 +716,7 @@ function switchMap(id,restored=false){
  }
  S.others.clear();
  renderNearby();
- if(S.net.ok){sendMove(true); if(S.net.ws)S.net.ws.send(JSON.stringify({t:'cerca'}));}
+ if(S.net.ok){sendMove(true); if(S.net.ws){S.net.ws.send(JSON.stringify({t:'cerca'})); S.net.ws.send(JSON.stringify({t:'nodos'}));}}
 }
 
 // ---------------- cantera y fundición ----------------
@@ -1379,6 +1379,9 @@ function connect() {
     S.net.seen = performance.now();
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+    if (m.t === 'veta' && m.ok === false) { if (S.metalOptimistic) { invRemove(S.metalOptimistic.item, S.metalOptimistic.qty); S.metalOptimistic = null; } S.espera = null; nota(m.reason || 'Esa veta está ocupada.'); return; }
+    if (m.t === 'nodos' && Array.isArray(m.nodes)) { m.nodes.forEach(row => aplicarNodo(row, false)); return; }
+    if (m.t === 'nodo') { aplicarNodo(m, !!m.back); return; }
     if (m.t === 'recoger' && m.ok && S.espera && S.espera.done) { const done = S.espera.done; S.espera = null; done('mochila'); return; }
     if (m.t === 'mochila_llena') { if (S.metalOptimistic) { invRemove(S.metalOptimistic.item, S.metalOptimistic.qty); S.metalOptimistic = null; } if (S.espera) S.espera.server = true; avisarMochilaLlena(); game(m.reason || 'Tu mochila está llena', 'aviso'); if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance(); return; }
     if (m.t === 'mochila_op') {
@@ -1413,6 +1416,7 @@ function connect() {
       if (!S.net.hasJoined && W.mapId==='casa' && !window.LIFE_PARTIDA) placeAtHouseSpawn();
       S.net.hasJoined=true; S.others.clear();
       for (const p of m.players || []) addOther(p);
+      if (Array.isArray(m.nodos)) m.nodos.forEach(row => aplicarNodo(row, false));
       renderNearby();
       $('#ping').classList.add('ok'); sys('Conectado al mundo compartido de LifeIn.'); renderChat(); sendMove(true); if (m.reloj) S.reloj = m.reloj; if (m.ledger) S.ledger = m.ledger; if (m.purse) S.purse = m.purse; if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m); S.canMintIngots = !!m.canMintIngots; if ((W.mapId || 'city') === 'central' && !S.canMintIngots) switchMap('city'); if (window.Cajon) Cajon.paint(); if (window.Simulacion) Simulacion.onWelcome(); if (window.Fauna) Fauna.onWelcome(m); migrarMetal();
     } else if (m.t === 'crudo') {
@@ -1427,7 +1431,8 @@ function connect() {
     else if (m.t === 'cerca' && Array.isArray(m.players)) { S.others.clear(); m.players.forEach(addOther); renderNearby(); }
     else if (m.t === 'player') { const o = S.others.get(m.player.id); if (o) Object.assign(o, { name: m.player.name, nick: m.player.nick, clan: m.player.clan, group: m.player.group }); if (m.player.id === S.net.id) { S.me.clan = m.player.clan; S.me.group = m.player.group; if (m.player.nick) S.me.nick = textoNombre(m.player.nick); renderChat(); } }
     else if (m.t === 'leave') { S.others.delete(m.id); renderNearby(); }
-    else if (m.t === 'move') { const o = S.others.get(m.id); if (o) { if ((m.zone || o.zone || 'city') !== (W.mapId || 'city')) { S.others.delete(m.id); renderNearby(); } else { o.x = m.x; o.y = m.y; o.fx = m.x; o.fy = m.y; o.dir = m.dir; o.moving = m.moving; o.level = m.level; o.pace = m.pace || ''; o.zone = m.zone || o.zone; o.lastMove = now(); if (window.Seguir) Seguir.paso(o); } } }
+    else if (m.t === 'move') applyMove(m);
+    else if (m.t === 'gesto') { const o = S.others.get(m.id); if (o && (m.zone || o.zone) === (W.mapId || 'city')) { if (m.kind === 'picar' || m.kind === 'sostener') { o.miningUntil = now() + 800; o.emote = 'point'; o.emoteUntil = now() + 700; } else floatText(m.x, m.y, '·', '#ffe14d'); } }
     else if (m.t === 'seguir_aviso') { game(esc(m.text || ((m.from || 'Alguien') + ' te está siguiendo')), 'juego'); }
     else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { if (S.vistaLock) return; const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
@@ -1453,6 +1458,50 @@ function connect() {
   };
 }
 function addOther(p) { if(p.id===S.net.id)return; if((p.zone||'city')!==(W.mapId||'city'))return; if(p.pet&&window.Vida&&Vida.decorate)p.pet=Vida.decorate(p.pet); S.others.set(p.id, { ...p, fx: p.x, fy: p.y, lastMove: now() }); renderChat(); renderNearby(); }
+function applyMove(m) {
+  if (!m || m.id === S.net.id) return;
+  const zone = m.zone || 'city';
+  let o = S.others.get(m.id);
+  if (zone !== (W.mapId || 'city')) { if (o) { S.others.delete(m.id); renderNearby(); } return; }
+  if (!o) addOther({ id: m.id, name: m.name || 'Viajero', nick: m.nick || '', color: m.color || 'azul', x: m.x, y: m.y, dir: m.dir, moving: !!m.moving, level: m.level || 1, zone });
+  o = S.others.get(m.id);
+  if (!o) return;
+  o.x = m.x; o.y = m.y; o.dir = m.dir || o.dir; o.moving = !!m.moving; o.level = m.level || o.level; o.pace = m.pace || ''; o.zone = zone; o.lastMove = now();
+  if (window.Seguir) Seguir.paso(o);
+}
+function aplicarNodo(row, back) {
+  if (!row || !S.nodes) return;
+  const until = Number(row.until) * 1000;
+  const n = S.nodes.get(row.id);
+  if (!n) return;
+  if (until > now()) {
+    n.state = (n.def.states || []).includes('depleted') ? 'depleted' : n.state;
+    n.until = until;
+    return;
+  }
+  if (n.until) {
+    n.state = n.def.initialState || 'active';
+    n.until = 0;
+    if (back && Math.hypot((n.def.x || 0) - S.player.fx, (n.def.y || 0) - S.player.fy) < 18) nota('Volvió la veta');
+  }
+}
+function nota(text) {
+  const box = document.getElementById('toasts');
+  if (!box) return;
+  const line = document.createElement('p');
+  line.textContent = String(text || '').slice(0, 80);
+  box.append(line);
+  while (box.children.length > 4) box.firstChild.remove();
+  setTimeout(() => { if (line.parentNode) line.remove(); }, 2400);
+}
+function sendGesto(kind, x, y) {
+  window.sendGesto = sendGesto;
+  if (!S.net.ok || !S.net.ws) return;
+  const mark = performance.now();
+  if (mark - (S.net.gestoAt || 0) < 80) return;
+  S.net.gestoAt = mark;
+  S.net.ws.send(JSON.stringify({ t: 'gesto', kind, x: x == null ? S.player.fx : x, y: y == null ? S.player.fy : y, dir: S.player.dir }));
+}
 function sendMove(force) {
   if (S.vistaLock || !S.net.ok) return;
   if (W.mapId==='mine') {
@@ -1587,6 +1636,7 @@ function goTo(tx, ty) {
   const p = S.player; const path = bfs(p.x, p.y, (x, y) => x === tx && y === ty);
   if (!path) { game('No puedes llegar ahí.', 'aviso'); return; }
   p.path = path; p.pending = null; S.dest = { x: tx, y: ty, t: now() };
+  sendGesto('toque', tx, ty);
 }
 function setRoute(tx, ty, name) {
   if (!started) { game('Entra al mundo para caminar hasta ahí.', 'aviso'); return false; }
@@ -1666,7 +1716,7 @@ function migrarMetal() {
 }
 function tintinear(item) { if (window.Sonido && Sonido.isRaw(item)) Sonido.clink(); }
 function give(item, qty, tx, ty) { if (!invAdd(item, qty)) return false; tintinear(item); floatText(tx, ty, `+${qty} ${W.items[item].name}`); questProgress('collect', item, qty); return true; }
-function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * TS + 32, y: ty * TS, text, color, t0: now() }); }
+function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * TS + 32, y: ty * TS, text: String(text || '').slice(0, 42), color, t0: now() }); if (S.floaters.length > 4) S.floaters.splice(0, S.floaters.length - 4); }
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
 function act(t) {
@@ -1730,35 +1780,41 @@ function act(t) {
     if (S.net && S.net.ok) {
       const item = d.yield.item;
       S.metalOptimistic = invAdd(item, 1) ? { item, qty: 1 } : null;
-      S.espera = { server: true, item, qty: 1, done: (where) => { const pending = S.metalOptimistic; S.metalOptimistic = null; if (where === 'mochila') { if (!(pending && pending.item === item)) { if (!invAdd(item, 1)) return; } } else if (pending && pending.item === item) invRemove(item, 1); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); if (where === 'mochila') game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro'); } };
-      S.net.ws.send(JSON.stringify({ t: 'recoger', item, qty: 1, kind: 'lavar' }));
+      S.espera = { server: true, item, qty: 1, done: (where) => { const pending = S.metalOptimistic; S.metalOptimistic = null; if (where === 'mochila') { if (!(pending && pending.item === item)) { if (!invAdd(item, 1)) return; } nota('+1 Pepita de oro'); } else if (pending && pending.item === item) invRemove(item, 1); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } };
+      sendGesto('picar', d.x, d.y);
+      S.net.ws.send(JSON.stringify({ t: 'recoger', item, qty: 1, kind: 'lavar', spot: d.id }));
       return;
     }
     if (!give(d.yield.item, 1, d.x, d.y)) { S.espera = { item: d.yield.item, qty: 1, done: () => { n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } }; return; }
     game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro');
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
+  } else if (d.type === 'mine_chest') {
+    if (window.Banco) Banco.openPanel();
+    nota('Tu depósito: casa, banco y este baúl');
+    return;
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;
     if (n.state !== 'active') return game(`La roca está agotada. Vuelve en ${secs()} s.`, 'aviso');
     const q = rnd(d.yield.min, d.yield.max);
-    const guardar = (where) => { if (where === 'mochila' && !invAdd(d.yield.item, q)) return; tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; if (where === 'mochila') game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save(); };
+    const guardar = (where) => { if (where === 'mochila' && !invAdd(d.yield.item, q)) return; tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); nota('+' + q + ' ' + W.items[d.yield.item].name); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save(); };
     if (S.net && S.net.ok) {
       S.metalOptimistic = invAdd(d.yield.item, q) ? { item: d.yield.item, qty: q } : null;
       S.espera = { server: true, item: d.yield.item, qty: q, done: (where) => {
         const pending = S.metalOptimistic;
         S.metalOptimistic = null;
         if (where === 'mochila' && pending && pending.item === d.yield.item) {
-          tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();
+          tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); nota('+' + q + ' ' + W.items[d.yield.item].name); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();
           return;
         }
         if (pending && pending.item === d.yield.item) invRemove(pending.item, pending.qty);
         guardar(where);
       } };
-      S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: q, kind: 'ore' }));
+      sendGesto('picar', d.x, d.y);
+      S.net.ws.send(JSON.stringify({ t: 'recoger', item: d.yield.item, qty: q, kind: 'ore', spot: d.id }));
       return;
     }
     if (!invAdd(d.yield.item, q)) { S.espera = { item: d.yield.item, qty: q, done: (where) => { if (where === 'banco') guardar('banco'); } }; return; }
-    tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800; game(`Picas la roca y obtienes ${q} × <b>${W.items[d.yield.item].name.toLowerCase()}</b>.`);
+    tintinear(d.yield.item); floatText(d.x, d.y, `+${q} ${W.items[d.yield.item].name}`); nota('+' + q + ' ' + W.items[d.yield.item].name); questProgress('collect', d.yield.item, q); S.player.miningUntil = now() + 800;
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); save();
   }
 }
@@ -1784,9 +1840,14 @@ function hunt(a) {
 
 // ---------------- entrada ----------------
 const screenToWorld = (sx, sy) => ({ x: sx / zoom + S.cam.x, y: sy / zoom + S.cam.y });
+let sostenerTimer = 0;
 cv.addEventListener('pointerdown', (e) => {
   if (!W || !started) return; $('#ayuda').hidden = true; if (S.dialog) return advanceDialog();
   const w = screenToWorld(e.clientX, e.clientY); const t = hitTest(w.x, w.y);
+  clearTimeout(sostenerTimer);
+  sostenerTimer = setTimeout(() => sendGesto('sostener', w.x / TS, w.y / TS), 420);
+  const soltar = () => { clearTimeout(sostenerTimer); cv.removeEventListener('pointerup', soltar); cv.removeEventListener('pointercancel', soltar); };
+  cv.addEventListener('pointerup', soltar); cv.addEventListener('pointercancel', soltar);
   if (t) { S.player.repaths = 0; approach(t); return; }
   const tx = Math.floor(w.x / TS), ty = Math.floor(w.y / TS);
   if (walkable(tx, ty)) goTo(tx, ty); else game('No se puede caminar ahí.', 'aviso');
@@ -2310,7 +2371,7 @@ function update(dt) {
   if(W.mapId==='casa' && !S.houseEdit && p.x===Casa.DOOR.x && p.y===Casa.DOOR.y && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; exitHouse(); }
   if(W.mapId==='banco' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
   if(W.mapId==='central' && p.x===6 && p.y===9 && !p.path.length && now()>(S.portalUntil||0)) { S.portalUntil=now()+900; switchMap('city'); }
-  if(W.mapId!=='mine')sendMove(false);
+  sendMove(false);
   for (const n of S.nodes.values()) {
     if (!n.until || t < n.until) continue;
     const d = n.def; n.until = 0;
@@ -2335,6 +2396,8 @@ function update(dt) {
     const step = window.Motion ? Motion.follow(o.fx, o.fy, o.x, o.y, dt) : { x: o.x, y: o.y, speed: 0, moving: false };
     o.fx = step.x; o.fy = step.y; o.speed = step.speed;
     o.walking = step.moving || (o.moving && t - o.lastMove < 300);
+    if (o.walking) o.animT = (o.animT || 0) + dt * (o.pace === 'corriendo' ? 1.6 : 1);
+    else if (o.moving && t - o.lastMove > 1500) o.moving = false;
   }
   if (S.animals.some(a => a.state === 'alive' && cheb(a.x, p.x, a.y, p.y) <= 1) && t > (S.biteUntil || 0)) {
     S.biteUntil = t + 1500;
@@ -2466,7 +2529,7 @@ function draw() {
   }
   const at = arrowTarget(); if (at && !S.dialog) yellowArrow(at.x * TS + 32, at.y * TS + 32 - at.h, t);
   ctx.font = 'bold 14px Pixelify, sans-serif'; ctx.textAlign = 'center';
-  for (const f of S.floaters) { const k = (t - f.t0) / 1400, y = f.y - 20 - k * 36; ctx.globalAlpha = 1 - k * k; ctx.fillStyle = '#000'; ctx.fillText(f.text, f.x + 1, y + 1); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, y); }
+  S.floaters.forEach((f, i) => { const k = (t - f.t0) / 1400, y = f.y - 20 - k * 28 - i * 16; ctx.globalAlpha = Math.max(0, 1 - k * k); ctx.fillStyle = '#000'; ctx.fillText(f.text, f.x + 1, y + 1); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x, y); });
   ctx.globalAlpha = 1;
   if (S.night) drawNight(t);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -2668,7 +2731,8 @@ let lastUi = 0, lastMap = 0, lastMapKey = '';
 function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
   try { update(dt); } catch (err) { /* un fallo del caballo no puede congelar el paso */ }
-  const mapKey = Math.floor(S.player.fx) + ',' + Math.floor(S.player.fy) + ':' + (S.dest && S.dest.ruta ? S.dest.x + ',' + S.dest.y + ':' + (S.player.path ? S.player.path.length : 0) : '');
+  let peerKey = ''; for (const o of S.others.values()) peerKey += '|' + o.id + ':' + Math.round(o.fx) + ',' + Math.round(o.fy);
+  const mapKey = Math.floor(S.player.fx) + ',' + Math.floor(S.player.fy) + ':' + (S.dest && S.dest.ruta ? S.dest.x + ',' + S.dest.y + ':' + (S.player.path ? S.player.path.length : 0) : '') + peerKey;
   if (mapKey !== lastMapKey || ts - lastMap > 250) { lastMapKey = mapKey; lastMap = ts; drawMinimap(arrowTarget()); }
   if (ts - lastUi > 500) { lastUi = ts; applyCircadian(true); renderNearby(); renderProfile(); if (S.chat.tab === 'proximidad') renderChatNote(); }
   requestAnimationFrame(loop);
