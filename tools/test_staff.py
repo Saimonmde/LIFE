@@ -80,6 +80,52 @@ class StaffRoleTests(unittest.TestCase):
         self.assertNotIn('ana', listed)
         self.assertNotIn('dave', open(os.path.join(os.path.dirname(__file__), 'staff.py'), encoding='utf-8').read().lower())
 
+    def test_google_email_match_is_case_insensitive_for_a_later_account(self):
+        os.environ['SIMON_STAFF'] = 'persona@gmail.com,vieja@ejemplo.co,mesa@ejemplo.co'
+        doc = acc.empty()
+        state = acc.start_oauth(doc, 'google', now=10)
+        profile = {'sub': 'sub-nueva', 'email': 'Persona@Gmail.com', 'name': 'Persona'}
+        result = acc.finish_oauth(doc, 'google', state, state, profile, now=20)
+        created = next(u for u in doc['users'] if (u.get('providers') or {}).get('google') == 'sub-nueva')
+        self.assertEqual(created['email'], 'persona@gmail.com')
+        self.assertEqual(created['role'], 'staff')
+        self.assertEqual(result['user']['role'], 'staff')
+
+        older = {
+            'id': 'vieja', 'name': 'Vieja', 'wallet_name': 'Vieja', 'email': '',
+            'phone': '', 'password_hash': '', 'providers': {'google': 'sub-vieja'},
+            'role': 'player', 'createdAt': 1,
+        }
+        mixed = {
+            'id': 'mixta', 'name': 'Mixta', 'wallet_name': 'Mixta',
+            'email': 'Mesa@Ejemplo.CO', 'phone': '', 'password_hash': '',
+            'providers': {'google': 'sub-mixta'}, 'role': 'player', 'createdAt': 1,
+        }
+        doc['users'].extend([older, mixed])
+        state = acc.start_oauth(doc, 'google', now=30)
+        acc.finish_oauth(doc, 'google', state, state, {
+            'sub': 'sub-vieja', 'email': 'VIEJA@ejemplo.co', 'name': 'Vieja',
+        }, now=40)
+        self.assertEqual(older['email'], 'vieja@ejemplo.co')
+        self.assertEqual(older['role'], 'staff')
+        state = acc.start_oauth(doc, 'google', now=41)
+        acc.finish_oauth(doc, 'google', state, state, {
+            'sub': 'sub-mixta', 'email': 'MESA@ejemplo.co', 'name': 'Mixta',
+        }, now=42)
+        self.assertEqual(mixed['email'], 'mesa@ejemplo.co')
+        self.assertEqual(mixed['role'], 'staff')
+
+        sent = {}
+        acc.begin_email_account(
+            doc, 'Tardia', 'Tardia@ejemplo.co', 'clave-larga-1',
+            lambda email, raw: sent.update(raw=raw), now=50,
+        )
+        os.environ['SIMON_STAFF'] = 'persona@gmail.com,tardia@ejemplo.co'
+        linked = acc.confirm_email_link(doc, sent['raw'], now=60)
+        tardia = next(u for u in doc['users'] if u.get('email') == 'tardia@ejemplo.co')
+        self.assertEqual(tardia['role'], 'staff')
+        self.assertEqual(linked['user']['role'], 'staff')
+
     def test_search_by_nick_or_email(self):
         found = staff.search(self.doc, 'ana@')
         self.assertEqual(found[0]['id'], 'ana')

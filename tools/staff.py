@@ -4,6 +4,11 @@
 SIMON_STAFF, si existe, es una lista de correos separada por comas. Sirve
 para el primer arranque. No guarda contraseñas ni crea monedas. Quitar el
 papel desde la cuenta del dueño permanece aunque el correo siga en esa lista.
+
+Formato exacto de la variable (sin comillas):
+    SIMON_STAFF=correo1@ejemplo.com,correo2@ejemplo.com
+Los espacios alrededor de cada correo se ignoran. Mayúsculas y minúsculas
+cuentan como el mismo correo. Un solo correo también vale.
 """
 import os
 import time
@@ -47,8 +52,32 @@ def role_of(user):
     return 'player'
 
 
+def remember_email(user, email):
+    """Guarda el correo del proveedor en minúsculas.
+
+    No pisa un correo distinto que la cuenta ya tenga. El mismo correo escrito
+    con mayúsculas se normaliza para coincidir con SIMON_STAFF.
+    """
+    if not isinstance(user, dict):
+        return False
+    email = str(email or '').strip().lower()
+    if not email or '@' not in email:
+        return False
+    current = str(user.get('email') or '').strip().lower()
+    if current and current != email:
+        return False
+    if user.get('email') == email:
+        return False
+    user['email'] = email
+    return True
+
+
 def apply_bootstrap(user):
-    """Si el correo está en SIMON_STAFF y nadie le quitó el papel, lo deja en la cuenta."""
+    """Si el correo está en SIMON_STAFF y nadie le quitó el papel, lo deja en la cuenta.
+
+    Sirve igual para una cuenta que ya existía y para una creada después de
+    fijar la variable. La comparación no distingue mayúsculas.
+    """
     if not isinstance(user, dict) or ACC.is_owner(user):
         return False
     email = _email(user)
