@@ -51,7 +51,8 @@ class Fetcher:
             url = self.validate(url)
             time.sleep(max(0, self.delay - (time.monotonic() - self.last)))
             self.last = time.monotonic()
-            headers = {'User-Agent': USER_AGENT, 'Accept': 'application/json,text/html,application/xml'}
+            headers = {'User-Agent': USER_AGENT,
+                       'Accept': 'text/html,application/xhtml+xml,application/json;q=0.8,*/*;q=0.7'}
             if token:
                 headers['Authorization'] = 'Bearer ' + token
             parts = urlsplit(url)
@@ -482,7 +483,110 @@ def visible_listing(document, page_url):
     }]
 
 
-def sync_source(source, index, fetcher=None, max_pages=40):
+def _one_city(text):
+    folded = A.folded(text)
+    hits = []
+    for city in sorted(A.MUNICIPALITIES, key=len, reverse=True):
+        if re.search(r'(?<![a-z])' + re.escape(A.folded(city)) + r'(?![a-z])', folded):
+            hits.append(city)
+    return hits[0] if len(hits) == 1 else None
+
+
+def panda_rows(html, page_url):
+    """Tarjetas de Panda / Arrendamientos del Sur. Sin foto ni texto largo."""
+    if 'pandainmobiliaria' not in urlsplit(page_url).netloc:
+        return []
+    rows = []
+    seen = set()
+    for match in re.finditer(
+            r'href="(https://pandainmobiliaria\.inmo\.co/(apartamento-(?:alquiler|arriendo|venta)-[^"\s]+/\d+))"',
+            html, re.I):
+        url = match.group(1)
+        if url in seen:
+            continue
+        window = html[match.start():match.start() + 2400]
+        price = re.search(r'\$\s*([\d.,]+)', window)
+        if not price or 'apartamento' not in A.folded(window):
+            continue
+        seen.add(url)
+        slug = match.group(2).replace('-', ' ')
+        operation = 'venta' if '-venta-' in match.group(2).lower() else 'arriendo'
+        city = _one_city(window + ' ' + slug)
+        if not city:
+            continue
+        title = re.search(r'class="t8-title">([^<]+)</a>', window)
+        beds = re.search(r'class="dt1">(\d+)</span>\s*<span class="dt2[^"]*">\s*Habitaciones', window)
+        baths = re.search(r'class="dt1">(\d+)</span>\s*<span class="dt2[^"]*"[^>]*>\s*Baños', window)
+        area = re.search(r'class="dt1">(\d+)</span>\s*<span class="dt2[^"]*">\s*Área', window)
+        rows.append({
+            'title': title.group(1).strip() if title else 'Apartamento',
+            'property_type': 'apartamento', 'operation': operation, 'currency': 'COP',
+            'price': price.group(1), 'municipality': city,
+            'area_m2': area.group(1) if area else None,
+            'bedrooms': beds.group(1) if beds else None,
+            'bathrooms': baths.group(1) if baths else None,
+            'original_url': url,
+        })
+    return rows
+
+
+def sur_rows(html, page_url):
+    """Tarjetas de Sur Vivienda. El precio está en la tarjeta, no se calcula."""
+    if 'survivienda.com' not in urlsplit(page_url).netloc:
+        return []
+    rows = []
+    seen = set()
+    for part in re.split(r'class="property_item"', html)[1:]:
+        href = re.search(r'href="(/inmueble/(\d+)-apartamento-(arriendo|venta)-[^"]+)"', part, re.I)
+        price = re.search(r'\$\s*([\d.,]+)', part)
+        if not href or not price:
+            continue
+        url = tidy_url(urljoin('https://www.survivienda.com', href.group(1)))
+        if url in seen:
+            continue
+        seen.add(url)
+        plain = re.sub(r'<[^>]+>', ' ', part)
+        city = _one_city(href.group(1).replace('-', ' ') + ' ' + plain[:900])
+        if not city:
+            continue
+        beds = re.search(r'(\d+)\s*Alcobas', plain, re.I)
+        baths = re.search(r'(\d+(?:[.,]\d+)?)\s*Baños', plain, re.I)
+        area = re.search(r'(\d+)\s*m\s*(?:<|2|²)', part, re.I)
+        title = re.search(r'>([^<]*Apartamento[^<]*)<', part, re.I)
+        rows.append({
+            'title': (title.group(1).strip() if title else 'Apartamento'),
+            'property_type': 'apartamento',
+            'operation': 'venta' if href.group(3).lower() == 'venta' else 'arriendo',
+            'currency': 'COP', 'price': price.group(1), 'municipality': city,
+            'area_m2': area.group(1) if area else None,
+            'bedrooms': beds.group(1) if beds else None,
+            'bathrooms': baths.group(1) if baths else None,
+            'original_url': url,
+        })
+    return rows
+
+
+def following_pages(url, per_seed):
+    """Páginas siguientes del mismo listado. No sale del municipio ni de la operación."""
+    per_seed = int(per_seed or 1)
+    if per_seed <= 1:
+        return []
+    parts = urlsplit(url)
+    path = parts.path.rstrip('/')
+    host = parts.netloc.lower()
+    if re.search(r'/pagina\d+$', path) or re.search(r'/apartamentos/(?:arriendo|venta)/[^/]+/\d+$', path):
+        return []
+    pages = []
+    if 'fincaraiz.com.co' in host and re.search(r'/(?:arriendo|venta|arriendo-temporal)/apartamentos/', path):
+        pages = [urlunsplit((parts.scheme, parts.netloc, path + '/pagina%d' % n, '', ''))
+                 for n in range(2, per_seed + 1)]
+    elif 'metrocuadrado.com' in host and re.search(r'/apartamentos/(?:arriendo|venta)/[^/]+$', path):
+        pages = [urlunsplit((parts.scheme, parts.netloc, path + '/%d' % n, '', ''))
+                 for n in range(2, per_seed + 1)]
+    return pages
+
+
+def sync_source(source, index, fetcher=None, max_pages=40, pages_per_seed=None):
     report = {'state': 'error', 'checked_at': A.timestamp(), 'pages': 0, 'accepted': 0, 'rejected': 0, 'errors': []}
     rows = {}
     fetcher = fetcher or Fetcher(source.get('hosts', []))
@@ -498,6 +602,7 @@ def sync_source(source, index, fetcher=None, max_pages=40):
             pending = [source['url']]
         else:
             pending = list(source.get('seeds', []))
+        seeds = set(pending)
         seen = set()
         while pending and report['pages'] < max_pages:
             url = pending.pop(0)
@@ -524,11 +629,18 @@ def sync_source(source, index, fetcher=None, max_pages=40):
                     raw_rows = list(structured_rows(doc, final))
                     raw_rows.extend(fincaraiz_rows(body, final))
                     raw_rows.extend(metro_results(body, final))
+                    raw_rows.extend(panda_rows(body, final))
+                    raw_rows.extend(sur_rows(body, final))
                     raw_rows.extend(ficha_rows(doc, final))
                     raw_rows.extend(visible_listing(doc, final))
+                    if url in seeds and pages_per_seed:
+                        for nxt in following_pages(final, pages_per_seed):
+                            if nxt not in seen and nxt not in pending:
+                                pending.append(nxt)
                     if not raw_rows and source['id'] == 'metrocuadrado':
                         raw_rows = metrocuadrado_detail(doc, final)
-                    list_parsed = bool(raw_rows) and source['id'] in ('fincaraiz', 'metrocuadrado')
+                    list_parsed = bool(raw_rows) and source['id'] in (
+                        'fincaraiz', 'metrocuadrado', 'arrendamientos-sur', 'survivienda')
                     for link in doc.links:
                         candidate = urljoin(final, link)
                         try:
@@ -643,6 +755,22 @@ def refresh_for_query(index, filters, max_pages=3):
         except (ValueError, TypeError):
             pass
     return {'skipped': False, 'reports': reports}
+
+
+def sync_public(index=None, log=None):
+    """Recorre las fuentes públicas. Los feeds sin URL quedan en configuration_required."""
+    index = index or A.Index()
+    reports = []
+    for source in A.sources():
+        per = 3 if source.get('id') in ('fincaraiz', 'metrocuadrado') else 2
+        seeds = list(source.get('seeds') or [])
+        cap = max(per, len(seeds) * per) if source.get('kind') != 'feed' else 20
+        report = sync_source(source, index, max_pages=cap, pages_per_seed=None if source.get('kind') == 'feed' else per)
+        reports.append(report)
+        if log:
+            log('[apartamentos] %s %s aceptados %s paginas %s' % (
+                source.get('id'), report.get('state'), report.get('accepted'), report.get('pages')))
+    return reports
 
 
 def main():

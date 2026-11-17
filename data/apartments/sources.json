@@ -33,7 +33,12 @@
       "https://www.metrocuadrado.com/apartamentos/venta/envigado/",
       "https://www.metrocuadrado.com/apartamentos/venta/sabaneta/",
       "https://www.metrocuadrado.com/apartamentos/venta/itagui/",
-      "https://www.metrocuadrado.com/apartamentos/venta/bello/"
+      "https://www.metrocuadrado.com/apartamentos/venta/bello/",
+      "https://www.metrocuadrado.com/apartamentos/venta/la-estrella/",
+      "https://www.metrocuadrado.com/apartamentos/venta/caldas/",
+      "https://www.metrocuadrado.com/apartamentos/venta/copacabana/",
+      "https://www.metrocuadrado.com/apartamentos/venta/girardota/",
+      "https://www.metrocuadrado.com/apartamentos/venta/barbosa/"
     ],
     "detail_pattern": "/inmueble/"
   },
@@ -62,6 +67,11 @@
       "https://www.fincaraiz.com.co/venta/apartamentos/sabaneta/antioquia",
       "https://www.fincaraiz.com.co/venta/apartamentos/itagui/antioquia",
       "https://www.fincaraiz.com.co/venta/apartamentos/bello/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/la-estrella/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/caldas/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/copacabana/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/girardota/antioquia",
+      "https://www.fincaraiz.com.co/venta/apartamentos/barbosa/antioquia",
       "https://www.fincaraiz.com.co/arriendo-temporal/apartamentos/medellin/antioquia",
       "https://www.fincaraiz.com.co/arriendo-temporal/apartamentos/envigado/antioquia"
     ],
@@ -78,8 +88,8 @@
       "pandainmobiliaria.inmo.co"
     ],
     "seeds": [
-      "https://pandainmobiliaria.inmo.co/s/apartamento/arriendos",
-      "https://pandainmobiliaria.inmo.co/s/apartamento/ventas"
+      "https://pandainmobiliaria.inmo.co/s/apartamento/alquileres?id_property_type=2&business_type%5B0%5D=for_rent",
+      "https://pandainmobiliaria.inmo.co/s/apartamento/ventas?id_property_type=2&business_type%5B0%5D=for_sale"
     ],
     "detail_pattern": "(?i)apartamento-(venta|arriendo|alquiler)"
   },
@@ -102,7 +112,22 @@
       "survivienda.com"
     ],
     "seeds": [
-      "https://www.survivienda.com/Paginas/"
+      "https://www.survivienda.com/Paginas/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/medellin/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/envigado/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/sabaneta/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/itagui/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/la-estrella/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/caldas/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/bello/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/copacabana/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/girardota/",
+      "https://www.survivienda.com/inmuebles/Arriendo/Apartamento/barbosa/",
+      "https://www.survivienda.com/inmuebles/Venta/Apartamento/medellin/",
+      "https://www.survivienda.com/inmuebles/Venta/Apartamento/envigado/",
+      "https://www.survivienda.com/inmuebles/Venta/Apartamento/sabaneta/",
+      "https://www.survivienda.com/inmuebles/Venta/Apartamento/itagui/",
+      "https://www.survivienda.com/inmuebles/Venta/Apartamento/bello/"
     ],
     "detail_pattern": "(?i)(inmueble|propiedad|detalle)"
   },
@@ -144,7 +169,8 @@
       "arrendamientosayura.com"
     ],
     "seeds": [
-      "https://www.arrendamientosayura.com/"
+      "https://www.arrendamientosayura.com/",
+      "https://www.arrendamientosayura.com/arriendos"
     ],
     "detail_pattern": "(?i)(inmueble|propiedad|apartamento)"
   },

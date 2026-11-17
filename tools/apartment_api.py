@@ -5,6 +5,20 @@ from urllib.parse import parse_qs, urlsplit
 import apartments as A
 
 AGENT_PATHS = {'/api/simon-ia/apartamentos': 'simon-ia', '/api/simon-io/apartamentos': 'simon-io'}
+READ_ORIGINS = ('https://rentocity.com.co', 'https://www.rentocity.com.co')
+
+
+def cors_headers(origin):
+    """Sólo lectura para el buscador de RentoCity. Sin credenciales."""
+    if origin not in READ_ORIGINS:
+        return []
+    return [
+        'Access-Control-Allow-Origin: ' + origin,
+        'Vary: Origin',
+        'Access-Control-Allow-Methods: GET, HEAD, POST, OPTIONS',
+        'Access-Control-Allow-Headers: Content-Type',
+        'Access-Control-Max-Age: 600',
+    ]
 
 
 def dispatch(method, path, target, body=b'', index=None):

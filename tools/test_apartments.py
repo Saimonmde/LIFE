@@ -204,6 +204,48 @@ class ApartmentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             f.validate('http://example.com/a')
 
+    def test_public_cards_need_a_real_price_and_one_city(self):
+        panda = (
+            '<a href="https://pandainmobiliaria.inmo.co/apartamento-alquiler-loma-los-mesa-envigado/9639365" class="t8-title">'
+            'APARTAMENTO PARA ARRIENDO EN ENVIGADO- LOMA LOS MESA</a>'
+            '<span class="dt1">3</span> <span class="dt2 t8-title"> Habitaciones</span>'
+            '<span class="dt1">4</span> <span class="dt2 t8-title"> Baños</span>'
+            '<span class="dt1">291</span> <span class="dt2 t8-title"> Área m<sup>2</sup></span>'
+            '<p class=" text-truncate">$20.000.000 <small>COP</small></p>'
+        )
+        rows = S.panda_rows(panda, 'https://pandainmobiliaria.inmo.co/s/apartamento/alquileres')
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['municipality'], 'Envigado')
+        self.assertEqual(rows[0]['operation'], 'arriendo')
+        self.assertEqual(A.number(rows[0]['price']), 20000000)
+        self.assertEqual(S.panda_rows(panda.replace('$20.000.000', 'consultar'), 'https://pandainmobiliaria.inmo.co/s/apartamento/alquileres'), [])
+        sur = (
+            '<div class="property_item"><a href="/inmueble/4684-apartamento-arriendo-sabaneta-sabaneta-3-alcobas-2-banos">Apartamento - 4684</a>'
+            '<span>120 m<sup>2</sup></span><span>3 Alcobas</span><span>2.0 Baños</span>'
+            '<h4>Sabaneta, Sabaneta</h4><p class="pull-md-left"> $4,300,000 </p></div>'
+        )
+        got = S.sur_rows(sur, 'https://www.survivienda.com/Paginas/')
+        self.assertEqual(len(got), 1)
+        self.assertEqual(got[0]['municipality'], 'Sabaneta')
+        self.assertEqual(got[0]['bedrooms'], '3')
+        pages = S.following_pages('https://www.fincaraiz.com.co/venta/apartamentos/barbosa/antioquia', 3)
+        self.assertEqual(pages, [
+            'https://www.fincaraiz.com.co/venta/apartamentos/barbosa/antioquia/pagina2',
+            'https://www.fincaraiz.com.co/venta/apartamentos/barbosa/antioquia/pagina3',
+        ])
+        self.assertEqual(S.following_pages(pages[0], 3), [])
+        metro = S.following_pages('https://www.metrocuadrado.com/apartamentos/venta/caldas/', 3)
+        self.assertTrue(metro[0].endswith('/apartamentos/venta/caldas/2'))
+        ids = {s['id']: s for s in A.sources()}
+        self.assertEqual(ids['rentocity']['kind'], 'feed')
+        self.assertEqual(ids['arrendamientos-valle-aburra']['kind'], 'feed')
+        self.assertTrue(any('venta/apartamentos/la-estrella' in url for url in ids['fincaraiz']['seeds']))
+        self.assertTrue(any('venta/barbosa' in url for url in ids['metrocuadrado']['seeds']))
+        self.assertEqual(API.cors_headers('https://rentocity.com.co')[0], 'Access-Control-Allow-Origin: https://rentocity.com.co')
+        self.assertEqual(API.cors_headers('https://www.rentocity.com.co')[0].split(': ')[1], 'https://www.rentocity.com.co')
+        self.assertEqual(API.cors_headers('https://otro.example'), [])
+        self.assertNotIn('Allow-Credentials', ' '.join(API.cors_headers('https://rentocity.com.co')))
+
 
 if __name__ == '__main__':
     unittest.main()
