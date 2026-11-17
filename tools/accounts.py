@@ -187,6 +187,16 @@ def es_alias_dueno(email):
     return str(email or '').strip().lower() in OWNER_ALIAS_EMAILS
 
 
+def email_verificado(profile):
+    """Sólo el booleano true de Google. Ausente, false o un texto no cuentan."""
+    return (profile or {}).get('email_verified') is True
+
+
+def vinculo_dueno_ok(provider, profile):
+    """El alias del dueño sólo entra con Google y el correo verificado."""
+    return provider == 'google' and email_verificado(profile)
+
+
 def _dueno_vivo(doc):
     for user in (doc or {}).get('users') or []:
         if isinstance(user, dict) and not user.get('mergedInto') and is_owner(user):
@@ -636,7 +646,10 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             break
     email = str(profile.get('email') or '').strip().lower()
     if user is None and email:
-        user = _user_by_email(doc, email)
+        found = _user_by_email(doc, email)
+        if found is not None and is_owner(found) and not vinculo_dueno_ok(provider, profile):
+            raise AuthError('Ese correo sólo entra a la cuenta del dueño con Google verificado.')
+        user = found
         if user:
             if provider == 'google' and sub not in google_subs(user):
                 user.setdefault('googleSubs', [])
@@ -648,6 +661,8 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             else:
                 user.setdefault('providers', {})[provider] = sub
     if user is None and es_alias_dueno(email):
+        if not vinculo_dueno_ok(provider, profile):
+            raise AuthError('Ese correo sólo entra a la cuenta del dueño con Google verificado.')
         user = _dueno_vivo(doc)
         if user is not None:
             _anotar_alias(user, email, provider, sub)
@@ -924,6 +939,38 @@ def json_dumps(doc):
     return json.dumps(doc).encode('utf-8')
 
 
+def _claims_jwt(token):
+    """Lee el cuerpo del id token. No verifica la firma: sólo el dato que ya entregó Google."""
+    import base64
+    import json
+    try:
+        parts = str(token or '').split('.')
+        if len(parts) < 2 or not parts[1]:
+            return {}
+        pad = '=' * (-len(parts[1]) % 4)
+        data = json.loads(base64.urlsafe_b64decode(parts[1] + pad).decode())
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def perfil_google(info, id_token=None):
+    """Arma el perfil. email_verified es true sólo si userinfo o el id token lo dicen, y ninguno lo niega."""
+    info = info if isinstance(info, dict) else {}
+    opinions = []
+    if 'email_verified' in info:
+        opinions.append(info.get('email_verified') is True)
+    if id_token:
+        claims = _claims_jwt(id_token)
+        opinions.append(claims.get('email_verified') is True)
+    return {
+        'sub': info.get('sub') or '',
+        'email': info.get('email') or '',
+        'name': info.get('name') or '',
+        'email_verified': bool(opinions) and all(opinions),
+    }
+
+
 def exchange_google(code, redirect_uri):
     form = urllib.parse.urlencode({
         'code': code, 'client_id': os.environ['GOOGLE_CLIENT_ID'],
@@ -935,7 +982,7 @@ def exchange_google(code, redirect_uri):
     token = json.loads(urllib.request.urlopen(req, timeout=15).read().decode())
     info_req = urllib.request.Request('https://openidconnect.googleapis.com/v1/userinfo', headers={'Authorization': 'Bearer ' + token['access_token']})
     info = json.loads(urllib.request.urlopen(info_req, timeout=15).read().decode())
-    return {'sub': info.get('sub'), 'email': info.get('email') or '', 'name': info.get('name') or ''}
+    return perfil_google(info, token.get('id_token'))
 
 
 def exchange_facebook(code, redirect_uri):
