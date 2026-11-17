@@ -12,7 +12,7 @@
   }
   function coinText(base, subs) {
     if (window.Simulacion && subs === Simulacion.SUBS && Simulacion.formatSai) {
-      return Simulacion.formatSai(base).replace(/\s*SMC$/, '').replace(/\s*SMP$/, '');
+      return Simulacion.formatSai(base).replace(/\s*SMC$/, '');
     }
     return grupo(base);
   }

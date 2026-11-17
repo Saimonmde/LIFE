@@ -214,11 +214,7 @@
     S.ledger = S.ledger || {};
     S.ledger.balances = Object.assign({}, S.ledger.balances || {}, {
       simoncoin: box.smc || 0,
-      simonplata: box.smp || 0,
-      simonchis: box.cobre || 0,
     });
-    S.plata = S.plata || {};
-    S.plata.balanceSph = box.smp || 0;
     if (S.econ && S.econ.wallets && S.me && S.me.name) S.econ.wallets[S.me.name] = box.smc || 0;
     if (window.Simulacion && Simulacion.paintHud) Simulacion.paintHud();
     if (window.Cajon) Cajon.paint();
