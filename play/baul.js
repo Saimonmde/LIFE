@@ -331,7 +331,7 @@
     const info = fichaDe(sel.id, nombreSrv || sel.nombre);
     const have = sel.lado === 'encima' ? encima : enBaul;
     const moneda = sel.kind === 'smc';
-    const enCofre = !sel.mano || cerca();
+    const enCofre = cerca();
     const op = sel.lado === 'encima' ? 'deposit' : 'withdraw';
     const verbo = sel.lado === 'encima' ? 'Guardar' : 'Sacar';
     const nums = botones(have, moneda, montoTexto);
@@ -348,7 +348,7 @@
       : '';
     const pase = enCofre
       ? '<p class="baul-verbo">' + verbo + '</p><div class="baul-montos">' + botonesHtml + '<input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1"></div>'
-      : '<div class="baul-montos"><input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1"></div>';
+      : '<p class="baul-aviso">Puedes ver el saldo. Para guardar o sacar, acércate al baúl, al banco o a tu casa.</p>';
     return '<div id="baul-ficha" class="baul-ficha"><div class="baul-carta" role="dialog" aria-labelledby="baul-ficha-nombre">'
       + '<button type="button" class="x" id="baul-ficha-x" aria-label="Cerrar">✕</button>'
       + '<div class="ficha-ico" aria-hidden="true">' + dibujo(sel.id) + '</div>'
@@ -495,14 +495,15 @@
   }
   function onNet(message) {
     if (!message || message.t !== 'baul') return false;
-    if (message.reason && !message.ok) aviso = message.reason;
+    if (message.consulta) aviso = message.reason || 'Puedes ver el saldo. Para guardar o sacar, acércate al baúl, al banco o a tu casa.';
+    else if (message.reason && !message.ok) aviso = message.reason;
     else if (message.ok) aviso = '';
     if (message.view) {
       paint(message.view);
       if (window.TradeUI && TradeUI.refrescar) TradeUI.refrescar();
     } else if (aviso) paint(last || vacio());
     if (message.moved) aplicar(message.moved);
-    if (message.reason && window.LiveInk && LiveInk.say) LiveInk.say(message.reason, message.ok ? 'juego' : 'aviso');
+    if (message.reason && !message.consulta && window.LiveInk && LiveInk.say) LiveInk.say(message.reason, message.ok ? 'juego' : 'aviso');
     if (window.MiCuenta && MiCuenta.tocar) MiCuenta.tocar();
     return true;
   }

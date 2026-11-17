@@ -20,7 +20,7 @@
   }
   function inventario(rows) {
     if (!rows || !rows.length) return 'La mochila guardada está vacía.';
-    return rows.map((row) => row.item + ' × ' + row.qty).join(' · ');
+    return rows.map((row) => (row.nombre || row.item) + ' × ' + row.qty).join(' · ');
   }
 
   const panel = document.createElement('section');
@@ -73,9 +73,8 @@
     $('mi-cuenta-inv').textContent = 'Inventario: ' + inventario(data.inventory);
     const coins = data.coins || {};
     const subs = window.Simulacion ? Simulacion.SUBS : 100;
-    const total = coins.totalSmh != null ? coins.totalSmh : coins.simoncoinSmh;
     const line = $('mi-cuenta-monedas');
-    const exactSmc = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(total || 0) : (texto((Number(total) || 0) / subs) + ' SMC');
+    const exactSmc = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(coins.simoncoinSmh || 0) : (texto((Number(coins.simoncoinSmh) || 0) / subs) + ' SMC');
     const baulSmc = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(coins.bankSmh || 0) : texto((Number(coins.bankSmh) || 0) / subs) + ' SMC';
     line.textContent = 'Billetera: ' + exactSmc + ' · Baúl: ' + baulSmc;
     line.title = line.textContent;

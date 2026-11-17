@@ -166,6 +166,70 @@ def reunir_llaves():
     return result
 
 
+def juntar_saimon():
+    """Los dos Google de Jay quedan en el usuario saimon. No acuña y no toca a los demás."""
+    import copy
+    import saimon_usuario as SU
+    if not isinstance(ECON, dict) or not isinstance(VAULT_STATE, dict):
+        return {'changed': False}
+    meta = ECON.setdefault('meta', {})
+    if not meta.get('saimonUsuarioRespaldo'):
+        folder = os.path.join(ROOT, 'state')
+        os.makedirs(folder, exist_ok=True)
+        PERSIST.save_named('saimon_usuario_respaldo', os.path.join(folder, 'saimon-usuario-respaldo.json'), {
+            'wallets': copy.deepcopy(ECON.get('wallets') or {}),
+            'accounts': copy.deepcopy(VAULT_STATE.get('accounts') or {}),
+            'purses': copy.deepcopy(VAULT_STATE.get('purses') or {}),
+            'users': copy.deepcopy(ACCOUNTS.get('users') or []),
+            'crudo': copy.deepcopy(ECON.get('crudo') or {}),
+            'finca': copy.deepcopy((FINCA_STATE or {}).get('accounts') or {}),
+        })
+        meta['saimonUsuarioRespaldo'] = True
+        save_econ()
+    try:
+        previo = PERSIST.load_named('reunir_respaldo', os.path.join(ROOT, 'state', 'reunir-respaldo.json'))
+    except Exception:
+        previo = None
+    if isinstance(previo, dict):
+        cajas = previo.get('accounts') or {}
+        monedas = previo.get('wallets') or {}
+        for key in sorted(set(list(cajas) + list(monedas))):
+            if str(key).casefold() not in SU.FOLDS:
+                continue
+            box = cajas.get(key) if isinstance(cajas.get(key), dict) else {}
+            baul = box.get('smh') if box.get('smh') is not None else (box.get('smcSubs') or 0)
+            sys.stderr.write('[saimon] respaldo %s billetera %s baul %s\n' % (key, int(monedas.get(key) or 0), int(baul or 0)))
+    result = SU.aplicar(
+        ECON, VAULT_STATE, ACCOUNTS, FINCA_STATE,
+        libro=LIBRO_CHAIN, seed=NFT_SEED, ahora=int(time.time()),
+    )
+    if result.get('changed'):
+        save_econ()
+        save_vault()
+        save_accounts()
+        save_finca()
+        try:
+            save_libro(result.get('asientos') or [])
+        except persist_duplicate:
+            sys.stderr.write('[saimon] el libro ya tenía el asiento\n')
+    for row in result.get('origenes') or []:
+        sys.stderr.write('[saimon] desde %s billetera %s baul %s objetos %s\n' % (
+            row.get('llave'), row.get('billetera'), row.get('baul'), row.get('objetos')))
+    sys.stderr.write(
+        '[saimon] usuario %s correo %s billetera %s baul %s objetos %s oferta %s %s\n' % (
+            result.get('llave') or '',
+            result.get('correo') or '',
+            result.get('billetera'),
+            result.get('baul'),
+            result.get('objetos'),
+            result.get('ofertaAntes'),
+            result.get('ofertaDespues'),
+        )
+    )
+    sys.stderr.flush()
+    return result
+
+
 def reparar_plata_118():
     """Acredita la diferencia del #118. Si no cabe en 21.000.000, no mueve nada."""
     import copy
@@ -1926,9 +1990,13 @@ def baul_for(sender):
     if not wallet_ready(sender):
         return
     lejos = junto_baul(sender)
+    nota = ''
     if lejos:
-        return _enviar_baul(sender, False, lejos)
-    send(sender, {'t': 'baul', 'ok': True, 'view': _vista_baul(sender.name)})
+        nota = 'Puedes ver el saldo desde aquí. Para guardar o sacar, acércate al baúl, al banco o a tu casa.'
+    send(sender, {
+        't': 'baul', 'ok': True, 'consulta': bool(lejos), 'reason': nota,
+        'view': _vista_baul(sender.name),
+    })
 
 
 def _enviar_baul(sender, ok, reason='', moved=None, dup=False):
@@ -4178,6 +4246,7 @@ async def main():
     convertir_a_una_moneda()
     reparar_plata_118()
     reunir_llaves()
+    juntar_saimon()
     import mina_ladera as LADERA
     if LADERA.migrar(ECON):
         save_econ()
