@@ -40,6 +40,21 @@ export function buildBank(T) {
   // Banquito donde se deposita.
   mesh(17, 0.28, 13, 0.7, 0.45, 0.7, '#6b4224', 'banquito');
   mesh(17, 0.55, 13, 0.85, 0.12, 0.85, '#d8b56a', 'banquito');
+  const etiqueta = document.createElement('canvas');
+  etiqueta.width = 256;
+  etiqueta.height = 64;
+  const ctx = etiqueta.getContext('2d');
+  ctx.fillStyle = '#1d140ce8';
+  ctx.fillRect(0, 8, 256, 48);
+  ctx.font = 'bold 28px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#f6e2a8';
+  ctx.fillText('BAÚL', 128, 40);
+  const tex = new T.CanvasTexture(etiqueta);
+  const cartel = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  cartel.position.set(17, 1.35, 13);
+  cartel.scale.set(1.8, 0.45, 1);
+  scene.add(cartel);
   // Puerta de salida.
   mesh(13, 1.3, 18.6, 1.4, 2.4, 0.2, '#3a2416', 'salida_banco');
   const lamp = new T.PointLight(0xffcc88, 18, 16, 2);

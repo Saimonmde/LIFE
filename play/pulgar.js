@@ -98,6 +98,21 @@
       '<button type="button" id="cambio-ok">Confirmar</button>',
     ].join('');
     document.body.append(bar, hoja);
+    if (!document.getElementById('b-inventario-movil')) {
+      const inv = document.createElement('button');
+      inv.type = 'button';
+      inv.id = 'b-inventario-movil';
+      inv.textContent = 'Inventario';
+      inv.setAttribute('aria-label', 'Abrir inventario');
+      inv.onclick = () => {
+        const panel = document.getElementById('w-inv');
+        const boton = document.getElementById('b-inv');
+        if (boton) boton.click();
+        else if (panel) panel.hidden = !panel.hidden;
+        if (window.LiveInk && LiveInk.paintInv) LiveInk.paintInv();
+      };
+      document.body.append(inv);
+    }
     $('hoja-cerrar').onclick = cerrar;
     $('cambio-doy').onchange = pintarCambio;
     $('cambio-recibo').onchange = pintarCambio;

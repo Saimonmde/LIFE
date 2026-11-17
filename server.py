@@ -1851,9 +1851,38 @@ def _vista_baul(name):
     )
 
 
+def _plano_casa(sender):
+    user = getattr(sender, 'user', None)
+    casa = user.get('casa') if isinstance(user, dict) else None
+    if isinstance(casa, dict) and isinstance(casa.get('layout'), dict):
+        return casa.get('layout')
+    return None
+
+
+def junto_baul(sender):
+    """El mismo depósito, pero sólo junto a un baúl de verdad. La casa tiene que ser la suya."""
+    import baul as BAUL
+    zone = getattr(sender, 'zone', '') or ''
+    if zone in ('mine', 'mina2', 'casa', 'banco', 'central'):
+        x, y = getattr(sender, 'zx', None), getattr(sender, 'zy', None)
+    else:
+        x, y = None, None
+    owner = str(getattr(sender, 'casa_de', '') or '')
+    if zone == 'casa' and not owner:
+        owner = sender.name
+    return BAUL.motivo(
+        zone, x, y,
+        owner=owner, quien=sender.name,
+        layout=_plano_casa(sender) if zone == 'casa' else None,
+    )
+
+
 def baul_for(sender):
     if not wallet_ready(sender):
         return
+    lejos = junto_baul(sender)
+    if lejos:
+        return _enviar_baul(sender, False, lejos)
     send(sender, {'t': 'baul', 'ok': True, 'view': _vista_baul(sender.name)})
 
 
@@ -1898,6 +1927,9 @@ def baul_mover(sender, message):
     """Sólo la cuenta de la sesión. El mensaje no elige otra persona ni crea objetos."""
     if not wallet_ready(sender):
         return
+    lejos = junto_baul(sender)
+    if lejos:
+        return _enviar_baul(sender, False, lejos)
     import baul as BAUL
     message = message if isinstance(message, dict) else {}
     op = _op_baul(message.get('op'))
@@ -1927,6 +1959,9 @@ def baul_smc(sender, message):
     """Mueve SMC ya emitidos. La ventana sólo habla de SMC."""
     if not wallet_ready(sender):
         return
+    lejos = junto_baul(sender)
+    if lejos:
+        return _enviar_baul(sender, False, lejos)
     import baul as BAUL
     message = message if isinstance(message, dict) else {}
     op = _op_baul(message.get('op'))
@@ -1962,6 +1997,9 @@ def _mover_baul(sender, op, item, qty, token=''):
     """El baúl de la mina, el de la casa y el banquito usan la cuenta de quien está en sesión."""
     if not wallet_ready(sender):
         return
+    lejos = junto_baul(sender)
+    if lejos:
+        return send(sender, {'t': 'system', 'text': lejos})
     import baul as BAUL
     if str(item or '') in BAUL.MIRROR:
         return _mover_bulto(sender, op, item, qty, token)
@@ -2672,6 +2710,14 @@ def correct_move(sender):
     send(sender, {'t': 'move_correct', 'x': round(x, 2), 'y': round(y, 2), 'zone': getattr(sender, 'zone', 'city')})
 
 
+def _corregir_interior(sender):
+    """Devuelve al jugador a la última casilla válida de la casa, el banco o la mina cubierta."""
+    x, y = getattr(sender, 'zx', None), getattr(sender, 'zy', None)
+    if x is None or y is None:
+        return
+    send(sender, {'t': 'move_correct', 'x': round(float(x), 2), 'y': round(float(y), 2), 'zone': getattr(sender, 'zone', 'city')})
+
+
 def _loopback(headers, remote_ip):
     host = str((headers or {}).get('host') or '').split(':')[0].strip().lower()
     return host in ('localhost', '127.0.0.1', '::1') and str(remote_ip or '') in ('127.0.0.1', '::1', 'localhost', '')
@@ -3038,8 +3084,24 @@ def handle_client_message(c, m, t):
             zone = zona_pedida(c, zone)
             if zone == 'city':
                 return
+            entering = c.zone != zone
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
+            import baul as _BAUL_SALA
+            point = _BAUL_SALA.punto_sala(zone, m.get('x'), m.get('y'))
+            if point:
+                nx, ny = point
+                if not entering and getattr(c, 'zx', None) is not None:
+                    step = max(abs(nx - float(c.zx)), abs(ny - float(getattr(c, 'zy', ny) or ny)))
+                    elapsed = now_move - float(getattr(c, 'move_at', now_move) or now_move)
+                    if not VIAJES.step_allowed(step, elapsed):
+                        _corregir_interior(c)
+                        return
+                c.zx, c.zy = nx, ny
+                c.move_at = now_move
+            if zone == 'casa':
+                claimed = clean(m.get('casa') or '', 32)
+                c.casa_de = claimed or c.name
             c.zone = zone
             soltar_veta(c)
             c.pace = 'casa' if zone == 'casa' else getattr(c, 'pace', '') or 'quieto'

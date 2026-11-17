@@ -73,9 +73,12 @@
     }
     collision[9][6] = 0;
     floor.set('6,9', 'door');
+    collision[6][9] = 1;
+    floor.set('9,6', 'chest');
     const nodes = [
       { id: 'salida_central', type: 'central_exit', x: 6, y: 9, solid: false, initialState: 'active', states: ['active'], sprites: { active: 'central_door' } },
       { id: 'boveda', type: 'central_vault', x: 6, y: 4, solid: false, initialState: 'active', states: ['active'], sprites: { active: 'central_door' } },
+      { id: 'baul_central', type: 'bank_chest', x: 9, y: 6, solid: true, label: 'BAÚL', initialState: 'active', states: ['active'], sprites: { active: 'central_door' } },
     ];
     return {
       width: MAP_W, height: MAP_H, ground, collision, floor,

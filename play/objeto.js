@@ -65,7 +65,25 @@
     const next = Math.max(1, Math.min(max, (Number(input.value) || 1) + delta));
     input.value = String(next);
   }
+  function botar(item, qty) {
+    if (!seSuelta(item)) return false;
+    const n = Math.max(1, Math.min(999, Math.floor(Number(qty) || 0)));
+    if (!(n >= 1)) return false;
+    return enviar({ t: 'soltar', item: item, qty: n, token: 's' + (token++) });
+  }
+  function canjear(item, qty) {
+    const id = item || (abierto && abierto.item);
+    if (!id) return false;
+    const max = (abierto && abierto.item === id && abierto.qty) || 999;
+    const n = Math.max(1, Math.min(max, Math.floor(Number(qty) || 1)));
+    return enviar({ t: 'canjear', item: id, qty: n });
+  }
   function abrir(item, qty) {
+    abierto = { item: item, qty: Number(qty) || 1 };
+    if (window.Baul && Baul.abrirFicha) {
+      Baul.abrirFicha({ id: item, qty: abierto.qty, lado: 'encima', mano: true });
+      return;
+    }
     const world = window.LiveInk && LiveInk.world;
     const items = world && world.items;
     const it = items && items[item];
@@ -212,5 +230,5 @@
   document.head.append(estilo);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', barra);
   else barra();
-  window.Objeto = { abrir, cerrar, atar, onNet, piso, alzar, grupo, texto };
+  window.Objeto = { abrir, cerrar, atar, onNet, piso, alzar, grupo, texto, botar, canjear, seSuelta };
 })();

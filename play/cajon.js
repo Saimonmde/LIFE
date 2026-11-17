@@ -239,7 +239,29 @@
     mint.textContent = 'Acuñar';
     mint.title = 'Acuñar o cambiar monedas';
     mint.onclick = () => { if (window.Acunar) Acunar.open(); };
+    mint.hidden = true;
     document.body.append(mint);
+  }
+  function juntoHorno() {
+    if (window.Baul && Baul.juntoHorno) return Baul.juntoHorno();
+    const ink = window.LiveInk;
+    const S = ink && ink.state;
+    const world = ink && ink.world;
+    const here = (world && world.mapId) || '';
+    if (!S || !S.player || !S.nodes || (here !== 'mine' && here !== 'mina2')) return false;
+    let near = false;
+    S.nodes.forEach((node) => {
+      const d = node && node.def;
+      if (!d || d.type !== 'furnace') return;
+      if (Math.max(Math.abs(S.player.x - d.x), Math.abs(S.player.y - d.y)) <= 1) near = true;
+    });
+    return near;
+  }
+  function pintarAcunar() {
+    const mint = document.getElementById('b-acunar-pulgar');
+    if (!mint) return;
+    const movil = matchMedia('(max-width: 820px)').matches || document.documentElement.classList.contains('movil');
+    mint.hidden = movil ? !juntoHorno() : false;
   }
   function boot() {
     mountPicar();
@@ -254,8 +276,10 @@
     pullClock();
     setInterval(pullClock, 20000);
     setInterval(paint, 1500);
+    setInterval(pintarAcunar, 400);
+    pintarAcunar();
   }
-  window.Cajon = { paint, clockText: () => clockLabel, rememberClock, pullClock };
+  window.Cajon = { paint, clockText: () => clockLabel, rememberClock, pullClock, juntoHorno, pintarAcunar };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();

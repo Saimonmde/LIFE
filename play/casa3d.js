@@ -195,7 +195,7 @@ export function buildHouse(T) {
       g.rotation.y = -(((item.rot % 4) + 4) % 4) * Math.PI / 2;
       g.userData.casaItem = item.id;
       buildItem(g, item.type, item.variant);
-      g.traverse(m => { if (m.isMesh) { m.userData.casaItem = item.id; m.castShadow = true; m.receiveShadow = true; pick.push(m); } });
+      g.traverse(m => { if (m.isMesh) { m.userData.casaItem = item.id; m.userData.casaType = item.type; m.castShadow = true; m.receiveShadow = true; pick.push(m); } });
       furn.add(g);
       if (item.id === window.Casa.selected) {
         const ring = new T.Mesh(new T.RingGeometry(0.9, 1.15, 24), new T.MeshBasicMaterial({ color: '#ffd56a', side: T.DoubleSide }));
@@ -229,6 +229,15 @@ export function buildHouse(T) {
       P(boxG(), '#6a4328', 0, 0.38, 0, 1.15, 0.62, 0.7);
       P(boxG(), '#8a5d34', 0, 0.72, 0, 1.2, 0.16, 0.76);
       P(boxG(), '#c2b48a', 0, 0.45, 0.36, 0.7, 0.08, 0.06);
+      const placa = document.createElement('canvas');
+      placa.width = 256; placa.height = 64;
+      const pg = placa.getContext('2d');
+      pg.fillStyle = '#1d140ce8'; pg.fillRect(0, 8, 256, 48);
+      pg.font = 'bold 28px sans-serif'; pg.textAlign = 'center'; pg.fillStyle = '#f6e2a8';
+      pg.fillText('BAÚL', 128, 40);
+      const tex = new T.CanvasTexture(placa);
+      const rotulo = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+      rotulo.position.set(0, 1.25, 0); rotulo.scale.set(1.6, 0.4, 1); g.add(rotulo);
     } else if (type === 'stove') {
       P(boxG(), clay, 0, 0.45, 0, 1.35, 0.85, 1.15);
       P(boxG(), '#2a211c', 0, 0.55, 0.42, 0.7, 0.45, 0.12);

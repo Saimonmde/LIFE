@@ -43,6 +43,23 @@ html.movil #b-descansar,
     padding: 4px;
   }
   #pulgar button[aria-pressed="true"] { background: #e2b23c; box-shadow: inset 0 3px 0 #8a6420; }
+  #b-inventario-movil {
+    position: fixed;
+    z-index: 50;
+    right: max(8px, env(safe-area-inset-right));
+    left: auto;
+    bottom: calc(268px + env(safe-area-inset-bottom));
+    min-width: 112px;
+    min-height: 56px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 14px;
+    background: #f0d18b;
+    color: #251c12;
+    font: 800 16px/1.1 system-ui, sans-serif;
+    box-shadow: 0 4px 12px #0008;
+  }
+  body:not(.in-game) #b-inventario-movil { display: none !important; }
   body.in-game #mando { display: none !important; }
   body.in-game .ventana:not([hidden]),
   body.in-game #city-map:not([hidden]),
@@ -75,6 +92,7 @@ html.movil #b-descansar,
   body.in-game #b-picar,
   body.in-game #b-acunar-pulgar,
   body.in-game #mine-enter { z-index: 48 !important; }
+  body.in-game #w-inv:not([hidden]) { z-index: 60 !important; }
   .ventana header .x,
   #city-map-close,
   #cajon-cerrar,
