@@ -1,0 +1,31 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+#puma-duelo {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  bottom: 148px;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 24px));
+  padding: 10px;
+  border-radius: 16px;
+  background: #1c1410f2;
+  color: #f6e7c8;
+  border: 1px solid #c46a32;
+}
+#puma-duelo[hidden] { display: none; }
+#puma-duelo p { margin: 0 0 8px; }
+.puma-blancos { display: flex; gap: 8px; }
+.puma-blancos button {
+  flex: 1;
+  min-height: 64px;
+  border-radius: 12px;
+  border: 1px solid #c4a574;
+  background: #3a2c20;
+  color: #fff6e4;
+  font: 700 16px/1.2 system-ui, sans-serif;
+}
+.puma-blancos button.is-on { background: #c46a32; color: #1c1410; }
+@media (max-width: 820px) {
+  #puma-duelo { bottom: calc(120px + env(safe-area-inset-bottom)); }
+  .puma-blancos button { min-height: 72px; }
+}

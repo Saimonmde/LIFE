@@ -31,6 +31,7 @@ import cobre as COBRE
 import monedas as MONEDAS
 import lingotes as LINGOTES
 import finca as FINCA
+import pesca as PESCA
 import persist as PERSIST
 import purses as PURSES
 import mochila as MOCHILA
@@ -364,6 +365,29 @@ def fauna_golpe(c, m):
         broadcast_fauna()
     send(c, {'t': 'fauna_golpe', 'ok': dmg > 0, 'dmg': dmg, 'hp': int((puma or {}).get('hp') or 0), 'id': m.get('id')})
 
+def fauna_lanza(c, m):
+    puma = next((row for row in FAUNA_BOOK.state.get('pumas') or [] if row.get('id') == m.get('id')), None)
+    armed = bool(m.get('lanza'))
+    result = FAUNA.spear_tap(puma, c.x, c.y, m.get('lane'), armed, time.time())
+    if result.get('dead') and puma is not None:
+        FAUNA.drop_pelt(FAUNA_BOOK.state, c.name, result.get('x') or c.x, result.get('y') or c.y, time.time())
+        save_fauna()
+    if result.get('ok'):
+        broadcast_fauna()
+    send(c, {'t': 'fauna_lanza', 'id': m.get('id'), **result})
+
+def fauna_piel(c, m):
+    try:
+        got = FAUNA.take_pelt(FAUNA_BOOK.state, c.name, m.get('id'), c.x, c.y, time.time())
+    except FAUNA.FaunaError as exc:
+        return send(c, {'t': 'fauna_piel', 'ok': False, 'reason': str(exc), 'id': m.get('id')})
+    if not recibir(c, got['item'], got['qty'], 'piel'):
+        FAUNA.drop_pelt(FAUNA_BOOK.state, c.name, c.x, c.y, time.time())
+        return send(c, {'t': 'fauna_piel', 'ok': False, 'reason': 'Tu mochila está llena', 'id': got['id']})
+    save_fauna()
+    broadcast_fauna()
+    send(c, {'t': 'fauna_piel', 'ok': True, 'id': got['id'], 'item': got['item'], 'qty': got['qty']})
+
 def fauna_players():
     found = []
     for person in clients.values():
@@ -375,7 +399,8 @@ def fauna_packet(name):
     FAUNA.ensure_pumas(FAUNA_BOOK.state, FAUNA_LAND)
     pumas = [FAUNA.public_puma(puma) for puma in FAUNA_BOOK.state.get('pumas') or []]
     drops = [FAUNA_BOOK.public_drop(drop, drop.get('owner') == name) for drop in FAUNA_BOOK.state.get('drops') or []]
-    return {'t': 'fauna', 'pumas': pumas, 'drops': drops}
+    pelts = FAUNA.public_pelts(FAUNA_BOOK.state, name, time.time())
+    return {'t': 'fauna', 'pumas': pumas, 'drops': drops, 'pelts': pelts}
 
 def broadcast_fauna():
     for person in list(clients.values()):
@@ -1631,10 +1656,29 @@ def swing_for(sender, mineral, qty=1):
         send(sender, {'t': 'system', 'text': SUP.COPPER_NOTE})
         mint_cobre_for(sender)
 
+PESCA_READY = {}
+
+def pescar_for(sender, spot):
+    """La red acredita un pez del río o del estanque. El servidor elige cuál."""
+    if getattr(sender, 'zone', '') not in ('city', ''):
+        return send(sender, {'t': 'pescar', 'ok': False, 'reason': 'Se pesca en el río o en el estanque del valle.', 'spot': str(spot or '')[:40]})
+    account = sender.name
+    bag = VAULT_STATE.setdefault('purses', {}).setdefault(account, {}) if account else None
+    result = PESCA.cast(
+        WORLD, bag, account, getattr(sender, 'x', 0), getattr(sender, 'y', 0),
+        spot, time.time(), PESCA_READY, getattr(sender, 'world', 1),
+    )
+    if result.get('ok'):
+        save_vault()
+    send(sender, {'t': 'pescar', 'spot': str(spot or '')[:40], **result})
+
 def lavar_for(sender, qty=1):
-    """La batea acredita pepitas. Como mucho una por lavada."""
+    """La batea acredita pepitas. Como mucho una por lavada. El oro sigue saliendo sólo del río."""
     if getattr(sender, 'zone', '') == 'mine':
         return
+    node, why = MINERALES.gold_spot(GOLD_NODES, getattr(sender, 'pan_spot', ''), getattr(sender, 'world', 0))
+    if not node or not gold_node_for(sender.x, sender.y, node['id']):
+        return send(sender, {'t': 'lavar_result', 'ok': False, 'reason': why or 'Hay que estar junto a la arena de oro del río.'})
     now = time.time()
     if now - getattr(sender, 'last_pan', 0) < 1:
         return
@@ -3044,9 +3088,23 @@ def finca_msg(sender, message):
         present = True
     else:
         present = op == 'ver' or finca_here(sender)
-    result = FINCA.act(FINCA_STATE, FINCA_PURSE, FINCA_CONFIG, account, op, message, time.time(), present=present)
+    bag = None
+    if account:
+        bag = VAULT_STATE.setdefault('purses', {}).setdefault(account, {})
+    result = FINCA.act(FINCA_STATE, FINCA_PURSE, FINCA_CONFIG, account, op, message, time.time(), present=present, items=bag)
+    if result.get('ok') and op == 'cosechar' and bag is not None:
+        import huerta as HUERTA
+        plot_id = str((message or {}).get('plot') or '')
+        plot = ((FINCA_STATE.get('accounts') or {}).get(account) or {}).get('plots', {}).get(plot_id) or {}
+        seed = {'cafe': 'cafe_seed', 'cacao': 'cacao_seed'}.get(plot.get('crop') or '')
+        before = PURSES.count(VAULT_STATE, account, seed) if seed else 0
+        after = PURSES.credit(VAULT_STATE, account, seed, 1) if seed else before
+        if seed and after > before:
+            result['note'] = (result.get('note') or 'Cosecha lista.') + ' También quedó una semilla para la huerta.'
+            if result.get('view') is not None:
+                result['view']['seeds'] = HUERTA.seed_counts(bag)
     if result.get('changed'):
-        if finca_sync_purse(account):
+        if finca_sync_purse(account) or op in ('huerta_sembrar', 'huerta_cosechar', 'cosechar'):
             save_vault()
         save_finca()
         if result.get('movedCoins'):
@@ -3061,7 +3119,11 @@ def finca_msg(sender, message):
             })
             save_econ()
         broadcast({'t': 'libro_publico', 'contadores': public_counters()})
-    send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'note': result.get('note') or '', 'view': result.get('view')})
+    send(sender, {
+        't': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '',
+        'note': result.get('note') or '', 'view': result.get('view'),
+        'spent': result.get('spent'), 'gained': result.get('gained'),
+    })
 
 
 def handle_client_message(c, m, t):
@@ -3362,6 +3424,11 @@ def handle_client_message(c, m, t):
         pico_ladera(c, m)
     elif t == 'recoger' and c.hello:
         item = str(m.get('item') or '')
+        if item == 'pepita_oro':
+            node, why = MINERALES.gold_spot(GOLD_NODES, m.get('spot'), getattr(c, 'world', 0))
+            if not node or not gold_node_for(c.x, c.y, node['id'] if node else ''):
+                send(c, {'t': 'veta', 'ok': False, 'reason': why or 'Hay que estar junto a la arena de oro del río.', 'spot': str(m.get('spot') or '')[:40]})
+                return
         reason = MINERALES.reject(getattr(c, 'world', 0), m.get('spot'), item)
         if reason:
             send(c, {'t': 'veta', 'ok': False, 'reason': reason, 'spot': str(m.get('spot') or '')[:40]})
@@ -3381,7 +3448,10 @@ def handle_client_message(c, m, t):
     elif t == 'mochila_op' and c.hello:
         mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:
+        c.pan_spot = m.get('spot')
         lavar_for(c, m.get('qty') or 1)
+    elif t == 'pescar' and c.hello:
+        pescar_for(c, m.get('spot'))
     elif t == 'metal_migrar' and c.hello:
         migrar_crudo(c, m.get('counts'))
     elif t == 'migrate' and c.hello:
@@ -3394,6 +3464,10 @@ def handle_client_message(c, m, t):
         fauna_recoger(c, m)
     elif t == 'fauna_golpe' and c.hello:
         fauna_golpe(c, m)
+    elif t == 'fauna_lanza' and c.hello:
+        fauna_lanza(c, m)
+    elif t == 'fauna_piel' and c.hello:
+        fauna_piel(c, m)
     elif t == 'heartbeat' and c.hello and c.wallet_ok:
         send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
     elif t == 'vault' and c.hello:

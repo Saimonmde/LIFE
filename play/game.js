@@ -826,6 +826,10 @@ function switchMap(id,restored=false){
 // ---------------- cantera y fundición ----------------
 function prepareMining(){
  W.items.pico.name='Pica de minería';NOMBRES.oro='Roca de oro';
+ (function asegurarCosecha(){
+  const extra=[['cafe_seed','Semilla de café'],['cacao_seed','Semilla de cacao'],['cafe_cereza','Café cereza'],['cacao_baba','Cacao en baba'],['piel_puma','Piel de puma']];
+  for(const [id,name] of extra){if(W.items[id])continue;const icon={16:'graphics/icons/'+id+'.svg',32:'graphics/icons/'+id+'.svg',64:'graphics/icons/'+id+'.svg'};W.items[id]={id,name,category:id.endsWith('_seed')?'seed':'material',stackable:true,maxStack:99,icon};}
+ })();
  for(const metal of ['cobre','plata','oro']){
   const raw='mineral_'+metal,ingot='lingote_'+metal;
   if(!W.items[raw])W.items[raw]={...W.items.mineral_cobre,id:raw,name:'Mineral de oro sin refinar'};
@@ -1505,6 +1509,15 @@ function connect() {
     if (m.t === 'pico_ladera') { const n = m.spot && S.nodes && S.nodes.get(m.spot); if (m.ok && n) { n.state = 'depleted'; n.until = now() + (n.def.respawnMs || 18000); floatText(n.def.x, n.def.y, m.texto || '+SMC', '#f6d598'); } if (m.texto) nota(m.texto); return; }
     if (m.t === 'nodos' && Array.isArray(m.nodes)) { m.nodes.forEach(row => aplicarNodo(row, false)); return; }
     if (m.t === 'nodo') { aplicarNodo(m, !!m.back); return; }
+    if (m.t === 'pescar') {
+      const spot = m.spot && S.nodes && S.nodes.get(m.spot);
+      if (!m.ok) { if (m.full) avisarMochilaLlena(); game(m.reason || 'No picó nada.', 'aviso'); return; }
+      const fish = m.item;
+      if (fish && W.items[fish] && !give(fish, m.qty || 1, spot ? spot.def.x : S.player.x, spot ? spot.def.y : S.player.y)) return;
+      if (fish && W.items[fish]) game(`Lanzas la red y atrapas: <b>${W.items[fish].name}</b>.`);
+      if (spot) { addXp('fishing', spot.def.xp || 10); spot.state = 'depleted'; spot.until = now() + (spot.def.respawnMs || 15000); tired(); }
+      return;
+    }
     if (m.t === 'recoger' && m.ok && S.espera && S.espera.done) { const done = S.espera.done; S.espera = null; done('mochila'); return; }
     if (m.t === 'mochila_llena') { if (S.metalOptimistic) { invRemove(S.metalOptimistic.item, S.metalOptimistic.qty); S.metalOptimistic = null; } if (S.espera) S.espera.server = true; avisarMochilaLlena(); game(m.reason || 'Tu mochila está llena', 'aviso'); if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance(); return; }
     if (m.t === 'mochila_op') {
@@ -1905,6 +1918,11 @@ function act(t) {
   } else if (d.type === 'fishing_spot') {
     if (!needTool(d.tool)) return;
     if (n.state !== 'active') return game(`Aquí no hay peces ahora. Vuelven en ${secs()} s.`, 'aviso');
+    if (S.net && S.net.ok && S.net.ws) {
+      S.net.ws.send(JSON.stringify({ t: 'pescar', spot: d.id }));
+      game('Lanzas la red…', 'juego');
+      return;
+    }
     const fish = rollTable(d.yield.table); if (!give(fish, d.yield.qty, d.x, d.y)) return; game(`Lanzas la red y atrapas: <b>${W.items[fish].name}</b>.`);
     addXp('fishing', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'nodo_oro_fluvial') {
@@ -1917,6 +1935,7 @@ function act(t) {
       S.espera = { server: true, item, qty: 1, done: (where) => { const pending = S.metalOptimistic; S.metalOptimistic = null; if (where === 'mochila') { if (!(pending && pending.item === item)) { if (!invAdd(item, 1)) return; } nota('+1 Pepita de oro'); } else if (pending && pending.item === item) invRemove(item, 1); addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } };
       sendGesto('picar', d.x, d.y);
       S.net.ws.send(JSON.stringify({ t: 'recoger', item, qty: 1, kind: 'lavar', spot: d.id }));
+      if (window.Simulacion && Simulacion.onRiverGold) Simulacion.onRiverGold(d.id);
       return;
     }
     if (!give(d.yield.item, 1, d.x, d.y)) { S.espera = { item: d.yield.item, qty: 1, done: () => { n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } }; return; }
@@ -3154,7 +3173,7 @@ window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals()
  showNote(title, text){ const box=$('#aviso'); if(!box)return; box.hidden=false; $('#aviso-titulo').textContent=title; $('#aviso-txt').textContent=text; },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); }, enterCentral(){ if(started) switchMap('central'); }, takeItem: invRemove,
- interact(id){if(typeof id==='string'&&id.indexOf('piso:')===0){if(window.Objeto)Objeto.alzar(id.slice(5));return;}if(typeof id==='string'&&id.indexOf('mata:')===0){if(window.Finca)Finca.cosecharCerca(id.slice(5));return;}if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
+ interact(id){if(typeof id==='string'&&id.indexOf('piso:')===0){if(window.Objeto)Objeto.alzar(id.slice(5));return;}if(typeof id==='string'&&id.indexOf('mata:')===0){if(window.Finca)Finca.cosecharCerca(id.slice(5));return;}if(typeof id==='string'&&id.indexOf('huerta:')===0){if(window.Finca)Finca.openPanel();return;}if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
 function autotest() {

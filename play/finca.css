@@ -132,4 +132,17 @@
     max-width: none;
     width: auto;
   }
+  .huerta-bed { padding: 6px; }
 }
+.huerta-semillas, .huerta-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.huerta-bed {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px; border-radius: 12px; background: #2a241c; border-left: 6px solid var(--tono, #8d6b45);
+}
+.huerta-mark { width: 32px; height: 32px; flex: none; background: var(--tono, #8d6b45); border-radius: 8px; }
+.huerta-copy { flex: 1; min-width: 0; }
+.huerta-copy b, .huerta-copy span { display: block; }
+.huerta-copy span { color: #e7d3ae; font-size: 14px; }
+.huerta-bar { height: 8px; border-radius: 99px; background: #3d3428; overflow: hidden; margin-top: 4px; }
+.huerta-bar > span { display: block; height: 100%; background: var(--tono, #d7b15a); }
+.huerta-semilla.is-on { outline: 2px solid #e2b23c; }

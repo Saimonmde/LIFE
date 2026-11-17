@@ -204,6 +204,21 @@ export function attachFinca(T, parent, opt) {
     { id: 'cacao-7', crop: 'cacao', x: 22.4, z: -3.6, lugar: 'mina' },
     { id: 'cacao-8', crop: 'cacao', x: 25.8, z: -3.6, lugar: 'mina' },
   ];
+  const HUERTA_COLOR = {
+    vacio: '#8d6b45', siembra: '#d7b15a', crecimiento: '#7ea84a',
+    floracion: '#f3e7a1', fruto: '#e07a32', cosecha: '#d64545',
+  };
+  const huertaBeds = [];
+  label('HUERTA', 2, 16.4);
+  for (let i = 0; i < 8; i++) {
+    const hx = -7 + i * 2.1;
+    const hz = 14.2;
+    const hy = ground(hx, hz);
+    const soil = mesh(box, HUERTA_COLOR.vacio, hx, hy + 0.08, hz, 1.5, 0.12, 1.2, 'huerta:' + (i + 1));
+    const sprout = mesh(ball, '#c8e29a', hx, hy + 0.5, hz, 0.18, 0.28, 0.18);
+    sprout.visible = false;
+    huertaBeds.push({ mesh: soil, sprout, id: 'huerta-' + (i + 1) });
+  }
   label('EN LA FINCA', 2, 11);
   label('JUNTO AL CAMINO', 4, -18.6);
   label('CERCA DE LA MINA', 24, -10.2);
@@ -289,6 +304,15 @@ export function attachFinca(T, parent, opt) {
         bed.loaded = phase;
         dress(bed, modelo.choiceFromManifest(manifestDoc, { crop: bed.crop, id: phase, mobile, distance: 6, art: pack }));
       }
+    }
+    const garden = (view && view.huerta) || [];
+    for (const plot of huertaBeds) {
+      const row = garden.find(item => item.id === plot.id);
+      const phase = row && row.crop ? (row.phase || 'siembra') : 'vacio';
+      plot.mesh.material = mat(HUERTA_COLOR[phase] || HUERTA_COLOR.vacio);
+      plot.sprout.visible = phase !== 'vacio';
+      const tall = phase === 'cosecha' ? 0.62 : phase === 'fruto' ? 0.48 : phase === 'floracion' ? 0.36 : 0.24;
+      plot.sprout.scale.set(tall, tall + 0.08, tall);
     }
   }
   const matas = zonas.map(spot => ({

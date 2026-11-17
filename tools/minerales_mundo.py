@@ -119,6 +119,26 @@ def attach(world):
     return [node for node in nodes if str(node.get('id') or '').startswith('oro_medellin')]
 
 
+RIVER_WATERS = ('rio_claro', 'rio_medellin')
+
+
+def gold_spot(nodes, spot, world_n):
+    """La pepita sólo sale de una arena de oro del río, mundos 1 a 5."""
+    try:
+        number = int(world_n)
+    except (TypeError, ValueError):
+        number = 0
+    if number < 1 or number > 5:
+        return None, 'El oro del Río Medellín está en los mundos 1 a 5.'
+    want = str(spot or '')[:40]
+    node = next((row for row in nodes or [] if isinstance(row, dict) and row.get('id') == want), None)
+    if not node or node.get('type') != 'nodo_oro_fluvial':
+        return None, 'El oro sólo sale del río, con la batea.'
+    if str(node.get('waterBody') or '') not in RIVER_WATERS:
+        return None, 'El oro sólo sale del río, con la batea.'
+    return node, ''
+
+
 def reject(world, spot, item):
     """Vacío si se puede picar. Si no, el aviso en español."""
     rock = rock_by_id().get(str(spot or '')[:40])
