@@ -283,16 +283,39 @@
     return dock;
   }
 
+  function mataDe(id) {
+    return (window.FINCA_MATAS || []).find(row => row.id === id);
+  }
+
+  function juntoA(id) {
+    const row = mataDe(id);
+    const player = window.LiveInk && LiveInk.state && LiveInk.state.player;
+    if (!row || !player) return false;
+    return Math.max(Math.abs(player.fx - row.x), Math.abs(player.fy - row.y)) <= 2.4;
+  }
+
+  function cosecharCerca(id) {
+    if (!juntoA(id)) {
+      say('Acércate a la mata para cosechar.');
+      return;
+    }
+    const row = ((view && view.plots) || []).find(item => item.id === id);
+    if (row && row.stage !== 'maduro') {
+      say('Esta mata todavía no está madura. Cada una vuelve a crecer sola.');
+      return;
+    }
+    send('cosechar', { plot: id });
+  }
+
   function paintDock() {
     const dock = ensureDock();
     const buttons = [];
     if (nearFarm() && view) {
-      const ripe = (view.plots || []).filter(row => row.stage === 'maduro');
+      const ripe = (view.plots || []).filter(row => row.stage === 'maduro' && juntoA(row.id));
       ripe.forEach(row => {
         const name = row.crop === 'cafe' ? 'café' : 'cacao';
         buttons.push(`<button type="button" data-op="cosechar" data-plot="${esc(row.id)}">Cosechar<small>${name}</small></button>`);
       });
-      if (ripe.length > 1) buttons.push('<button type="button" data-op="cosechar_todo">Cosechar todo</button>');
       buttons.push('<button type="button" data-op="recoger" data-crop="cafe">Recoger café</button>');
       buttons.push('<button type="button" data-op="procesar" data-crop="cafe">Procesar café</button>');
       buttons.push('<button type="button" data-op="exportar" data-crop="cafe">Exportar café</button>');
@@ -335,7 +358,7 @@
     textos = doc;
     paintFarm();
   }).catch(() => {});
-  window.Finca = { onNet, open, openPanel, openLibro, pull };
+  window.Finca = { onNet, open, openPanel, openLibro, pull, cosecharCerca };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
 })();
