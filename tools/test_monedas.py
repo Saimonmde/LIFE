@@ -127,7 +127,9 @@ class FurnaceMintTests(unittest.TestCase):
         return who
 
     def test_gold_mint_credits_simoncoin_under_the_cap(self):
+        import crudo
         who = self.player()
+        crudo.credit(self.server.ECON, who.user['id'], 'mineral_oro', 5, cap=5)
         self.server.smelt_for(who, 'mineral_oro', 1, mode='simoncoin')
         challenge = next(item['challenge'] for item in self.sent if item.get('t') == 'pow_challenge')
         proof = solve(challenge)
@@ -143,20 +145,17 @@ class FurnaceMintTests(unittest.TestCase):
         self.assertLessEqual(coined['minted'], 21_000_000)
         self.assertGreater(ok['ledger']['balances']['simoncoin'], 0)
 
-    def test_copper_mint_credits_simonchis(self):
+    def test_copper_mint_pays_simoncoin_at_jays_rate(self):
+        import crudo
         who = self.player()
-        self.server.smelt_for(who, 'mineral_cobre', 1, mode='simonchis')
-        challenge = next(item['challenge'] for item in self.sent if item.get('t') == 'pow_challenge')
-        proof = solve(challenge)
-        self.sent.clear()
-        self.server.smelt_for(who, 'mineral_cobre', 1, proof, 'simonchis')
+        crudo.credit(self.server.ECON, who.user['id'], 'mineral_cobre', 4, cap=4)
+        crudo.credit(self.server.ECON, who.user['id'], 'mineral_cobre', 4, cap=4)
+        crudo.credit(self.server.ECON, who.user['id'], 'mineral_cobre', 4, cap=4)
+        self.server.smelt_for(who, 'mineral_cobre', 4, mode='simonchis')
         ok = next(item for item in self.sent if item.get('t') == 'smelt_result' and item.get('ok'))
-        self.assertEqual(ok['coin'], 'Simonchis')
-        self.assertEqual(ok['qty'], 4)
-        chis = next(row for row in ok['ledger']['coins'] if row['id'] == 'simonchis')
-        self.assertGreaterEqual(chis['minted'], 4)
-        self.assertEqual(chis['max'], 333_000_000)
-        self.assertEqual(ok['ledger']['balances']['simonchis'], 4)
+        self.assertEqual(ok['mode'], 'simoncoin')
+        self.assertEqual(ok['amountText'], '0,01 SMC')
+        self.assertEqual(crudo.nuggets(self.server.ECON, who.user['id'], 'mineral_cobre'), 0)
 
     def test_ingot_is_refused_at_the_furnace(self):
         who = self.player()

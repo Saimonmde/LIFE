@@ -303,13 +303,10 @@ class TradeTests(unittest.TestCase):
         self.assertIn('id="sai-saldo"', page)
         self.assertIn('id="plata-saldo"', page)
         self.assertIn('id="chis-saldo"', page)
-        self.assertIn('0 Simonchis', page)
+        self.assertIn('Sólo hay Simoncoin', page)
         self.assertIn('exactSimoncoin', drawer)
-        self.assertIn('exactSimonplata', drawer)
-        self.assertIn('exactSimonchis', drawer)
+        self.assertIn('0,1 cada uno', drawer)
         self.assertIn('Simoncoin (SMC o SMH)', trade)
-        self.assertIn('Simonplata (SMP)', trade)
-        self.assertIn('>Simonchis<', trade)
         self.assertIn('150 SMH', trade)
 
     def test_full_bags_can_swap_the_same_item_without_loss(self):

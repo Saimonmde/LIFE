@@ -176,7 +176,7 @@
       '<li>🪙 En el horno, Acuñar guarda las monedas en tu inventario.</li>',
       '<li>🏠 Descansar / Ir a casa. Tu mascota te espera.</li>',
       '</ol>',
-      '<p>5 oros crudos hacen 1 Simoncoin. 4 platas, 1 Simonplata. 3 cobres, 1 Simonchis. El tope del día se reinicia a las 7:00 p. m.</p>',
+      '<p>10 minerales de oro hacen 1 Simoncoin (0,1 cada uno). 1 mineral de plata vale 0,01 Simoncoin. 1 cobre vale 0,001. El tope del día se reinicia a las 7:00 p. m.</p>',
       '</section>',
       '<h3>Viajar</h3><div id="cajon-lugares"></div>',
       '<h3>Caballo</h3><p>Tu caballo te lleva solo por el camino. También puedes llamarlo a la puerta.</p>',
