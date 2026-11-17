@@ -5,8 +5,8 @@
   const $ = (s) => document.querySelector(s);
   const RATES = {
     simoncoin: { item: 'pepita_oro', items: ['pepita_oro', 'mineral_oro'], rate: 5, name: 'Simoncoin', metal: 'oros crudos', cap: 0.25 },
-    simonplata: { item: 'mineral_plata', rate: 4, name: 'Simonplata', metal: 'plata cruda', cap: 5 },
-    simonchis: { item: 'mineral_cobre', rate: 3, name: 'Simonchis', metal: 'cobre crudo', cap: 200, whole: true },
+    simonplata: { item: 'mineral_plata', rate: 4, name: 'Simoncoin', metal: 'plata cruda', cap: 5 },
+    simonchis: { item: 'mineral_cobre', rate: 3, name: 'Simoncoin', metal: 'cobre crudo', cap: 200, whole: true },
   };
   let coin = 'simoncoin';
   let pieces = 0;
@@ -36,7 +36,7 @@
       item: row.item || base.item,
       items: row.items || base.items || [row.item || base.item],
       rate: row.rate || base.rate,
-      name: row.name || base.name,
+      name: 'Simoncoin',
       metal: row.metal || base.metal,
       cap: row.cap != null ? row.cap : base.cap,
       left: row.left != null ? row.left : base.cap,

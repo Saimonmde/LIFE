@@ -77,27 +77,17 @@
     if (!saldo) return;
     const box = account || (window.Simulacion && Simulacion.localVault && Simulacion.localVault()) || { smcSubs: 0, items: {}, sph: 0 };
     const smh = box.smh != null ? box.smh : (box.smcSubs || 0);
-    const texto = window.Simulacion && Simulacion.formatSai ? Simulacion.formatSai(smh) : `${smh} SMH`;
+    const texto = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(smh) : `${smh} SMC`;
     saldo.innerHTML = 'En el banco: <span class="smc">' + esc(texto) + '</span>';
     const wallet = document.getElementById('banquito-billetera');
     if (wallet && window.Simulacion && Simulacion.walletSubs && Simulacion.formatSai) {
       const name = (window.LiveInk && LiveInk.state && LiveInk.state.me && LiveInk.state.me.name) || '';
-      wallet.innerHTML = 'En tu cuenta: <span class="smc">' + esc(Simulacion.formatSai(Simulacion.walletSubs(name))) + '</span>';
+      wallet.innerHTML = 'En tu cuenta: <span class="smc">' + esc(Simulacion.formatSmc(Simulacion.walletSubs(name))) + '</span>';
     }
-    const sph = box.sph || 0;
-    const plataSaldo = document.getElementById('banquito-plata-saldo');
-    const plataWallet = document.getElementById('banquito-plata-billetera');
-    const plataText = window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(sph) : `${sph} SPH`;
-    if (plataSaldo) plataSaldo.innerHTML = 'En el depósito: <span class="smp">' + esc(plataText) + '</span>';
-    if (plataWallet && window.LiveInk && LiveInk.state) {
-      const carry = (LiveInk.state.plata && LiveInk.state.plata.balanceSph) || 0;
-      const carryText = window.Simulacion && Simulacion.formatPlata ? Simulacion.formatPlata(carry) : `${carry} SPH`;
-      plataWallet.innerHTML = 'En la billetera: <span class="smp">' + esc(carryText) + '</span>';
-    }
-    const oroBtn = document.getElementById('banquito-unidad');
-    const plataBtn = document.getElementById('banquito-unidad-plata');
-    if (oroBtn && Simulacion.unidadActiva) oroBtn.textContent = Simulacion.unidadActiva() === 'SMH' ? 'Ver en SMC' : 'Ver en SMH';
-    if (plataBtn && Simulacion.unidadPlata) plataBtn.textContent = Simulacion.unidadPlata() === 'SPH' ? 'Ver en SMP' : 'Ver en SPH';
+    const plataCaja = document.getElementById('banco-plata');
+    const cambioCaja = document.getElementById('banco-cambio');
+    if (plataCaja) plataCaja.hidden = true;
+    if (cambioCaja) cambioCaja.hidden = true;
     const state = window.LiveInk && LiveInk.state;
     const online = !!(state && state.net && state.net.ok && !state.walletLocked);
     const status = document.getElementById('bank-state');
@@ -111,15 +101,13 @@
     }
     if (daily) {
       const supply = state && state.supply;
-      const chis = state && state.ledger && state.ledger.balances ? state.ledger.balances.simonchis : 0;
-      if (!supply) daily.textContent = 'Simonchis en la billetera: ' + chis + '.';
-      else if (supply.guest) daily.textContent = 'Inicia sesión para ver la emisión de hoy. Simonchis en la billetera: ' + chis + '.';
+      if (!supply) daily.textContent = 'Sólo Simoncoin.';
+      else if (supply.guest) daily.textContent = 'Inicia sesión para ver la emisión de hoy.';
       else {
-        const fmt = window.Simulacion && Simulacion.formatSai ? Simulacion.formatSai : (n) => n + ' SMH';
+        const fmt = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc : (n) => n + ' SMC';
         daily.textContent = 'Emisión disponible hoy: ' + fmt(supply.remainingSubs || 0)
           + ' de un límite de ' + fmt(supply.dailyCapSubs || 0)
-          + '. Pendiente de emitir: ' + fmt(supply.owedSubs || 0)
-          + '. Simonchis en la billetera: ' + chis + '.';
+          + '. Pendiente de emitir: ' + fmt(supply.owedSubs || 0) + '.';
       }
     }
     const dockBalance = document.getElementById('bank-dock-balance');
@@ -144,7 +132,6 @@
     items.innerHTML = (rows.length ? '' : '<p>No hay objetos en el depósito.</p>') + deposit + withdraw;
     items.querySelectorAll('[data-dep]').forEach(b => b.onclick = () => Simulacion.bankItem('in', b.dataset.dep, 1));
     items.querySelectorAll('[data-ret]').forEach(b => b.onclick = () => Simulacion.bankItem('out', b.dataset.ret, 1));
-    if (window.PowMint && PowMint.paintPlata && window.LiveInk && LiveInk.state && LiveInk.state.plata) PowMint.paintPlata(LiveInk.state.plata);
   }
   function flipUnit(key, a, b) {
     try {
@@ -153,8 +140,7 @@
     } catch (e) {}
     paint();
   }
-  document.getElementById('banquito-unidad')?.addEventListener('click', () => flipUnit('lifeinc.unidad', 'SMC', 'SMH'));
-  document.getElementById('banquito-unidad-plata')?.addEventListener('click', () => flipUnit('lifeinc.unidad.plata', 'SMP', 'SPH'));
+  document.getElementById('banquito-unidad')?.addEventListener('click', () => {});
   document.getElementById('banquito-depositar')?.addEventListener('click', () => {
     const amount = document.getElementById('banquito-monto').value;
     if (window.Simulacion) Simulacion.bankSmc('in', amount);
@@ -179,14 +165,6 @@
   }
   document.getElementById('banquito-todo-banco')?.addEventListener('click', () => transferirTodo('banco'));
   document.getElementById('banquito-todo-billetera')?.addEventListener('click', () => transferirTodo('billetera'));
-  document.getElementById('banquito-depositar-plata')?.addEventListener('click', () => {
-    const amount = document.getElementById('banquito-plata-monto').value;
-    if (window.Simulacion) Simulacion.bankSmp('in', amount);
-  });
-  document.getElementById('banquito-retirar-plata')?.addEventListener('click', () => {
-    const amount = document.getElementById('banquito-plata-monto').value;
-    if (window.Simulacion) Simulacion.bankSmp('out', amount);
-  });
 
   function armLongPress() {
     const canvas = document.getElementById('mundo3d');

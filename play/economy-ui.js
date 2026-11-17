@@ -24,18 +24,14 @@
     <header><div><small>SAIMON CITY · INTERCAMBIO</small><h2 id="trade-title">Intercambiar</h2></div>
     <button id="trade-close" type="button" aria-label="Cancelar intercambio">×</button></header>
     <div class="economy-body">
-      <p class="trade-notice">Pasa Simoncoin, Simonplata y Simonchis de billetera a billetera. No hay puesto, banco ni comisión, y no se crean monedas. Las dos aceptan y después confirman. Hace falta estar a 30 m, en la ciudad o en la mina, con la billetera desbloqueada. 1 SMC = 100 SMH. Las partes no salen en el libro público.</p>
+      <p class="trade-notice">Pasa Simoncoin de billetera a billetera. No hay puesto, banco ni comisión, y no se crean monedas. Las dos aceptan y después confirman. Hace falta estar a 30 m, en la ciudad o en la mina, con la billetera desbloqueada. Se escribe con hasta 2 decimales. Las partes no salen en el libro público.</p>
       <ol class="trade-steps"><li id="trade-step-one">1 · Preparar oferta</li><li id="trade-step-two">2 · Revisar y confirmar</li></ol>
       <div class="trade-columns">
         <article>
           <h3>Tu oferta</h3>
           <p id="trade-available"></p>
-          <label for="trade-smc">Simoncoin (SMC o SMH)</label>
-          <input id="trade-smc" inputmode="decimal" value="0" autocomplete="off" placeholder="1,5 o 150 SMH">
-          <label for="trade-smp">Simonplata (SMP)</label>
-          <input id="trade-smp" inputmode="decimal" value="0" autocomplete="off" placeholder="1">
-          <label for="trade-cobre">Simonchis</label>
-          <input id="trade-cobre" inputmode="numeric" value="0" autocomplete="off" placeholder="0">
+          <label for="trade-smc">Simoncoin</label>
+          <input id="trade-smc" inputmode="decimal" value="0" autocomplete="off" placeholder="1,50">
           <div id="trade-items"></div>
           <button id="trade-update" type="button">Actualizar oferta</button>
           <strong id="trade-mine">—</strong>
@@ -58,10 +54,7 @@
   document.body.append(panel);
 
   function money(n) {
-    return window.Simulacion ? Simulacion.formatSai(n || 0) : (n || 0) + ' SMH';
-  }
-  function plata(n) {
-    return window.Simulacion ? Simulacion.formatPlata(n || 0) : (n || 0) + ' SPH';
+    return window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(n || 0) : (n || 0) + ' SMC';
   }
   function offerOf(raw) {
     if (!raw || typeof raw !== 'object') return { smc: Number(raw) || 0, smp: 0, cobre: 0, items: {} };
@@ -69,7 +62,7 @@
   }
   function describe(offer) {
     const o = offerOf(offer);
-    const bits = [money(o.smc), plata(o.smp), (o.cobre || 0) + ' Simonchis'];
+    const bits = [money(o.smc)];
     const names = (api()?.state?.purse?.catalog) || { bolsa_cafe: 'Bolsa de café', bolsa_cacao: 'Bolsa de cacao' };
     for (const [id, qty] of Object.entries(o.items)) {
       if (qty) bits.push(qty + ' ' + (names[id] || id));
@@ -107,13 +100,9 @@
   }
   function holdings() {
     const S = api().state;
-    const chis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     const smh = Simulacion.walletSubs(S.me.name);
-    const sph = (S.plata && S.plata.balanceSph) || 0;
     const bag = (S.purse && S.purse.items) || {};
-    return 'Tuyo: ' + (Simulacion.formatPair ? Simulacion.formatPair(smh) : money(smh))
-      + ' · ' + (Simulacion.formatPlataPair ? Simulacion.formatPlataPair(sph) : plata(sph))
-      + ' · ' + chis + ' Simonchis'
+    return 'Tuyo: ' + (Simulacion.formatSmc ? Simulacion.formatSmc(smh) : money(smh))
       + (Object.keys(bag).length ? '' : ' · sin bolsas en la mochila del servidor');
   }
   function renderItems() {
@@ -162,7 +151,7 @@
     $('#trade-confirm').disabled = pending || dirty || session.confirmed.includes(me);
     $('#trade-update').disabled = pending || !dirty;
     const locked = session.confirmed.includes(me);
-    for (const id of ['trade-smc', 'trade-smp', 'trade-cobre']) $('#' + id).readOnly = locked;
+    $('#trade-smc').readOnly = locked;
     $('#trade-review').textContent = 'Versión ' + session.revision + ': entregas ' + describe(session.offers[String(me)])
       + ' y recibes ' + describe(session.offers[String(other.id)]) + '. '
       + (review ? 'Revisa ambas columnas antes de confirmar.' : 'No se mueve nada hasta las dos confirmaciones.');
@@ -182,11 +171,9 @@
   }
   function readOffer() {
     const smc = readSmc($('#trade-smc').value);
-    const smp = Simulacion.parsePlata(($('#trade-smp').value || '0') + ' SMP');
-    const cobre = Number($('#trade-cobre').value || '0');
     if (!Number.isSafeInteger(smc) || smc < 0) throw Error('Simoncoin no válida.');
-    if (!Number.isSafeInteger(smp) || smp < 0) throw Error('Simonplata no válida.');
-    if (!Number.isSafeInteger(cobre) || cobre < 0) throw Error('Las Simonchis van en enteros.');
+    const smp = 0;
+    const cobre = 0;
     const items = {};
     panel.querySelectorAll('[data-item]').forEach(input => {
       const qty = Number(input.value || '0');
@@ -217,8 +204,6 @@
       return String(n / subs);
     };
     $('#trade-smc').value = whole(o.smc, Simulacion.SUBS || 100);
-    $('#trade-smp').value = whole(o.smp, Simulacion.PLATA_SUBS || 100000000);
-    $('#trade-cobre').value = String(o.cobre || 0);
     panel.querySelectorAll('[data-item]').forEach(input => {
       input.value = String((o.items && o.items[input.dataset.item]) || 0);
     });
@@ -276,7 +261,7 @@
     return true;
   }
   panel.addEventListener('keydown', (e) => e.stopPropagation());
-  for (const id of ['trade-smc', 'trade-smp', 'trade-cobre']) $('#' + id).oninput = markDirty;
+  $('#trade-smc').oninput = markDirty;
   $('#trade-update').onclick = () => {
     try { action('trade_offer', { offer: readOffer() }); }
     catch (e) { $('#trade-status').textContent = e.message; }

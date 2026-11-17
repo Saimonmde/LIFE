@@ -77,7 +77,8 @@ const page = fs.readFileSync(path.join(__dirname, '..', 'play', 'index.html'), '
 assert.ok(game.includes('iconStack'), 'la pila es sólo el dibujo cuando hay más de uno');
 assert.ok(game.includes('itemArt'), 'el inventario elige el dibujo');
 assert.ok(css.includes('#inventario .slot .n') && css.includes('var(--sans)'), 'la cifra de la casilla usa la sans');
-assert.ok(page.includes('moneda_plata.svg'), 'el panel de Plata muestra la moneda de plata');
+assert.ok(page.includes('moneda_oro.svg'), 'el saldo muestra Simoncoin');
+assert.ok(!page.includes('Simonplata') && !page.includes('>0 SMP<'), 'la plata ya no es una moneda en pantalla');
 const hudCss = fs.readFileSync(path.join(__dirname, '..', 'play', 'hud-layout.css'), 'utf8');
 assert.ok(hudCss.includes('body.pantalla-limpia #hud-recursos'), 'la pantalla limpia conserva la barra');
 assert.ok(hudCss.includes('span:not(#sai-chip)'), 'en limpio sólo queda el saldo SMC');

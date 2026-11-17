@@ -95,8 +95,8 @@ class LetreroTests(unittest.TestCase):
         self.assertIn("respawnMs:metal==='oro'?%d:%d" % (topes.VEIN_ORO_S * 1000, topes.VEIN_PLATA_S * 1000), game)
         self.assertIn(str(topes.rate('simoncoin')) + ' minerales de oro hacen 1 Simoncoin (cada uno vale 0,1 SMC).', text)
         self.assertIn('piso de 50 SMC al día', text)
-        self.assertIn(str(topes.rate('simonplata')) + ' de plata cruda hacen 1 Simonplata.', text)
-        self.assertIn(str(topes.rate('simonchis')) + ' de cobre crudo hacen 1 Simonchis.', text)
+        self.assertIn('1 mineral de plata paga 0,01 Simoncoin.', text)
+        self.assertIn('1 mineral de cobre paga 0,001 Simoncoin.', text)
         base = topes.simoncoin_daily_smh(0, 0, 0) / 100
         top = topes.simoncoin_daily_smh(60 * 86400, 40 * 3600, 10) / 100
         self.assertIn(topes._cantidad(base), text)
@@ -105,8 +105,8 @@ class LetreroTests(unittest.TestCase):
         self.assertIn(topes._cantidad(topes.simonchis_daily()), text)
         self.assertIn(topes.RESET_LABEL, text)
         self.assertIn(topes._cantidad(economy.MAX_SUPPLY), text)
-        self.assertIn(topes._cantidad(plata.MAX_SUPPLY), text)
-        self.assertIn(topes._cantidad(cobre.MAX_SUPPLY), text)
+        self.assertNotIn('Simonplata', text)
+        self.assertNotIn('Simonchis', text)
         self.assertIn('la fórmula sola iría de ' + topes._cantidad(base) + ' a ' + topes._cantidad(top), text)
         self.assertIn('más bonos:', text)
         self.assertIn('Con esos bonos sube hasta ' + topes._cantidad(topes.simonplata_daily_sph(60 * 86400, 40 * 3600, 10) / topes.SUBS), text)
@@ -131,9 +131,7 @@ class LetreroTests(unittest.TestCase):
             'simonplata': {'name': 'Simonplata', 'left': plata_base},
             'simonchis': {'name': 'Simonchis', 'left': chis},
         })
-        self.assertEqual(left[0], 'Hoy te quedan ' + topes._cantidad(base) + ' Simoncoin.')
-        self.assertIn('Hoy te quedan ' + topes._cantidad(plata_base) + ' Simonplata.', left)
-        self.assertIn('Hoy te quedan ' + topes._cantidad(chis) + ' Simonchis.', left)
+        self.assertEqual(left, ['Hoy te quedan ' + topes._cantidad(base) + ' Simoncoin.'])
 
     def test_next_reward_step_and_daily_reset_come_from_the_growth_rules(self):
         steps = topes.siguiente(0, 0, 0)

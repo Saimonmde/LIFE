@@ -301,13 +301,12 @@ class TradeTests(unittest.TestCase):
         drawer = open(os.path.join(root, 'play', 'cajon.js'), encoding='utf-8').read()
         trade = open(os.path.join(root, 'play', 'economy-ui.js'), encoding='utf-8').read()
         self.assertIn('id="sai-saldo"', page)
-        self.assertIn('id="plata-saldo"', page)
-        self.assertIn('id="chis-saldo"', page)
+        self.assertNotIn('id="plata-saldo"', page)
         self.assertIn('Sólo hay Simoncoin', page)
         self.assertIn('exactSimoncoin', drawer)
         self.assertIn('0,1 cada uno', drawer)
-        self.assertIn('Simoncoin (SMC o SMH)', trade)
-        self.assertIn('150 SMH', trade)
+        self.assertIn('>Simoncoin<', trade)
+        self.assertNotIn('Simonplata', trade)
 
     def test_full_bags_can_swap_the_same_item_without_loss(self):
         econ = economy.empty_state()

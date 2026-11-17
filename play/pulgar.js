@@ -91,8 +91,8 @@
     hoja.setAttribute('aria-label', 'Intercambio');
     hoja.innerHTML = [
       '<header><strong>Intercambio</strong><button type="button" id="hoja-cerrar" aria-label="Cerrar">✕</button></header>',
-      '<label>Doy<select id="cambio-doy"><option value="simonplata">Simonplata</option><option value="mineral_cobre">Cobre</option><option value="mineral_plata">Plata</option><option value="mineral_oro">Oro</option></select></label>',
-      '<label>Recibo<select id="cambio-recibo"><option value="simoncoin">Simoncoin</option><option value="simonplata">Simonplata</option><option value="simonchis">Simonchis</option><option value="mineral_cobre">Cobre</option></select></label>',
+      '<label>Doy<select id="cambio-doy"><option value="mineral_cobre">Cobre</option><option value="mineral_plata">Plata</option><option value="mineral_oro">Oro</option></select></label>',
+      '<label>Recibo<select id="cambio-recibo"><option value="simoncoin">Simoncoin</option></select></label>',
       '<div id="cambio-pasos"><button type="button" id="cambio-menos" aria-label="Menos">−</button><b id="cambio-n">1</b><button type="button" id="cambio-mas" aria-label="Más">+</button><button type="button" id="cambio-max">Máximo</button></div>',
       '<p id="cambio-vista">Das 0. Recibes 0.</p>',
       '<button type="button" id="cambio-ok">Confirmar</button>',

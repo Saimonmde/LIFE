@@ -18,42 +18,17 @@
   }
   function rows() {
     const ledger = (window.__ELJARDIN && __ELJARDIN.ledger) || {};
-    const list = ledger.coins || [
-      { id: 'simoncoin', name: 'Simoncoin', minted: 0, max: 21000000 },
-      { id: 'simonplata', name: 'Simonplata', minted: 0, max: 84000000 },
-      { id: 'simonchis', name: 'Simonchis', minted: 0, max: 333000000 },
-    ];
-    return list.slice(0, 3);
+    const list = (ledger.coins || []).filter((row) => row.id === 'simoncoin');
+    return list.length ? list : [{ id: 'simoncoin', name: 'Simoncoin', minted: 0, max: 21000000 }];
   }
   function balances() {
     const S = window.__ELJARDIN || {};
     const ledger = S.ledger && S.ledger.balances;
     const name = window.nombrePropio ? nombrePropio() : '';
     let simoncoin = ledger ? ledger.simoncoin : 0;
-    let simonplata = ledger ? ledger.simonplata : 0;
-    let simonchis = ledger ? ledger.simonchis : 0;
-    if (!ledger && S.econ && S.econ.wallets && name) {
-      simoncoin = S.econ.wallets[name] || 0;
-      simonplata = (S.plata && S.plata.balanceSph) || 0;
-      simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
-    }
-    const subs = window.Simulacion ? Simulacion.SUBS : 100;
-    const plataSubs = window.Simulacion && Simulacion.PLATA_SUBS ? Simulacion.PLATA_SUBS : 100000000;
-    const compact = (base, whole) => {
-      const value = Number(base) || 0;
-      if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
-      return grupo(whole ? value : value / subs);
-    };
-    const plata = (Number(simonplata) || 0) / plataSubs;
-    const plataTxt = window.Simulacion && Simulacion.formatCompact ? Simulacion.formatCompact(plata) : grupo(plata);
-    return {
-      simoncoin: compact(simoncoin, false),
-      simonplata: plataTxt,
-      simonchis: compact(simonchis, true),
-      exactSimoncoin: window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(simoncoin) : grupo(simoncoin) + ' SMH',
-      exactSimonplata: window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(simonplata) : grupo(simonplata) + ' SPH',
-      exactSimonchis: grupo(simonchis) + ' Simonchis',
-    };
+    if (!ledger && S.econ && S.econ.wallets && name) simoncoin = S.econ.wallets[name] || 0;
+    const exact = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(simoncoin) : grupo(simoncoin / 100) + ' SMC';
+    return { simoncoin: exact.replace(/\s*SMC$/, ''), exactSimoncoin: exact };
   }
   function paint() {
     const nick = $('#hud-nick');
@@ -63,7 +38,7 @@
     const money = balances();
     const line = $('#hud-saldos');
     if (line) {
-      line.textContent = 'Tuyo: ' + [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+      line.textContent = 'Tuyo: ' + (money.exactSimoncoin || '0 SMC');
       line.title = line.textContent;
     }
     const box = $('#cajon-monedas');
@@ -74,7 +49,7 @@
       p.className = 'cajon-moneda';
       const minted = grupo(row.minted);
       const max = grupo(row.max);
-      const exact = { simoncoin: money.exactSimoncoin, simonplata: money.exactSimonplata, simonchis: money.exactSimonchis };
+      const exact = { simoncoin: money.exactSimoncoin };
       p.innerHTML = `<span><b>${row.name}</b><br>Tuyo: ${exact[row.id] || money[row.id] || '0'}</span><span>Acuñadas ${minted}<br>de ${max}</span>`;
       box.appendChild(p);
     }
@@ -166,8 +141,7 @@
       '<section class="cajon-guia" id="guia-monedas">',
       '<h3>Cómo funcionan</h3>',
       '<p><b>Simoncoin</b> es la moneda de oro. Sólo existirán 21.000.000. Nadie puede crear más, cambiar ese número ni copiar una.</p>',
-      '<p><b>Simonplata</b> es la moneda de plata. Sólo existirán 84.000.000. Nadie puede crear más, cambiar ese número ni copiar una.</p>',
-      '<p><b>Simonchis</b> son las monedas de cobre. Existirán 333.000.000.</p>',
+      '<p>La plata, el cobre y el mineral de oro que no era Simoncoin ya pasaron a esta moneda. Los minerales siguen siendo objetos, no monedas.</p>',
       '<p>El libro de arriba dice cuántas van y cuántas pueden existir. Tu número es el de la izquierda.</p>',
       '<h3>En corto</h3>',
       '<ol>',
@@ -187,7 +161,7 @@
       '<h3>Atajos</h3>',
       '<button type="button" id="cajon-perfil">Perfil</button>',
       '<button type="button" id="cajon-minar">Acuñar monedas</button>',
-      '<button type="button" id="cajon-plata">Simonplata</button>',
+      '<button type="button" id="cajon-plata" hidden>Simoncoin</button>',
       '<button type="button" id="cajon-herramientas">Herramientas</button>',
       '<button type="button" id="cajon-barra">Barra rápida</button>',
       '<button type="button" id="cajon-simon">Simon</button>',

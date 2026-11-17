@@ -26,7 +26,7 @@
     '<header id="eliminar-titulo">Eliminar mi cuenta <button type="button" class="x" id="eliminar-x" aria-label="Cerrar">✕</button></header>',
     '<div class="cuerpo">',
     '<p>Se borra tu correo, el vínculo con Google o Facebook, tu nickname, tus sesiones y los datos de tu perfil y de tu casa. El libro conserva el movimiento, pero con un identificador anónimo en lugar de tu nombre.</p>',
-    '<p>Tu SMC, en la billetera y en el depósito, vuelve al fondo de cambio. Tu SMP se quema: no hay una reserva de Plata, y el total emitido no cambia. Esta acción no se puede deshacer.</p>',
+    '<p>Tu Simoncoin, en la billetera y en el depósito, vuelve al fondo. Esta acción no se puede deshacer.</p>',
     '<label for="eliminar-confirma">Escribe tu nickname o la palabra ELIMINAR<input id="eliminar-confirma" autocomplete="off" spellcheck="false"></label>',
     '<p id="eliminar-error" role="status"></p>',
     '<div id="eliminar-botones"><button type="button" id="eliminar-cancelar">Cancelar</button><button type="button" id="eliminar-confirmar" disabled>Eliminar mi cuenta</button></div>',

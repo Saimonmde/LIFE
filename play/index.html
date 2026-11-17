@@ -112,7 +112,7 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><img class="oro-coin" src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><b id="sai-saldo" class="smc">0 SMC</b></span><span id="plata-chip" title="Plata: simulación educativa, sin valor real"><img class="plata-coin" src="../graphics/mining/moneda_plata.svg?v=iconos-r2" alt=""><b id="plata-saldo" class="smp">0 SMP</b></span><span id="chis-chip" title="Simonchis: cobre del juego, sin valor real"><img class="cobre-coin" src="../graphics/mining/moneda_cobre.svg?v=iconos-r2" alt=""><b id="chis-saldo">0 Simonchis</b></span></div>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="Simoncoin: simulación educativa, sin valor real"><img class="oro-coin" src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><b id="sai-saldo" class="smc">0 SMC</b></span></div>
 <button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
 <button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">Simoncoin · sin valor real</span><span class="sai-full">Sólo hay Simoncoin: 21.000.000. La plata, el cobre y el mineral de oro que no era Simoncoin pasan a esta moneda. No es dinero real.</span></button>
 <aside id="pow-panel" class="hud" aria-live="polite">
@@ -123,25 +123,7 @@
   <p id="pow-hint">La prueba de trabajo sola no frena a un bot. Mandan la cuenta, el movimiento y el tope del día.</p>
   <button type="button" id="pow-cobrar" hidden>Cobrar misión pendiente</button>
 </aside>
-<aside id="plata-panel" class="hud" aria-label="Simonplata">
-  <strong>Simonplata</strong>
-  <p id="plata-saldo-line"><img class="plata-coin" src="../graphics/mining/moneda_plata.svg?v=iconos-r2" alt="">Saldo: <b id="plata-saldo-panel" class="smp">0 SMP</b></p>
-  <div id="plata-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Plata minada hoy"><i id="plata-meter-bar"></i></div>
-  <p id="plata-status">Sin prueba en curso.</p>
-  <p id="plata-cap">Tope de hoy: —</p>
-  <p id="plata-left">Te quedan: —</p>
-  <div id="plata-cambio-box">
-    <p id="plata-tasa">100 Simonplata valen 1 Simoncoin. La plata se gasta. El oro sale de monedas que ya existían y no se crean de más.</p>
-    <p id="plata-fondo">Fondo de hoy: —</p>
-    <p id="plata-xcap">Puedes cambiar hoy: —</p>
-    <label>Plata a entregar <input id="cambio-monto" inputmode="decimal" value="1" aria-label="Plata a cambiar"></label>
-    <p id="cambio-preview">Entregas 1 SMP. Recibes 0,01 SMC.</p>
-    <p class="plata-acciones"><button type="button" id="pow-cambiar">Cambiar a Simoncoin</button><button type="button" id="pow-cambiar-max">Máximo</button></p>
-    <p id="cambio-result" role="status"></p>
-  </div>
-  <button type="button" id="pow-plata">Acuñar Simonplata (prueba)</button>
-  <p id="plata-hint">Hace falta una cuenta, caminar y el tope del día. Un invitado no recibe Plata.</p>
-</aside>
+<aside id="plata-panel" class="hud" hidden></aside>
 <div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-skate-movil" aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
@@ -261,8 +243,6 @@
     <li><b>Caballos:</b> en el establo del Parque de Envigado, tecla <b>M</b> o <b>E</b> (o el botón Montar). A caballo vas a 2,2 veces la marcha a pie. El botón <b>Bajarse del caballo</b> aparece mientras vas montado. No entran a edificios ni al agua. El pelaje (bayo, gris o negro) se guarda en la cuenta.</li>
     <li><b>Interfaz:</b> la rueda ⚙ abre el modo edición. Ahí se mueve cada barra, se agranda o se achica, y se minimiza. − deja una pestaña y × cierra; se vuelven a abrir desde la rueda o su botón. El reloj queda fijo, sin caja, y no entra en ese modo. El ojo grande deja la pantalla limpia: sólo la pastilla de SMC, el minimapa, el globo y los anillos. La pastilla de oro sigue visible en el celular y no la tapan los paneles. Se recuerda en este aparato. El diseño se guarda aparte en el celular y en el escritorio, y también al girar la pantalla. Se puede jugar vertical y horizontal.</li>
     <li><b>Simoncoin:</b> la moneda de oro. Sólo habrá 21.000.000. Se acuña en el horno de la mina, con cuenta. No se puede crear más ni copiarla.</li>
-    <li><b>Simonplata:</b> la moneda de plata. Sólo habrá 84.000.000. Se acuña en el mismo horno. No se puede crear más ni copiarla.</li>
-    <li><b>Simonchis:</b> las monedas de cobre. Habrá 333.000.000. Se acuñan en el horno con mineral de cobre.</li>
     <li>🏙 <b>Saimon City.</b> Valle de Aburrá. El año del juego es 1777.</li>
     <li>⛏ <b>Trabajo.</b> Ve a la mina. Pica el metal.</li>
     <li>🪙 <b>Premio.</b> En el horno, Acuñar guarda las monedas en tu inventario. Así armas tu reserva.</li>
@@ -276,7 +256,7 @@
     <li><b>Café y cacao:</b> afuera, en la ladera abierta de Las Palmas. La mina es solo la cantera. Plantas en una parcela. Cosechas cuando está maduro. En el taller procesas el fruto. Vendes el bulto si la casa tiene monedas. El saco de café excelso es de 70 kg. El cajón de cacao rinde 150 kg secos. El Libro mayor no dice quién. Al acercarte, Cosechar está a la vista. Llevar al taller no acuña.</li>
     <li><b>Libro Mayor (L):</b> bloques cada ~60 s con SHA-256. La Profesora de la Cadena, junto al establo, da la misión y las lecciones de Blockchain. El botón Libro mayor muestra los totales de café, cacao y monedas.</li>
     <li><b>1–9, 0:</b> barra rápida · <b>I</b> inventario · <b>K</b> habilidades · <b>L</b> Libro Mayor · <b>N</b> previsualiza día/noche (el ciclo cambia solo cada 10 min) · <b>+/−</b> zoom · <b>H</b> ayuda.</li>
-    <li><b>Intercambiar:</b> pulsa a otra persona o su nombre en Jugadores. Las dos aceptan y las dos confirman, a 30 m. Entran Simoncoin, Simonplata, Simonchis y bolsas de café o cacao que el servidor haya acreditado.</li>
+    <li><b>Intercambiar:</b> pulsa a otra persona o su nombre en Jugadores. Las dos aceptan y las dos confirman, a 30 m. Entra Simoncoin, y bolsas de café o cacao que el servidor haya acreditado. Los minerales no son monedas.</li>
     <li><b>Puente de la 4 Sur:</b> cruce peatonal al sur de Medellín, entre Guayabal y El Poblado. Es una recreación por código, no el escaneo.</li>
     <li><b>Gestos:</b> el botón Gestos abre la rueda. Con ella abierta, 1–8 son saludar, reverencia, bailar, aplauso, reír, sentarse, señalar y ¡Bacano! Quien esté a 30 m los ve. La barra rápida sigue usando los números cuando la rueda está cerrada.</li>
   </ul>
@@ -307,13 +287,13 @@
   <p>El banquito de la Casa bancaria, el baúl de tu casa y el baúl de la mina son el mismo depósito. Guardar o retirar no crea monedas: sólo las mueve, y cada pase queda en el libro mayor.</p>
   <p id="bank-state" role="status"></p>
   <p id="bank-daily"></p>
-  <p class="banco-unidad">1 SMC = 100 SMH. 1 SMP = 100.000.000 SPH. El botón sólo cambia cómo se escribe cada una.</p>
+  <p class="banco-unidad">Simoncoin se escribe con hasta 2 decimales. Guardar o retirar no crea monedas.</p>
   <div class="banco-caja" id="banco-oro">
     <h3>Simoncoin</h3>
     <p id="banquito-billetera">En tu cuenta: <span class="smc">0 SMC</span></p>
     <p id="banquito-saldo">En el banco: <span class="smc">0 SMC</span></p>
     <div class="banco-fila">
-      <button type="button" id="banquito-unidad">Ver en SMH</button>
+      <button type="button" id="banquito-unidad" hidden>Simoncoin</button>
       <input id="banquito-monto" inputmode="decimal" value="1" aria-label="Monto de oro a guardar o retirar" placeholder="1">
       <button type="button" id="banquito-depositar">Guardar Simoncoin</button>
       <button type="button" id="banquito-retirar">Retirar Simoncoin</button>
@@ -321,28 +301,10 @@
       <button type="button" id="banquito-todo-billetera">Transferir todo a la billetera</button>
     </div>
   </div>
-  <div class="banco-caja" id="banco-plata">
-    <h3>Simonplata</h3>
-    <p id="banquito-plata-saldo">En el depósito: <span class="smp">0 SMP</span></p>
-    <p id="banquito-plata-billetera">En la billetera: <span class="smp">0 SMP</span></p>
-    <div class="banco-fila">
-      <button type="button" id="banquito-unidad-plata">Ver en SPH</button>
-      <input id="banquito-plata-monto" inputmode="decimal" value="1" aria-label="Monto de plata a guardar o retirar" placeholder="1">
-      <button type="button" id="banquito-depositar-plata">Guardar Simonplata</button>
-      <button type="button" id="banquito-retirar-plata">Retirar Simonplata</button>
-    </div>
-  </div>
-  <div class="banco-caja" id="banco-cambio">
-    <h3>Cambiar Plata por oro</h3>
-    <p id="banco-cambio-nota">100 SMP = 1 SMC. La Plata se quema y el SMC sale del fondo ya emitido.</p>
-    <p id="banco-cambio-detalle"></p>
-    <div class="banco-fila">
-      <input id="banco-cambio-monto" inputmode="decimal" value="1" aria-label="Plata a cambiar por oro" placeholder="1">
-      <button type="button" id="banco-cambiar">Cambiar a SMC</button>
-    </div>
-  </div>
+  <div class="banco-caja" id="banco-plata" hidden></div>
+  <div class="banco-caja" id="banco-cambio" hidden></div>
   <div id="banquito-items"></div>
-  <p class="bag-note">SMC y SMP no son dinero real. Nada de esto se paga por OnePay ni por USDT.</p>
+  <p class="bag-note">Simoncoin no es dinero real. Nada de esto se paga por OnePay ni por USDT.</p>
 </section>
 <div id="autotest" hidden></div>
 <script src="historia.js?v=vidrio-r1"></script>
