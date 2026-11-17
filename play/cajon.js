@@ -262,6 +262,8 @@
     if (!mint) return;
     const movil = matchMedia('(max-width: 820px)').matches || document.documentElement.classList.contains('movil');
     mint.hidden = movil ? !juntoHorno() : false;
+    if (window.Finca && Finca.paintDock) Finca.paintDock();
+    if (window.Pulgar && Pulgar.apilar) Pulgar.apilar();
   }
   function boot() {
     mountPicar();

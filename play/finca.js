@@ -333,7 +333,9 @@
         buttons.push(`<button type="button" data-op="procesar" data-crop="${crop}">${label}</button>`);
       });
     }
-    if (zone() === 'mine' || zone() === 'central') {
+    const pulgar = document.getElementById('b-acunar-pulgar');
+    const acunarEnColumna = pulgar && !pulgar.hidden;
+    if ((zone() === 'mine' || zone() === 'central') && !acunarEnColumna) {
       buttons.push('<button type="button" data-op="acunar">Acuñar</button>');
     }
     if (!buttons.length) {
@@ -359,7 +361,7 @@
     textos = doc;
     paintFarm();
   }).catch(() => {});
-  window.Finca = { onNet, open, openPanel, openLibro, pull, cosecharCerca };
+  window.Finca = { onNet, open, openPanel, openLibro, pull, cosecharCerca, paintDock };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
 })();
