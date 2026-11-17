@@ -21,7 +21,7 @@ BANNED_ITEMS = {
     'smc', 'smp', 'smh', 'sph', 'simoncoin', 'simonplata', 'simonchis',
     'sai', 'plata', 'cobre_moneda', 'guacharaca', 'ortal',
 }
-MAPS = {'city', 'casa', 'mine', 'banco', 'central'}
+MAPS = {'city', 'casa', 'mine', 'mina2', 'banco', 'central'}
 DIRS = {'up', 'down', 'left', 'right'}
 HUD_KEYS = (
     'lifeinc.hud.layout.desktop.horizontal',
