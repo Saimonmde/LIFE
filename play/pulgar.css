@@ -93,6 +93,30 @@ html.movil #b-descansar,
   body.in-game #b-acunar-pulgar,
   body.in-game #mine-enter { z-index: 48 !important; }
   body.in-game #w-inv:not([hidden]) { z-index: 60 !important; }
+  html.movil #b-acunar-pulgar.columna-pulgar,
+  html.movil #b-picar.columna-pulgar,
+  html.movil #b-inventario-movil.columna-pulgar,
+  html.movil #mine-route.columna-pulgar,
+  html.movil #mine-enter.columna-pulgar,
+  html.movil #viaje-mundo-abrir.columna-pulgar,
+  html.movil #ladera-ir.columna-pulgar,
+  html.movil #mine-exit-route.columna-pulgar,
+  html.movil #mina-mundo-jay.columna-pulgar {
+    position: fixed !important;
+    top: auto !important;
+    left: auto !important;
+    right: max(8px, env(safe-area-inset-right)) !important;
+    bottom: var(--columna-desde, 72px) !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: 156px !important;
+    height: auto !important;
+    min-height: 48px;
+    z-index: 48 !important;
+    white-space: normal;
+    text-align: center;
+    box-sizing: border-box;
+  }
   .ventana header .x,
   #city-map-close,
   #cajon-cerrar,

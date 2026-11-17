@@ -126,8 +126,68 @@
     $('cambio-ok').onclick = confirmar;
     pintarCambio();
   }
-  window.Pulgar = { pintarCambio: pintarCambio, cerrar: cerrar };
+  const COLUMNA = ['b-acunar-pulgar', 'b-picar', 'b-inventario-movil', 'mine-route', 'mine-enter', 'viaje-mundo-abrir', 'ladera-ir', 'mine-exit-route', 'mina-mundo-jay'];
+  const HUECO = 8;
+  const INICIO = 72;
+  function portraitMovil() {
+    return estrecho() && matchMedia('(orientation: portrait)').matches;
+  }
+  function sePisan(a, b) {
+    if (!a || !b) return false;
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+  function puestosDe(alturas, inicio, hueco) {
+    const out = [];
+    let cursor = inicio == null ? INICIO : inicio;
+    const gap = hueco == null ? HUECO : hueco;
+    for (let i = 0; i < alturas.length; i++) {
+      const alto = Number(alturas[i]) || 0;
+      if (!(alto > 0)) { out.push(null); continue; }
+      out.push({ desde: cursor, hasta: cursor + alto, alto: alto });
+      cursor += alto + gap;
+    }
+    return out;
+  }
+  function rectsDe(puestos, ancho, vista, borde) {
+    const right = vista.w - borde;
+    return puestos.map((p) => {
+      if (!p) return null;
+      return { left: right - ancho, right: right, top: vista.h - p.hasta, bottom: vista.h - p.desde };
+    });
+  }
+  function visible(el) {
+    if (!el || el.hidden) return false;
+    const estilo = getComputedStyle(el);
+    return estilo.display !== 'none' && estilo.visibility !== 'hidden';
+  }
+  function limpiar(el) {
+    if (!el || !el.classList.contains('columna-pulgar')) return;
+    el.classList.remove('columna-pulgar');
+    el.style.removeProperty('--columna-desde');
+  }
+  function apilar() {
+    const els = COLUMNA.map((id) => $(id));
+    if (!portraitMovil()) {
+      els.forEach(limpiar);
+      return [];
+    }
+    const vivos = els.map((el) => !!(el && visible(el)));
+    els.forEach((el, i) => {
+      if (!el) return;
+      if (vivos[i]) el.classList.add('columna-pulgar');
+      else limpiar(el);
+    });
+    const alturas = els.map((el, i) => vivos[i] ? Math.ceil(el.getBoundingClientRect().height) : 0);
+    const puestos = puestosDe(alturas);
+    puestos.forEach((p, i) => {
+      if (!p || !els[i]) return;
+      els[i].style.setProperty('--columna-desde', 'calc(' + p.desde + 'px + env(safe-area-inset-bottom))');
+    });
+    return puestos;
+  }
+  window.Pulgar = { pintarCambio: pintarCambio, cerrar: cerrar, apilar: apilar, puestosDe: puestosDe, rectsDe: rectsDe, sePisan: sePisan, COLUMNA: COLUMNA, HUECO: HUECO, INICIO: INICIO };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
-  addEventListener('resize', () => { if (!$('pulgar')) mount(); });
+  addEventListener('resize', () => { if (!$('pulgar')) mount(); apilar(); });
+  setInterval(apilar, 400);
 })();
