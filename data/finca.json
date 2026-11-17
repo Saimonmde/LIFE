@@ -49,7 +49,7 @@
       "bagKg": 70,
       "unitCount": "sacos de 70 kg de excelso",
       "processPhrase": "Se procesó 1 saco de 70 kg de café excelso.",
-      "note": "Cada cosecha son 94 kg de café cereza. Diez cosechas son 940 kg. Quedan 188 kg de pergamino seco: 1 carga de 125 kg y 63 kg. La trilla da 2 sacos de 70 kg de excelso.",
+      "note": "Cada cosecha son 94 kg de café cereza. Diez cosechas son 940 kg. Quedan 188 kg de pergamino seco: 1 carga de 125 kg y 63 kg. La trilla da 2 sacos de 70 kg de excelso. En kilos sueltos: 5 kg de cereza dan 2 kg lavados y luego 1 kg de pergamino seco; 3 kg de pergamino seco dan 2 kg de café tostado.",
       "yield": { "num": 7, "den": 47 },
       "parchment": { "cherryKg": 5, "perSackKg": 94, "cargaKg": 125 },
       "serialPrefix": "CAF",
@@ -58,11 +58,44 @@
         { "id": "secado", "label": "Secar" },
         { "id": "trilla", "label": "Trillar" }
       ],
-      "prices": { "simoncoin": "0.05", "simonplata": "2", "simonchis": 80 },
+      "kgChain": {
+        "lavar": {
+          "in": "cafe_cereza",
+          "out": "cafe_lavado",
+          "num": 2,
+          "den": 5,
+          "label": "Lavar",
+          "note": "5 kg de cereza dan 2 kg de pergamino húmedo. La pulpa se va."
+        },
+        "secar": {
+          "in": "cafe_lavado",
+          "out": "cafe_pergamino",
+          "num": 1,
+          "den": 2,
+          "label": "Secar",
+          "note": "2 kg húmedos dan 1 kg de pergamino seco. El agua se va."
+        },
+        "tostar": {
+          "in": "cafe_pergamino",
+          "out": "cafe_tostado",
+          "num": 2,
+          "den": 3,
+          "label": "Tostar",
+          "note": "3 kg de pergamino seco dan 2 kg de café tostado. La trilla deja cerca del 80 % y el tueste pierde un sexto."
+        }
+      },
+      "tostadoPrice": {
+        "kg": 14,
+        "simoncoin": "0.01",
+        "note": "El saco de 70 kg de excelso vale 0,05 SMC. Eso es exactamente 0,01 SMC por cada 14 kg. El Simonchi no se parte, así que la casa compra de 14 en 14 kg de café tostado."
+      },
+      "prices": { "simoncoin": "0.05" },
       "sources": [
         "Cenicafé, Marín et al. 2003: cereza madura a pergamino seco 5,04:1; el rango habitual es 4,7 a 5,3. El juego usa 5 kg de cereza por 1 kg de pergamino para que el kilo sea entero. https://biblioteca.cenicafe.org/bitstream/10778/254/1/arc054%2804%29297-315.pdf",
         "FNC, glosario: 1 carga = 125 kg de pergamino seco. https://federaciondecafeteros.org/wp/glosario/carga-de-cafe-2/",
-        "FNC: el factor 94 son 94 kg de pergamino seco para 1 saco de 70 kg de excelso. https://federaciondecafeteros.org/aprenda-a-vender-su-cafe/"
+        "FNC: el factor 94 son 94 kg de pergamino seco para 1 saco de 70 kg de excelso. https://federaciondecafeteros.org/aprenda-a-vender-su-cafe/",
+        "El pergamino húmedo ronda 55 % de humedad y se seca hasta cerca de 12 %. Con 5 kg de cereza por 1 kg seco, el húmedo pesa unos 2 kg. http://www.scielo.org.co/scielo.php?pid=S1900-38032013000200015&script=sci_arttext",
+        "Cenicafé, citando a Belitz y Grosch 2009: en el tueste el grano pierde entre 11 % y 20 % del peso. El juego usa un sexto (16,7 %), dentro de ese rango. https://publicaciones.cenicafe.org/index.php/avances_tecnicos/article/download/3171/3192/2929"
       ]
     },
     "cacao": {
@@ -83,7 +116,7 @@
         { "id": "fermentado", "label": "Fermentar" },
         { "id": "secado", "label": "Secar" }
       ],
-      "prices": { "simoncoin": "0.04", "simonplata": "1.5", "simonchis": 60 },
+      "prices": { "simoncoin": "0.04" },
       "sources": [
         "Cajón de 1 × 1 × 0,9 m: 450 kg de cacao fresco en baba y 150 kg secos. Protocolo de fermentación, Red Cacaotera; la tabla cita a Swisscontact y Colombia Productiva. https://www.redcacaotera.com.co/wp-content/uploads/2025/08/FERMENTACION.pdf"
       ]

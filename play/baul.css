@@ -179,7 +179,7 @@ body.in-game #baul-mina:not([hidden]) { display: flex; flex-direction: column; }
   opacity: 0.55;
 }
 #baul-mina .casilla-ico { display: grid; place-items: center; width: 100%; height: 78%; }
-#baul-mina .casilla-ico svg { width: 78%; height: 78%; }
+#baul-mina .casilla-ico svg, #baul-mina .casilla-ico img { width: 78%; height: 78%; object-fit: contain; }
 #baul-mina .casilla-n {
   position: absolute;
   right: 3px;

@@ -52,6 +52,18 @@
 #finca-panel h3, #libro-publico h3 { margin: 8px 0 4px; font-size: 16px; }
 .finca-plot, .finca-bag { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #3a3228; }
 .finca-note { color: #e7d3ae; margin: 6px 0; }
+.finca-kilos { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+#finca-kg {
+  min-height: 44px;
+  width: 7em;
+  border-radius: 10px;
+  border: 1px solid #c4a574;
+  background: #120c07;
+  color: #fff6df;
+  font: 700 16px/1 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  padding: 0 10px;
+}
+#finca-panel img { vertical-align: middle; }
 .finca-carta { margin: 4px 0 10px; }
 .finca-carta summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
 .finca-carta p { margin: 6px 0; font-size: 15px; }

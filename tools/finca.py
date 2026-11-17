@@ -12,6 +12,9 @@ citas están en data/finca.json y en docs/unidades-finca.md.
 
 Aquí no se acuñan monedas ni lingotes. Una venta sólo mueve monedas que
 ya existen, desde la Casa de Contratación. Si no le alcanzan, no compra.
+El café también puede quedarse en kilos: lavar (5 → 2), secar (2 → 1) y
+tostar (3 → 2). Cada paso gasta kilos y no crea masa. El tostado se vende
+sólo en SMC, de 14 kg en 14 kg, al mismo precio del saco de 70 kg.
 """
 import hashlib
 import hmac
@@ -28,6 +31,9 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 DEFAULT_CONFIG = os.path.join(ROOT, 'data', 'finca.json')
 CROPS = ('cafe', 'cacao')
 COINS = ('simoncoin', 'simonplata', 'simonchis')
+# Kilos en la mano y en el baúl. No son sacos de 70 kg.
+KG_ITEMS = ('cafe_cereza', 'cafe_lavado', 'cafe_pergamino', 'cafe_tostado')
+KG_STEPS = ('lavar', 'secar', 'tostar')
 SUPPLY_NUMS = (
     'simoncoin', 'simonplata', 'simonchis',
     'simoncoinSum', 'simonplataSum', 'simonchisSum',
@@ -51,6 +57,21 @@ def load_config(path=None):
     for crop in CROPS:
         if crop not in (data.get('crops') or {}):
             raise FincaError('falta el cultivo ' + crop)
+    cafe = data['crops']['cafe']
+    chain = cafe.get('kgChain') or {}
+    for step in KG_STEPS:
+        spec = chain.get(step) or {}
+        num = int(spec.get('num') or 0)
+        den = int(spec.get('den') or 0)
+        if num <= 0 or den <= 0 or num >= den:
+            raise FincaError('el paso de kilos crearía masa')
+        if spec.get('in') not in KG_ITEMS or spec.get('out') not in KG_ITEMS:
+            raise FincaError('el paso de kilos no tiene un producto')
+    price = cafe.get('tostadoPrice') or {}
+    if int(price.get('kg') or 0) <= 0:
+        raise FincaError('falta el precio del café tostado')
+    if economy.parse_amount(str(price.get('simoncoin') or '0') + ' SMC') <= 0:
+        raise FincaError('el café tostado no tiene precio en SMC')
     return data
 
 
@@ -71,6 +92,7 @@ def empty_state():
         'privateEvents': [],
         'feed': [],
         'place': 'las_palmas',
+        'kilosV': 1,
     }
 
 
@@ -92,6 +114,7 @@ def normalize(state):
     base['seq'] = int(state.get('seq') or 0)
     base['lastBagHash'] = str(state.get('lastBagHash') or '')
     base['place'] = 'las_palmas'
+    base['kilosV'] = int(state.get('kilosV') or 0)
     for crop in CROPS:
         base['harvestedKg'][crop] = int((state.get('harvestedKg') or {}).get(crop) or 0)
         base['processedBags'][crop] = int((state.get('processedBags') or {}).get(crop) or 0)
@@ -185,7 +208,10 @@ def load(path):
         doc = empty_state()
         save(path, doc)
         return doc
-    return normalize(doc)
+    doc = normalize(doc)
+    if migrate_kilos(doc, load_config()):
+        save(path, doc)
+    return doc
 
 
 def save(path, state):
@@ -257,6 +283,8 @@ def _steps(spec):
 
 def _price(spec, coin):
     raw = (spec.get('prices') or {}).get(coin)
+    if raw in (None, ''):
+        return 0
     if coin == 'simonchis':
         return int(raw or 0)
     return economy.parse_amount(f'{raw} SMC')
@@ -489,6 +517,67 @@ def _tick_all(state, box, now, config, account, place='mochila'):
     return made
 
 
+def _kg_bag(box, place='mochila'):
+    key = 'kilos' if place != 'banco' else 'kilosBanco'
+    found = box.setdefault(key, {})
+    for item in KG_ITEMS:
+        found[item] = int(found.get(item) or 0)
+    return found
+
+
+def _kg(box, item, place='mochila'):
+    return int(_kg_bag(box, place).get(item) or 0)
+
+
+def _add_kg(box, item, qty, place='mochila'):
+    qty = int(qty or 0)
+    if item not in KG_ITEMS or qty <= 0:
+        return _kg(box, item, place)
+    bag = _kg_bag(box, place)
+    bag[item] = int(bag.get(item) or 0) + qty
+    return bag[item]
+
+
+def _take_kg(box, item, qty, place='mochila'):
+    qty = int(qty or 0)
+    if item not in KG_ITEMS or qty <= 0:
+        return False
+    bag = _kg_bag(box, place)
+    have = int(bag.get(item) or 0)
+    if have < qty:
+        return False
+    bag[item] = have - qty
+    return True
+
+
+def migrate_kilos(state, config):
+    """Pasa las recolecciones viejas a kilos, una sola vez. No toca los sacos.
+
+    Si el jugador ya tiene kilos anotados, no se vuelven a calcular: repetir
+    la migración no crea cereza.
+    """
+    if int(state.get('kilosV') or 0) >= 1:
+        return False
+    per = int(((config.get('crops') or {}).get('cafe') or {}).get('kgPerHarvest') or 94)
+    if per <= 0:
+        per = 94
+    for box in (state.get('accounts') or {}).values():
+        if not isinstance(box, dict):
+            continue
+        kilos = box.setdefault('kilos', {})
+        banco = box.setdefault('kilosBanco', {})
+        if 'cafe_cereza' not in kilos:
+            count = int((box.get('goods') or {}).get('cafe_cereza') or 0)
+            kilos['cafe_cereza'] = count * per
+        for item in KG_ITEMS:
+            kilos.setdefault(item, 0)
+            kilos[item] = int(kilos.get(item) or 0)
+            banco.setdefault(item, 0)
+            banco[item] = int(banco.get(item) or 0)
+    state['kilosV'] = 1
+    return True
+
+
 def plant(state, config, account, plot_id, now):
     box = _account(state, config, account)
     plot = box['plots'].get(plot_id)
@@ -522,6 +611,8 @@ def harvest(state, config, account, plot_id, now):
     box.setdefault('openHarvests', {}).setdefault(crop, []).append(harvest_id)
     item = spec['harvestItem']
     box['goods'][item] = int(box['goods'].get(item) or 0) + 1
+    if crop == 'cafe':
+        _add_kg(box, 'cafe_cereza', kg)
     # Cada mata vuelve a crecer con su propio reloj. Las demás parcelas no se tocan.
     plot['plantedAt'] = int(now)
     name = 'café' if crop == 'cafe' else 'cacao'
@@ -549,7 +640,7 @@ def harvest_crop(state, config, account, crop, now):
 
 
 def export_crop(state, purse, config, account, crop, now):
-    """Vende los bultos de exportación por Simonplata ya existente. No acuña SMC."""
+    """Vende los bultos por SMC que ya existe. No acuña."""
     if crop not in CROPS:
         raise FincaError('ese cultivo no está en Las Palmas')
     bags = [
@@ -561,11 +652,11 @@ def export_crop(state, purse, config, account, crop, now):
         raise FincaError(f'No hay {name} en el inventario para exportar.')
     done = []
     for bag in list(bags):
-        result = sell(state, purse, config, account, bag['serial'], 'simonplata', now)
+        result = sell(state, purse, config, account, bag['serial'], 'simoncoin', now)
         done.append({
             'serial': bag['serial'],
             'crop': crop,
-            'coin': 'simonplata',
+            'coin': 'simoncoin',
             'amount': int(result.get('amount') or 0),
         })
     return done
@@ -611,7 +702,16 @@ def process(state, config, account, crop, now):
     have = int(box['goods'].get(item) or 0)
     if have < need:
         raise FincaError(f'hacen falta {need} recolecciones. Llevas {have}.')
+    kg_need = 0
+    if crop == 'cafe':
+        kg_need = need * int(spec.get('kgPerHarvest') or 0)
+        held = _kg(box, 'cafe_cereza')
+        if held < kg_need:
+            raise FincaError('Esos kilos de cereza ya se lavaron o no alcanzan para el lote.')
     box['goods'][item] = have - need
+    if crop == 'cafe' and not _take_kg(box, 'cafe_cereza', kg_need):
+        box['goods'][item] = have
+        raise FincaError('Esos kilos de cereza ya se lavaron o no alcanzan para el lote.')
     harvests = box.setdefault('openHarvests', {}).setdefault(crop, [])
     used = harvests[:need]
     del harvests[:need]
@@ -792,6 +892,241 @@ def private_payload(state):
     }
 
 
+def _whole_kg(raw):
+    """Kilos enteros, o None si el jugador pidió todos los que quepan."""
+    if raw in (None, '', 'todo', 'todos', 'all', '*'):
+        return None
+    if isinstance(raw, bool):
+        raise FincaError('Esos kilos no se leen.')
+    if isinstance(raw, float):
+        if not raw.is_integer():
+            raise FincaError('Los kilos son enteros.')
+        return int(raw)
+    if isinstance(raw, int):
+        return raw
+    text = str(raw).strip().lower().replace(',', '.')
+    if text in ('todo', 'todos', 'all', '*', ''):
+        return None
+    if '.' in text:
+        raise FincaError('Los kilos son enteros.')
+    try:
+        return int(text)
+    except (TypeError, ValueError):
+        raise FincaError('Esos kilos no se leen.')
+
+
+def _kg_step(config, step):
+    spec = ((config.get('crops') or {}).get('cafe') or {}).get('kgChain') or {}
+    row = spec.get(step) or {}
+    num = int(row.get('num') or 0)
+    den = int(row.get('den') or 0)
+    src = str(row.get('in') or '')
+    dst = str(row.get('out') or '')
+    if step not in KG_STEPS or num <= 0 or den <= 0 or num >= den:
+        raise FincaError('ese paso no está en el taller')
+    if src not in KG_ITEMS or dst not in KG_ITEMS:
+        raise FincaError('ese paso no está en el taller')
+    return row, num, den, src, dst
+
+
+def _tostado_price(config):
+    row = ((config.get('crops') or {}).get('cafe') or {}).get('tostadoPrice') or {}
+    unit = int(row.get('kg') or 0)
+    pay = economy.parse_amount(str(row.get('simoncoin') or '0') + ' SMC')
+    if unit <= 0 or pay <= 0:
+        raise FincaError('el café tostado no tiene precio')
+    return unit, pay
+
+
+def pay_record(buyer, account, amount, kg):
+    """Asiento del libro mayor. No mueve monedas: eso ya lo hizo la casa."""
+    kg = int(kg or 0)
+    amount = int(amount or 0)
+    return {
+        'type': 'pay',
+        'from': buyer,
+        'to': account,
+        'amountSubs': amount,
+        'coin': 'SMC',
+        'note': f'Compra de {kg} kg de café tostado.',
+    }
+
+
+def convert_kg(state, config, account, step, raw_kg, now):
+    """Gasta kilos de un paso y deja menos kilos del siguiente. No crea masa.
+
+    Lavar: 5 kg de cereza → 2 kg de pergamino húmedo. La pulpa se va.
+    El pergamino húmedo ronda 55 % de humedad y el seco queda en 10–12 %
+    (Cenicafé / Federacafé). Con el factor ya usado de 5 kg de cereza por
+    1 kg de pergamino seco, el húmedo pesa unos 2 kg.
+    Secar: 2 kg húmedos → 1 kg de pergamino seco. El agua se va.
+    Tostar: 3 kg de pergamino seco → 2 kg de café tostado.
+    La trilla de los sacos sigue en 70/94 (FNC). Aquí, para que el kilo
+    quede entero, la trilla se toma cerca del 80 % y el tueste pierde
+    un sexto (16,7 %). Cenicafé, citando a Belitz y Grosch 2009, sitúa
+    esa pérdida entre 11 % y 20 %:
+    https://publicaciones.cenicafe.org/index.php/avances_tecnicos/article/download/3171/3192/2929
+    80 % × (1 − 1/6) = 2/3. El saco de 70 kg no usa esta fracción.
+    """
+    row, num, den, src, dst = _kg_step(config, step)
+    box = _account(state, config, account)
+    have = _kg(box, src)
+    asked = _whole_kg(raw_kg)
+    if asked is None:
+        asked = have - (have % den)
+    if asked < den:
+        label = row.get('label') or step
+        raise FincaError(f'No alcanza para {label.lower()}. Hacen falta múltiplos de {den} kg y llevas {have} kg.')
+    if asked > have:
+        raise FincaError(f'No hay tantos kilos. Llevas {have} kg.')
+    if asked % den:
+        raise FincaError(f'Se procesan de {den} en {den} kg. Llevas {have} kg.')
+    made = asked * num // den
+    if made < 1 or made >= asked or made * den != asked * num:
+        raise FincaError('esa conversión crearía kilos')
+    if not _take_kg(box, src, asked):
+        raise FincaError(f'No hay tantos kilos. Llevas {have} kg.')
+    _add_kg(box, dst, made)
+    names = {
+        'cafe_cereza': 'café cereza',
+        'cafe_lavado': 'pergamino húmedo',
+        'cafe_pergamino': 'pergamino seco',
+        'cafe_tostado': 'café tostado',
+    }
+    note = f'Se pasó de {asked} kg de {names[src]} a {made} kg de {names[dst]}.'
+    _log(state, step, account, now, note, crop='cafe', kg=made)
+    return {'step': step, 'spent': asked, 'made': made, 'item': dst, 'note': note}
+
+
+def sell_kg(state, purse, config, account, raw_kg, now):
+    """Vende café tostado por SMC ya existente. No acuña y no pasa el tope."""
+    unit, each = _tostado_price(config)
+    box = _account(state, config, account)
+    have = _kg(box, 'cafe_tostado')
+    asked = _whole_kg(raw_kg)
+    if asked is None:
+        asked = have - (have % unit)
+    if asked < unit:
+        raise FincaError(f'La casa compra de {unit} en {unit} kg. Llevas {have} kg de café tostado.')
+    if asked > have:
+        raise FincaError(f'No hay tantos kilos de café tostado. Llevas {have} kg.')
+    if asked % unit:
+        raise FincaError(f'La casa compra de {unit} en {unit} kg. Llevas {have} kg.')
+    pay = (asked // unit) * each
+    if pay <= 0:
+        raise FincaError('ese café no tiene precio')
+    wallet = int(purse.balance('simoncoin', account) or 0)
+    if wallet + pay > economy.MAX_SMH:
+        raise FincaError('Pasaría el tope de 21.000.000 SMC.')
+    buyer = config['buyer']
+    if not guarded_move(purse, 'simoncoin', buyer, account, pay):
+        raise FincaError('la Casa de Contratación no tiene monedas para comprar')
+    if not _take_kg(box, 'cafe_tostado', asked):
+        guarded_move(purse, 'simoncoin', account, buyer, pay)
+        raise FincaError('No se descontó el café.')
+    note = f'La casa pagó {economy.format_smc(pay)} por {asked} kg de café tostado.'
+    _log(
+        state, 'venta', account, now, note, crop='cafe', kg=asked,
+        counterparty=buyer, coin='simoncoin', amount=pay,
+    )
+    return {
+        'kg': asked,
+        'coin': 'simoncoin',
+        'amount': pay,
+        'note': note,
+        'ledger': pay_record(buyer, account, pay, asked),
+    }
+
+
+def move_kilos(state, config, account, item, qty, op, now):
+    """Pasa kilos entre la mano y el baúl. No crea café."""
+    if item not in KG_ITEMS or op not in ('deposit', 'withdraw'):
+        raise FincaError('Nada que mover.')
+    box = _account(state, config, account)
+    src = 'mochila' if op == 'deposit' else 'banco'
+    dst = 'banco' if op == 'deposit' else 'mochila'
+    have = _kg(box, item, src)
+    if qty in (None, 'all', 'todo', 'todos', '*'):
+        take = have
+    else:
+        take = _whole_kg(qty)
+        if take is None:
+            take = have
+    if take < 1 or take > have:
+        raise FincaError('No hay esa cantidad.')
+    if not _take_kg(box, item, take, src):
+        raise FincaError('No hay esa cantidad.')
+    _add_kg(box, item, take, dst)
+    kind = 'deposito' if op == 'deposit' else 'retiro'
+    text = 'Se guardó café en el baúl.' if op == 'deposit' else 'Se sacó café del baúl.'
+    _log(state, kind, account, now, text, crop='cafe', kg=take)
+    return {'op': op, 'item': item, 'qty': take}
+
+
+def kilos_de(state, account, place):
+    box = (state.get('accounts') or {}).get(account) or {}
+    key = 'kilos' if place != 'banco' else 'kilosBanco'
+    found = {}
+    for item, qty in (box.get(key) or {}).items():
+        if item in KG_ITEMS and int(qty or 0) > 0:
+            found[item] = int(qty)
+    return found
+
+
+def alinear_kilos(state, vault, name, offer):
+    """Deja en la mochila los kilos que el trueque va a pasar. No crea café.
+
+    Si una parte está en el baúl, sube a la mano. Si la mochila del
+    intercambio todavía no reflejaba esos kilos, se anota la misma cantidad.
+    """
+    import purses
+    items = (offer or {}).get('items') or {}
+    box = (state.get('accounts') or {}).get(name)
+    for item, qty in items.items():
+        if item not in KG_ITEMS:
+            continue
+        qty = int(qty or 0)
+        if qty <= 0:
+            continue
+        if not isinstance(box, dict):
+            raise FincaError('No hay tantos kilos de café.')
+        mochila_kg = _kg(box, item, 'mochila')
+        banco = _kg(box, item, 'banco')
+        if mochila_kg + banco < qty:
+            raise FincaError('No hay tantos kilos de café.')
+        if mochila_kg < qty:
+            if not _take_kg(box, item, qty - mochila_kg, 'banco'):
+                raise FincaError('No hay tantos kilos de café.')
+            _add_kg(box, item, qty - mochila_kg, 'mochila')
+        have = purses.count(vault, name, item)
+        if have < qty:
+            got = purses.credit(vault, name, item, qty - have)
+            if got != have + (qty - have):
+                raise FincaError('La mochila no acepta más.')
+
+
+def entregar_kilos(state, src, dst, offer):
+    """Pasa los kilos ya alineados de una cuenta a la otra. No crea café."""
+    items = (offer or {}).get('items') or {}
+    for item, qty in items.items():
+        if item not in KG_ITEMS:
+            continue
+        qty = int(qty or 0)
+        if qty <= 0:
+            continue
+        box = (state.get('accounts') or {}).get(src)
+        if not isinstance(box, dict) or not _take_kg(box, item, qty, 'mochila'):
+            raise FincaError('No hay tantos kilos de café.')
+        other = state['accounts'].setdefault(dst, {
+            'goods': {}, 'batches': {}, 'soldDay': 0, 'soldCount': 0, 'plots': {},
+        })
+        _add_kg(other, item, qty, 'mochila')
+        _log(
+            state, 'pase', src, 0, f'Se pasaron {qty} kg de café.',
+            crop='cafe', kg=qty, counterparty=dst,
+        )
+
+
 def player_view(state, config, account, purse, now):
     box = _account(state, config, account)
     _tick_all(state, box, now, config, account)
@@ -833,9 +1168,24 @@ def player_view(state, config, account, purse, now):
         }
     day = int(now) // 86400
     sold = int(box.get('soldCount') or 0) if int(box.get('soldDay') or 0) == day else 0
+    unit, each = _tostado_price(config)
+    chain = []
+    for step in KG_STEPS:
+        row = (((config.get('crops') or {}).get('cafe') or {}).get('kgChain') or {}).get(step) or {}
+        chain.append({
+            'id': step,
+            'label': row.get('label') or step,
+            'note': row.get('note') or '',
+            'num': int(row.get('num') or 0),
+            'den': int(row.get('den') or 0),
+        })
     return {
         'plots': plots,
         'goods': {key: int(value) for key, value in (box.get('goods') or {}).items()},
+        'kilos': {item: _kg(box, item) for item in KG_ITEMS},
+        'kilosBanco': {item: _kg(box, item, 'banco') for item in KG_ITEMS},
+        'kgChain': chain,
+        'tostadoPrice': {'kg': unit, 'text': economy.format_smc(each)},
         'bags': bags,
         'bank': bank,
         'batches': batches,
@@ -873,9 +1223,12 @@ def act(state, purse, config, account, op, args, now, present=True):
         return {'ok': False, 'error': 'Hay que estar en Las Palmas, junto a los talleres.', 'changed': False, 'movedCoins': False}
     if op != 'ver' and not account:
         return {'ok': False, 'error': 'Entra con tu cuenta para cultivar.', 'changed': False, 'movedCoins': False}
+    if state.get('accounts') is not None:
+        migrate_kilos(state, config)
     moved = fund_buyer(state, purse, config) if purse else False
     changed = bool(moved)
     exports = []
+    sales = []
     note = ''
     try:
         place = 'banco' if str(args.get('place') or '') == 'banco' else 'mochila'
@@ -900,7 +1253,17 @@ def act(state, purse, config, account, op, args, now, present=True):
             changed = True
         elif op == 'exportar':
             exports = export_crop(state, purse, config, account, str(args.get('crop') or ''), now)
-            note = 'Se exportó por Simonplata. No se acuñó SMC.'
+            note = 'Se exportó por SMC. No se acuñó.'
+            changed = True
+            moved = True
+        elif op in KG_STEPS:
+            done = convert_kg(state, config, account, op, args.get('kg'), now)
+            note = done.get('note') or ''
+            changed = True
+        elif op == 'vender_kg':
+            sold = sell_kg(state, purse, config, account, args.get('kg'), now)
+            sales.append(sold['ledger'])
+            note = sold.get('note') or ''
             changed = True
             moved = True
         elif op == 'procesar':
@@ -919,6 +1282,6 @@ def act(state, purse, config, account, op, args, now, present=True):
         else:
             return {'ok': False, 'error': 'esa acción no existe', 'changed': changed, 'movedCoins': moved}
     except FincaError as exc:
-        return {'ok': False, 'error': str(exc), 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'view': player_view(state, config, account, purse, now) if account else None}
+        return {'ok': False, 'error': str(exc), 'changed': changed, 'movedCoins': moved, 'exports': exports, 'sales': sales, 'note': note, 'view': player_view(state, config, account, purse, now) if account else None}
     view = player_view(state, config, account, purse, now) if account else None
-    return {'ok': True, 'error': '', 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'view': view}
+    return {'ok': True, 'error': '', 'changed': changed, 'movedCoins': moved, 'exports': exports, 'sales': sales, 'note': note, 'view': view}

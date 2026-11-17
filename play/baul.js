@@ -70,6 +70,30 @@
       nombre: 'Cacao',
       texto: 'Bulto de la finca. Se guarda con la cosecha, sin copiarlo a otro depósito.',
     },
+    cafe_cereza: {
+      nombre: 'Café cereza',
+      kg: true,
+      icon: 'assets/cafe-cacao/sara/iconos-etapas/64/cafe_04_cereza_madura.png',
+      texto: 'Cereza madura, en kilos. Se recoge en el cafetal de Las Palmas. En el taller, 5 kg se lavan y quedan 2 kg de pergamino húmedo.',
+    },
+    cafe_lavado: {
+      nombre: 'Café lavado',
+      kg: true,
+      icon: 'assets/cafe-cacao/sara/iconos-etapas/64/cafe_08_lavado.png',
+      texto: 'Pergamino húmedo, en kilos. Sale de lavar la cereza. En el taller, 2 kg se secan y queda 1 kg de pergamino seco.',
+    },
+    cafe_pergamino: {
+      nombre: 'Pergamino seco',
+      kg: true,
+      icon: 'assets/cafe-cacao/sara/iconos-etapas/64/cafe_09_secado.png',
+      texto: 'Pergamino seco, en kilos. Sale de secar el café lavado. En el taller, 3 kg se tuestan y quedan 2 kg de café tostado.',
+    },
+    cafe_tostado: {
+      nombre: 'Café tostado',
+      kg: true,
+      icon: 'assets/cafe-cacao/cafe_tostado.svg',
+      texto: 'Café tostado, en kilos. Sale de tostar el pergamino seco. La Casa de Contratación lo compra por SMC, de 14 kg en 14 kg, o se cambia con otra persona.',
+    },
     carne: { nombre: 'Carne', texto: 'Se obtiene al cazar. Se guarda en el baúl o se lleva encima.' },
     piel: { nombre: 'Piel', texto: 'Se obtiene al cazar. Se guarda en el baúl o se lleva encima.' },
     pluma: { nombre: 'Pluma', texto: 'Se obtiene al cazar. Se guarda en el baúl o se lleva encima.' },
@@ -264,17 +288,19 @@
       bolsa_cafe: saco('#6f4e37'),
       bolsa_cacao: saco('#c4a574'),
     };
+    const ficha = FICHAS[id];
+    if (ficha && ficha.icon) return '<img src="' + ficha.icon + '" alt="">';
     return tabla[id] || saco('#6f8f55');
   }
   function cifra(texto) {
     return String(texto || '0').replace(/\s*SMC\s*$/i, '').trim() || '0';
   }
   function casilla(row) {
-    const n = row.kind === 'smc' ? cifra(row.texto) : String(row.qty);
     const info = fichaDe(row.id, row.name);
+    const n = row.kind === 'smc' ? cifra(row.texto) : (info.kg ? String(row.qty) + ' kg' : String(row.qty));
     const nombre = info.nombre;
     const on = sel && sel.lado === row.lado && sel.id === row.id;
-    return '<button type="button" class="casilla' + (on ? ' sel' : '') + '" data-lado="' + row.lado + '" data-kind="' + row.kind + '" data-item="' + esc(row.id) + '" data-nombre="' + esc(nombre) + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(nombre + ' ' + n) + '">'
+    return '<button type="button" class="casilla' + (on ? ' sel' : '') + '" data-lado="' + row.lado + '" data-kind="' + row.kind + '" data-item="' + esc(row.id) + '" data-nombre="' + esc(nombre) + '" title="' + esc(info.texto || '') + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(nombre + ' ' + n + '. ' + (info.texto || '')) + '">'
       + '<span class="casilla-ico" aria-hidden="true">' + dibujo(row.id) + '</span>'
       + '<span class="casilla-n">' + esc(n) + '</span></button>';
   }
@@ -385,6 +411,7 @@
       + '</div>'
       + '<p class="baul-exacto">En total ' + esc(smc.total && smc.total.exacto) + '. ' + esc(smc.escala || '') + ' Tope ' + esc(smc.tope || '') + '.</p>'
       + '<p class="baul-nota">' + esc(smc.topes || '') + '</p>'
+      + filas.filter((row) => FICHAS[row.id] && FICHAS[row.id].kg).map((row) => '<p class="baul-nota"><b>' + esc(FICHAS[row.id].nombre) + '.</b> ' + esc(FICHAS[row.id].texto) + '</p>').join('')
       + '<p class="baul-nota">Encima ' + (totales.encima || 0) + ' · Baúl ' + (totales.baul || 0) + '. Guardar todo y Sacar todo no crean nada: el servidor cuenta lo que ya hay.</p>'
       + '<p class="baul-nota" id="baul-estado">' + (aviso ? esc(aviso) : (linked ? 'Conectado. Cada pase se guarda en la cuenta.' : 'Sin conexión. El servidor confirma cada pase.')) + '</p>'
       + carta(data);

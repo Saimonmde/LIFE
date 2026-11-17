@@ -38,6 +38,7 @@
     '<p>Cosechas cuando está maduro.</p>',
     '<p>En el taller procesas el fruto.</p>',
     '<p>Vendes el bulto si la casa tiene monedas.</p>',
+    '<p>También puedes lavar, secar y tostar por kilos. El café tostado se vende por SMC.</p>',
     '<p>El café está junto al cacao. Veinte minutos reales son un día de juego.</p>',
     '<p>Diez cosechas de café son 940 kg de cereza y dan dos sacos de 70 kg de excelso. Diez de cacao son 900 kg en baba y llenan dos cajones, 150 kg secos cada uno. Los kilos cosechados no bajan.</p>',
     '<p>El Libro mayor muestra los kilos y los sacos. No dice quién.</p>',

@@ -220,7 +220,7 @@ class FincaButtonTests(unittest.TestCase):
         purse.balance = balance
         purse.move = move
         purse.supply = supply
-        purse.bal[('simonplata', config['buyer'])] = 20 * eco.SUBS
+        purse.bal[('simoncoin', config['buyer'])] = 20 * eco.SUBS
         now = 1_700_000_000
         planted = finca.act(state, purse, config, 'Jay', 'plantar', {'plot': 'cafe-1'}, now, present=True)
         self.assertTrue(planted['ok'], planted.get('error'))
@@ -242,7 +242,8 @@ class FincaButtonTests(unittest.TestCase):
         exported = finca.act(state, purse, config, 'Jay', 'exportar', {'crop': 'cafe'}, now + 4 * reloj.REAL_SECONDS_PER_DAY, present=True)
         self.assertTrue(exported['ok'], exported.get('error'))
         self.assertEqual(purse.minted['simoncoin'], before)
-        self.assertGreater(balance('simonplata', 'Jay'), 0)
+        self.assertGreater(balance('simoncoin', 'Jay'), 0)
+        self.assertEqual(balance('simonplata', 'Jay'), 0)
         self.assertEqual(state['bags'][serial]['place'], 'vendido')
         self.assertEqual(finca.batch_balance(config['crops']['cafe'], config)['sackKg'], 70)
         self.assertEqual(finca.batch_balance(config['crops']['cacao'], config)['sackKg'], 150)

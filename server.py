@@ -1957,6 +1957,8 @@ def _vista_baul(name):
         bultos_encima=_bultos_de(name, 'mochila'),
         bultos_baul=_bultos_de(name, 'banco'),
         crudo_encima=_crudo_encima(name),
+        kilos_encima=FINCA.kilos_de(FINCA_STATE, name, 'mochila'),
+        kilos_baul=FINCA.kilos_de(FINCA_STATE, name, 'banco'),
     )
 
 
@@ -1989,6 +1991,8 @@ def junto_baul(sender):
 def baul_for(sender):
     if not wallet_ready(sender):
         return
+    if finca_sync_purse(sender.name):
+        save_vault()
     lejos = junto_baul(sender)
     nota = ''
     if lejos:
@@ -2036,6 +2040,26 @@ def _mover_bulto(sender, op, item, qty, token=''):
     _enviar_baul(sender, True, moved=[{'op': op, 'item': item, 'qty': result.get('qty') or 0}])
 
 
+def _mover_kilo(sender, op, item, qty, token=''):
+    """Los kilos de café cambian de lugar en la finca. No se copian ni se crean."""
+    if token and token in (VAULT.account(VAULT_STATE, sender.name).get('ops') or []):
+        return _enviar_baul(sender, True, dup=True)
+    try:
+        result = FINCA.move_kilos(FINCA_STATE, FINCA_CONFIG, sender.name, item, qty, op, time.time())
+    except FINCA.FincaError as exc:
+        return _enviar_baul(sender, False, str(exc))
+    if finca_sync_purse(sender.name):
+        save_vault()
+    save_finca()
+    if token:
+        box = VAULT.account(VAULT_STATE, sender.name)
+        ops = box.setdefault('ops', [])
+        ops.append(str(token)[:48])
+        del ops[:-32]
+        save_vault()
+    _enviar_baul(sender, True, moved=[{'op': op, 'item': item, 'qty': result.get('qty') or 0}])
+
+
 def baul_mover(sender, message):
     """Sólo la cuenta de la sesión. El mensaje no elige otra persona ni crea objetos."""
     if not wallet_ready(sender):
@@ -2053,6 +2077,8 @@ def baul_mover(sender, message):
         return _enviar_baul(sender, False, 'Nada que mover.')
     if item in BAUL.MIRROR:
         return _mover_bulto(sender, op, item, qty, token)
+    if item in BAUL.KILOS:
+        return _mover_kilo(sender, op, item, qty, token)
     if item in CRUDO.CAPS:
         result = BAUL.mover_mineral(
             VAULT_STATE, ECON, _cuenta(sender), sender.name, op, item, qty, token,
@@ -2262,11 +2288,21 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
         offer_a, offer_b,
     )
     offer_a, offer_b = TRADE.apartar_baul(vault, name_a, name_b, offer_a, offer_b)
+    finca_copy = copy.deepcopy(FINCA_STATE)
+    try:
+        FINCA.alinear_kilos(finca_copy, vault, name_a, offer_a)
+        FINCA.alinear_kilos(finca_copy, vault, name_b, offer_b)
+    except FINCA.FincaError as exc:
+        raise TRADE.TradeError(str(exc))
     records = TRADE.apply_exchange(
         candidate, vault, chain, NFT_SEED, name_a, name_b, offer_a, offer_b, trade_id,
     )
-    finca_copy = copy.deepcopy(FINCA_STATE)
     _mover_bultos_del_trueque(finca_copy, name_a, name_b, offer_a, offer_b)
+    try:
+        FINCA.entregar_kilos(finca_copy, name_a, name_b, offer_a)
+        FINCA.entregar_kilos(finca_copy, name_b, name_a, offer_b)
+    except FINCA.FincaError as exc:
+        raise TRADE.TradeError(str(exc))
     PERSIST.save_bundle(
         [
             ('economy', ECON_PATH, candidate),
@@ -2281,6 +2317,8 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
     _volcar(VAULT_STATE, vault)
     _volcar(LIBRO_CHAIN, chain)
     _volcar(FINCA_STATE, finca_copy)
+    if finca_sync_purse(name_a) or finca_sync_purse(name_b):
+        save_vault()
     for person in clients.values():
         if person.hello and person.name in (name_a, name_b):
             _avisar_crudo(person, 'mineral_oro')
@@ -2986,6 +3024,16 @@ def finca_sync_purse(name):
             changed = True
         elif have > want and PURSES.debit(VAULT_STATE, name, item, have - want):
             changed = True
+    box = (FINCA_STATE.get('accounts') or {}).get(name) or {}
+    kilos = box.get('kilos') or {}
+    for item in FINCA.KG_ITEMS:
+        want = int(kilos.get(item) or 0)
+        have = PURSES.count(VAULT_STATE, name, item)
+        if want > have:
+            if PURSES.credit(VAULT_STATE, name, item, want - have) == have + (want - have):
+                changed = True
+        elif have > want and PURSES.debit(VAULT_STATE, name, item, have - want):
+            changed = True
     return changed
 
 
@@ -3026,9 +3074,12 @@ def finca_msg(sender, message):
             label = 'café excelso' if crop == 'cafe' else 'cacao seco'
             ECO.append_tx(ECON, {
                 'type': 'pay', 'from': FINCA_CONFIG.get('buyer') or 'casa_de_contratacion', 'to': account,
-                'amountSubs': 0, 'amountSph': int(row.get('amount') or 0), 'coin': 'SMP',
-                'note': f'Exportación de {label}. No se acuñó SMC.',
+                'amountSubs': int(row.get('amount') or 0), 'coin': 'SMC',
+                'note': f'Exportación de {label}. No se acuñó.',
             })
+        for row in result.get('sales') or []:
+            ECO.append_tx(ECON, row)
+        if result.get('exports') or result.get('sales'):
             save_econ()
         broadcast({'t': 'libro_publico', 'contadores': public_counters()})
     send(sender, {'t': 'finca', 'ok': bool(result.get('ok')), 'error': result.get('error') or '', 'note': result.get('note') or '', 'view': result.get('view')})

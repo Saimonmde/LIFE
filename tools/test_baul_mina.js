@@ -53,6 +53,11 @@ assert.ok(trade.includes('walletName'));
 assert.ok(trade.includes('balanceSubs'));
 assert.ok(tradeCss.includes('#coin-trade .trade-card'));
 assert.ok(tradeCss.includes('aspect-ratio:1'));
+assert.ok(ui.includes('cafe_cereza'));
+assert.ok(ui.includes('cafe_pergamino'));
+assert.ok(ui.includes('cafe_tostado'));
+assert.ok(ui.includes('Café tostado, en kilos'));
+assert.ok(trade.includes('cafe_tostado'));
 for (const banned of ['SMH', 'SMP', 'SPH', 'Simonchi', 'Simonplata']) {
   assert.ok(!ui.includes(banned), banned);
   assert.ok(!css.includes(banned), banned);
