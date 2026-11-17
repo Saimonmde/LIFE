@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 import * as T from './three.module.js';
 import {buildMine} from './mine3d.js?v=en-vivo';
-import {attachFinca} from './finca3d.js?v=matas-r1';
+import {attachFinca} from './finca3d.js?v=huerta-r1';
 import {enrichWorld} from './park3d.js?v=valle-hud-r5';
 import {buildHouse, buildHomeMarker} from './casa3d.js?v=baul-ficha';
 import {placeEnvigadoProps} from './envigado-props.js?v=valle-hud-r5';

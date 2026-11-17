@@ -19,6 +19,8 @@
   ];
   let land = null;
   let pumas = [];
+  let pelts = [];
+  const SPEAR_NEED = 5;
   let hawks = [];
   let drops = [];
   let remoteAt = 0;
@@ -218,6 +220,8 @@
         else if (!quiet() && now >= (puma.nextHit || 0)) {
           puma.nextHit = now + BITE_EVERY;
           puma.growl = true;
+          puma.streak = 0;
+          puma.cue = ((puma.cue || 0) + 1) % 3;
           const api = ink();
           if (api && api.damage) api.damage(HIT, 'puma');
         }
@@ -276,13 +280,20 @@
     }
     const who = playerAt();
     const S = state();
-    if (!who || !S || quiet()) { if (button) button.hidden = true; return; }
-    const foe = pumas.find((puma) => puma.hp > 0 && Math.hypot(puma.fx - who.x, puma.fy - who.y) <= 2.4 && puma.mode !== 'wander');
-    if (foe) {
+    if (!who || !S || quiet()) { if (button) button.hidden = true; paintDuel(null); return; }
+    const skin = pelts.find((row) => row.yours !== false && Math.hypot(row.x - who.x, row.y - who.y) <= 2.4);
+    if (skin) {
       button.hidden = false;
-      button.dataset.kind = 'defender';
-      button.dataset.id = foe.id;
-      button.textContent = 'Defenderte';
+      button.dataset.kind = 'piel';
+      button.dataset.id = skin.id;
+      button.textContent = 'Recoger piel';
+      paintDuel(null);
+      return;
+    }
+    const foe = pumas.find((puma) => puma.hp > 0 && Math.hypot(puma.fx - who.x, puma.fy - who.y) <= 2.8 && puma.mode !== 'wander');
+    paintDuel(foe);
+    if (foe) {
+      button.hidden = true;
       return;
     }
     const sack = drops.find((drop) => drop.owner === me() && Math.hypot(drop.x - who.x, drop.y - who.y) <= 1.8);
@@ -302,11 +313,89 @@
       return;
     }
     button.hidden = true;
+    paintDuel(null);
   }
   function act(kind, id) {
     if (kind === 'defender') return defend(id);
     if (kind === 'recoger') return pickup(id);
+    if (kind === 'piel') return takePelt(id);
     if (kind === 'observar') return observe(id);
+  }
+  function ensureDuel() {
+    let box = document.getElementById('puma-duelo');
+    if (box) return box;
+    box = document.createElement('section');
+    box.id = 'puma-duelo';
+    box.hidden = true;
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Lanza de caza');
+    document.body.append(box);
+    return box;
+  }
+  function paintDuel(puma) {
+    const box = ensureDuel();
+    if (!puma) { box.hidden = true; box.dataset.key = ''; return; }
+    const armed = !!(ink() && ink().holding && ink().holding() === 'lanza');
+    const streak = puma.streak || 0;
+    const cue = puma.cue || 0;
+    const key = puma.id + ':' + streak + ':' + cue + ':' + (armed ? 1 : 0);
+    if (box.dataset.key === key && !box.hidden) return;
+    box.dataset.key = key;
+    const labels = ['Izquierda', 'Centro', 'Derecha'];
+    box.hidden = false;
+    box.innerHTML = `<p>Puma. Lanza ${streak}/${SPEAR_NEED}. Toca el blanco marcado, sin que te alcance.</p>` +
+      (armed ? '' : '<p>Equipa la lanza de caza.</p>') +
+      `<div class="puma-blancos">${labels.map((label, index) => `<button type="button" data-lane="${index}" class="${index === cue ? 'is-on' : ''}">${label}</button>`).join('')}</div>`;
+    box.querySelectorAll('button').forEach((button) => {
+      button.onclick = () => lance(puma.id, Number(button.dataset.lane));
+    });
+  }
+  function lance(id, lane) {
+    const S = state();
+    const puma = pumas.find((row) => row.id === id);
+    const who = playerAt();
+    const armed = !!(ink() && ink().holding && ink().holding() === 'lanza');
+    if (!armed) { say('Equipa la <b>lanza de caza</b>.', 'aviso'); return; }
+    if (!puma || !who || !S) return;
+    if (S.net && S.net.ok && S.net.ws) {
+      S.net.ws.send(JSON.stringify({ t: 'fauna_lanza', id: id, lane: lane, lanza: true }));
+      return;
+    }
+    if ((puma.cue || 0) !== lane) {
+      puma.streak = 0;
+      puma.cue = (lane + 1) % 3;
+      say('El golpe no dio en el blanco. La tanda vuelve a empezar.', 'aviso');
+      paintDuel(puma);
+      return;
+    }
+    puma.streak = (puma.streak || 0) + 1;
+    puma.cue = ((puma.cue || 0) + 1) % 3;
+    if (puma.streak >= SPEAR_NEED) {
+      const x = puma.x, y = puma.y;
+      puma.hp = 0;
+      puma.streak = 0;
+      puma.mode = 'wander';
+      puma.until = performance.now() / 1000 + 120;
+      puma.x = puma.homeX; puma.y = puma.homeY;
+      pelts.push({ id: 'piel-' + Date.now().toString(36), owner: me() || 'local', x: x, y: y, yours: true, local: true, name: 'Piel de puma' });
+      say('El puma cayó. Puedes recoger la <b>piel de puma</b>.', 'juego');
+      paintDuel(null);
+      return;
+    }
+    say('La lanza dio. Van ' + puma.streak + ' de ' + SPEAR_NEED + '.', 'juego');
+    paintDuel(puma);
+  }
+  function takePelt(id) {
+    const row = pelts.find((pelt) => pelt.id === id);
+    const S = state();
+    if (!row || !S) return;
+    if (row.local || !(S.net && S.net.ok && S.net.ws)) {
+      giveInv('piel_puma', 1);
+      pelts = pelts.filter((pelt) => pelt.id !== id);
+      say('Recogiste la <b>piel de puma</b>.', 'juego');
+      return;
+    }
+    S.net.ws.send(JSON.stringify({ t: 'fauna_piel', id: id }));
   }
   function defend(id) {
     const S = state();
@@ -452,6 +541,7 @@
       } else {
         puma.x = row.x; puma.y = row.y; puma.dir = row.dir; puma.mode = row.mode;
         puma.hp = row.hp; puma.growl = !!row.growl;
+        puma.streak = row.streak || 0; puma.cue = row.cue || 0; puma.need = row.need || SPEAR_NEED;
       }
     });
     if ((message.pumas || []).length) pumas = pumas.filter((puma) => seen.has(puma.id) || String(puma.id).indexOf('puma-') !== 0);
@@ -463,6 +553,9 @@
       else drops.push(Object.assign({ label: row.owner === me() ? 'Tu mochila' : 'Mochila' }, row));
     });
     drops = drops.filter((drop) => drop.local || ids.has(drop.id));
+    if (Array.isArray(message.pelts)) {
+      pelts = message.pelts.map((row) => Object.assign({ name: 'Piel de puma' }, row));
+    }
     reconcile(message.drops);
   }
   function tick(dt) {
@@ -501,6 +594,21 @@
     }
     if (message.t === 'fauna_caida') { confirmDrop(message); return true; }
     if (message.t === 'fauna_recoger') { confirmPickup(message); return true; }
+    if (message.t === 'fauna_lanza') {
+      const puma = pumas.find((row) => row.id === message.id);
+      if (puma) {
+        puma.streak = message.streak || 0;
+        puma.cue = message.cue || 0;
+        if (message.dead) puma.hp = 0;
+      }
+      if (message.reason) say(message.reason, message.hit ? 'juego' : 'aviso');
+      return true;
+    }
+    if (message.t === 'fauna_piel') {
+      if (message.ok && message.item) giveInv(message.item, message.qty || 1);
+      else if (message.reason) say(message.reason, 'aviso');
+      return true;
+    }
     if (message.t === 'fauna_golpe' && message.ok) {
       const puma = pumas.find((row) => row.hp);
       say(message.dmg >= 30 ? 'Le clavás la lanza al puma.' : 'Empujás al puma con las manos.', 'juego');
@@ -615,6 +723,6 @@
 
   return {
     tick, onNet, onWelcome, onDown, paintMinimap, present, animals, boot,
-    defend, observe, pickup,
+    defend, observe, pickup, lance, paintDuel,
   };
 });

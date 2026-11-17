@@ -16,6 +16,9 @@ _EXTRAS = {
     'lingote_cobre': 'Lingote de cobre',
     'cafe_cereza': 'Café cereza',
     'cacao_baba': 'Cacao en baba',
+    'cafe_seed': 'Semilla de café',
+    'cacao_seed': 'Semilla de cacao',
+    'piel_puma': 'Piel de puma',
 }
 
 

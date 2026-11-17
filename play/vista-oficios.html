@@ -1,0 +1,95 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Huerta, pesca y puma</title>
+<link rel="stylesheet" href="finca.css?v=huerta-r1">
+<link rel="stylesheet" href="puma.css?v=puma-r1">
+<style>
+  body { margin: 0; background: #12160f; color: #f6e7c8; font: 16px/1.4 system-ui, sans-serif; }
+  #finca-panel { position: static; width: auto; max-height: none; top: auto; right: auto; left: auto; bottom: auto; box-shadow: none; }
+  #puma-duelo { position: static; left: auto; bottom: auto; transform: none; width: auto; }
+  main { display: grid; gap: 16px; padding: 16px; }
+  .escena { background: #1c1814; border: 1px solid #d7c4a2; border-radius: 16px; padding: 14px; }
+  .rio { display: flex; gap: 12px; align-items: center; min-height: 120px; background: linear-gradient(#1a3a44, #2f6d78); border-radius: 12px; padding: 12px; }
+  .onda { width: 72px; height: 28px; border-radius: 40px; background: #e8fbff; opacity: .85; }
+  .oro { width: 72px; height: 28px; border-radius: 40px; background: #e2b23c; }
+  .puma-escena { display: flex; gap: 16px; align-items: center; }
+  .puma-escena svg { width: 140px; height: 90px; }
+  @media (max-width: 820px) {
+    .rio, .puma-escena { flex-direction: column; align-items: stretch; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section id="finca-panel" class="escena" aria-label="Huerta">
+    <header>Las Palmas · huerta</header>
+    <h3>Huerta</h3>
+    <p>Ocho eras. El color y la barra van de la siembra a la cosecha.</p>
+    <div class="huerta-semillas">
+      <button type="button" class="huerta-semilla is-on">Mango · 2</button>
+      <button type="button" class="huerta-semilla">Café · 1</button>
+    </div>
+    <div class="huerta-grid" id="huerta"></div>
+  </section>
+  <section class="escena" id="rio">
+    <h3>Río y estanque</h3>
+    <div class="rio">
+      <div class="onda" aria-hidden="true"></div>
+      <div>
+        <b>Red de pesca</b>
+        <p>Lanzas la red y atrapas: Trucha. Quedó en la mochila.</p>
+      </div>
+      <div class="oro" aria-hidden="true"></div>
+      <div>
+        <b>Batea</b>
+        <p>+1 Pepita de oro. El río acuña SMC con tope de 50 al día, se reinicia a las 00:00 UTC y cada pieza queda en el Libro madre.</p>
+      </div>
+    </div>
+  </section>
+  <section class="escena" id="puma">
+    <h3>El puma ataca</h3>
+    <div class="puma-escena">
+      <svg viewBox="0 0 140 90" aria-label="Puma saltando">
+        <rect width="140" height="90" rx="12" fill="#24301c"/>
+        <ellipse cx="78" cy="58" rx="36" ry="14" fill="#c47a3a"/>
+        <circle cx="108" cy="48" r="12" fill="#a8642c"/>
+        <path d="M40 62 l18-16 10 10" fill="none" stroke="#6a3a16" stroke-width="4"/>
+        <circle cx="40" cy="40" r="6" fill="#e7d3ae"/>
+      </svg>
+      <section id="puma-duelo" aria-label="Lanza de caza">
+        <p>Puma. Lanza 3/5. Toca el blanco marcado, sin que te alcance.</p>
+        <div class="puma-blancos">
+          <button type="button">Izquierda</button>
+          <button type="button" class="is-on">Centro</button>
+          <button type="button">Derecha</button>
+        </div>
+      </section>
+    </div>
+  </section>
+</main>
+<script>
+  const fases = [
+    ['vacio', 'Era vacía', 'Vacía', 0, '#8d6b45', '<circle cx="16" cy="16" r="6" fill="none" stroke="#f6e7c8" stroke-width="2"/>'],
+    ['siembra', 'Manzana', 'Siembra', 18, '#d7b15a', '<circle cx="16" cy="18" r="4" fill="#f6e7c8"/>'],
+    ['crecimiento', 'Pera', 'Crecimiento', 36, '#7ea84a', '<path d="M16 22 V8 M16 14 l-5 4 M16 12 l5 4" fill="none" stroke="#f6e7c8" stroke-width="2"/>'],
+    ['floracion', 'Naranja', 'Floración', 55, '#f3e7a1', '<circle cx="16" cy="16" r="3" fill="#f6e7c8"/>'],
+    ['fruto', 'Mango', 'Fruto', 74, '#e07a32', '<circle cx="16" cy="16" r="6" fill="#f6e7c8"/>'],
+    ['cosecha', 'Banano', 'Cosecha', 100, '#d64545', '<path d="M16 6 l2 6 h6 l-5 4 2 6 -5-4 -5 4 2-6 -5-4 h6z" fill="#f6e7c8"/>'],
+    ['siembra', 'Café', 'Siembra', 22, '#d7b15a', '<circle cx="16" cy="18" r="4" fill="#f6e7c8"/>'],
+    ['fruto', 'Cacao', 'Fruto', 81, '#e07a32', '<circle cx="16" cy="16" r="6" fill="#f6e7c8"/>']
+  ];
+  document.getElementById('huerta').innerHTML = fases.map(([phase, name, label, pct, tono, mark]) => (
+    `<div class="huerta-bed" data-phase="${phase}" style="--tono:${tono}">` +
+    `<svg class="huerta-mark" viewBox="0 0 32 32" aria-hidden="true">${mark}</svg>` +
+    `<div class="huerta-copy"><b>${name}</b><span>${label}</span>` +
+    `<div class="huerta-bar" role="progressbar" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div></div>` +
+    (phase === 'vacio' ? '<button type="button">Sembrar</button>' : phase === 'cosecha' ? '<button type="button">Cosechar</button>' : '') +
+    '</div>'
+  )).join('');
+</script>
+</body>
+</html>

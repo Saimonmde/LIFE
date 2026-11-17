@@ -4,6 +4,7 @@
   'use strict';
   const $ = (s) => document.querySelector(s);
   let view = null;
+  let semillaElegida = '';
   let contadores = null;
   let prevCoins = null;
   let extraFeed = [];
@@ -89,6 +90,36 @@
       const status = batch ? (batch.settled ? `Listo: ${batch.step}.` : `Trabajando: ${batch.step}.`) : 'El taller está libre.';
       return `<h3>${title}</h3><p>${status}</p><div class="finca-actions">${buttons}</div>${cards}`;
     };
+    const fases = { vacio: 'Vacía', siembra: 'Siembra', crecimiento: 'Crecimiento', floracion: 'Floración', fruto: 'Fruto', cosecha: 'Cosecha' };
+    const tonos = { vacio: '#8d6b45', siembra: '#d7b15a', crecimiento: '#7ea84a', floracion: '#f3e7a1', fruto: '#e07a32', cosecha: '#d64545' };
+    const marcas = {
+      vacio: '<circle cx="16" cy="16" r="6" fill="none" stroke="#f6e7c8" stroke-width="2"/>',
+      siembra: '<circle cx="16" cy="18" r="4" fill="#f6e7c8"/>',
+      crecimiento: '<path d="M16 22 V8 M16 14 l-5 4 M16 12 l5 4" fill="none" stroke="#f6e7c8" stroke-width="2"/>',
+      floracion: '<circle cx="16" cy="16" r="3" fill="#f6e7c8"/><circle cx="10" cy="12" r="2" fill="#f6e7c8"/><circle cx="22" cy="12" r="2" fill="#f6e7c8"/><circle cx="11" cy="21" r="2" fill="#f6e7c8"/><circle cx="21" cy="21" r="2" fill="#f6e7c8"/>',
+      fruto: '<circle cx="16" cy="16" r="6" fill="#f6e7c8"/>',
+      cosecha: '<path d="M16 6 l2 6 h6 l-5 4 2 6 -5-4 -5 4 2-6 -5-4 h6z" fill="#f6e7c8"/>',
+    };
+    const seeds = view.seeds || {};
+    const seedButtons = Object.keys(seeds).map(id => {
+      const row = seeds[id];
+      const on = semillaElegida === id ? ' is-on' : '';
+      return `<button type="button" class="huerta-semilla${on}" data-pick="${esc(id)}">${esc(row.name)} · ${row.qty}</button>`;
+    }).join('') || '<p>No tienes semillas en la mochila. Manzana, pera, naranja, mango, banano, coco, café o cacao.</p>';
+    const huerta = (view.huerta || []).map(row => {
+      const phase = row.phase || 'vacio';
+      const pct = Math.round((Number(row.progress) || 0) * 100);
+      const mark = marcas[phase] || marcas.vacio;
+      const action = phase === 'vacio'
+        ? `<button type="button" data-op="huerta_sembrar" data-bed="${esc(row.id)}">Sembrar</button>`
+        : (row.ready ? `<button type="button" data-op="huerta_cosechar" data-bed="${esc(row.id)}">Cosechar</button>` : '');
+      const title = row.name ? row.name : 'Era vacía';
+      return `<div class="huerta-bed" data-phase="${esc(phase)}" data-planted="${row.plantedAt || 0}" style="--tono:${tonos[phase] || tonos.vacio}">
+        <svg class="huerta-mark" viewBox="0 0 32 32" aria-hidden="true">${mark}</svg>
+        <div class="huerta-copy"><b>${esc(title)}</b><span>${fases[phase] || phase}</span>
+        <div class="huerta-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div></div>
+        ${action}</div>`;
+    }).join('');
     const kilos = (crop, count) => {
       const per = Number(((view.crops || {})[crop] || {}).kgPerHarvest) || 0;
       return (Number(count) || 0) * per;
@@ -106,6 +137,10 @@
     const pay = view.buyerBalances || {};
     root.innerHTML = `
       <p class="finca-note" id="finca-note">Plantas. Esperas. Cosechas. Procesas. Vendes.</p>
+      <h3>Huerta</h3>
+      <p>Ocho eras vacías, aparte del café y del cacao. Elige la semilla y siembra. El color y la barra muestran la mata, de la siembra a la cosecha.</p>
+      <div class="huerta-semillas">${seedButtons}</div>
+      <div class="huerta-grid">${huerta || '<p>La huerta todavía no carga.</p>'}</div>
       <p>${((view.crops || {}).cafe || {}).note || ''}</p>
       <p>${((view.crops || {}).cacao || {}).note || ''}</p>
       <p>${view.ripeningNote || ''}</p>
@@ -125,10 +160,15 @@
       <p>Oro ${pay.simoncoinText || '0'} · Plata ${pay.simonplataText || '0'} · Cobre ${pay.simonchisText || '0'}</p>
       <button type="button" id="finca-libro">Abrir el Libro mayor</button>`;
     const note = root.querySelector('#finca-note');
-    root.querySelectorAll('button[data-op]').forEach(button => {
+    root.querySelectorAll('button[data-op], button[data-pick]').forEach(button => {
       button.onclick = () => {
+        if (button.dataset.pick) {
+          semillaElegida = button.dataset.pick;
+          paintFarm();
+          return;
+        }
         const op = button.dataset.op;
-        send(op, { plot: button.dataset.plot, crop: button.dataset.crop, serial: button.dataset.serial, coin: button.dataset.coin });
+        send(op, { plot: button.dataset.plot, crop: button.dataset.crop, serial: button.dataset.serial, coin: button.dataset.coin, bed: button.dataset.bed, seed: semillaElegida });
         if (note) note.textContent = 'El servidor revisa la acción.';
       };
     });
@@ -192,6 +232,8 @@
       if (message.view) view = message.view;
       if (message.error) say(message.error);
       else if (message.ok && message.view) say(message.note || 'Listo.');
+      if (message.spent && window.quitarDelInventario) quitarDelInventario(message.spent.item, message.spent.qty || 1);
+      if (message.gained && window.LiveInk && LiveInk.giveItem) LiveInk.giveItem(message.gained.item, message.gained.qty || 1);
       paintFarm();
       paintDock();
       if (window.LIVE3D && LIVE3D.syncFinca) LIVE3D.syncFinca(view);
@@ -231,7 +273,7 @@
     panel.hidden = true;
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', 'Cafetal de Las Palmas');
-    panel.innerHTML = '<header>Las Palmas · café y cacao <button type="button" id="finca-cerrar" aria-label="Cerrar">✕</button></header><div id="finca-body"></div>';
+    panel.innerHTML = '<header>Las Palmas · café, cacao y huerta <button type="button" id="finca-cerrar" aria-label="Cerrar">✕</button></header><div id="finca-body"></div>';
     const libro = document.createElement('section');
     libro.id = 'libro-publico';
     libro.hidden = true;
@@ -244,6 +286,19 @@
     paintFarm();
     pull();
     setInterval(pull, 5000);
+    setInterval(() => {
+      document.querySelectorAll('.huerta-bed[data-planted]').forEach(bed => {
+        const planted = Number(bed.dataset.planted || 0);
+        const ripe = Number((view && view.ripeSeconds) || 0);
+        if (!planted || !ripe || !view || !view.serverNow) return;
+        const skew = Date.now() / 1000 - Number(view.serverNow);
+        const progress = Math.max(0, Math.min(1, (Date.now() / 1000 - skew - planted) / ripe));
+        const bar = bed.querySelector('.huerta-bar > span');
+        const meter = bed.querySelector('.huerta-bar');
+        if (bar) bar.style.width = Math.round(progress * 100) + '%';
+        if (meter) meter.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
+      });
+    }, 1000);
     setInterval(() => {
       const panel = document.getElementById('finca-panel');
       const ws = window.LiveInk && LiveInk.state && LiveInk.state.net && LiveInk.state.net.ws;

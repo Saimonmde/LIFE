@@ -39,6 +39,10 @@ LANZA_HIT = 34
 FIST_HIT = 10
 WARN_S = 1.7
 BITE_EVERY = 1.15
+SPEAR_NEED = 5
+SPEAR_LANES = 3
+PUMA_RESPAWN = 120.0
+PELT_TTL = 600.0
 
 
 class FaunaError(ValueError):
@@ -221,6 +225,8 @@ class Range:
                 'goalX': float(x), 'goalY': float(y),
                 'goalAt': 0.0,
                 'target': '',
+                'streak': 0,
+                'cue': None,
             })
         return pumas
 
@@ -294,6 +300,7 @@ def step_puma(puma, players, allowed, safe_boxes, now, dt, rng):
         if player and dist <= STALK:
             puma['mode'] = 'stalk'
             puma['target'] = str(player.get('id') or player.get('name') or '')
+            _arm_cue(puma, rng)
         else:
             if now >= float(puma.get('goalAt') or 0):
                 ang = rng.random() * math.tau
@@ -312,6 +319,7 @@ def step_puma(puma, players, allowed, safe_boxes, now, dt, rng):
             puma['mode'] = 'warn'
             puma['until'] = now + WARN_S
             puma['growl'] = True
+            _arm_cue(puma, rng)
         else:
             _toward(puma, float(player['x']), float(player['y']), 1.7, dt, allowed)
     elif mode == 'warn':
@@ -334,12 +342,15 @@ def step_puma(puma, players, allowed, safe_boxes, now, dt, rng):
             if dist <= BITE:
                 puma['mode'] = 'attack'
                 puma['nextHit'] = now
+                _arm_cue(puma, rng)
     elif mode == 'attack':
         if not player or dist > 3.2:
             puma['mode'] = 'charge' if player and dist <= LEASH else 'wander'
         elif now >= float(puma.get('nextHit') or 0):
             puma['nextHit'] = now + BITE_EVERY
             puma['growl'] = True
+            puma['streak'] = 0
+            _arm_cue(puma, rng, force=True)
             event = {
                 'id': player.get('id'),
                 'name': player.get('name') or '',
@@ -352,8 +363,119 @@ def step_puma(puma, players, allowed, safe_boxes, now, dt, rng):
     return event
 
 
+def _arm_cue(puma, rng, force=False):
+    if force or puma.get('cue') is None:
+        roll = rng.random() if rng is not None else 0.1
+        puma['cue'] = int(roll * SPEAR_LANES) % SPEAR_LANES
+    puma['streak'] = int(puma.get('streak') or 0)
+
+
+def spear_tap(puma, x, y, lane, armed, now, rng=None):
+    """Cinco aciertos con la lanza, sin un mordisco en medio, derriban al puma."""
+    if not armed:
+        return {'ok': False, 'reason': 'Hace falta la lanza de caza.'}
+    if not puma or int(puma.get('hp') or 0) <= 0:
+        return {'ok': False, 'reason': 'Ese puma ya no está.'}
+    if puma.get('mode') not in ('warn', 'charge', 'attack', 'stalk'):
+        return {'ok': False, 'reason': 'El puma no te está enfrentando.'}
+    try:
+        dist = math.hypot(float(x) - float(puma['x']), float(y) - float(puma['y']))
+    except (TypeError, ValueError):
+        return {'ok': False, 'reason': 'No se ve al puma.'}
+    if dist > 2.8:
+        return {'ok': False, 'reason': 'Estás lejos para alcanzar con la lanza.'}
+    _arm_cue(puma, rng)
+    try:
+        lane = int(lane)
+    except (TypeError, ValueError):
+        lane = -1
+    if lane != int(puma.get('cue') if puma.get('cue') is not None else -2):
+        puma['streak'] = 0
+        _arm_cue(puma, rng, force=True)
+        return {
+            'ok': True, 'hit': False, 'dead': False, 'streak': 0, 'need': SPEAR_NEED,
+            'cue': int(puma.get('cue') or 0),
+            'reason': 'El golpe no dio en el blanco. La tanda vuelve a empezar.',
+        }
+    puma['streak'] = int(puma.get('streak') or 0) + 1
+    if puma['streak'] >= SPEAR_NEED:
+        death_x, death_y = float(puma['x']), float(puma['y'])
+        puma['hp'] = 0
+        puma['streak'] = 0
+        puma['mode'] = 'wander'
+        puma['until'] = float(now) + PUMA_RESPAWN
+        puma['x'], puma['y'] = float(puma['homeX']), float(puma['homeY'])
+        puma['cue'] = None
+        return {
+            'ok': True, 'hit': True, 'dead': True, 'streak': SPEAR_NEED, 'need': SPEAR_NEED,
+            'cue': 0, 'x': death_x, 'y': death_y,
+            'reason': 'El puma cayó. Puedes recoger la piel.',
+        }
+    _arm_cue(puma, rng, force=True)
+    return {
+        'ok': True, 'hit': True, 'dead': False,
+        'streak': int(puma['streak']), 'need': SPEAR_NEED,
+        'cue': int(puma.get('cue') or 0),
+        'reason': 'La lanza dio. Van %d de %d.' % (puma['streak'], SPEAR_NEED),
+    }
+
+
+def drop_pelt(state, owner, x, y, now):
+    row = {
+        'id': secrets.token_hex(4),
+        'owner': str(owner or ''),
+        'x': round(float(x), 2),
+        'y': round(float(y), 2),
+        'until': float(now) + PELT_TTL,
+    }
+    state.setdefault('pelts', []).append(row)
+    if len(state['pelts']) > 80:
+        state['pelts'] = state['pelts'][-40:]
+    return row
+
+
+def take_pelt(state, owner, pelt_id, x, y, now):
+    owner = str(owner or '')
+    now = float(now)
+    found = None
+    for row in state.get('pelts') or []:
+        if row.get('id') == str(pelt_id or ''):
+            found = row
+            break
+    if not found or float(found.get('until') or 0) <= now:
+        raise FaunaError('esa piel ya no está')
+    if found.get('owner') != owner:
+        raise FaunaError('esa piel no es tuya')
+    try:
+        dist = math.hypot(float(x) - float(found['x']), float(y) - float(found['y']))
+    except (TypeError, ValueError):
+        dist = 99
+    if dist > 2.8:
+        raise FaunaError('acércate para recoger la piel')
+    state['pelts'] = [row for row in state['pelts'] if row.get('id') != found['id']]
+    return {'id': found['id'], 'item': 'piel_puma', 'qty': 1, 'owner': owner}
+
+
+def public_pelts(state, name, now):
+    now = float(now)
+    rows = []
+    for row in state.get('pelts') or []:
+        if float(row.get('until') or 0) <= now:
+            continue
+        view = {
+            'id': row['id'],
+            'x': row['x'],
+            'y': row['y'],
+            'item': 'piel_puma',
+            'name': 'Piel de puma',
+            'yours': row.get('owner') == name,
+        }
+        rows.append(view)
+    return rows
+
+
 def strike(puma, x, y, armed, now):
-    """El jugador responde. La lanza pega más. Hace falta estar al lado."""
+    """Un empujón al lado del puma. La piel sale de cinco aciertos con la lanza."""
     if not puma or int(puma.get('hp') or 0) <= 0:
         return 0
     if puma.get('mode') not in ('warn', 'charge', 'attack', 'stalk'):
@@ -366,8 +488,9 @@ def strike(puma, x, y, armed, now):
         return 0
     if now < float(puma.get('swingAt') or 0):
         return 0
-    dmg = LANZA_HIT if armed else FIST_HIT
-    puma['hp'] = max(0, int(puma.get('hp') or PUMA_HP) - dmg)
+    # La lanza ya no mata por daño suelto: hacen falta cinco aciertos seguidos.
+    dmg = 8 if armed else FIST_HIT
+    puma['hp'] = max(1 if armed else 0, int(puma.get('hp') or PUMA_HP) - dmg)
     puma['swingAt'] = now + 0.55
     if puma['hp'] <= 0:
         puma['mode'] = 'flee'
@@ -390,17 +513,20 @@ def public_puma(puma):
         'mode': puma.get('mode') or 'wander',
         'hp': int(puma.get('hp') or 0),
         'growl': bool(puma.get('growl')),
+        'streak': int(puma.get('streak') or 0),
+        'need': SPEAR_NEED,
+        'cue': int(puma.get('cue') if puma.get('cue') is not None else 0),
     }
 
 
 def empty_state():
-    return {'v': 1, 'drops': [], 'seen': {}, 'pumas': []}
+    return {'v': 1, 'drops': [], 'seen': {}, 'pumas': [], 'pelts': []}
 
 
 def dump(state):
-    """Sólo el bulto vive en disco. El puma vuelve a su monte al reiniciar."""
+    """El bulto y la piel viven en disco. El puma vuelve a su monte al reiniciar."""
     raw = normalize(state)
-    return {'v': 1, 'drops': raw['drops'], 'seen': raw['seen']}
+    return {'v': 1, 'drops': raw['drops'], 'seen': raw['seen'], 'pelts': raw['pelts']}
 
 
 def normalize(doc):
@@ -424,7 +550,18 @@ def normalize(doc):
     for key, value in (raw.get('seen') or {}).items():
         if key and value:
             seen[str(key)] = str(value)
-    return {'v': 1, 'drops': drops, 'seen': seen, 'pumas': list(raw.get('pumas') or [])}
+    pelts = []
+    for row in raw.get('pelts') or []:
+        if not isinstance(row, dict) or not row.get('id'):
+            continue
+        pelts.append({
+            'id': str(row['id']),
+            'owner': str(row.get('owner') or ''),
+            'x': float(row.get('x') or 0),
+            'y': float(row.get('y') or 0),
+            'until': float(row.get('until') or 0),
+        })
+    return {'v': 1, 'drops': drops, 'seen': seen, 'pumas': list(raw.get('pumas') or []), 'pelts': pelts}
 
 
 class Book:

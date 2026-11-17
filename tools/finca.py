@@ -793,6 +793,8 @@ def private_payload(state):
 
 
 def player_view(state, config, account, purse, now):
+    import huerta as HUERTA
+
     box = _account(state, config, account)
     _tick_all(state, box, now, config, account)
     plots = []
@@ -845,6 +847,9 @@ def player_view(state, config, account, purse, now):
         'buyerBalances': _balances(purse, config),
         'soldToday': sold,
         'sellCap': int(config.get('dailySellCapBags') or 0),
+        'huerta': HUERTA.rows(box, now, config),
+        'ripeSeconds': HUERTA.ripe_seconds(config),
+        'serverNow': int(now),
         'harvestsPerBatch': int(config.get('harvestsPerBatch') or 10),
         'bagsPerBatch': int(config.get('bagsPerBatch') or 2),
         'stepSeconds': int(config.get('stepSeconds') or 8),
@@ -867,7 +872,9 @@ def player_view(state, config, account, purse, now):
     }
 
 
-def act(state, purse, config, account, op, args, now, present=True):
+def act(state, purse, config, account, op, args, now, present=True, items=None):
+    import huerta as HUERTA
+
     args = args or {}
     if op != 'ver' and not present:
         return {'ok': False, 'error': 'Hay que estar en Las Palmas, junto a los talleres.', 'changed': False, 'movedCoins': False}
@@ -877,6 +884,8 @@ def act(state, purse, config, account, op, args, now, present=True):
     changed = bool(moved)
     exports = []
     note = ''
+    spent = None
+    gained = None
     try:
         place = 'banco' if str(args.get('place') or '') == 'banco' else 'mochila'
         if account and op != 'procesar':
@@ -916,9 +925,21 @@ def act(state, purse, config, account, op, args, now, present=True):
         elif op == 'retirar':
             withdraw(state, config, account, str(args.get('serial') or ''), now)
             changed = True
+        elif op == 'huerta_sembrar':
+            done = HUERTA.plant(state, config, account, str(args.get('bed') or ''), str(args.get('seed') or ''), items, now)
+            note = done.get('note') or ''
+            spent = done.get('spent')
+            changed = True
+        elif op == 'huerta_cosechar':
+            done = HUERTA.harvest(state, config, account, str(args.get('bed') or ''), items, now)
+            note = done.get('note') or ''
+            gained = done.get('gained')
+            changed = True
         else:
             return {'ok': False, 'error': 'esa acción no existe', 'changed': changed, 'movedCoins': moved}
     except FincaError as exc:
-        return {'ok': False, 'error': str(exc), 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'view': player_view(state, config, account, purse, now) if account else None}
+        return {'ok': False, 'error': str(exc), 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'spent': spent, 'gained': gained, 'view': player_view(state, config, account, purse, now) if account else None}
     view = player_view(state, config, account, purse, now) if account else None
-    return {'ok': True, 'error': '', 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'view': view}
+    if view is not None:
+        view['seeds'] = HUERTA.seed_counts(items)
+    return {'ok': True, 'error': '', 'changed': changed, 'movedCoins': moved, 'exports': exports, 'note': note, 'spent': spent, 'gained': gained, 'view': view}
