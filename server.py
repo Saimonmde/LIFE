@@ -231,6 +231,36 @@ def juntar_saimon():
     return result
 
 
+def unir_cuentas_jay():
+    """Juanescasimon y las llaves que el #148 no alcanzó. No acuña."""
+    import unir_jay as UNIR
+    if not isinstance(ECON, dict) or not isinstance(VAULT_STATE, dict):
+        return {'changed': False}
+    folder = os.path.join(ROOT, 'state')
+    os.makedirs(folder, exist_ok=True)
+    result = UNIR.aplicar(
+        ECON, VAULT_STATE, ACCOUNTS, FINCA_STATE,
+        libro=LIBRO_CHAIN, seed=NFT_SEED, ahora=int(time.time()), folder=folder,
+    )
+    if result.get('changed'):
+        save_econ()
+        save_vault()
+        save_accounts()
+        save_finca()
+        try:
+            save_libro(result.get('asientos') or [])
+        except persist_duplicate:
+            sys.stderr.write('[jay] el libro ya tenía el asiento\n')
+    sys.stderr.write(
+        '[jay] %s billetera %s baul %s objetos %s suma %s %s\n' % (
+            result.get('motivo'), result.get('billetera'), result.get('baul'),
+            result.get('objetos'), result.get('sumaAntes'), result.get('sumaDespues'),
+        )
+    )
+    sys.stderr.flush()
+    return result
+
+
 def reparar_plata_118():
     """Acredita la diferencia del #118. Si no cabe en 21.000.000, no mueve nada."""
     import copy
@@ -3906,6 +3936,75 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         body['amigos'] = social.get('friends') or []
         body['pedidos'] = social.get('in') or []
         return auth_response('200 OK', body, headers)
+    if path == '/auth/dueno/smc' and method in ('GET', 'POST'):
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta.'}, headers)
+        import dueno_smc as DUENO
+        if not DUENO.autorizado(user):
+            return auth_response('403 Forbidden', {'error': 'Sólo el dueño puede editar Simon Coins.'}, headers)
+        if method == 'GET' or str((payload or {}).get('op') or '') == 'ver':
+            return auth_response('200 OK', DUENO.vista(ECON, VAULT_STATE, LIBRO_CHAIN, user), headers)
+        op = str((payload or {}).get('op') or '')
+        if op not in ('acunar', 'ajustar'):
+            return auth_response('400 Bad Request', {'error': 'Operación desconocida.'}, headers)
+        import copy
+        llave = 'saimon'
+        caja = (VAULT_STATE.get('accounts') or {}).get(llave)
+        snap = {
+            'wallet': int((ECON.get('wallets') or {}).get(llave) or 0),
+            'mined': ECON.get('minedSmh'),
+            'mempool': copy.deepcopy(ECON.get('mempool')),
+            'blocks': copy.deepcopy(ECON.get('blocks')),
+            'baul': VAULT.smh_of(caja) if isinstance(caja, dict) else 0,
+            'audit': copy.deepcopy(ACCOUNTS.get('duenoAudit')),
+            'rates': copy.deepcopy((ACCOUNTS.get('rates') or {})),
+            'n': len(LIBRO_CHAIN.get('blocks') or []),
+            'ids': list(LIBRO_CHAIN.get('ids') or []),
+        }
+
+        def deshacer():
+            ECON.setdefault('wallets', {})[llave] = snap['wallet']
+            ECON['minedSmh'] = snap['mined']
+            ECON['mempool'] = snap['mempool']
+            ECON['blocks'] = snap['blocks']
+            box = (VAULT_STATE.get('accounts') or {}).get(llave)
+            if isinstance(box, dict):
+                box['smh'] = snap['baul']
+                box['smcSubs'] = snap['baul']
+            if snap['audit'] is None:
+                ACCOUNTS.pop('duenoAudit', None)
+            else:
+                ACCOUNTS['duenoAudit'] = snap['audit']
+            ACCOUNTS['rates'] = snap['rates']
+            LIBRO_CHAIN['blocks'] = (LIBRO_CHAIN.get('blocks') or [])[:snap['n']]
+            LIBRO_CHAIN['ids'] = list(snap['ids'])
+
+        try:
+            if op == 'acunar':
+                result = DUENO.acunar(
+                    ECON, VAULT_STATE, ACCOUNTS, user, payload.get('smc'), payload.get('razon'),
+                    LIBRO_CHAIN, NFT_SEED, ahora=int(time.time()),
+                )
+            else:
+                result = DUENO.ajustar(
+                    ECON, VAULT_STATE, ACCOUNTS, user,
+                    payload.get('billetera'), payload.get('baul'), payload.get('razon'),
+                    LIBRO_CHAIN, NFT_SEED, ahora=int(time.time()),
+                    toca_billetera='billetera' in (payload or {}),
+                    toca_baul='baul' in (payload or {}),
+                )
+        except DUENO.DuenoError as exc:
+            return auth_response(exc.status, {'error': str(exc)}, headers)
+        try:
+            save_libro(result.get('asientos') or [])
+        except persist_duplicate:
+            deshacer()
+            return auth_response('409 Conflict', {'error': 'Ese código ya estaba en el libro. No se cambió el saldo.'}, headers)
+        save_econ()
+        save_vault()
+        save_accounts()
+        return auth_response('200 OK', result, headers)
     if path == '/auth/staff' and method == 'POST':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
@@ -4292,6 +4391,7 @@ async def main():
     reparar_plata_118()
     reunir_llaves()
     juntar_saimon()
+    unir_cuentas_jay()
     import mina_ladera as LADERA
     if LADERA.migrar(ECON):
         save_econ()

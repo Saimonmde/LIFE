@@ -15,9 +15,12 @@ import ed25519
 import persist
 
 GENESIS = '0' * 64
-KINDS_MINT = ('acuñacion', 'genesis', 'migracion')
+KIND_ADMIN_MINT = 'acunacion-admin'
+KIND_ADMIN_ADJUST = 'ajuste-admin'
+KINDS_MINT = ('acuñacion', 'genesis', 'migracion', KIND_ADMIN_MINT)
 KIND_MOVE = 'transferencia'
 KIND_TRADE = 'intercambio'
+KINDS_MOVE = (KIND_MOVE, KIND_TRADE, KIND_ADMIN_ADJUST)
 DISCLAIMER = (
     'Libro madre de SaiMonCoins (SMC): simulación educativa. '
     'Cada acuñación es un registro único e irrepetible, como una pieza de minería. '
@@ -115,7 +118,7 @@ def balances(chain):
         got[name] = got.get(name, 0) + int(delta)
 
     for block in chain.get('blocks') or []:
-        if block.get('kind') in (KIND_MOVE, KIND_TRADE):
+        if block.get('kind') in KINDS_MOVE:
             add(block.get('from'), -accounted_smh(chain, block.get('amountSmh') or 0))
             add(block.get('to'), accounted_smh(chain, block.get('amountSmh') or 0))
         else:
@@ -239,6 +242,23 @@ def transferir(chain, seed, origen, destino, amount_subs, note, ts=None):
     return _firmar(
         chain, seed, KIND_MOVE, amount_subs, destino, '', note or 'transferencia',
         origen, destino, ts, 0, 0.025,
+    )
+
+
+def ajustar(chain, seed, origen, destino, amount_subs, note, ts=None):
+    """Anota un ajuste de administración. No acuña y no reescribe asientos viejos.
+
+    No exige que el origen ya tenga saldo en el libro: la reasignación de una
+    cuenta partida a veces vive en la billetera y todavía no en la cadena.
+    """
+    amount_subs = int(amount_subs or 0)
+    if amount_subs <= 0:
+        raise LibroError('el ajuste tiene que ser mayor que cero')
+    if not origen or not destino or origen == destino:
+        raise LibroError('el ajuste necesita dos cuentas distintas')
+    return _firmar(
+        chain, seed, KIND_ADMIN_ADJUST, amount_subs, '', '', note or 'Ajuste de administración',
+        origen, destino, ts, 0, 0,
     )
 
 
