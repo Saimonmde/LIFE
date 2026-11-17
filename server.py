@@ -1523,11 +1523,127 @@ def deposit_item(sender, item, qty, token=''):
 def withdraw_item(sender, item, qty, token=''):
     _mover_baul(sender, 'withdraw', item, qty, token)
 
+def _bultos_de(name, place):
+    import baul as BAUL
+    return BAUL.contar_bultos(FINCA_STATE, name, place)
+
+
+def _vista_baul(name):
+    import baul as BAUL
+    return BAUL.vista(
+        VAULT_STATE, ECON, name,
+        bultos_encima=_bultos_de(name, 'mochila'),
+        bultos_baul=_bultos_de(name, 'banco'),
+    )
+
+
+def baul_for(sender):
+    if not wallet_ready(sender):
+        return
+    send(sender, {'t': 'baul', 'ok': True, 'view': _vista_baul(sender.name)})
+
+
+def _enviar_baul(sender, ok, reason='', moved=None, dup=False):
+    send(sender, {
+        't': 'baul', 'ok': bool(ok), 'dup': bool(dup),
+        'reason': reason or '', 'moved': moved or [],
+        'view': _vista_baul(sender.name),
+    })
+
+
+def _op_baul(raw):
+    raw = str(raw or '')
+    if raw in ('deposit', 'in', 'guardar'):
+        return 'deposit'
+    if raw in ('withdraw', 'out', 'sacar'):
+        return 'withdraw'
+    return ''
+
+
+def _mover_bulto(sender, op, item, qty, token=''):
+    """El café y el cacao cambian de lugar en la finca. No se copian al depósito."""
+    import baul as BAUL
+    if token and token in (VAULT.account(VAULT_STATE, sender.name).get('ops') or []):
+        return _enviar_baul(sender, True, dup=True)
+    result = BAUL.mover_bultos(FINCA_STATE, FINCA_CONFIG, sender.name, op, item, qty)
+    if not result.get('ok'):
+        return _enviar_baul(sender, False, result.get('reason') or 'No se movió nada.')
+    if finca_sync_purse(sender.name):
+        save_vault()
+    save_finca()
+    if token:
+        box = VAULT.account(VAULT_STATE, sender.name)
+        ops = box.setdefault('ops', [])
+        ops.append(str(token)[:48])
+        del ops[:-32]
+        save_vault()
+    _enviar_baul(sender, True, moved=[{'op': op, 'item': item, 'qty': result.get('qty') or 0}])
+
+
+def baul_mover(sender, message):
+    """Sólo la cuenta de la sesión. El mensaje no elige otra persona ni crea objetos."""
+    if not wallet_ready(sender):
+        return
+    import baul as BAUL
+    message = message if isinstance(message, dict) else {}
+    op = _op_baul(message.get('op'))
+    item = str(message.get('item') or '')[:32]
+    qty = 'all' if message.get('all') else message.get('qty', 1)
+    token = str(message.get('token') or '')[:48]
+    if not op:
+        return _enviar_baul(sender, False, 'Nada que mover.')
+    if item in BAUL.MIRROR:
+        return _mover_bulto(sender, op, item, qty, token)
+    result = BAUL.mover_lote(VAULT_STATE, sender.name, op, item, qty, token)
+    if not result.get('ok'):
+        return _enviar_baul(sender, False, result.get('reason') or 'No se movió nada.')
+    if not result.get('dup'):
+        save_vault()
+    _enviar_baul(sender, True, moved=result.get('moved') or [], dup=result.get('dup'))
+
+
+def baul_smc(sender, message):
+    """Mueve SMC ya emitidos. La ventana sólo habla de SMC."""
+    if not wallet_ready(sender):
+        return
+    import baul as BAUL
+    message = message if isinstance(message, dict) else {}
+    op = _op_baul(message.get('op'))
+    amount = 'all' if message.get('all') else message.get('amount')
+    token = str(message.get('token') or '')[:48]
+    if not op:
+        return _enviar_baul(sender, False, 'Nada que mover.')
+    try:
+        result = BAUL.mover_smc(ECON, VAULT_STATE, sender.name, op, amount, token)
+    except ECO.AmountError:
+        return _enviar_baul(sender, False, 'Monto no válido. Ejemplo: 1 o 1,5.')
+    if not result.get('ok'):
+        return _enviar_baul(sender, False, result.get('reason') or 'No se movió nada.')
+    if not result.get('dup') and int(result.get('units') or 0) > 0:
+        note = 'Depósito en el baúl' if op == 'deposit' else 'Retiro del baúl'
+        origin, dest = (sender.name, 'deposito') if op == 'deposit' else ('deposito', sender.name)
+        ECO.append_tx(ECON, {'type': 'bank', 'from': origin, 'to': dest, 'amountSubs': int(result['units']), 'note': note})
+        try:
+            anotar_pase(
+                sender.name if op == 'deposit' else 'deposito:' + sender.name,
+                'deposito:' + sender.name if op == 'deposit' else sender.name,
+                int(result['units']), note,
+            )
+        except (LIBRO.LibroError, persist_duplicate):
+            pass
+        save_econ()
+        save_vault()
+        broadcast_econ()
+    _enviar_baul(sender, True, dup=result.get('dup'))
+
+
 def _mover_baul(sender, op, item, qty, token=''):
     """El baúl de la mina, el de la casa y el banquito usan la cuenta de quien está en sesión."""
     if not wallet_ready(sender):
         return
     import baul as BAUL
+    if str(item or '') in BAUL.MIRROR:
+        return _mover_bulto(sender, op, item, qty, token)
     result = BAUL.mover(VAULT_STATE, sender.name, op, item, qty, token)
     if not result.get('ok'):
         return send(sender, {'t': 'system', 'text': result.get('reason') or 'No se movió nada.'})
@@ -2632,6 +2748,12 @@ def handle_client_message(c, m, t):
         send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
     elif t == 'vault' and c.hello:
         vault_for(c)
+    elif t == 'baul' and c.hello:
+        baul_for(c)
+    elif t == 'baul_mover' and c.hello:
+        baul_mover(c, m)
+    elif t == 'baul_smc' and c.hello:
+        baul_smc(c, m)
     elif t == 'transferir_todo' and c.hello:
         transferir_todo(c, m.get('dest') or m.get('to'))
     elif t == 'deposit_smc' and c.hello:

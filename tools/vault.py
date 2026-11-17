@@ -20,6 +20,9 @@ def load(path):
         save(path, state)
         return state
     state.setdefault('accounts', {})
+    import baul
+    if baul.migrate(state):
+        save(path, state)
     return state
 
 

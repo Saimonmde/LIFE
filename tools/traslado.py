@@ -28,6 +28,9 @@ def trasladar(econ, vault_state, name, dest):
         origin, target = name, 'deposito'
     else:
         smh = vault.smh_of(box)
+        have = int(wallets.get(name) or 0)
+        if smh > 0 and have + smh > eco.MAX_SMH:
+            return {'ok': False, 'reason': 'Pasaría el tope de 21.000.000 SMC.', 'smh': 0, 'dest': dest}
         if smh <= 0 or not vault.take_smc(box, smh):
             return {'ok': False, 'reason': 'No hay SMC en el banco para transferir.', 'smh': 0, 'dest': dest}
         eco.credit(econ, name, smh)
