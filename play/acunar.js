@@ -25,7 +25,7 @@
   }
   function enMina() {
     const world = window.LiveInk && LiveInk.world;
-    return !!(world && world.mapId === 'mine');
+    return !!(world && (world.mapId === 'mine' || world.mapId === 'mina2'));
   }
   function spec() {
     const live = window.__ELJARDIN && __ELJARDIN.cupos && __ELJARDIN.cupos.coins;
@@ -223,6 +223,7 @@
     busy = false;
     if (m.cupos && window.__ELJARDIN) __ELJARDIN.cupos = m.cupos;
     if (m.ledger && window.__ELJARDIN) __ELJARDIN.ledger = m.ledger;
+    if (m.crudo && window.__ELJARDIN) __ELJARDIN.crudo = Object.assign({}, __ELJARDIN.crudo || {}, m.crudo);
     if (m.crudo && window.ponerMetal) {
       Object.keys(m.crudo).forEach(id => window.ponerMetal(id, m.crudo[id]));
     } else if (m.ok && m.spentItems && window.quitarMetal) {

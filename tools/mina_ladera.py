@@ -8,11 +8,12 @@ respaldo (150 SMC), no de estas tres tasas por veta. La conversión de saldos
 viejos en tools/una_moneda.py sí usa 0,001 / 0,01 / 0,1, pero no es el pago
 de picar.
 
-Aquí cada veta paga eso, y sólo SMC:
-cobre 0,001, plata 0,01, mineral de oro 0,1.
-El cobre se junta de a milésimos hasta poder anotar 0,01 SMC. No se muestra
-SMH, SMP ni SPH. Siguen el tope de 21.000.000 y los topes del día: el oro y
-la plata comparten el de oro, el cobre usa el suyo.
+Picar deja el mineral. El horno, junto al baúl, lo acuña a esas tasas y sólo
+en SMC: cobre 0,001, plata 0,01, mineral de oro 0,1. El cobre se junta de a
+milésimos hasta poder anotar 0,01 SMC. No se muestra SMH, SMP ni SPH. Siguen
+el tope de 21.000.000 y los topes del día, los mismos de Las Palmas: el oro y
+la plata comparten el de oro, el cobre usa el suyo. Una fundición los suma
+una sola vez.
 """
 import economy as eco
 import supply as sup
@@ -21,6 +22,15 @@ NAME = 'Mina de La Ladera'
 ZONE = 'mina2'
 PLACE = 'mina-ladera'
 TRAVEL = 'mina_ladera'
+# El mismo horno de Las Palmas, puesto junto al baúl. El cliente usa estas casillas.
+HORNO = (24, 16)
+REACH = 1
+MONEDA = {
+    'simoncoin': 'oro',
+    'simonplata': 'plata',
+    'simonchis': 'cobre',
+}
+PIEZAS = {'oro': 10, 'plata': 100, 'cobre': 1000}
 WIDTH = 48
 HEIGHT = 40
 SPAWN = (24.0, 35.0)
@@ -216,6 +226,92 @@ def cobrar(econ, name, account, metal, now, age=0, play=0, quests=0):
     if granted <= 0:
         return {'ok': False, 'smh': 0, 'texto': 'Se alcanzó el tope de 21.000.000 SMC.', 'reason': 'supply'}
     return {'ok': True, 'smh': granted, 'texto': _texto(metal, granted), 'reason': ''}
+
+
+def junto(zone, x, y):
+    """Hay que estar en la mina de La Ladera y al lado del horno. Como el horno de Las Palmas: Chebyshev 1."""
+    if str(zone or '') != ZONE:
+        return False
+    try:
+        fx, fy = float(x), float(y)
+    except (TypeError, ValueError):
+        return False
+    return max(abs(fx - HORNO[0]), abs(fy - HORNO[1])) <= REACH
+
+
+def metal_moneda(coin):
+    return MONEDA.get(str(coin or ''))
+
+
+def millis_de(metal, piezas, previo=0):
+    """Milésimos de SMC. 10 milésimos = 0,01 SMC = 1 unidad del libro."""
+    if metal not in MILLIS:
+        return 0
+    return max(0, int(previo or 0)) + max(0, int(piezas or 0)) * MILLIS[metal]
+
+
+def partir(millis):
+    millis = max(0, int(millis or 0))
+    return millis // 10, millis % 10
+
+
+def migrar(econ):
+    """No toca el SMC ya anotado ni borra los milésimos que todavía no llegaban a 0,01.
+
+    El horno los suma en la próxima fundición.
+    """
+    if not isinstance(econ, dict):
+        return False
+    meta = econ.setdefault('meta', {})
+    if meta.get('laderaHorno'):
+        return False
+    kept = 0
+    box = econ.get('minaLadera') or {}
+    if isinstance(box, dict):
+        for row in box.values():
+            if isinstance(row, dict):
+                row['millis'] = max(0, int(row.get('millis') or 0))
+                kept += row['millis']
+    meta['laderaHorno'] = {'millis': kept}
+    return True
+
+
+def contar(econ, account, metal, smh, now, token, age=0, play=0, quests=0):
+    """Suma el cupo del día una sola vez. El mismo contador que Las Palmas.
+
+    Oro y plata usan el cupo de oro. El cobre usa el suyo. Un token repetido no suma.
+    """
+    metal = str(metal or '')
+    account = str(account or '')
+    token = str(token or '')
+    smh = max(0, int(smh or 0))
+    if metal not in MILLIS or not account or not token or smh <= 0:
+        return 0
+    row = econ.setdefault('minaLadera', {}).setdefault(account, {'millis': 0})
+    seen = row.setdefault('fundiciones', [])
+    if token in seen:
+        return 0
+    acc, key, left = _cupo(econ, account, metal, now, age, play, quests)
+    room = eco.issuance_room(econ)
+    grant = min(smh, left, room)
+    if grant <= 0:
+        return 0
+    acc[key] = int(acc.get(key) or 0) + grant
+    seen.append(token)
+    del seen[:-40]
+    return grant
+
+
+def soltar_cupo(econ, account, metal, smh):
+    """Quita del cupo del día lo que no llegó a anotarse. No toca la billetera."""
+    smh = int(smh or 0)
+    if smh <= 0 or str(metal or '') not in MILLIS:
+        return
+    acc = ((econ.get('supply') or {}).get('accounts') or {}).get(str(account or ''))
+    if not isinstance(acc, dict):
+        return
+    key = 'copperEarned' if metal == 'cobre' else 'earned'
+    acc[key] = max(0, int(acc.get(key) or 0) - smh)
 
 
 def deshacer(econ, name, account, metal, smh, now):
