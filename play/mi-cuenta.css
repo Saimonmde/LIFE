@@ -37,4 +37,20 @@
 .mi-cuenta-panel button { display: block; width: 100%; margin: 8px 0; }
 #mi-cuenta-cerrar { width: auto; min-width: 112px; }
 .mi-cuenta-panel label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+#mi-cuenta-staff h3 { margin: 16px 0 8px; font: 800 18px/1.2 system-ui, sans-serif; }
+.staff-fila { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.staff-fila button { width: auto; min-width: 128px; margin: 4px 0; }
+#staff-badge {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 40;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font: 700 11px/1.4 system-ui, sans-serif;
+  letter-spacing: .04em;
+  background: #3d2b1be8;
+  color: #f6d598;
+  border: 1px solid #a4824c;
+}
 .mi-cuenta-panel input { min-height: 48px; border: 2px solid #8a623c; border-radius: 10px; background: #fffaf0; color: #2a1c10; }

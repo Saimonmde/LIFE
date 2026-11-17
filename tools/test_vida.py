@@ -178,7 +178,8 @@ class SocialTests(unittest.TestCase):
         self.assertEqual(social.role_of({'role': 'admin', 'email': 'a@b.c'}), 'admin')
         self.assertEqual(social.role_of({'role': 'staff', 'email': 'a@b.c'}), 'staff')
         self.assertFalse(social.allows('admin', 'answer_note'))
-        self.assertFalse(social.allows('staff', 'hide_note'))
+        self.assertTrue(social.allows('staff', 'hide_note'))
+        self.assertTrue(social.allows('owner', 'see_feedback'))
         self.assertTrue(social.allows('simon', 'see_feedback'))
         note = social.add_note(self.state, 'Ana', 'acct:ana', 'Una fuente en el parque', 'parque-envigado', 1, now=30)
         self.assertTrue(note['ok'])
@@ -199,7 +200,7 @@ class SocialTests(unittest.TestCase):
             self.assertEqual(social.role_of(None, 'clave-de-prueba'), 'simon')
             self.assertEqual(social.role_of(None, 'otra'), 'player')
             os.environ['SIMON_OWNER_EMAIL'] = 'simon@example.com'
-            self.assertEqual(social.role_of(self.doc['users'][1]), 'simon')
+            self.assertEqual(social.role_of(self.doc['users'][1]), 'owner')
         finally:
             os.environ.pop('SIMON_ADMIN_TOKEN', None)
             os.environ.pop('SIMON_OWNER_EMAIL', None)

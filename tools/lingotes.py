@@ -17,7 +17,7 @@ METALES = ('oro', 'plata', 'cobre')
 ITEMS = {'oro': 'lingote_oro', 'plata': 'lingote_plata', 'cobre': 'lingote_cobre'}
 PREFIX = {'oro': 'LGO', 'plata': 'LGP', 'cobre': 'LGC'}
 MAX_QTY = 12
-ROLES = ('simon', 'staff', 'admin')
+ROLES = ('simon', 'owner', 'staff', 'admin')
 GENESIS = '0' * 64
 REFUSALS = []
 
