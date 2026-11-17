@@ -59,6 +59,58 @@ class ViajeTests(unittest.TestCase):
         self.assertTrue(gate.allow('Ana', 12.5))
         self.assertTrue(gate.allow('Beto', 11))
 
+    def test_named_resources_land_beside_the_source(self):
+        rio = viajes.resolve(self.world, 'rio_claro')
+        gold = [n for n in self.world['nodes'] if n['type'] == 'nodo_oro_fluvial']
+        river = {tuple(tile) for tile in self.world['waterBodies']['rio_claro']['tiles']}
+        self.assertTrue(all((n['x'], n['y']) in river for n in gold))
+        self.assertEqual(rio['recurso'], 'oro (río, batea)')
+        self.assertTrue(viajes.safe(self.world, rio['x'], rio['y']))
+        self.assertLessEqual(min(max(abs(rio['x'] - n['x']), abs(rio['y'] - n['y'])) for n in gold), 3)
+        self.assertNotIn((rio['x'], rio['y']), river)
+
+        cantera = viajes.resolve(self.world, 'cantera')
+        ores = [n for n in self.world['nodes'] if n['type'] == 'mineral_rock' and n.get('mineral') in ('cobre', 'plata')]
+        self.assertEqual(cantera['recurso'], 'plata, cobre (pico)')
+        self.assertLessEqual(min(max(abs(cantera['x'] - n['x']), abs(cantera['y'] - n['y'])) for n in ores), 2)
+        self.assertNotIn((cantera['x'], cantera['y']), {(n['x'], n['y']) for n in ores})
+
+        wood = viajes.resolve(self.world, 'madera')
+        pines = [n for n in self.world['nodes'] if n['type'] == 'wood_tree']
+        self.assertEqual(wood['recurso'], 'madera')
+        self.assertLessEqual(min(max(abs(wood['x'] - n['x']), abs(wood['y'] - n['y'])) for n in pines), 2)
+
+        palmas = next(item for item in self.world['waypoints'] if item['id'] == 'las_palmas')
+        finca = viajes.resolve(self.world, 'finca')
+        cafetal = viajes.resolve(self.world, 'cafetal')
+        self.assertEqual(finca['recurso'], 'café, cacao')
+        self.assertEqual((finca['x'], finca['y']), (cafetal['x'], cafetal['y']))
+        self.assertLessEqual(max(abs(finca['x'] - palmas['x']), abs(finca['y'] - palmas['y'])), 4)
+        self.assertLessEqual(max(abs(finca['x'] - palmas['x']), abs(finca['y'] - palmas['y'])), 30)
+
+        banco = viajes.resolve(self.world, 'banco')
+        self.assertEqual((banco['x'], banco['y']), viajes.BANK_OUT)
+        skate = viajes.resolve(self.world, 'skate')
+        self.assertNotIn((skate['x'], skate['y']), viajes.SKATE_BLOCK)
+        self.assertLessEqual(min(max(abs(skate['x'] - x), abs(skate['y'] - y)) for x, y in viajes.SKATE_BLOCK), 2)
+
+        parque = viajes.resolve(self.world, 'parque_envigado')
+        envigado = next(item for item in viajes.catalog(self.world) if item['id'] == 'envigado')
+        self.assertLessEqual(max(abs(parque['x'] - envigado['x']), abs(parque['y'] - envigado['y'])), 16)
+        casa = viajes.resolve(self.world, 'casa')
+        self.assertEqual((casa['x'], casa['y']), viajes.HOME_STAND)
+        mina = viajes.resolve(self.world, 'mina')
+        self.assertEqual(mina['name'], 'Mina de Las Palmas')
+        self.assertEqual(mina['recurso'], 'plata, cobre (pico)')
+        for dest in (rio, cantera, wood, finca, banco, skate, parque, casa, mina):
+            self.assertTrue(viajes.walkable(self.world, dest['x'], dest['y']), dest['id'])
+            self.assertNotEqual(viajes._kind(self.world, dest['x'], dest['y']), 'water', dest['id'])
+
+    def test_restricted_and_invented_spots_stay_closed(self):
+        for key in ('central', 'banco_central', 'atlantis', '12,40'):
+            with self.assertRaises(viajes.ViajeError):
+                viajes.resolve(self.world, key)
+
     def test_water_is_not_a_spawn(self):
         water = None
         tiles = self.world['tiles']

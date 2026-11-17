@@ -21,7 +21,35 @@ NOMBRES = {
     'caldas': 'Caldas',
     'parque_bolivar': 'Parque de Bolívar',
     'las_palmas': 'Las Palmas',
+    'mina': 'Mina de Las Palmas',
+    'cantera': 'Cantera',
+    'rio_claro': 'Río Claro',
+    'finca': 'Cafetal',
+    'cafetal': 'Cafetal',
+    'madera': 'Pinos',
+    'banco': 'Banco Envigado',
+    'skate': 'Skate',
+    'parque_envigado': 'Parque de Envigado',
+    'casa': 'Tu casa',
 }
+# Sitios con recurso. El cliente los dibuja; el servidor elige la casilla.
+RECURSOS = {
+    'mina': 'plata, cobre (pico)',
+    'cantera': 'plata, cobre (pico)',
+    'rio_claro': 'oro (río, batea)',
+    'finca': 'café, cacao',
+    'cafetal': 'café, cacao',
+    'madera': 'madera',
+    'banco': 'casa bancaria',
+    'skate': 'skate',
+    'parque_envigado': 'parque',
+    'casa': 'hogar',
+}
+# La pista de skate la sella el cliente. No se aterriza encima.
+SKATE_BLOCK = {(84, 273), (85, 273), (84, 274), (85, 274), (86, 273), (86, 274)}
+BANK_OUT = (113, 257)
+HOME_STAND = (94, 267)
+RESTRICTED = {'central', 'banco_central'}
 SAFE = {'cobble', 'path', 'grass', 'grass_worn', 'grass_flowers', 'bridge', 'asphalt', 'pavement'}
 COOLDOWN = 2.5
 # La misma marcha que play/caballo.js: 4.2 casillas/s a pie, × MOUNT_SPEED a caballo.
@@ -98,16 +126,161 @@ def catalog(world):
     return found
 
 
+def beside(world, x, y, radius=3, blocked=()):
+    """Casilla caminable junto al recurso. Nunca agua, muro ni una casilla sellada."""
+    blocked = {(int(a), int(b)) for a, b in blocked}
+    x, y = int(x), int(y)
+    fallback = None
+    for ring in range(0, radius + 1):
+        for dy in range(-ring, ring + 1):
+            for dx in range(-ring, ring + 1):
+                if max(abs(dx), abs(dy)) != ring:
+                    continue
+                nx, ny = x + dx, y + dy
+                if (nx, ny) in blocked:
+                    continue
+                if safe(world, nx, ny):
+                    return nx, ny
+                if fallback is None and walkable(world, nx, ny):
+                    fallback = (nx, ny)
+    if fallback:
+        return fallback
+    raise ViajeError('ahí no hay suelo caminable')
+
+
+def _nodes(world, kind):
+    return [node for node in world.get('nodes') or [] if node.get('type') == kind]
+
+
+def _pack(dest_id, x, y):
+    return {
+        'id': dest_id,
+        'name': NOMBRES[dest_id],
+        'x': int(x),
+        'y': int(y),
+        'kind': 'recurso',
+        'recurso': RECURSOS[dest_id],
+    }
+
+
+def _open(world, dest):
+    x, y = dest['x'], dest['y']
+    if not walkable(world, x, y) or _kind(world, x, y) == 'water':
+        raise ViajeError('el destino no es caminable')
+    return dest
+
+
+def gold_stand(world):
+    """Al lado de una veta de oro que ya está en el Río Claro. No crea oro en otro sitio."""
+    river = {
+        (int(a), int(b))
+        for a, b in (((world.get('waterBodies') or {}).get('rio_claro') or {}).get('tiles') or [])
+    }
+    nodes = [node for node in _nodes(world, 'nodo_oro_fluvial') if (int(node['x']), int(node['y'])) in river]
+    if not nodes:
+        raise ViajeError('el oro sólo está en el río')
+    node = nodes[0]
+    blocked = {(int(item['x']), int(item['y'])) for item in nodes}
+    x, y = beside(world, node['x'], node['y'], 3, blocked)
+    return _pack('rio_claro', x, y)
+
+
+def quarry_stand(world):
+    nodes = [node for node in _nodes(world, 'mineral_rock') if node.get('mineral') in ('cobre', 'plata')]
+    if not nodes:
+        raise ViajeError('no hay cantera')
+    blocked = {(int(node['x']), int(node['y'])) for node in nodes}
+    x, y = beside(world, nodes[0]['x'], nodes[0]['y'], 2, blocked)
+    return _pack('cantera', x, y)
+
+
+def wood_stand(world):
+    nodes = _nodes(world, 'wood_tree')
+    if not nodes:
+        raise ViajeError('no hay madera')
+    blocked = {(int(node['x']), int(node['y'])) for node in nodes}
+    x, y = beside(world, nodes[0]['x'], nodes[0]['y'], 2, blocked)
+    return _pack('madera', x, y)
+
+
+def finca_stand(world, dest_id='finca'):
+    palmas = next((item for item in world.get('waypoints') or [] if item.get('id') == 'las_palmas'), None)
+    if not palmas:
+        raise ViajeError('no hay cafetal')
+    x, y = beside(world, palmas['x'], palmas['y'], 4)
+    made = _pack(dest_id, x, y)
+    if dest_id == 'cafetal':
+        made['recurso'] = RECURSOS['cafetal']
+    return made
+
+
+def skate_stand(world):
+    x, y = beside(world, 84, 273, 2, SKATE_BLOCK)
+    return _pack('skate', x, y)
+
+
+def banco_stand(world):
+    x, y = beside(world, BANK_OUT[0], BANK_OUT[1], 1)
+    return _pack('banco', x, y)
+
+
+def parque_stand(world):
+    town = next((item for item in catalog(world) if item['id'] == 'envigado'), None)
+    if not town:
+        x, y = beside(world, HOME_STAND[0], HOME_STAND[1], 2)
+    else:
+        x, y = nearest_spawn(world, town['x'], town['y'])
+    return _pack('parque_envigado', x, y)
+
+
+def casa_stand(world):
+    """Puerta de la casa en el parque. Salir de casa sigue en esa misma llegada."""
+    x, y = beside(world, HOME_STAND[0], HOME_STAND[1], 1)
+    return _pack('casa', x, y)
+
+
+def named(world, dest_id):
+    """Un destino con nombre, o None si no es de esta lista."""
+    if dest_id == 'mina':
+        spot = dict(mine_stand(world))
+        spot['kind'] = 'recurso'
+        spot['recurso'] = RECURSOS['mina']
+        return spot
+    if dest_id == 'cantera':
+        return quarry_stand(world)
+    if dest_id == 'rio_claro':
+        return gold_stand(world)
+    if dest_id == 'finca':
+        return finca_stand(world, 'finca')
+    if dest_id == 'cafetal':
+        return finca_stand(world, 'cafetal')
+    if dest_id == 'madera':
+        return wood_stand(world)
+    if dest_id == 'banco':
+        return banco_stand(world)
+    if dest_id == 'skate':
+        return skate_stand(world)
+    if dest_id == 'parque_envigado':
+        return parque_stand(world)
+    if dest_id == 'casa':
+        return casa_stand(world)
+    return None
+
+
 def resolve(world, dest_id):
     dest_id = str(dest_id or '').strip().lower()
+    if dest_id in RESTRICTED:
+        raise ViajeError('ese sitio está restringido')
+    extra = named(world, dest_id)
+    if extra:
+        return _open(world, extra)
     known = {item['id']: item for item in catalog(world)}
     if dest_id not in known:
         raise ViajeError('ese lugar no está en el mapa')
     spot = known[dest_id]
     x, y = nearest_spawn(world, spot['x'], spot['y'])
-    if not walkable(world, x, y) or _kind(world, x, y) == 'water':
-        raise ViajeError('el destino no es caminable')
-    return {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind']}
+    made = {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind'], 'recurso': ''}
+    return _open(world, made)
 
 
 def mine_stand(world):
