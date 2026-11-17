@@ -84,9 +84,8 @@
     ];
     if (rates.simoncoin && rates.simonplata && rates.simonchis) {
       lines.push(
-        cantidad(rates.simoncoin) + ' oros crudos hacen 1 Simoncoin, ' +
-        cantidad(rates.simonplata) + ' platas crudas hacen 1 Simonplata y ' +
-        cantidad(rates.simonchis) + ' cobres crudos hacen 1 Simonchis.'
+        cantidad(rates.simoncoin) + ' minerales de oro hacen 1 Simoncoin (0,1 cada uno). ' +
+        '1 mineral de plata vale 0,01 Simoncoin y 1 cobre vale 0,001.'
       );
     }
     list.replaceChildren();

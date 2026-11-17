@@ -102,7 +102,6 @@ FOUNDRY = {
     'pepita_oro': (5, 30),
 }
 SHIFT_SWINGS = 8
-SHIFT_PAY = 10
 QUEST_GRANTS = {'primeros_pasos': 250, 'el_libro_mayor': 50}
 
 def save_econ():
@@ -120,6 +119,17 @@ def save_vault():
 if ECO.migrate_vault_smc(ECON, VAULT_STATE, log=print):
     save_econ()
     save_vault()
+
+def convertir_a_una_moneda():
+    """Al arrancar el servidor. Los tests importan el módulo y no convierten el archivo."""
+    import una_moneda as UNA
+    informe = UNA.aplicar(ECON, VAULT_STATE, ACCOUNTS, folder=os.path.join(ROOT, 'state'))
+    if informe.get('changed'):
+        save_econ()
+        save_vault()
+    plan = informe.get('plan') if isinstance(informe.get('plan'), dict) else {}
+    print('[una-moneda]', informe.get('estado'), 'smc', plan.get('creditoSmc', ''), 'polvo', len(plan.get('polvo') or []))
+    return informe
 
 def save_play():
     PLAY.save(PLAY_PATH, PLAYERS)
@@ -327,8 +337,8 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m = {'t': 'economy', 'state': {
         'minedSmh': int(ECON.get('minedSmh') or 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
         'mempool': ECON.get('mempool', []), 'disclaimer': (ECON.get('disclaimer') or '') + RESET_NOTE,
-        'ledgerResets': True, 'symbol': 'SMC', 'symbolBase': 'SMH', 'unit': 'SaiMonCoin',
-        'smallestName': 'Simonchi', 'subunitsPerUnit': ECO.SUBS,         'maxSupply': ECO.MAX_SUPPLY,
+        'ledgerResets': True, 'symbol': 'SMC', 'unit': 'SaiMonCoin',
+        'subunitsPerUnit': ECO.SUBS, 'maxSupply': ECO.MAX_SUPPLY,
         'maxSupplySmh': ECO.MAX_SMH,
         'historia': HISTORIA.filas(ECON),
     }}
@@ -969,38 +979,10 @@ def acunar_for(sender, coin, pieces, proof=None):
             return _acunar_fail(sender, 'No se pudo anotar el registro único. No se creó Simoncoin.', 'registry')
         got = granted / ECO.SUBS
         sender.registro = pub
-    elif coin == 'simonplata':
-        want = int(round(quote['recibes'] * PLATA.SUBS))
-        if not proof:
-            opened = PLATA.open_challenge(ECON, profile, 'acunar', f'{coin}:{pieces}')
-            save_econ()
-            if not opened.get('ok'):
-                return _acunar_fail(sender, SUP.reason_text(opened.get('reason') or 'guest'), opened.get('reason') or 'guest')
-            send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'acunar', 'coin': coin, 'pieces': pieces}, 'coin': 'SMP'})
-            send(sender, {'t': 'acunar_result', 'ok': False, 'pending': True, 'reason': 'Calculando prueba…'})
-            return
-        result = PLATA.redeem(ECON, profile, 'acunar', f'{coin}:{pieces}', proof, want_sph=want, pay_request=True)
-        save_econ()
-        if not result.get('ok'):
-            return _acunar_fail(sender, SUP.reason_text(result.get('reason') or 'signature'), result.get('reason') or 'signature')
-        got = int(result.get('sph') or 0) / PLATA.SUBS
-        broadcast_econ()
+    elif coin in ('simonplata', 'simonchis'):
+        return _acunar_fail(sender, 'Esa moneda ya no se acuña. El horno sólo entrega Simoncoin.', 'cerrada')
     else:
-        want = int(quote['recibes'])
-        if not proof:
-            opened = COBRE.open_challenge(ECON, profile.get('account'), f'{coin}:{pieces}')
-            save_econ()
-            if not opened.get('ok'):
-                return _acunar_fail(sender, SUP.reason_text(opened.get('reason') or 'guest'), opened.get('reason') or 'guest')
-            send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'acunar', 'coin': coin, 'pieces': pieces}, 'coin': 'Simonchis'})
-            send(sender, {'t': 'acunar_result', 'ok': False, 'pending': True, 'reason': 'Calculando prueba…'})
-            return
-        result = COBRE.redeem(ECON, profile.get('account'), f'{coin}:{pieces}', proof, want, purse=sender.name)
-        save_econ()
-        if not result.get('ok'):
-            return _acunar_fail(sender, SUP.reason_text(result.get('reason') or 'signature'), result.get('reason') or 'signature')
-        got = int(result.get('qty') or 0)
-        broadcast_econ()
+        return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
     done = TOPES.cotizar(quote['gastas'], row['rate'], got, got, quote['gastas'], whole=whole)
     spent = CRUDO.debit(ECON, profile['account'], items, done['gastas'])
     if spent is None:
@@ -1136,23 +1118,46 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
     if not wallet_ready(sender):
         return _smelt_fail(sender, 'Esta billetera se creó en otro aparato.')
     mode = str(mode or 'simoncoin')
-    if mode == 'simonchis':
-        return fundir_simonchis(sender, ore, batches, proof)
-    if mode == 'simonplata':
-        return fundir_simonplata(sender, ore, batches, proof)
+    if mode in ('simonchis', 'simonplata'):
+        piezas = int(recipe[0]) * int(batches)
+        smh = piezas if mode == 'simonplata' else piezas // 10
+        if smh <= 0:
+            return _smelt_fail(sender, 'Con esa cantidad no llega a 0,01 Simoncoin.')
+        account = _cuenta(sender)
+        spent = CRUDO.debit(ECON, account, (ore,), piezas) if account else None
+        if spent is None:
+            return _smelt_fail(sender, 'No hay suficiente mineral en la cuenta. No se acuñó nada.')
+        granted, _token, _pub = emitir(
+            sender, smh, 'Acuñación de Simoncoin en el horno', 'fundicion',
+            'fundidora', 'horno_cantera', 'Fundidora de la cantera',
+        )
+        if granted <= 0:
+            for item, qty in spent.items():
+                CRUDO.credit(ECON, account, item, qty, cap=max(int(qty), 1))
+            return _smelt_fail(sender, 'No cabe más Simoncoin. El tope es 21.000.000.')
+        note = f'Se acuñó {ECO.format_smc(granted)}.'
+        send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simoncoin', 'ore': ore, 'batches': batches, 'amountText': ECO.format_smc(granted), 'reason': note})
+        return
     context = f'{ore}:{batches}'
+    piezas = int(recipe[0]) * int(batches)
     result = take_proof(
         sender, 'fundicion', context, proof,
         {'t': 'smelt', 'ore': ore, 'batches': batches, 'mode': 'simoncoin'},
-        room_smh=min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
+        room_smh=min(piezas * 10, ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN)),
     )
     if not result.get('ok'):
         return
+    account = _cuenta(sender)
+    spent = CRUDO.debit(ECON, account, (ore,), piezas) if account else None
+    if spent is None:
+        return _smelt_fail(sender, 'No hay suficiente mineral en la cuenta. No se acuñó nada.')
     granted, token, libro_pub = emitir(
-        sender, result['smh'], f'Acuñación de Simoncoin en la mina ({ore})', 'fundicion',
+        sender, piezas * 10, f'Acuñación de Simoncoin en la mina ({ore})', 'fundicion',
         'fundidora', 'horno_cantera', 'Fundidora de la cantera',
     )
     if granted <= 0:
+        for item, qty in (spent or {}).items():
+            CRUDO.credit(ECON, account, item, qty, cap=max(int(qty), 1))
         return _smelt_fail(sender, 'Ya no se puede crear más Simoncoin. El tope es 21.000.000.')
     kept = int(getattr(sender, 'kept_smh', granted) or 0)
     pooled = int(getattr(sender, 'pool_smh', 0) or 0)
@@ -3434,6 +3439,7 @@ async def main():
             print(f'(aviso) no se pudo escuchar en [{host}]:{a.port}: {e}')
     if not servers:
         raise SystemExit(f'No se pudo abrir el puerto {a.port}')
+    convertir_a_una_moneda()
     print(f'LIFE INC · El Jardín  →  http://localhost:{a.port}/play/   (también http://127.0.0.1:{a.port}/play/)')
     print(f'chat WebSocket: ws://<host>:{a.port}/ws')
     print('Ctrl+C para detener.')

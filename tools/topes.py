@@ -4,7 +4,7 @@
 Los números salen de aquí. Una variable de entorno los cambia sin tocar
 el resto del juego. Los topes mundiales (21, 84 y 333 millones) no se mueven.
 
-Oro: 5 oros crudos (pepitas) = 1 Simoncoin. MINT_ORO_POR_MONEDA.
+Oro: 10 minerales de oro = 1 Simoncoin (0,1 SMC cada uno). MINT_ORO_POR_MONEDA.
 Plata: 4 minerales de plata = 1 Simonplata. MINT_PLATA_POR_MONEDA.
 Cobre: 3 minerales de cobre = 1 Simonchis. MINT_COBRE_POR_MONEDA.
 
@@ -21,7 +21,7 @@ SUBS = 100_000_000
 DAY = 86400
 RESET_LABEL = '7:00 p. m. Bogotá (00:00 UTC)'
 
-DEFAULT_ORO_POR_MONEDA = 5
+DEFAULT_ORO_POR_MONEDA = 10
 DEFAULT_PLATA_POR_MONEDA = 4
 DEFAULT_COBRE_POR_MONEDA = 3
 
@@ -276,7 +276,7 @@ def letrero(age_seconds=0, play_seconds=0, quests=0, now=None):
             f'Si una veta de oro se agota, vuelve en {_cantidad(VEIN_ORO_S)} segundos. '
             f'La plata vuelve en {_cantidad(VEIN_PLATA_S)} segundos y el cobre en {_cantidad(VEIN_COBRE_S)} segundos.'
         ),
-        f'{_cantidad(oro)} oros crudos hacen 1 Simoncoin. Hasta {_cantidad(oro_base)} Simoncoin al día. Ese tope sube hasta {_cantidad(oro_top)} con recompensas.',
+        f'{_cantidad(oro)} minerales de oro hacen 1 Simoncoin (cada uno vale 0,1 SMC). El servidor aplica un piso de 50 SMC al día; la fórmula sola iría de {_cantidad(oro_base)} a {_cantidad(oro_top)}.',
         (
             f'{_cantidad(plata_rate)} de plata cruda hacen 1 Simonplata. Hasta {_cantidad(plata_base)} Simonplata al día, más bonos: '
             f'{_cantidad(bono_dia)} por día de cuenta, {_cantidad(bono_hora)} por hora de juego y {_cantidad(bono_mision)} por misión. '

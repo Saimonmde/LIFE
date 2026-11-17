@@ -171,21 +171,13 @@ class AcunarSobreviveTests(unittest.TestCase):
 
     def _ver(self, msg, vault):
         import cobre
-        import purses
         self.assertGreater(msg['balanceSubs'], 0)
-        self.assertGreater(msg['balanceSph'], 0)
         balances = msg['ledger']['balances']
-        self.assertGreater(balances['simonchis'], 0)
         monedas = msg['purse']['monedas']
         self.assertEqual(monedas['moneda_oro'], msg['balanceSubs'])
-        self.assertEqual(monedas['moneda_plata'], msg['balanceSph'])
-        self.assertEqual(monedas['moneda_cobre'], balances['simonchis'])
-        self.assertGreaterEqual(purses.count(vault, 'Nico', 'moneda_plata'), 1)
-        self.assertGreaterEqual(purses.count(vault, 'Nico', 'moneda_cobre'), 1)
+        self.assertEqual(int(balances.get('simonchis') or 0), 0)
         rows = msg['state']['historia']
         self.assertTrue(any(int(row.get('amountSubs') or 0) > 0 and row.get('account') == 'Nico' for row in rows))
-        self.assertTrue(any(row.get('coin') == 'SMP' and int(row.get('amountSph') or 0) > 0 for row in rows))
-        self.assertTrue(any(row.get('coin') == 'SMCH' and int(row.get('amountQty') or 0) > 0 and int(row.get('balanceQty') or 0) > 0 for row in rows))
         self.assertEqual(self.eco.MAX_SUPPLY, 21_000_000)
         self.assertEqual(self.plata.MAX_SUPPLY, 84_000_000)
         self.assertEqual(cobre.MAX_SUPPLY, 333_000_000)
@@ -204,16 +196,15 @@ class AcunarSobreviveTests(unittest.TestCase):
         self.assertIn('Saldo:', oro.get('reason') or '')
         self.assertGreater(oro.get('balanceSubs') or 0, 0)
         self.assertTrue((oro.get('registro') or {}).get('id'))
-        plata_ok = self._acuñar(who, 'simonplata', 4)
-        self.assertEqual(plata_ok.get('balanceSph'), 100_000_000)
-        self.assertEqual(plata_ok.get('reason'), 'Acuñaste 1 Simonplata. Saldo: 1 SMP')
-        fila = (plata_ok.get('cupos') or {}).get('coins', {}).get('simonplata') or {}
-        self.assertGreaterEqual(fila.get('cap'), 5)
-        self.assertLessEqual(fila.get('cap'), 125)
-        self.assertEqual(fila.get('left'), fila.get('cap') - 1)
-        self.assertGreater(fila.get('room'), 80_000_000)
-        self.assertLessEqual(fila.get('room'), 84_000_000)
-        self._acuñar(who, 'simonchis', 3)
+        self.sent.clear()
+        self.server.acunar_for(who, 'simonplata', 4)
+        plata_no = [m for m in self.sent if m.get('t') == 'acunar_result'][-1]
+        self.assertFalse(plata_no.get('ok'))
+        self.assertEqual(plata_no.get('code'), 'cerrada')
+        self.sent.clear()
+        self.server.acunar_for(who, 'simonchis', 3)
+        cobre_no = [m for m in self.sent if m.get('t') == 'acunar_result'][-1]
+        self.assertFalse(cobre_no.get('ok'))
         primero = self._entrar(self.server.ECON, self.server.VAULT_STATE)
         self._ver(primero, self.server.VAULT_STATE)
         with tempfile.TemporaryDirectory() as directory:
@@ -226,11 +217,6 @@ class AcunarSobreviveTests(unittest.TestCase):
             tras_reinicio = self._entrar(econ2, vault2)
             self._ver(tras_reinicio, vault2)
             self.assertEqual(tras_reinicio['balanceSubs'], primero['balanceSubs'])
-            self.assertEqual(tras_reinicio['balanceSph'], primero['balanceSph'])
-            self.assertEqual(
-                tras_reinicio['ledger']['balances']['simonchis'],
-                primero['ledger']['balances']['simonchis'],
-            )
 
     def test_no_ore_explains_and_mints_nothing(self):
         who = self._persona()
