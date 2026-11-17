@@ -59,8 +59,14 @@ class ReunirTests(unittest.TestCase):
         self.assertTrue(all(block.get('kind') == 'transferencia' for block in chain.get('blocks') or []))
         self.assertFalse(any(block.get('kind') == 'acuñacion' for block in chain.get('blocks') or []))
         page = open(os.path.join(os.path.dirname(__file__), '..', 'server.py'), encoding='utf-8').read()
-        self.assertIn("path == '/api/diagnostico'", page)
+        handle = page.split('async def handle(', 1)[1]
+        auth = page.split('async def try_auth(', 1)[1].split('\nasync def ', 1)[0]
+        self.assertIn("path == '/api/diagnostico'", handle)
+        self.assertNotIn('/api/diagnostico', auth)
         self.assertIn('reunir_llaves()', page)
+        self.assertIn("m['bankSmh']", page)
+        sim = open(os.path.join(os.path.dirname(__file__), '..', 'play', 'simulacion.js'), encoding='utf-8').read()
+        self.assertIn('m.bankSmh', sim)
         hud = open(os.path.join(os.path.dirname(__file__), '..', 'play', 'cajon.js'), encoding='utf-8').read()
         self.assertIn('Baúl', hud)
         self.assertIn('Billetera', hud)

@@ -155,10 +155,14 @@ def reunir_llaves():
         try:
             save_libro(result.get('asientos') or [])
         except persist_duplicate:
-            print('[reunir] el libro ya tenía el asiento')
+            sys.stderr.write('[reunir] el libro ya tenía el asiento\n')
     for row in REU.informe(ECON, VAULT_STATE, ACCOUNTS):
         if row.get('dueno'):
-            print('[reunir] llave', row['llave'], 'billetera', row['smhBilletera'], 'baul', row['smhBaul'], 'objetos', row['objetos'])
+            sys.stderr.write(
+                '[reunir] llave %s billetera %s baul %s objetos %s\n'
+                % (row['llave'], row['smhBilletera'], row['smhBaul'], row['objetos'])
+            )
+    sys.stderr.flush()
     return result
 
 
@@ -450,8 +454,18 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     if who and not locked:
         import acunar_credito as ACU
         m['purse'] = ACU.vista(VAULT_STATE, ECON, who, (profile or {}).get('account'))
+        box = (VAULT_STATE.get('accounts') or {}).get(who) or {}
+        m['bankSmh'] = VAULT.smh_of(box)
+        items = box.get('items') if isinstance(box, dict) else {}
+        m['vaultItems'] = {
+            str(item): int(qty or 0)
+            for item, qty in (items or {}).items()
+            if int(qty or 0) > 0
+        }
     else:
         m['purse'] = {'items': {}, 'catalog': dict(PURSES.CATALOG), 'monedas': {}}
+        m['bankSmh'] = 0
+        m['vaultItems'] = {}
     m['puestoSmh'] = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
     return m
 
@@ -3402,6 +3416,15 @@ def auth_html(status, html_text, headers, extra_headers=()):
     return ''.join(lines).encode() + raw
 
 
+def diagnostico_http(headers):
+    """Sólo el personal. La ruta vive en /api, no dentro de /auth."""
+    user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))
+    if not user or SOCIAL.role_of(user) not in ('owner', 'staff'):
+        return auth_response('403 Forbidden', {'error': 'Sólo el personal puede ver el diagnóstico.'}, headers)
+    import reunir as REU
+    return auth_response('200 OK', {'ok': True, 'cuentas': REU.informe(ECON, VAULT_STATE, ACCOUNTS)}, headers)
+
+
 def auth_response(status, body, headers, extra_headers=()):
     raw = body if isinstance(body, bytes) else json.dumps(body, ensure_ascii=False).encode()
     lines = [f'HTTP/1.1 {status}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(raw)}\r\n']
@@ -3815,13 +3838,6 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         body['amigos'] = social.get('friends') or []
         body['pedidos'] = social.get('in') or []
         return auth_response('200 OK', body, headers)
-    if path == '/api/diagnostico' and method == 'GET':
-        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
-        if not user or SOCIAL.role_of(user) not in ('owner', 'staff'):
-            return auth_response('403 Forbidden', {'error': 'Sólo el personal puede ver el diagnóstico.'}, headers)
-        import reunir as REU
-        rows = REU.informe(ECON, VAULT_STATE, ACCOUNTS)
-        return auth_response('200 OK', {'ok': True, 'cuentas': rows}, headers)
     if path == '/auth/staff' and method == 'POST':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
@@ -3958,6 +3974,9 @@ async def handle(reader, writer):
             if method != 'HEAD':
                 writer.write(encoded)
             await writer.drain(); writer.close(); return
+    if path == '/api/diagnostico' and method == 'GET':
+        writer.write(diagnostico_http(headers))
+        await writer.drain(); writer.close(); return
     answered = await try_auth(method, path, target, headers, body, client_ip(headers, writer))
     if answered is not None:
         writer.write(answered)

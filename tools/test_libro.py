@@ -113,6 +113,11 @@ class LibroTests(unittest.TestCase):
         self.assertNotIn('puesto_frutas', got)
         again = libro.migrar(doc, SEED, wallets, vaults, ts=200, bits=BITS, presupuesto=2)
         self.assertEqual(again, [])
+        vieja = chain()
+        vieja['smhPerSmc'] = 0
+        polvo = libro.migrar(vieja, SEED, {'Ana': 59735}, {}, ts=300, bits=BITS, presupuesto=2)
+        self.assertEqual(polvo, [])
+        self.assertEqual(vieja['blocks'], [])
         move = libro.transferir(doc, SEED, 'Ana', 'Beto', economy.subunits(5), 'pago', ts=300)
         self.assertTrue(move['id'].startswith('MOV-'))
         got = libro.balances(doc)

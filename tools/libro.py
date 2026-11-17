@@ -268,6 +268,10 @@ def migrar(chain, seed, wallets, vault_accounts, ts=None, bits=None, presupuesto
         delta = subs - int(explained.get(name) or 0)
         if delta <= 0:
             continue
+        # En la escala vieja un saldo chico se redondea a cero. Anotarlo no
+        # cierra la diferencia y el siguiente arranque lo acuñaría otra vez.
+        if accounted_smh(chain, delta) <= 0:
+            continue
         if name == 'tesoro_genesis' and not any(b.get('kind') == 'genesis' for b in chain.get('blocks') or []):
             kind, place = 'genesis', 'Génesis del tesoro'
         elif name.startswith('deposito:'):
