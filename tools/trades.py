@@ -60,6 +60,14 @@ MAX_SPH = plata.MAX_SUPPLY * plata.SUBS
 MAX_COBRE = cobre.MAX_SUPPLY
 MAX_ITEM = 999
 ITEM_OK = re.compile(r'^[a-z][a-z0-9_]{0,31}$')
+METALES = ('pepita_oro', 'mineral_oro', 'mineral_plata', 'mineral_cobre')
+BLOCKED = frozenset({
+    'guacharaca', 'ortalis', 'ortal',
+    'smc', 'smp', 'smh', 'sph',
+    'simoncoin', 'simonplata', 'simonchis',
+    'sai', 'plata', 'cobre_moneda',
+    'libro', 'xp', 'wallet', 'libro_mayor',
+})
 
 
 class TradeError(ValueError):
@@ -94,13 +102,13 @@ def normalize_offer(raw):
         smc_raw = 0
     smc = _whole(smc_raw, MAX_SMH, 'La Simoncoin')
     smp = _whole(raw.get('smp', 0), MAX_SPH, 'La Simonplata')
-    copper = _whole(raw.get('cobre', 0), MAX_COBRE, 'El cobre')
+    copper = _whole(raw.get('cobre', 0), MAX_COBRE, 'Las Simonchis')
     items_raw = raw.get('items') or {}
     if not isinstance(items_raw, dict):
         raise TradeError('Los objetos de la oferta no son válidos.')
     items = {}
     for key, qty in items_raw.items():
-        if not isinstance(key, str) or not ITEM_OK.match(key):
+        if not isinstance(key, str) or key in BLOCKED or not ITEM_OK.match(key):
             raise TradeError('Hay un objeto que no se puede intercambiar.')
         count = _whole(qty, MAX_ITEM, 'La cantidad de ' + key)
         if count:
@@ -172,6 +180,104 @@ def _give_cobre(econ, name, qty):
     if qty <= 0:
         return
     cobre.credit_named(econ, name, qty)
+
+
+def preparar_crudo(econ, vault, name_a, account_a, name_b, account_b, offer_a, offer_b):
+    """Pasa el mineral crudo de una cuenta a la otra y lo quita de la oferta de mochila.
+
+    Café, cacao, lingotes y el resto siguen en la oferta para ``apply_exchange``.
+    Si no cabe o no alcanza, no se acredita: el llamador trabaja sobre una copia.
+    """
+    import crudo
+
+    def pull(name, account, offer):
+        offer = normalize_offer(offer)
+        items = dict(offer['items'])
+        taken = {}
+        for item, qty in list(items.items()):
+            if item not in METALES:
+                continue
+            import vault as deposit
+            have_crudo = int(crudo.nuggets(econ, account, item)) if account else 0
+            have_purse = purses.count(vault, name, item)
+            have_box = int((deposit.account(vault, name).get('items') or {}).get(item) or 0)
+            take = min(qty, max(0, have_crudo))
+            rest = qty - take
+            if rest > have_purse + have_box:
+                raise TradeError('Saldo insuficiente')
+            if take:
+                if not account:
+                    raise TradeError('Hace falta una cuenta para mover mineral.')
+                spent = crudo.debit(econ, account, (item,), take)
+                if not spent:
+                    raise TradeError('Saldo insuficiente')
+                taken[item] = take
+            if rest:
+                items[item] = rest
+            else:
+                items.pop(item, None)
+        offer['items'] = items
+        return offer, taken
+
+    def give(account, taken):
+        if not taken:
+            return
+        if not account:
+            raise TradeError('Hace falta una cuenta para recibir mineral.')
+        for item, qty in taken.items():
+            have = int(crudo.nuggets(econ, account, item))
+            if have + qty > crudo.CAPS[item]:
+                raise TradeError('No cabe más mineral.')
+            got = crudo.credit(econ, account, item, qty, cap=qty)
+            if got != qty:
+                raise TradeError('No cabe más mineral.')
+
+    left, took_a = pull(name_a, account_a, offer_a)
+    right, took_b = pull(name_b, account_b, offer_b)
+    give(account_b, took_a)
+    give(account_a, took_b)
+    return left, right
+
+
+def apartar_baul(state, name_a, name_b, offer_a, offer_b):
+    """Lo que no está en la mochila sale del baúl y entra en la mochila del otro.
+
+    No crea objetos. El llamador trabaja sobre una copia.
+    """
+    import vault as deposit
+
+    def pull(name, offer):
+        offer = normalize_offer(offer)
+        items = dict(offer['items'])
+        taken = {}
+        box = deposit.account(state, name)
+        for item, qty in list(items.items()):
+            have_purse = purses.count(state, name, item)
+            have_box = int((box.get('items') or {}).get(item) or 0)
+            if qty <= have_purse:
+                continue
+            need = qty - have_purse
+            if need > have_box or not deposit.take_item(box, item, need):
+                raise TradeError('Saldo insuficiente')
+            taken[item] = need
+            if have_purse:
+                items[item] = have_purse
+            else:
+                items.pop(item, None)
+        offer['items'] = items
+        return offer, taken
+
+    def give(name, taken):
+        for item, qty in taken.items():
+            before = purses.count(state, name, item)
+            if purses.credit(state, name, item, qty) != before + qty:
+                raise TradeError('La mochila no acepta más.')
+
+    left, took_a = pull(name_a, offer_a)
+    right, took_b = pull(name_b, offer_b)
+    give(name_b, took_a)
+    give(name_a, took_b)
+    return left, right
 
 
 def apply_exchange(econ, vault, chain, seed, name_a, name_b, offer_a, offer_b, trade_id):
@@ -418,10 +524,7 @@ class Trades:
                             'id': session['id'],
                             'ok': True,
                             'balances': {'smc': smc, 'smp': sph, 'cobre': chis},
-                            'reason': (
-                                'Intercambiaste. Saldo: '
-                                f'{economy.format_smc(smc)}, {plata.format_smp(sph)}, {chis} de cobre.'
-                            ),
+                            'reason': 'Listo. Simoncoin: ' + economy.format_smc(smc),
                         })
                     return
         else:

@@ -61,6 +61,12 @@
   }
 
   function openPanel() {
+    if (window.Baul) {
+      const title = document.getElementById('baul-titulo');
+      if (title) title.textContent = 'Baúl';
+      Baul.open();
+      return;
+    }
     const panel = document.getElementById('banquito');
     if (!panel) return;
     panel.hidden = false;
@@ -162,11 +168,8 @@
       ? Simulacion.walletSubs(name)
       : ((state.vault && (state.vault.smh || state.vault.smcSubs)) || 0);
     if (smh > 0) {
-      const cents = Math.trunc(Number(smh) || 0);
-      const whole = Math.floor(Math.abs(cents) / 100);
-      const frac = Math.abs(cents) % 100;
-      const text = (cents < 0 ? '-' : '') + (frac ? whole + ',' + String(frac).padStart(2, '0').replace(/0+$/, '') : String(whole));
-      Simulacion.bankSmc(dest === 'banco' ? 'in' : 'out', text + ' SMC');
+      const text = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(smh) : (smh / 100) + ' SMC';
+      Simulacion.bankSmc(dest === 'banco' ? 'in' : 'out', text);
     }
   }
   document.getElementById('banquito-todo-banco')?.addEventListener('click', () => transferirTodo('banco'));

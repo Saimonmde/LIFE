@@ -9,6 +9,7 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import cobre
+import crudo
 import economy
 import ed25519
 import historia
@@ -270,8 +271,8 @@ class TradeTests(unittest.TestCase):
         luis = by_balance[3]
         self.assertEqual(ana['balances'], {'smc': economy.SUBS, 'smp': 2 * plata.SUBS, 'cobre': 2})
         self.assertEqual(luis['balances'], {'smc': 2 * economy.SUBS, 'smp': 2 * plata.SUBS, 'cobre': 3})
-        self.assertIn('Intercambiaste. Saldo: 1 SMC, 2 SMP, 2 de cobre.', ana['reason'])
-        self.assertIn('Intercambiaste. Saldo: 2 SMC, 2 SMP, 3 de cobre.', luis['reason'])
+        self.assertEqual(ana['reason'], 'Listo. Simoncoin: 1 SMC')
+        self.assertEqual(luis['reason'], 'Listo. Simoncoin: 2 SMC')
         self.assertEqual(economy.MAX_SUPPLY, 21_000_000)
         self.assertEqual(plata.MAX_SUPPLY, 84_000_000)
 
@@ -305,7 +306,14 @@ class TradeTests(unittest.TestCase):
         self.assertIn('Sólo hay Simoncoin', page)
         self.assertIn('exactSimoncoin', drawer)
         self.assertIn('0,1 cada uno', drawer)
-        self.assertIn('>Simoncoin<', trade)
+        self.assertIn('Simoncoin', trade)
+        self.assertIn('id="trade-doy"', trade)
+        self.assertIn('id="trade-recibo"', trade)
+        self.assertIn('Minerales', trade)
+        self.assertIn('Lingotes', trade)
+        self.assertIn('Cosechas', trade)
+        self.assertIn('aria-label="Sumar"', trade)
+        self.assertIn('guacharaca', trade)
         self.assertNotIn('Simonplata', trade)
 
     def test_full_bags_can_swap_the_same_item_without_loss(self):
@@ -351,6 +359,31 @@ class TradeTests(unittest.TestCase):
                               {'items': {'bolsa_cacao': 2}}, {}, 'exact-fill')
         self.assertEqual(purses.count(vault, 'Ana', 'bolsa_cacao'), 0)
         self.assertEqual(purses.count(vault, 'Luis', 'bolsa_cacao'), purses.MAX_STACK)
+
+    def test_raw_ore_moves_between_accounts_and_protected_items_do_not(self):
+        with self.assertRaises(TradeError):
+            trades.normalize_offer({'items': {'guacharaca': 1}})
+        econ = {'crudo': {'cta-a': {'mineral_oro': 5 * 1000}, 'cta-b': {'mineral_plata': 2 * 1000}}}
+        vault = {'purses': {'Ana': {'bolsa_cafe': 2, 'lingote_oro': 1}, 'Luis': {}}}
+        left, right = trades.preparar_crudo(
+            econ, vault, 'Ana', 'cta-a', 'Luis', 'cta-b',
+            {'items': {'mineral_oro': 2, 'bolsa_cafe': 1, 'lingote_oro': 1}},
+            {'smc': 0, 'items': {'mineral_plata': 1}},
+        )
+        self.assertEqual(left['items'], {'bolsa_cafe': 1, 'lingote_oro': 1})
+        self.assertEqual(right['items'], {})
+        self.assertEqual(int(crudo.nuggets(econ, 'cta-a', 'mineral_oro')), 3)
+        self.assertEqual(int(crudo.nuggets(econ, 'cta-b', 'mineral_oro')), 2)
+        self.assertEqual(int(crudo.nuggets(econ, 'cta-b', 'mineral_plata')), 1)
+        self.assertEqual(int(crudo.nuggets(econ, 'cta-a', 'mineral_plata')), 1)
+        self.assertEqual(purses.count(vault, 'Ana', 'bolsa_cafe'), 2)
+        page = open(os.path.join(os.path.dirname(__file__), '..', 'server.py'), encoding='utf-8').read()
+        self.assertIn('preparar_crudo', page)
+        box = {'purses': {'Ana': {}, 'Luis': {}}, 'accounts': {'Ana': {'items': {'lingote_oro': 2}}}}
+        left, right = trades.apartar_baul(box, 'Ana', 'Luis', {'items': {'lingote_oro': 2}}, {})
+        self.assertEqual(left['items'], {})
+        self.assertEqual(purses.count(box, 'Luis', 'lingote_oro'), 2)
+        self.assertNotIn('lingote_oro', box['accounts']['Ana']['items'])
 
 
 if __name__ == '__main__':

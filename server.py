@@ -1573,12 +1573,34 @@ def _bultos_de(name, place):
     return BAUL.contar_bultos(FINCA_STATE, name, place)
 
 
+def _cuenta_por_nombre(name):
+    for person in clients.values():
+        if getattr(person, 'name', None) == name:
+            found = _cuenta(person)
+            if found:
+                return found
+    return ''
+
+
+def _crudo_encima(name):
+    account = _cuenta_por_nombre(name)
+    found = {}
+    if not account:
+        return found
+    for item in CRUDO.CAPS:
+        qty = int(CRUDO.nuggets(ECON, account, item))
+        if qty > 0:
+            found[item] = qty
+    return found
+
+
 def _vista_baul(name):
     import baul as BAUL
     return BAUL.vista(
         VAULT_STATE, ECON, name,
         bultos_encima=_bultos_de(name, 'mochila'),
         bultos_baul=_bultos_de(name, 'banco'),
+        crudo_encima=_crudo_encima(name),
     )
 
 
@@ -1639,11 +1661,18 @@ def baul_mover(sender, message):
         return _enviar_baul(sender, False, 'Nada que mover.')
     if item in BAUL.MIRROR:
         return _mover_bulto(sender, op, item, qty, token)
-    result = BAUL.mover_lote(VAULT_STATE, sender.name, op, item, qty, token)
+    if item in CRUDO.CAPS:
+        result = BAUL.mover_mineral(
+            VAULT_STATE, ECON, _cuenta(sender), sender.name, op, item, qty, token,
+        )
+    else:
+        result = BAUL.mover_lote(VAULT_STATE, sender.name, op, item, qty, token)
     if not result.get('ok'):
         return _enviar_baul(sender, False, result.get('reason') or 'No se movió nada.')
     if not result.get('dup'):
         save_vault()
+        if item in CRUDO.CAPS:
+            save_econ()
     _enviar_baul(sender, True, moved=result.get('moved') or [], dup=result.get('dup'))
 
 
@@ -1786,11 +1815,22 @@ def broadcast_econ():
             send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c)))
 
 def _trade_balances(name):
+    items = dict(PURSES.inventory(VAULT_STATE, name))
+    for key, qty in (VAULT.account(VAULT_STATE, name).get('items') or {}).items():
+        extra = int(qty or 0)
+        if extra > 0:
+            items[key] = int(items.get(key) or 0) + extra
+    account = _cuenta_por_nombre(name)
+    if account:
+        for item in CRUDO.CAPS:
+            extra = int(CRUDO.nuggets(ECON, account, item))
+            if extra > 0:
+                items[item] = int(items.get(item) or 0) + extra
     return {
         'smc': int((ECON.get('wallets') or {}).get(name) or 0),
         'smp': PLATA.balance_of(ECON, name),
         'cobre': COBRE.balance_of(ECON, name),
-        'items': PURSES.inventory(VAULT_STATE, name),
+        'items': items,
     }
 
 def _mover_bultos_del_trueque(state, name_a, name_b, offer_a, offer_b):
@@ -1819,6 +1859,11 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
     candidate = copy.deepcopy(ECON)
     vault = copy.deepcopy(VAULT_STATE)
     chain = copy.deepcopy(LIBRO_CHAIN)
+    offer_a, offer_b = TRADE.preparar_crudo(
+        candidate, vault, name_a, _cuenta_por_nombre(name_a), name_b, _cuenta_por_nombre(name_b),
+        offer_a, offer_b,
+    )
+    offer_a, offer_b = TRADE.apartar_baul(vault, name_a, name_b, offer_a, offer_b)
     records = TRADE.apply_exchange(
         candidate, vault, chain, NFT_SEED, name_a, name_b, offer_a, offer_b, trade_id,
     )
@@ -1838,6 +1883,9 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
     _volcar(VAULT_STATE, vault)
     _volcar(LIBRO_CHAIN, chain)
     _volcar(FINCA_STATE, finca_copy)
+    for person in clients.values():
+        if person.hello and person.name in (name_a, name_b):
+            _avisar_crudo(person, 'mineral_oro')
     broadcast_econ()
     broadcast({'t': 'libro_publico', 'contadores': public_counters()})
 

@@ -20,7 +20,7 @@ class FichaTests(unittest.TestCase):
         trades = read('tools/trades.py')
         self.assertIn('ficha.js?v=ficha-trueque', page)
         self.assertIn('id="ficha-cambiar"', card)
-        self.assertIn('Intercambiar', card)
+        self.assertIn('Trueque', card)
         self.assertIn('TradeUI.openTrade', card)
         self.assertNotIn('eco.issue', card)
         self.assertIn('Ficha.open', world)

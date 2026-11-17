@@ -106,3 +106,13 @@ body.in-game #baul-mina:not([hidden]) { display: flex; flex-direction: column; }
   #baul-mina .baul-acciones { flex: 1 1 100%; }
   #baul-mina button.baul-btn { flex: 1 1 46%; }
 }
+#baul-mina .baul-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 8px; }
+#baul-mina .baul-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px; border: 1px solid rgba(255,255,255,.2); border-radius: 10px; background: rgba(18, 22, 30, .55); min-width: 0; }
+#baul-mina .baul-card img { width: 40px; height: 40px; object-fit: contain; }
+#baul-mina .baul-card b { font-size: 14px; line-height: 1.2; }
+#baul-mina .baul-card small { color: #d7deea; }
+#baul-mina .baul-card .baul-acciones { width: 100%; }
+@media (orientation: landscape) and (max-height: 520px) {
+  #baul-mina { max-height: 96dvh; }
+  #baul-mina .baul-card img { width: 32px; height: 32px; }
+}

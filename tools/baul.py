@@ -20,6 +20,11 @@ MINERAL = {
     'piedra': 'Piedra',
     'mineral_piedra': 'Piedra',
 }
+LINGOTE = {
+    'lingote_oro': 'Lingote de oro',
+    'lingote_plata': 'Lingote de plata',
+    'lingote_cobre': 'Lingote de cobre',
+}
 RECURSO = {
     'madera': 'Madera',
     'bolsa_cafe': 'Café',
@@ -203,6 +208,60 @@ def mover_lote(state, name, op, item='', qty=1, token='', now=None):
     return {'ok': True, 'dup': False, 'moved': moved, 'account': vault.public_account(box)}
 
 
+def mover_mineral(vault_state, econ, account, name, op, item, qty, token='', now=None):
+    """Guarda o saca oro y plata crudos. El horno los lee en la cuenta; el baúl los muestra."""
+    import crudo
+    name = str(name or '')
+    item = str(item or '')[:32]
+    now = _now(now)
+    if item not in crudo.CAPS or not name or op not in ('deposit', 'withdraw'):
+        return {'ok': False, 'reason': 'Nada que mover.', 'moved': []}
+    box = vault.account(vault_state, name)
+    sig = 'crudo:%s:%s:%s' % (op, item, 'all' if _all(qty) else qty)
+    token, dup = _seen(box, token, sig, now)
+    if dup:
+        return {'ok': True, 'dup': True, 'moved': [], 'account': vault.public_account(box)}
+    have_purse = purses.count(vault_state, name, item)
+    have_crudo = int(crudo.nuggets(econ, account, item)) if account else 0
+    have_box = int((box.get('items') or {}).get(item) or 0)
+    if op == 'deposit':
+        take = _take_qty(have_purse + have_crudo, qty)
+        if take < 1:
+            return {'ok': False, 'reason': 'No hay esa cantidad.', 'moved': []}
+        from_purse = min(take, have_purse)
+        from_crudo = take - from_purse
+        if from_purse and not purses.debit(vault_state, name, item, from_purse):
+            return {'ok': False, 'reason': 'No llevas esa cantidad.', 'moved': []}
+        if from_crudo:
+            if not account or not crudo.debit(econ, account, (item,), from_crudo):
+                if from_purse:
+                    purses.credit(vault_state, name, item, from_purse)
+                return {'ok': False, 'reason': 'No hay esa cantidad.', 'moved': []}
+        vault.add_item(box, item, take)
+    else:
+        take = _take_qty(have_box, qty)
+        if take < 1:
+            return {'ok': False, 'reason': 'El depósito no tiene esa cantidad.', 'moved': []}
+        if not vault.take_item(box, item, take):
+            return {'ok': False, 'reason': 'El depósito no tiene esa cantidad.', 'moved': []}
+        room = crudo.CAPS[item] - have_crudo if account else 0
+        to_crudo = min(take, max(0, room))
+        to_purse = take - to_crudo
+        if to_crudo and crudo.credit(econ, account, item, to_crudo, cap=to_crudo) != to_crudo:
+            vault.add_item(box, item, take)
+            return {'ok': False, 'reason': 'No cabe más mineral.', 'moved': []}
+        if to_purse:
+            before = purses.count(vault_state, name, item)
+            if purses.credit(vault_state, name, item, to_purse) != before + to_purse:
+                if to_crudo:
+                    crudo.debit(econ, account, (item,), to_crudo)
+                vault.add_item(box, item, take)
+                return {'ok': False, 'reason': 'La mochila no acepta más.', 'moved': []}
+    moved = [{'op': op, 'item': item, 'qty': take}]
+    _remember(box, token, sig, now, moved)
+    return {'ok': True, 'dup': False, 'moved': moved, 'account': vault.public_account(box)}
+
+
 def _units(amount):
     """Lee SMC con el lector que ya existe. 'all' lo decide quien llama."""
     if _all(amount):
@@ -338,7 +397,7 @@ def _texto(units):
     }
 
 
-def vista(state, econ, name, bultos_encima=None, bultos_baul=None):
+def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=None):
     """Lo que el servidor tiene de esa cuenta. El texto visible es sólo SMC."""
     import supply
     name = str(name or '')
@@ -354,8 +413,12 @@ def vista(state, econ, name, bultos_encima=None, bultos_baul=None):
             oficial = int((bultos_baul or {}).get(key) or 0)
             if oficial:
                 stored[key] = oficial
+    for key, qty in (crudo_encima or {}).items():
+        extra = int(qty or 0)
+        if extra > 0:
+            carried[key] = int(carried.get(key) or 0) + extra
     order = []
-    for key in list(MINERAL) + list(RECURSO):
+    for key in list(MINERAL) + list(LINGOTE) + list(RECURSO):
         if key not in order:
             order.append(key)
     for key in list(carried) + list(stored):
@@ -367,10 +430,17 @@ def vista(state, econ, name, bultos_encima=None, bultos_baul=None):
         en_baul = int(stored.get(key) or 0)
         if encima < 1 and en_baul < 1:
             continue
-        grupo = 'mineral' if key in MINERAL else 'recurso'
+        if key in MINERAL:
+            grupo = 'mineral'
+        elif key in LINGOTE:
+            grupo = 'lingote'
+        elif key in MIRROR:
+            grupo = 'cosecha'
+        else:
+            grupo = 'recurso'
         filas.append({
             'id': key,
-            'name': MINERAL.get(key) or RECURSO.get(key) or key,
+            'name': MINERAL.get(key) or LINGOTE.get(key) or RECURSO.get(key) or key,
             'grupo': grupo,
             'encima': encima,
             'baul': en_baul,

@@ -15,7 +15,7 @@
     '<header><h2 id="ficha-nombre">Jugador</h2><button type="button" id="ficha-cerrar" aria-label="Cerrar">✕</button></header>',
     '<p id="ficha-lugar"></p>',
     '<div class="ficha-acciones">',
-    '<button type="button" id="ficha-cambiar">Intercambiar</button>',
+    '<button type="button" id="ficha-cambiar">Trueque</button>',
     '<button type="button" id="ficha-seguir">Seguir</button>',
     '<button type="button" id="ficha-agregar">Agregar</button>',
     '</div>',
