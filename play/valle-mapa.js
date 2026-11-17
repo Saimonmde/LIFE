@@ -25,6 +25,23 @@
     };
   }
 
+  function badgeNueva(ctx, x, y) {
+    ctx.save();
+    ctx.strokeStyle = '#e2b23c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, 13, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#e2b23c';
+    ctx.fillRect(x - 22, y - 30, 44, 16);
+    ctx.fillStyle = '#2c1a0c';
+    ctx.font = '800 11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Nueva', x, y - 22);
+    ctx.restore();
+  }
+
   function xy(frame, lat, lon) {
     const b = frame.bounds;
     const x = (lon - b.lonW) / (b.lonE - b.lonW);
@@ -121,6 +138,20 @@
       if (!world || spot.x == null) continue;
       const [lat, lon] = latlonOfTile(spot.x, spot.y, world);
       const [x, y] = xy(frame, lat, lon);
+      if (spot.nueva) {
+        badgeNueva(ctx, x, y);
+        const title = spot.name || 'Mina de La Ladera';
+        ctx.font = '800 13px system-ui, sans-serif';
+        const tw = ctx.measureText(title).width + 12;
+        ctx.fillStyle = '#2c1a0c';
+        ctx.fillRect(x + 16, y - 10, tw, 20);
+        ctx.fillStyle = '#ffe3a0';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(title, x + 22, y);
+        placed.push({ x: x - 24, y: y - 36, w: tw + 48, h: 56 });
+        continue;
+      }
       const tag = spot.corto || spot.name;
       const w = ctx.measureText(tag).width + 8;
       let ly = y - 8;
