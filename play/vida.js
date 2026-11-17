@@ -458,7 +458,7 @@
         answer.append(document.createTextNode(note.answer));
         row.append(answer);
       }
-      if (role === 'simon') modButtons(row, 'note', note.id);
+      if (role === 'simon' || role === 'owner' || role === 'staff') modButtons(row, 'note', note.id);
       list.append(row);
     }
     for (const poll of board.polls || []) {
@@ -480,7 +480,7 @@
         answer.textContent = 'Simon: ' + poll.answer;
         row.append(answer);
       }
-      if (role === 'simon') modButtons(row, 'poll', poll.id);
+      if (role === 'simon' || role === 'owner' || role === 'staff') modButtons(row, 'poll', poll.id);
       list.append(row);
     }
   }
@@ -515,6 +515,7 @@
 
   function onWelcome(m) {
     role = m.role || 'player';
+    if (window.MiCuenta && MiCuenta.marcar) MiCuenta.marcar(role);
     if (m.placeName) placeName = m.placeName;
     if (m.presence) paintCount(m.presence);
     if (invitePlace) {

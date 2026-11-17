@@ -106,7 +106,7 @@ function ensureMenu() {
     button = document.createElement('button');
     button.type = 'button';
     button.id = 'cajon-editor';
-    button.textContent = 'Editar mundo (admin)';
+    button.textContent = 'Editar mundo';
     button.addEventListener('click', (event) => {
       event.stopPropagation();
       menu.hidden = true;

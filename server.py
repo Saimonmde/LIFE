@@ -214,6 +214,10 @@ def world_edit_request(user, message, save=True, announce=True):
             save_world_edits()
         if announce:
             broadcast({'t': 'world_edits', 'worldEdits': EDITS.packet(WORLD_EDITS)})
+        if SOCIAL.role_of(user) == 'staff':
+            import staff as STAFF
+            STAFF.note(ACCOUNTS, user, 'editar_mundo', (message or {}).get('op'))
+            save_accounts()
     return result
 
 def save_libro(records):
@@ -1990,9 +1994,14 @@ def vida_try(c, m, t):
         send(c, {'t': 'poste', **SOCIAL.public_notes(VIDA)})
         return True
     if t == 'poste_moderar':
-        result = SOCIAL.moderate(VIDA, SOCIAL.role_of(getattr(c, 'user', None)), m.get('kind'), m.get('id'), m.get('action'), m.get('text') or '')
+        actor = getattr(c, 'user', None)
+        result = SOCIAL.moderate(VIDA, SOCIAL.role_of(actor), m.get('kind'), m.get('id'), m.get('action'), m.get('text') or '')
         if result.get('ok'):
             save_vida()
+            if SOCIAL.role_of(actor) == 'staff':
+                import staff as STAFF
+                STAFF.note(ACCOUNTS, actor, 'moderar', '%s:%s' % (m.get('kind') or '', m.get('action') or ''))
+                save_accounts()
         send(c, {'t': 'poste', **(result.get('board') or SOCIAL.public_notes(VIDA)), 'error': result.get('error')})
         return True
     return False
@@ -2273,6 +2282,10 @@ def handle_client_message(c, m, t):
         if getattr(c, 'user', None) and CASA.absorb(c.user, VIDA, c.identity):
             save_accounts()
             save_vida()
+        if getattr(c, 'user', None):
+            import staff as STAFF
+            if STAFF.apply_bootstrap(c.user):
+                save_accounts()
         stored = SOCIAL.pet_for(VIDA, c.identity)
         if stored:
             c.pet = stored
@@ -3000,12 +3013,29 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         if not user:
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
         import mi_cuenta as MICUENTA
+        import staff as STAFF
+        if STAFF.apply_bootstrap(user):
+            save_accounts()
         body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000), VAULT_STATE)
+        body['role'] = SOCIAL.role_of(user)
         body['followable'] = SEGUIR.allow(user)
+        if body['role'] == 'owner':
+            body['staff'] = STAFF.list_staff(ACCOUNTS)
+            body['audit'] = STAFF.recent(ACCOUNTS)
         social = SOCIAL.friend_view(VIDA, 'acct:' + str(user.get('id') or ''), ACCOUNTS, clients.values())
         body['amigos'] = social.get('friends') or []
         body['pedidos'] = social.get('in') or []
         return auth_response('200 OK', body, headers)
+    if path == '/auth/staff' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta.'}, headers)
+        import staff as STAFF
+        result = STAFF.handle(ACCOUNTS, user, payload or {})
+        if not result.get('ok'):
+            return auth_response(result.get('status') or '403 Forbidden', {'error': result.get('error') or 'No se pudo.'}, headers)
+        save_accounts()
+        return auth_response('200 OK', result, headers)
     if path == '/auth/seguir' and method == 'POST':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
