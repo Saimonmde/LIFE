@@ -80,6 +80,23 @@ body:not(.in-game) #hud-minimo { display: none; }
   text-align: left;
   white-space: normal;
 }
+#entrar-google {
+  position: fixed;
+  z-index: 80;
+  left: 8px;
+  right: 8px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border-radius: 14px;
+  background: #e2b23c;
+  color: #2a1c10;
+  font: 800 18px/1.2 system-ui, sans-serif;
+  text-decoration: none;
+}
+#entrar-google[hidden] { display: none !important; }
 #hud-saldos {
   margin: 2px 0 0;
   font-size: 12px;

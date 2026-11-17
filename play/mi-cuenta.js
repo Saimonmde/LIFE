@@ -76,8 +76,9 @@
     const total = coins.totalSmh != null ? coins.totalSmh : coins.simoncoinSmh;
     const line = $('mi-cuenta-monedas');
     const exactSmc = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(total || 0) : (texto((Number(total) || 0) / subs) + ' SMC');
-    line.textContent = 'Simoncoin: ' + exactSmc + (data.enVivo ? ' · en vivo' : '');
-    line.title = exactSmc;
+    const baulSmc = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(coins.bankSmh || 0) : texto((Number(coins.bankSmh) || 0) / subs) + ' SMC';
+    line.textContent = 'Billetera: ' + exactSmc + ' · Baúl: ' + baulSmc;
+    line.title = line.textContent;
     $('mi-cuenta-finca').textContent = 'Finquita: ' + lista(data.crops, { cafe: 'Café', cacao: 'Cacao' }) + ' · Animales: ' + lista(data.animals, { gallo: 'Gallos', gallina: 'Gallinas' });
     $('mi-cuenta-favorito').textContent = 'Favorito: ' + (data.favoritePlace || 'sin lugar') + (data.favoriteWorld ? ' · Mundo ' + data.favoriteWorld : '');
     const google = $('mi-cuenta-google-btn');

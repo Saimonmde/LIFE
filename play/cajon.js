@@ -39,7 +39,16 @@
     const money = balances();
     const line = $('#hud-saldos');
     if (line) {
-      line.textContent = 'Tuyo: ' + (money.exactSimoncoin || '0 SMC');
+      const S = window.__ELJARDIN || {};
+      const bankSmh = S.vaultFromServer ? Number((S.vault && (S.vault.smh != null ? S.vault.smh : S.vault.smcSubs)) || 0) : 0;
+      const fmt = window.Simulacion && Simulacion.formatSmc ? (n) => Simulacion.formatSmc(n) : (n) => (Number(n) / 100) + ' SMC';
+      const bolsa = fmt(bankSmh);
+      let objetos = 0;
+      const sumar = (bag) => { if (!bag) return; Object.keys(bag).forEach((id) => { objetos += Math.max(0, Math.round(Number(bag[id]) || 0)); }); };
+      sumar(S.purse && S.purse.items);
+      sumar(S.crudo);
+      sumar(S.vault && S.vault.items);
+      line.textContent = 'Billetera ' + (money.exactSimoncoin || '0 SMC') + ' · Baúl ' + bolsa + ' · ' + objetos + ' objetos';
       line.title = line.textContent;
     }
     const box = $('#cajon-monedas');
