@@ -87,7 +87,7 @@ body.in-game #baul-mina:not([hidden]) { display: flex; flex-direction: column; }
 }
 #baul-ficha {
   position: fixed;
-  z-index: 96;
+  z-index: 140;
   left: 0;
   right: 0;
   top: 0;
@@ -127,6 +127,8 @@ body.in-game #baul-mina:not([hidden]) { display: flex; flex-direction: column; }
 #baul-ficha .baul-desc { margin: 0; color: #f6e7c4; font: 16px/1.4 var(--sans); }
 #baul-ficha .baul-cantidades, #baul-ficha .baul-verbo { margin: 8px 0 0; color: #f5d27a; font: 700 16px/1.3 var(--sans); }
 #baul-ficha .baul-aviso { margin: 8px 0 0; color: #ffb4a2; font: 700 15px/1.3 var(--sans); }
+#baul-ficha .baul-horno { margin: 8px 0 0; color: #f6e7c4; font: 16px/1.35 var(--sans); }
+#baul-ficha #baul-ir-horno, #baul-ficha #baul-canje { margin-top: 8px; }
 #baul-ficha .baul-montos { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 #baul-ficha .baul-montos .baul-btn { flex: 1 1 64px; }
 @media (hover: hover) and (pointer: fine) {

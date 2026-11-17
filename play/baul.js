@@ -24,11 +24,19 @@
     },
     mineral_plata: {
       nombre: 'Mineral de plata',
-      texto: 'Se saca picando vetas de plata en las minas. Se funde en el horno para acuñar Simoncoins a 0,01 SMC.',
+      texto: 'Se saca picando vetas de plata en las minas. Se funde en el horno para acuñar Simoncoins a 0,01 SMC. Cuatro piezas hacen una moneda de plata, que se guarda en el inventario.',
     },
     mineral_cobre: {
       nombre: 'Mineral de cobre',
-      texto: 'Se saca picando en las minas. Se funde en el horno para acuñar Simoncoins a 0,001 SMC.',
+      texto: 'Se saca picando en las minas. Se funde en el horno para acuñar Simoncoins a 0,001 SMC. Tres piezas hacen una moneda de cobre, que se guarda en el inventario.',
+    },
+    moneda_plata: {
+      nombre: 'Moneda de plata',
+      texto: 'Moneda de plata acuñada. Se guarda, se cambia o se suelta. No es Simoncoin.',
+    },
+    moneda_cobre: {
+      nombre: 'Moneda de cobre',
+      texto: 'Moneda de cobre acuñada. Se guarda, se cambia o se suelta. No es Simoncoin.',
     },
     piedra: {
       nombre: 'Piedra',
@@ -176,6 +184,48 @@
     const n = Number(raw);
     return n > 0 ? n : 0;
   }
+  function seSuelta(id) {
+    return ['smc', 'simoncoin', 'moneda_oro', 'sai'].indexOf(id) < 0;
+  }
+  function botonesBotar(have) {
+    const pedido = entero(montoTexto);
+    return [
+      { cant: '1', texto: '1', off: !(have >= 1) },
+      { cant: '10', texto: '10', off: !(have >= 10) },
+      { cant: 'x', texto: 'X', off: !(pedido >= 1 && pedido <= have) },
+      { cant: 'all', texto: 'Todo', off: !(have >= 1) },
+    ];
+  }
+  function juntoHorno() {
+    const ink = window.LiveInk;
+    const S = ink && ink.state;
+    const world = ink && (typeof ink.world === 'function' ? ink.world() : ink.world);
+    const here = (world && world.mapId) || 'city';
+    if (!S || !S.player || !S.nodes || (here !== 'mine' && here !== 'mina2')) return false;
+    let near = false;
+    S.nodes.forEach((node) => {
+      const d = node && node.def;
+      if (!d || d.type !== 'furnace') return;
+      if (Math.max(Math.abs(S.player.x - d.x), Math.abs(S.player.y - d.y)) <= 1) near = true;
+    });
+    return near;
+  }
+  function irAlHorno() {
+    const ink = window.LiveInk;
+    if (!ink) return false;
+    const world = typeof ink.world === 'function' ? ink.world() : ink.world;
+    const here = (world && world.mapId) || 'city';
+    const S = ink.state;
+    cerrarFicha();
+    if ((here === 'mine' || here === 'mina2') && S && S.nodes && ink.goTo) {
+      let furnace = null;
+      S.nodes.forEach((node) => { if (node.def && node.def.type === 'furnace') furnace = node; });
+      if (furnace) { ink.goTo(furnace.def.x, furnace.def.y + 1); return true; }
+    }
+    if (ink.goMine) { ink.goMine(); return true; }
+    if (ink.askTravel) { ink.askTravel('mina'); return true; }
+    return false;
+  }
   function botones(disponible, moneda, textoX) {
     const have = Number(disponible) || 0;
     function cabe(n) {
@@ -277,25 +327,38 @@
       enBaul = row ? Number(row.baul) || 0 : 0;
       nombreSrv = row ? row.name : '';
     }
-    const info = fichaDe(sel.id, nombreSrv);
+    if (!encima && sel.mano && sel.qty) encima = Number(sel.qty) || 0;
+    const info = fichaDe(sel.id, nombreSrv || sel.nombre);
     const have = sel.lado === 'encima' ? encima : enBaul;
     const moneda = sel.kind === 'smc';
+    const enCofre = !sel.mano || cerca();
     const op = sel.lado === 'encima' ? 'deposit' : 'withdraw';
     const verbo = sel.lado === 'encima' ? 'Guardar' : 'Sacar';
     const nums = botones(have, moneda, montoTexto);
     const botonesHtml = nums.map((b) => '<button type="button" class="baul-btn" data-op="' + op + '" data-kind="' + sel.kind + '" data-item="' + esc(sel.id) + '" data-cant="' + b.cant + '"' + (b.off ? ' disabled' : '') + '>' + b.texto + '</button>').join('');
     const encimaTxt = moneda ? encimaSmc : String(encima);
     const baulTxt = moneda ? baulSmc : String(enBaul);
+    const llevar = encima > 0 && seSuelta(sel.id);
+    const botarNums = botonesBotar(encima);
+    const botarHtml = llevar ? ('<p class="baul-verbo">Botar</p><div class="baul-montos baul-botar">' + botarNums.map((b) => '<button type="button" class="baul-btn" data-op="soltar" data-kind="item" data-item="' + esc(sel.id) + '" data-cant="' + b.cant + '"' + (b.off ? ' disabled' : '') + '>' + b.texto + '</button>').join('') + '</div>') : '';
+    const canje = (sel.id === 'moneda_plata' || sel.id === 'moneda_cobre') ? '<button type="button" class="baul-btn" id="baul-canje" data-op="canjear" data-item="' + esc(sel.id) + '">Canjear por Simoncoin</button>' : '';
+    const esMineral = sel.id === 'mineral_oro' || sel.id === 'mineral_plata' || sel.id === 'mineral_cobre' || sel.id === 'pepita_oro';
+    const horno = esMineral && !juntoHorno()
+      ? '<p class="baul-horno">Se acuña en el Horno de Las Palmas o en el Horno de La Ladera.</p><button type="button" class="baul-btn" id="baul-ir-horno">Ir al horno</button>'
+      : '';
+    const pase = enCofre
+      ? '<p class="baul-verbo">' + verbo + '</p><div class="baul-montos">' + botonesHtml + '<input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1"></div>'
+      : '<div class="baul-montos"><input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1"></div>';
     return '<div id="baul-ficha" class="baul-ficha"><div class="baul-carta" role="dialog" aria-labelledby="baul-ficha-nombre">'
       + '<button type="button" class="x" id="baul-ficha-x" aria-label="Cerrar">✕</button>'
       + '<div class="ficha-ico" aria-hidden="true">' + dibujo(sel.id) + '</div>'
       + '<h3 id="baul-ficha-nombre">' + esc(info.nombre) + '</h3>'
       + '<p class="baul-desc">' + esc(info.texto) + '</p>'
       + '<p class="baul-cantidades">Encima: ' + esc(encimaTxt) + ' · Baúl: ' + esc(baulTxt) + '</p>'
-      + '<p class="baul-verbo">' + verbo + '</p>'
-      + '<div class="baul-montos">' + botonesHtml
-      + '<input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1">'
-      + '</div>'
+      + pase
+      + botarHtml
+      + canje
+      + horno
       + (aviso ? '<p class="baul-aviso" role="alert">' + esc(aviso) + '</p>' : '')
       + '</div></div>';
   }
@@ -342,15 +405,21 @@
         have = row ? Number(sel.lado === 'encima' ? row.encima : row.baul) || 0 : 0;
       }
       const nums = botones(have, moneda, montoTexto);
-      ficha.querySelectorAll('.baul-montos [data-cant]').forEach((button) => {
+      ficha.querySelectorAll('.baul-montos:not(.baul-botar) [data-cant]').forEach((button) => {
         const row = nums.filter((item) => item.cant === button.dataset.cant)[0];
+        if (row) button.disabled = !!row.off;
+      });
+      const filaMano = filas.filter((item) => item.id === sel.id)[0];
+      const sueltos = botonesBotar((filaMano && Number(filaMano.encima)) || (sel.mano && sel.qty) || 0);
+      ficha.querySelectorAll('.baul-botar [data-cant]').forEach((button) => {
+        const row = sueltos.filter((item) => item.cant === button.dataset.cant)[0];
         if (row) button.disabled = !!row.off;
       });
     });
     root.querySelectorAll('.casilla[data-lado]').forEach((button) => {
       button.addEventListener('click', (event) => {
         event.stopPropagation();
-        sel = { lado: button.dataset.lado, kind: button.dataset.kind, id: button.dataset.item };
+        sel = { lado: button.dataset.lado, kind: button.dataset.kind, id: button.dataset.item, mano: false };
         aviso = '';
         paint(last);
       });
@@ -359,6 +428,14 @@
     if (cerrar) cerrar.addEventListener('click', (event) => { event.stopPropagation(); cerrarFicha(); });
     const fondo = document.getElementById('baul-ficha');
     if (fondo) fondo.addEventListener('click', (event) => { if (event.target === fondo) cerrarFicha(); });
+    const ir = document.getElementById('baul-ir-horno');
+    if (ir) ir.addEventListener('click', (event) => { event.stopPropagation(); irAlHorno(); });
+    const canje = document.getElementById('baul-canje');
+    if (canje) canje.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const qty = entero(montoTexto) || 1;
+      if (window.Objeto && Objeto.canjear) Objeto.canjear(canje.dataset.item, qty);
+    });
     sacarFicha();
     const montos = (ficha || root).querySelectorAll('.baul-montos [data-cant]');
     montos.forEach((button) => {
@@ -368,9 +445,34 @@
       });
     });
   }
+  function abrirFicha(opts) {
+    opts = opts || {};
+    sel = {
+      lado: opts.lado || 'encima',
+      kind: opts.id === 'smc' ? 'smc' : 'item',
+      id: opts.id,
+      mano: opts.mano !== false,
+      qty: Number(opts.qty) || 0,
+      nombre: opts.nombre || '',
+    };
+    aviso = '';
+    const el = panel();
+    const cerrado = !el || el.hidden;
+    paint(last || vacio());
+    if (cerrado && el) el.hidden = true;
+  }
   function enviar(button) {
-    if (!button || button.disabled || !online()) return false;
+    if (!button || button.disabled) return false;
     const cant = button.dataset.cant;
+    if (button.dataset.op === 'soltar') {
+      const have = sel && sel.mano && sel.qty ? Number(sel.qty) : 0;
+      const fila = (last && last.filas || []).filter((item) => item.id === button.dataset.item)[0];
+      const encima = fila ? Number(fila.encima) || 0 : have;
+      const qty = cant === 'all' ? encima : (cant === 'x' ? entero(montoTexto) : Number(cant));
+      if (!(qty >= 1) || !window.Objeto || !Objeto.botar) return false;
+      return !!Objeto.botar(button.dataset.item, qty);
+    }
+    if (!online()) return false;
     if (button.dataset.kind === 'smc') {
       const amount = cant === 'all' ? 'all' : (cant === 'x' ? montoTexto : cant);
       moverSmc(button.dataset.op, amount);
@@ -435,17 +537,18 @@
     if (!btn) return;
     const show = cerca() && !abierto();
     btn.hidden = !show;
-    if (!abierto()) close();
+    if (!abierto() && !(sel && sel.mano)) close();
   }
   const abrir = document.getElementById('baul-abrir');
   if (abrir) abrir.addEventListener('click', open);
+  function fichaSuelta() { return !!(sel && sel.mano && !abierto()); }
   document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || !sel || !abierto()) return;
+    if (event.key !== 'Escape' || !sel || (!abierto() && !fichaSuelta())) return;
     event.preventDefault();
     cerrarFicha();
   });
   document.addEventListener('pointerdown', (event) => {
-    if (!sel || !abierto()) return;
+    if (!sel || (!abierto() && !fichaSuelta())) return;
     const t = event.target;
     if (!t || !t.closest) return;
     if (t.closest('#baul-ficha, .baul-carta, .casilla, #baul-abrir, #baul-mina header')) return;
@@ -454,5 +557,5 @@
   setInterval(pulso, 400);
   function ultima() { return last; }
   function elegir(row) { sel = row; aviso = ''; paint(last || vacio()); }
-  window.Baul = { open, close, paint, pedir, onNet, abierto, cerca, ultima, elegir, fichaDe, FICHAS, botones, mensaje, centimos, enviar, fijarMonto };
+  window.Baul = { open, close, paint, pedir, onNet, abierto, cerca, ultima, elegir, abrirFicha, fichaDe, FICHAS, botones, botonesBotar, mensaje, centimos, enviar, fijarMonto, juntoHorno, irAlHorno, seSuelta };
 })();

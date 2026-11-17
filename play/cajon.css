@@ -142,8 +142,8 @@ body.mapa-limpio #hud-gear {
 }
 body:not(.in-game) #b-picar, body:not(.in-game) #b-acunar-pulgar { display: none !important; }
 #b-acunar-pulgar {
-  position: fixed; z-index: 22; right: max(8px, env(safe-area-inset-right));
-  bottom: calc(128px + env(safe-area-inset-bottom)); min-width: 96px; min-height: 56px;
+  position: fixed; z-index: 50; right: max(8px, env(safe-area-inset-right));
+  bottom: calc(72px + env(safe-area-inset-bottom)); min-width: 96px; min-height: 56px;
   border: 0; border-radius: 14px; background: #e2b23c; color: #1c1208;
   font: 800 16px/1 system-ui, sans-serif; padding: 8px 12px;
 }
