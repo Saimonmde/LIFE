@@ -32,6 +32,7 @@
     '<div class="mi-cuenta-panel">',
     '<header><h2 id="mi-cuenta-titulo">Mi cuenta</h2><button type="button" id="mi-cuenta-cerrar">✕ Cerrar</button></header>',
     '<p id="mi-cuenta-nick"></p>',
+    '<p id="mi-cuenta-sesion"></p>',
     '<p id="mi-cuenta-google"></p>',
     '<p id="mi-cuenta-lugar"></p>',
     '<p id="mi-cuenta-hora"></p>',
@@ -64,6 +65,8 @@
   }
   function pintar(data) {
     $('mi-cuenta-nick').textContent = 'Nickname: ' + (data.nick || 'Viajero');
+    const sesion = $('mi-cuenta-sesion');
+    if (sesion) sesion.textContent = data.correo ? ('Sesión: ' + data.correo) : 'Sesión: invitado, sin correo';
     $('mi-cuenta-google').textContent = 'Google: ' + (data.google ? 'sí' : 'no');
     $('mi-cuenta-lugar').textContent = 'Último lugar: ' + (data.place || 'Sin lugar guardado');
     $('mi-cuenta-hora').textContent = data.saved || 'Todavía no hay un guardado en la cuenta.';

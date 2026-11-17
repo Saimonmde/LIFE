@@ -114,7 +114,8 @@ def resumen(user, econ, finca_accounts, now_ms=0, vault_state=None):
     """Vista para el panel. No incluye contraseña, hash ni el identificador de Google."""
     user = user if isinstance(user, dict) else {}
     saved = partida.recall(user)
-    name = str(user.get('wallet_name') or user.get('name') or '')
+    import billetera
+    name = billetera.elegir(econ, vault_state, user, user.get('wallet_name') or user.get('name') or '')
     import lugares
     import mundos
     import vault as vault_mod
@@ -126,7 +127,9 @@ def resumen(user, econ, finca_accounts, now_ms=0, vault_state=None):
     coins['bankSmh'] = int(bank)
     coins['totalSmh'] = int(coins['simoncoinSmh']) + int(bank)
     return {
-        'nick': name[:16],
+        'nick': str(user.get('wallet_name') or user.get('name') or name)[:16],
+        'billetera': name,
+        'correo': billetera.correo_corto(user.get('email')),
         'google': bool((user.get('providers') or {}).get('google')),
         'place': _place(saved),
         'saved': _minutes(saved.get('rev'), now_ms),

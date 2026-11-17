@@ -24,9 +24,10 @@
   function balances() {
     const S = window.__ELJARDIN || {};
     const ledger = S.ledger && S.ledger.balances;
-    const name = window.nombrePropio ? nombrePropio() : '';
-    let simoncoin = ledger ? ledger.simoncoin : 0;
-    if (!ledger && S.econ && S.econ.wallets && name) simoncoin = S.econ.wallets[name] || 0;
+    const name = S.serverWallet || (S.me && S.me.name) || '';
+    let simoncoin = ledger && ledger.simoncoin != null ? ledger.simoncoin : 0;
+    const enBilletera = S.econ && S.econ.wallets && name ? Number(S.econ.wallets[name] || 0) : 0;
+    if (!(Number(simoncoin) > 0) && enBilletera) simoncoin = enBilletera;
     const exact = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(simoncoin) : grupo(simoncoin / 100) + ' SMC';
     return { simoncoin: exact.replace(/\s*SMC$/, ''), exactSimoncoin: exact };
   }
@@ -160,6 +161,7 @@
       '<label class="sonido-vol">Volumen <input id="cajon-volumen" type="range" min="0" max="100" value="70" aria-label="Volumen"></label>',
       '<h3>Atajos</h3>',
       '<button type="button" id="cajon-perfil">Perfil</button>',
+      '<button type="button" id="cajon-inv">Inventario</button>',
       '<button type="button" id="cajon-minar">Acuñar monedas</button>',
       '<button type="button" id="cajon-plata" hidden>Simoncoin</button>',
       '<button type="button" id="cajon-herramientas">Herramientas</button>',
@@ -196,6 +198,8 @@
     }
     $('#cajon-llamar').onclick = () => { if (window.LiveInk) LiveInk.summonPersonalHorse(); closeDrawer(); };
     $('#cajon-perfil').onclick = () => showPiece('hud-perfil');
+    const abrirInv = $('#cajon-inv');
+    if (abrirInv) abrirInv.onclick = () => { closeDrawer(); const boton = document.getElementById('b-inv'); if (boton) boton.click(); };
     $('#cajon-minar').onclick = () => { closeDrawer(); if (window.Acunar) Acunar.open(); };
     const madre = $('#cajon-madre');
     if (madre) madre.onclick = () => { closeDrawer(); if (window.LibroMadre) LibroMadre.open(); };
