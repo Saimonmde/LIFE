@@ -29,7 +29,7 @@ def dispatch(method, path, target, body=b'', index=None):
         if path in AGENT_PATHS:
             return 200, A.agent_search(index, AGENT_PATHS[path], payload.get('message', ''), payload.get('filters'))
         return 200, index.search(payload)
-    except (ValueError, TypeError, OverflowError, UnicodeError) as exc:
-        return 400, {'error': str(exc)}
+    except (ValueError, TypeError, OverflowError, UnicodeError):
+        return 400, {'error': 'No se pudo leer la petición.'}
     except Exception:
         return 503, {'error': 'El índice no está disponible. Intenta más tarde.'}

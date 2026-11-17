@@ -37,11 +37,11 @@ def dispatch(method, path, headers, body, ctx):
         role = social.role_of(None, admin)
         if path == '/api/vida/admin/feedback' and method in ('GET', 'HEAD'):
             if not social.allows(role, 'see_feedback'):
-                return 403, {'error': 'Hace falta la clave de Simon (SIMON_ADMIN_TOKEN).'}
+                return 403, {'error': 'No autorizado.'}
             return 200, {'feedback': list(state.get('feedback') or [])}
         if path == '/api/vida/admin/poste' and method in ('GET', 'HEAD'):
             if not social.allows(role, 'see_feedback'):
-                return 403, {'error': 'Hace falta la clave de Simon (SIMON_ADMIN_TOKEN).'}
+                return 403, {'error': 'No autorizado.'}
             board = social.public_notes(state)
             board['hiddenNotes'] = [row for row in state.get('notes') or [] if row.get('hidden')]
             board['hiddenPolls'] = [row for row in state.get('polls') or [] if row.get('hidden')]

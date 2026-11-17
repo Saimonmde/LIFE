@@ -474,16 +474,25 @@ def _consulta(query, keys, default):
     return default
 
 
-def api_get(path, query, chain):
-    """Respuesta pública. path es /api/libro, /api/libro/verificar o /api/libro/<id>."""
+def api_get(path, query, chain, viewer=''):
+    """Respuesta pública. path es /api/libro, /api/libro/verificar o /api/libro/<id>.
+
+    viewer es el nombre de la sesión, si la hay. El total «tuyo» y tu nombre
+    sólo salen para esa persona. El resto de identidades no viaja.
+    """
+    import seguridad as SEG
     clean = path.rstrip('/') or '/api/libro'
+    viewer = str(viewer or '')
     if clean == '/api/libro':
-        return 200, pagina(
+        asked = str(_consulta(query, ('jugador', 'cuenta', 'player'), '') or '')
+        who = viewer if viewer and (not asked or SEG._igual(asked, viewer)) else ''
+        body = pagina(
             chain,
             _consulta(query, ('pagina', 'page'), 1),
             _consulta(query, ('limite', 'limit'), 20),
-            _consulta(query, ('jugador', 'cuenta', 'player'), ''),
+            who,
         )
+        return 200, SEG.reservar_libro_http(body, viewer)
     if clean == '/api/libro/verificar':
         ok, message = verificar(chain)
         return 200, {
@@ -501,4 +510,4 @@ def api_get(path, query, chain):
         return 404, {'error': 'no existe', 'disclaimer': DISCLAIMER}
     found['disclaimer'] = DISCLAIMER
     found['pubkey'] = chain.get('pubkey')
-    return 200, found
+    return 200, SEG.reservar_libro_http(found, viewer)

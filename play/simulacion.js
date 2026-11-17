@@ -214,8 +214,10 @@ function hashBlock(prev, ts, txs) {
   return sha256hex(prev + '\n' + String(ts) + '\n' + stableStringify(txs));
 }
 function verifyBlock(block, prev) {
-  if (!block) return false;
+  if (!block || typeof block.hash !== 'string' || !/^[0-9a-f]{64}$/i.test(block.hash)) return false;
   if (prev != null && block.prev !== prev) return false;
+  // El servidor quita nombres ajenos. El hash original no se recalcula con ese texto.
+  if (block.reservado) return true;
   return block.hash === hashBlock(block.prev, block.ts, block.txs);
 }
 function emptyEcon(disclaimer) {
@@ -683,7 +685,8 @@ function renderLibro() {
     const h = +btn.dataset.h;
     const b = api.S.econ.blocks.find(x => x.height === h);
     const ok = blockOk(api.S.econ.blocks, b);
-    api.game(ok ? `Bloque #${h}: hash verificado (SHA-256).` : `Bloque #${h}: el hash no coincide.`, ok ? 'oro' : 'aviso');
+    const nota = !ok ? `Bloque #${h}: el hash no coincide.` : (b.reservado ? `Bloque #${h}: el enlace con el bloque anterior coincide. Los nombres de otras personas no vienen en este mensaje.` : `Bloque #${h}: hash verificado (SHA-256).`);
+    api.game(nota, ok ? 'oro' : 'aviso');
     if (ok) libroProgress('verificar_hash');
   });
 }

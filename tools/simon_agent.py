@@ -8,6 +8,7 @@ import uuid
 
 import apartments as A
 import apartment_sync as SYNC
+import seguridad as SEG
 import simon_memory as MEM
 import web_search as WEB
 
@@ -227,15 +228,16 @@ def compose_general(text, knowledge, web):
 def _phrase(fallback, payload, allowed_urls):
     key = os.environ.get('SIMON_LLM_API_KEY', '').strip()
     if not key:
-        return fallback
+        return SEG.filtrar_salida(fallback)
     base = (os.environ.get('SIMON_LLM_BASE_URL') or 'https://api.openai.com/v1').rstrip('/')
     model = os.environ.get('SIMON_LLM_MODEL') or 'gpt-4o-mini'
+    safe = SEG.contexto_modelo(payload)
     body = json.dumps({
         'model': model,
         'temperature': 0.2,
         'messages': [
-            {'role': 'system', 'content': system_prompt()},
-            {'role': 'user', 'content': 'Redacta una respuesta breve en español, sin prisa, usando sólo este JSON:\n' + json.dumps(payload, ensure_ascii=False)[:8000]},
+            {'role': 'system', 'content': SEG.instrucciones_modelo(system_prompt())},
+            {'role': 'user', 'content': 'Redacta una respuesta breve en español, sin prisa, usando sólo este JSON:\n' + json.dumps(safe, ensure_ascii=False)[:8000]},
         ],
     }).encode()
     req = urllib.request.Request(base + '/chat/completions', data=body, headers={
@@ -246,11 +248,11 @@ def _phrase(fallback, payload, allowed_urls):
             data = json.loads(response.read(200000).decode())
         text = data['choices'][0]['message']['content']
     except Exception:
-        return fallback
+        return SEG.filtrar_salida(fallback)
     for url in re.findall(r'https://[^\s)]+', text or ''):
         if url.rstrip('.,') not in allowed_urls:
-            return fallback
-    return _clean(text)
+            return SEG.filtrar_salida(fallback)
+    return _clean(SEG.filtrar_salida(text))
 
 
 def answer(text, agent='simon-ia', subject=None, store=None, index=None, settings=None,
@@ -259,6 +261,15 @@ def answer(text, agent='simon-ia', subject=None, store=None, index=None, setting
         raise ValueError('Agente desconocido')
     if not isinstance(text, str) or not text.strip() or len(text) > 2000:
         raise ValueError('Petición inválida')
+    if SEG.inyeccion(text):
+        pace = plan_pace(defaults_pace(), typing_ms, speech_wpm)
+        message = SEG.RESPUESTA_CIERRE
+        return {
+            'agent': agent, 'message': message, 'chunks': chunks_of(message), 'pace': pace,
+            'cards': [], 'citations': [], 'tools': [], 'conversation_id': conversation_id or '',
+            'consent': False, 'feedback': False, 'notice': None, 'urls': [],
+            'memory_key_configured': False, 'refused': True,
+        }
     store = store or MEM.Store()
     index = index or A.Index()
     saved = store.pace(subject) if subject else None
@@ -328,7 +339,8 @@ def answer(text, agent='simon-ia', subject=None, store=None, index=None, setting
         message = compose_general(text, knowledge, web)
         message = _phrase(message, {'knowledge': knowledge, 'web': citations}, set(urls))
         feedback = False
-    message = _clean(message)
+    message = SEG.medir(_clean(message))
+    cards = SEG.contexto_modelo(cards)
     if consented and subject and not intent.get('delete'):
         prior = store.conversation(subject, conversation_id) or {'id': conversation_id, 'urls': [], 'opened': []}
         known = list(dict.fromkeys(list(prior.get('urls') or []) + urls))

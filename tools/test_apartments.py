@@ -159,40 +159,40 @@ class ApartmentTests(unittest.TestCase):
         self.assertEqual(self.index.search({})['total'], 0)
 
     def test_server_http_get_head_and_both_agent_posts(self):
-        import ast
         import asyncio
-        import types
-        import urllib.parse
-        tree = ast.parse((A.ROOT / 'server.py').read_text())
-        function = next(n for n in tree.body if isinstance(n, ast.AsyncFunctionDef) and n.name == 'handle')
-        module = ast.Module(body=[function], type_ignores=[])
-        namespace = {'asyncio': asyncio, 'urllib': __import__('urllib'), 'json': json,
-                     'APARTMENT_API': types.SimpleNamespace(AGENT_PATHS=API.AGENT_PATHS,
-                         dispatch=lambda method, path, target, body: API.dispatch(method, path, target, body, self.index))}
-        exec(compile(module, 'server.py', 'exec'), namespace)
+        import server
         self.add(raw())
+        original = server.APARTMENT_API.dispatch
+        def fake(method, path, target, body=b'', index=None):
+            return original(method, path, target, body, self.index)
+        server.APARTMENT_API.dispatch = fake
         class Writer:
             data = b''
             def write(self, data): self.data += data
             async def drain(self): pass
             def close(self): pass
+            def get_extra_info(self, name): return None
         async def request(method, path, payload=None):
             reader = asyncio.StreamReader()
             body = json.dumps(payload).encode() if payload else b''
             reader.feed_data((f'{method} {path} HTTP/1.1\r\nContent-Length: {len(body)}\r\n\r\n').encode() + body)
             reader.feed_eof()
             writer = Writer()
-            await namespace['handle'](reader, writer)
+            await server.handle(reader, writer)
             return writer.data
-        for agent in ('simon-ia', 'simon-io'):
-            response = asyncio.run(request('POST', f'/api/{agent}/apartamentos', {'message': 'en Itagüí hasta 3 millones'}))
-            header, body = response.split(b'\r\n\r\n', 1)
-            self.assertIn(b'200 OK', header)
-            self.assertEqual(json.loads(body)['total'], 1)
-        response = asyncio.run(request('GET', '/api/apartamentos?municipality=Itagui'))
-        self.assertEqual(json.loads(response.split(b'\r\n\r\n')[1])['total'], 1)
-        response = asyncio.run(request('HEAD', '/api/apartamentos'))
-        self.assertTrue(response.endswith(b'\r\n\r\n'))
+        try:
+            for agent in ('simon-ia', 'simon-io'):
+                response = asyncio.run(request('POST', f'/api/{agent}/apartamentos', {'message': 'en Itagüí hasta 3 millones'}))
+                header, body = response.split(b'\r\n\r\n', 1)
+                self.assertIn(b'200 OK', header)
+                self.assertIn(b'X-Content-Type-Options: nosniff', header)
+                self.assertEqual(json.loads(body)['total'], 1)
+            response = asyncio.run(request('GET', '/api/apartamentos?municipality=Itagui'))
+            self.assertEqual(json.loads(response.split(b'\r\n\r\n')[1])['total'], 1)
+            response = asyncio.run(request('HEAD', '/api/apartamentos'))
+            self.assertTrue(response.endswith(b'\r\n\r\n'))
+        finally:
+            server.APARTMENT_API.dispatch = original
 
     def test_ssrf_private_address_and_redirect_domain_are_rejected(self):
         f = S.Fetcher(['example.com'], delay=0)
