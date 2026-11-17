@@ -40,6 +40,11 @@ def millis(world_nodes, node_id):
     node_id = str(node_id or '')
     if node_id in MINE:
         return MINE[node_id][2]
+    if node_id.startswith('ladera_'):
+        import mina_ladera as _ladera
+        row = _ladera.VEINS.get(node_id)
+        if row:
+            return row[2]
     for node in world_nodes or []:
         if not isinstance(node, dict) or node.get('id') != node_id:
             continue

@@ -14,12 +14,13 @@ DEFAULT_WORLD = 3
 OWNER_FAVORITE_WORLD = 5
 PRIVATE = frozenset({'casa'})
 # La mina, el banco y la casa son otros mapas. El valle y los parques son la misma ciudad.
-INTERIOR = frozenset({'casa', 'mina-palmas', 'casa-bancaria', 'banco-central'})
-# La mina se comparte. La casa, la casa bancaria y el Banco Central siguen privados.
-SHARED_INTERIOR = frozenset({'mina-palmas'})
+INTERIOR = frozenset({'casa', 'mina-palmas', 'mina-ladera', 'casa-bancaria', 'banco-central'})
+# Las dos minas se comparten. La casa, la casa bancaria y el Banco Central siguen privados.
+SHARED_INTERIOR = frozenset({'mina-palmas', 'mina-ladera'})
 FIXED_NAMES = {
     'valle': 'Valle de Aburrá',
     'mina-palmas': 'Mina de Las Palmas',
+    'mina-ladera': 'Mina de La Ladera',
     'casa-bancaria': 'Casa bancaria',
     'banco-central': 'Banco Central',
     'casa': 'Tu casa',
@@ -100,6 +101,8 @@ def place_of(x, y, zone, boxes_):
         return 'casa'
     if zone == 'mine':
         return 'mina-palmas'
+    if zone == 'mina2':
+        return 'mina-ladera'
     if zone == 'banco':
         return 'casa-bancaria'
     if zone == 'central':

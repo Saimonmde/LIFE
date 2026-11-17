@@ -22,6 +22,7 @@ NOMBRES = {
     'parque_bolivar': 'Parque de Bolívar',
     'las_palmas': 'Las Palmas',
     'mina': 'Mina de Las Palmas',
+    'mina_ladera': 'Mina de La Ladera',
     'cantera': 'Cantera',
     'rio_claro': 'Río Claro',
     'finca': 'Cafetal',
@@ -35,6 +36,7 @@ NOMBRES = {
 # Sitios con recurso. El cliente los dibuja; el servidor elige la casilla.
 RECURSOS = {
     'mina': 'plata, cobre (pico)',
+    'mina_ladera': 'cobre 0,001 · plata 0,01 · oro 0,1 SMC',
     'cantera': 'plata, cobre (pico)',
     'rio_claro': 'oro (río, batea)',
     'finca': 'café, cacao',
@@ -246,6 +248,11 @@ def named(world, dest_id):
         spot['kind'] = 'recurso'
         spot['recurso'] = RECURSOS['mina']
         return spot
+    if dest_id == 'mina_ladera':
+        spot = dict(ladera_stand(world))
+        spot['kind'] = 'recurso'
+        spot['recurso'] = RECURSOS['mina_ladera']
+        return spot
     if dest_id == 'cantera':
         return quarry_stand(world)
     if dest_id == 'rio_claro':
@@ -281,6 +288,18 @@ def resolve(world, dest_id):
     x, y = nearest_spawn(world, spot['x'], spot['y'])
     made = {'id': dest_id, 'name': spot['name'], 'x': x, 'y': y, 'kind': spot['kind'], 'recurso': ''}
     return _open(world, made)
+
+
+def ladera_stand(world):
+    """Casilla caminable frente a la Mina de La Ladera, junto al cafetal."""
+    import mina_ladera as ladera
+    spot = ladera.entrance(world)
+    if not spot:
+        raise ViajeError('no hay mina de la ladera')
+    stand = {'id': 'mina_ladera', 'name': ladera.NAME, 'x': int(spot['x']), 'y': int(spot['y']) + 1}
+    if not walkable(world, stand['x'], stand['y']):
+        raise ViajeError('no hay acceso a la mina de la ladera')
+    return stand
 
 
 def mine_stand(world):
@@ -331,7 +350,7 @@ def portal_arrival(zone, x, y, back=None):
     except (TypeError, ValueError):
         return False
     points = []
-    if zone == 'mine':
+    if zone in ('mine', 'mina2'):
         if not back or back[0] is None or back[1] is None:
             return True
         points.append((float(back[0]), float(back[1])))

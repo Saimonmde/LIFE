@@ -87,6 +87,7 @@
     const place = row && row.place;
     if (zone === 'casa' || place === 'casa') return 'en su casa';
     if (zone === 'mine' || place === 'mina-palmas') return 'en la mina';
+    if (zone === 'mina2' || place === 'mina-ladera') return 'en la Mina de La Ladera';
     if (zone === 'banco' || place === 'casa-bancaria') return 'en el banco';
     if (zone === 'central' || place === 'banco-central') return 'en el Banco Central';
     return 'en ' + (row.placeName || 'el valle');

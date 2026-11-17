@@ -7,6 +7,7 @@ PLACES = {
     'city': 'En el valle',
     'casa': 'En tu casa',
     'mine': 'En la mina',
+    'mina2': 'En la Mina de La Ladera',
     'banco': 'En el banco',
     'central': 'En el Banco Central',
 }

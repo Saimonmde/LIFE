@@ -1082,7 +1082,7 @@ def fundir_lingotes(sender, ore, batches):
 
 def zona_pedida(sender, zone):
     """El Banco Central no se abre con un mensaje. El papel se mira aquí."""
-    zone = zone if zone in ('casa', 'mine', 'banco', 'central', 'city') else 'city'
+    zone = zone if zone in ('casa', 'mine', 'mina2', 'banco', 'central', 'city') else 'city'
     if zone != 'central' or LINGOTES.autorizado(getattr(sender, 'user', None)):
         return zone
     reason = 'El Banco Central es un recinto del personal. Esta cuenta no entra.'
@@ -1852,7 +1852,7 @@ def dist(a, b):
     zb = getattr(b, 'zone', 'city') or 'city'
     if za == 'casa' or zb == 'casa': return 1e9
     if za != zb: return 1e9
-    if za == 'mine':
+    if za in ('mine', 'mina2'):
         ax, ay = _mine_xy(a)
         bx, by = _mine_xy(b)
         return max(abs(ax - bx), abs(ay - by))
@@ -2042,7 +2042,7 @@ def nodo_state():
 
 def pose_msg(c):
     zone = getattr(c, 'zone', 'city') or 'city'
-    if zone == 'mine':
+    if zone in ('mine', 'mina2'):
         x, y = _mine_xy(c)
     else:
         x, y = c.x, c.y
@@ -2254,6 +2254,108 @@ def _punto_mina(message):
     return nx, ny
 
 
+def _punto_ladera(message):
+    """Coordenadas de La Ladera. False si no caben en su grilla."""
+    import mina_ladera as LADERA
+    if not isinstance(message, dict):
+        return False
+    if message.get('x') is None and message.get('y') is None:
+        return None
+    try:
+        nx, ny = float(message.get('x')), float(message.get('y'))
+    except (TypeError, ValueError):
+        return False
+    if nx != nx or ny != ny or nx < 0 or ny < 0 or nx > LADERA.WIDTH - 1 or ny > LADERA.HEIGHT - 1:
+        return False
+    return nx, ny
+
+
+def _mover_en_ladera(sender, message, old_world, old_place, now_move):
+    """Camina en la Mina de La Ladera. La ciudad guarda el punto de regreso."""
+    import mina_ladera as LADERA
+    point = _punto_ladera(message)
+    if point is False:
+        if sender.zone == 'mina2':
+            correct_move(sender)
+        return False
+    entering = sender.zone != 'mina2'
+    if entering and sender.zone == 'city':
+        sender.city_x, sender.city_y = sender.x, sender.y
+    if point is None:
+        if not entering and getattr(sender, 'zx', None) is not None:
+            point = (float(sender.zx), float(sender.zy))
+        else:
+            point = LADERA.SPAWN
+    nx, ny = point
+    if not entering:
+        step = max(abs(nx - float(getattr(sender, 'zx', nx))), abs(ny - float(getattr(sender, 'zy', ny))))
+        elapsed = now_move - float(getattr(sender, 'move_at', now_move) or now_move)
+        if not VIAJES.step_allowed(step, elapsed):
+            correct_move(sender)
+            return False
+        note_motion(sender, step)
+    sender.zx, sender.zy = nx, ny
+    sender.zone = 'mina2'
+    sender.place = 'mina-ladera'
+    sender.dir = message.get('dir') if message.get('dir') in ('up', 'down', 'left', 'right') else sender.dir
+    sender.moving = bool(message.get('moving'))
+    sender.level = clamp_level(message.get('level'), sender.level)
+    sender.pace = SEGUIR.pace_of(message.get('pace'), 'mina2', sender.moving)
+    sender.move_at = now_move
+    room_shift(sender, old_world, old_place)
+    if entering:
+        send(sender, {'t': 'cerca', 'players': city_peers(sender)})
+    return True
+
+
+def pico_ladera(sender, message):
+    """Una veta de La Ladera paga SMC. No muestra otra moneda."""
+    import mina_ladera as LADERA
+    if getattr(sender, 'zone', '') != 'mina2':
+        return
+    spot = str((message or {}).get('spot') or '')[:40]
+    metal = LADERA.metal_of(spot)
+    if not metal:
+        return
+    claimed = _veta(sender, spot)
+    if claimed is False:
+        return
+    if claimed is None:
+        return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': 'Esa veta no es de esta mina.'})
+    account = _cuenta(sender)
+    profile = account_profile(sender)
+    now = time.time()
+    result = LADERA.cobrar(
+        ECON, sender.name, account, metal, now,
+        age=int(profile.get('age') or 0),
+        play=int(profile.get('play') or 0),
+        quests=int(profile.get('quests') or 0),
+    )
+    if not result.get('ok'):
+        soltar_veta(sender)
+        save_econ()
+        return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': result.get('texto') or ''})
+    granted = int(result.get('smh') or 0)
+    if granted > 0:
+        try:
+            pub = anotar_emision(sender.name, granted, 'Mina de La Ladera')
+        except Exception:
+            pub = None
+        if not pub:
+            LADERA.deshacer(ECON, sender.name, account, metal, granted, now)
+            soltar_veta(sender)
+            save_econ()
+            return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': 'No se anotó el SMC. La veta sigue.'})
+    _cerrar_veta(sender, spot)
+    save_econ()
+    if granted:
+        broadcast_econ()
+    texto = result.get('texto') or ''
+    send(sender, {'t': 'pico_ladera', 'ok': True, 'spot': spot, 'texto': texto})
+    if granted:
+        send(sender, {'t': 'system', 'text': texto + ' No es dinero real.'})
+
+
 def _mover_en_mina(sender, message, old_world, old_place, now_move):
     """Camina en la mina. x/y de la ciudad siguen siendo el punto de regreso."""
     point = _punto_mina(message)
@@ -2292,7 +2394,7 @@ def _mover_en_mina(sender, message, old_world, old_place, now_move):
 
 
 def correct_move(sender):
-    if getattr(sender, 'zone', 'city') == 'mine':
+    if getattr(sender, 'zone', 'city') in ('mine', 'mina2'):
         x, y = _mine_xy(sender)
     else:
         x, y = sender.x, sender.y
@@ -2522,6 +2624,9 @@ def handle_client_message(c, m, t):
         c.move_at = time.time()
         c.identity = SOCIAL.identity_of(c)
         c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
+        if c.zone == 'mina2' and getattr(c, 'zx', None) is None:
+            import mina_ladera as LADERA
+            c.zx, c.zy = LADERA.SPAWN
         if getattr(c, 'user', None) and CASA.absorb(c.user, VIDA, c.identity):
             save_accounts()
             save_vida()
@@ -2653,6 +2758,10 @@ def handle_client_message(c, m, t):
             if not _mover_en_mina(c, m, old_world, old_place, now_move):
                 return
             return
+        if zone == 'mina2':
+            if not _mover_en_ladera(c, m, old_world, old_place, now_move):
+                return
+            return
         if zone in ('casa', 'banco', 'central'):
             zone = zona_pedida(c, zone)
             if zone == 'city':
@@ -2672,7 +2781,7 @@ def handle_client_message(c, m, t):
         if nx != nx or ny != ny: return
         came_from = c.zone
         if came_from != 'city':
-            if came_from == 'mine':
+            if came_from in ('mine', 'mina2'):
                 soltar_veta(c)
             back = (getattr(c, 'city_x', None), getattr(c, 'city_y', None))
             if not VIAJES.portal_arrival(came_from, nx, ny, back):
@@ -2759,6 +2868,8 @@ def handle_client_message(c, m, t):
         lingote_ver(c)
     elif t == 'swing' and c.hello:
         swing_for(c, m.get('mineral'), m.get('qty'))
+    elif t == 'pico_ladera' and c.hello:
+        pico_ladera(c, m)
     elif t == 'recoger' and c.hello:
         item = str(m.get('item') or '')
         spot = _veta(c, m.get('spot'))

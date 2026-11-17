@@ -144,8 +144,9 @@
   function cerca() {
     const ink = window.LiveInk;
     const S = ink && ink.state;
-    const world = ink && ink.world && ink.world();
-    if (!S || !world || (world.mapId || 'city') !== 'mine' || !S.nodes || !S.nodes.get) return false;
+    const world = ink && (typeof ink.world === 'function' ? ink.world() : ink.world);
+    const here = (world && world.mapId) || 'city';
+    if (!S || !world || (here !== 'mine' && here !== 'mina2') || !S.nodes || !S.nodes.get) return false;
     const node = S.nodes.get('baul_mina');
     if (!node || !node.def || !S.player) return false;
     return Math.max(Math.abs(S.player.x - node.def.x), Math.abs(S.player.y - node.def.y)) <= 2;
