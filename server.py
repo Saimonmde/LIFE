@@ -368,6 +368,8 @@ def certify(owner, amount_smh, foundry, tile):
     return token
 
 LEDGER_PAGE = 20
+import minerales_mundo as MINERALES
+MINERALES.attach(WORLD)
 GOLD_NODES = [n for n in WORLD.get('nodes', []) if n.get('type') == 'nodo_oro_fluvial']
 NODE_READY = {}
 RESET_NOTE = ' El libro de esta simulación se reinicia cuando el servidor se apaga o se vuelve a desplegar.'
@@ -379,7 +381,7 @@ def block_page(before=None):
     older = [b for b in blocks if int(b.get('height') or 0) < int(before)]
     return older[-LEDGER_PAGE:]
 
-def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=None, zone=None):
+def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=None, zone=None, world=None):
     page = block_page(before)
     m = {'t': 'economy', 'state': {
         'minedSmh': int(ECON.get('minedSmh') or 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
@@ -398,7 +400,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     if who:
         view['owedSubs'] = int((ECON.get('questOwed') or {}).get(who) or 0)
     view['copperDailySmc'] = SUP.COPPER_DAILY_SMC
-    rivers_rest = bool(GOLD_NODES) and all(time.time() < NODE_READY.get(n.get('id'), 0) for n in GOLD_NODES)
+    rivers_rest = MINERALES.rivers_rest(NODE_READY, world, GOLD_NODES, time.time())
     gold_done = bool(profile and profile.get('account') and int(view.get('remainingSubs') or 0) <= 0)
     view['copperOpen'] = rivers_rest or gold_done
     view['copperNote'] = SUP.COPPER_NOTE if view['copperOpen'] else ''
@@ -698,7 +700,8 @@ def oro_agotado(sender=None):
         view = {}
     if int(view.get('remainingSubs') or 0) <= 0 and profile.get('account'):
         return True
-    if GOLD_NODES and all(time.time() < NODE_READY.get(n.get('id'), 0) for n in GOLD_NODES):
+    world = getattr(sender, 'world', 0) if sender is not None else 0
+    if MINERALES.rivers_rest(NODE_READY, world, GOLD_NODES, time.time()):
         return True
     return False
 
@@ -742,7 +745,7 @@ def mint_for(sender, node_id, proof=None):
     if not node:
         return send(sender, {'t': 'system', 'text': 'Hay que estar junto a la arena de oro del río para emitir SMC.'})
     now = time.time()
-    if now < NODE_READY.get(node['id'], 0):
+    if MINERALES.resting(NODE_READY, getattr(sender, 'world', 0), node['id'], now):
         return send(sender, {'t': 'system', 'text': 'Esa arena ya se lavó. El río trae más dentro de un rato.'})
     bind_wallet(sender.name, getattr(sender, 'wallet_token', ''))
     room = min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN))
@@ -760,7 +763,7 @@ def mint_for(sender, node_id, proof=None):
     )
     if granted <= 0:
         return send(sender, {'t': 'system', 'text': 'Se alcanzó el tope minable de SMC.'})
-    NODE_READY[node['id']] = time.time() + (float(node.get('respawnMs') or 30000) / 1000.0)
+    MINERALES.mark(NODE_READY, getattr(sender, 'world', 0), node['id'], time.time() + (float(node.get('respawnMs') or 30000) / 1000.0))
     kept = int(getattr(sender, 'kept_smh', granted) or 0)
     pooled = int(getattr(sender, 'pool_smh', 0) or 0)
     if pooled:
@@ -969,7 +972,7 @@ def cupos_public(profile=None, zone=None):
             'left': max(0, SUP.COPPER_DAILY_SMC - copper_smh / ECO.SUBS),
             'room': oro['room'],
         })
-    return {'reset': TOPES.RESET_LABEL, 'coins': coins}
+    return {'reset': TOPES.RESET_LABEL, 'resetAt': TOPES.next_reset(time.time()), 'coins': coins}
 
 def _reglas_mina(headers):
     now = time.time()
@@ -1954,7 +1957,7 @@ def broadcast(obj, who=None, exclude=None):
 def broadcast_econ():
     for c in list(clients.values()):
         if c.hello and not c.bot:
-            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c), zone=getattr(c, 'zone', '')))
+            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c), zone=getattr(c, 'zone', ''), world=getattr(c, 'world', None)))
 
 def _trade_balances(name):
     items = dict(PURSES.inventory(VAULT_STATE, name))
@@ -2495,7 +2498,7 @@ def _mover_en_ladera(sender, message, old_world, old_place, now_move):
     room_shift(sender, old_world, old_place)
     if entering:
         send(sender, {'t': 'cerca', 'players': city_peers(sender)})
-        send(sender, econ_msg(sender.name, locked=not getattr(sender, 'wallet_ok', False), profile=account_profile(sender), zone='mina2'))
+        send(sender, econ_msg(sender.name, locked=not getattr(sender, 'wallet_ok', False), profile=account_profile(sender), zone='mina2', world=getattr(sender, 'world', None)))
     return True
 
 
@@ -2837,7 +2840,7 @@ def handle_client_message(c, m, t):
             place = MUNDOS.place_name(c.place, PLACES)
             broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
         broadcast(presence_msg())
-        send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c), zone=getattr(c, 'zone', '')))
+        send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c), zone=getattr(c, 'zone', ''), world=getattr(c, 'world', None)))
         if c.wallet_ok:
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
         if not c.wallet_ok:
@@ -2971,7 +2974,7 @@ def handle_client_message(c, m, t):
         c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
         room_shift(c, old_world, old_place)
         if came_from == 'mina2':
-            send(c, econ_msg(c.name, locked=not c.wallet_ok, profile=account_profile(c), zone='city'))
+            send(c, econ_msg(c.name, locked=not c.wallet_ok, profile=account_profile(c), zone='city', world=getattr(c, 'world', None)))
     elif t == 'ping':
         TRADES.expire()
         send(c, {'t': 'pong', 'c': m.get('c')})
@@ -3016,7 +3019,7 @@ def handle_client_message(c, m, t):
             before = int(m.get('before'))
         except (TypeError, ValueError):
             before = None
-        send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c), zone=getattr(c, 'zone', '')))
+        send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c), zone=getattr(c, 'zone', ''), world=getattr(c, 'world', None)))
     elif t == 'pay' and c.hello:
         try:
             smh = leer_smh(m)
@@ -3040,6 +3043,10 @@ def handle_client_message(c, m, t):
         pico_ladera(c, m)
     elif t == 'recoger' and c.hello:
         item = str(m.get('item') or '')
+        reason = MINERALES.reject(getattr(c, 'world', 0), m.get('spot'), item)
+        if reason:
+            send(c, {'t': 'veta', 'ok': False, 'reason': reason, 'spot': str(m.get('spot') or '')[:40]})
+            return
         spot = _veta(c, m.get('spot'))
         if spot is False:
             return
