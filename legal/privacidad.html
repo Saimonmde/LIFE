@@ -47,9 +47,9 @@
   <p>Van asociados al nombre con el que juegas, sea el de la cuenta o el del invitado.</p>
   <ul>
     <li><b>Billetera de SaiMonCoins (SMC).</b> El saldo y un token secreto, para que otro aparato no gaste esas monedas.</li>
-    <li><b>Libro de la simulación.</b> Emisiones, pagos entre nombres, depósitos y notas, con el nombre y la cantidad. Ese libro se envía a quien está conectado y se consulta en el Libro Mayor.</li>
+    <li><b>Libro de la simulación.</b> Totales acuñados, y tus propios movimientos con la cantidad. Quien está conectado no recibe el nombre de las otras personas en ese libro. La consulta pública del Libro Mayor tampoco publica esos nombres.</li>
     <li><b>Casa bancaria.</b> El banquito y el baúl de la casa son el mismo depósito: SMC y objetos. El detalle de objetos se envía a quien tiene esa billetera. El movimiento de SMC queda en el libro.</li>
-    <li><b>Certificados de emisión.</b> Cada emisión nueva puede dejar un registro con código, nombre del dueño, cantidad, fecha, casilla o fundición, y una firma del servidor. El programa los guarda en un almacén interno llamado nft. Se pueden leer sin iniciar sesión en <b>/api/nft/list</b> y <b>/api/nft/&lt;id&gt;</b>. No están en una cadena pública, no pagan gas y no son un bien que se venda.</li>
+    <li><b>Certificados de emisión.</b> Cada emisión nueva puede dejar un registro con código, cantidad, fecha, casilla o fundición, y una firma del servidor. El nombre del dueño se guarda en el servidor y no sale en la lista pública. Se pueden leer sin iniciar sesión en <b>/api/nft/list</b> y <b>/api/nft/&lt;id&gt;</b>. No están en una cadena pública, no pagan gas y no son un bien que se venda.</li>
     <li><b>Tiempo jugado</b> y la fecha de la primera sesión con esa billetera. El servidor suma tramos cortos mientras la partida sigue activa y esa billetera está reconocida en el aparato. Una pestaña en silencio deja de sumar.</li>
   </ul>
   <p>La clave con la que el servidor firma los certificados es un secreto del servicio, no un dato de tu perfil.</p>

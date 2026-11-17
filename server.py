@@ -51,6 +51,7 @@ import guardado as GUARDADO
 import partida as PARTIDA
 import world_edits as EDITS
 import fauna as FAUNA
+import seguridad as SEG
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -531,7 +532,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
         m['bankSmh'] = 0
         m['vaultItems'] = {}
     m['puestoSmh'] = int((ECON.get('wallets') or {}).get('puesto_frutas') or 0)
-    return m
+    return SEG.para_vista(m, who or '')
 
 def token_matches(stored, presented):
     if not stored or not presented or len(stored) != len(str(presented)):
@@ -2199,7 +2200,8 @@ async def read_frame(reader):
 
 def send(c, obj):
     if c.bot or c.w is None: return
-    try: c.w.write(frame(json.dumps(obj, ensure_ascii=False)))
+    try:
+        c.w.write(frame(json.dumps(SEG.limpiar_socket(obj), ensure_ascii=False)))
     except Exception: pass
 
 def broadcast(obj, who=None, exclude=None):
@@ -2341,18 +2343,16 @@ def unique_name(name, me):
     return n
 
 def too_fast(sender):
-    now = time.time()
-    sender.stamps = [t for t in sender.stamps if now - t < 5]
-    if len(sender.stamps) >= 6 and not sender.bot:
+    if SEG.chat_rapido(sender.stamps, bot=getattr(sender, 'bot', False)):
         send(sender, {'t': 'system', 'text': 'Vas muy rápido: espera unos segundos.'})
         return True
-    sender.stamps.append(now)
     return False
 
 def chat(sender, channel, text):
     if too_fast(sender):
         return
-    text = SOCIAL.mask(clean(text, MAX_TEXT), MAX_TEXT)
+    # Los comandos son sólo /grupo, /clan y /pagar. El texto no sale del proceso.
+    text = SOCIAL.mask(SEG.sanear_chat(text, MAX_TEXT), MAX_TEXT)
     if not text: return
     if text.startswith('/'):
         raw = text[1:].strip()
@@ -3969,6 +3969,26 @@ def legal_page(path):
 
 # ---------------- HTTP estático ----------------
 async def handle(reader, writer):
+    # Import local: una prueba ejecuta sólo esta función, sin el resto del módulo.
+    import seguridad as SEG
+    raw_writer = writer
+    writer = SEG.Respuesta(writer)
+    try:
+        await _curso(reader, writer, SEG)
+    except Exception as exc:
+        try:
+            SEG.aviso('', '', 'error ' + type(exc).__name__)
+            raw_writer.write(SEG.sellar(SEG.error_generico()))
+            await raw_writer.drain()
+        except Exception:
+            pass
+        try:
+            raw_writer.close()
+        except Exception:
+            pass
+
+
+async def _curso(reader, writer, SEG):
     try:
         req = await asyncio.wait_for(reader.readuntil(b'\r\n\r\n'), 15)
     except Exception:
@@ -3978,6 +3998,10 @@ async def handle(reader, writer):
     except ValueError: writer.close(); return
     headers = {k.strip().lower(): v.strip() for k, _, v in (l.partition(':') for l in lines[1:] if l)}
     path = urllib.parse.unquote(urllib.parse.urlparse(target).path)
+    if method in ('POST', 'PUT', 'DELETE') and SEG.origen_ajeno(headers):
+        SEG.aviso('', path, 'origen')
+        writer.write(SEG.http_json(403, {'error': 'No autorizado.'}))
+        await writer.drain(); writer.close(); return
     body = b''
     simon_post = method == 'POST' and path.startswith('/api/simon')
     vida_post = method == 'POST' and path.startswith('/api/vida')
@@ -3995,10 +4019,19 @@ async def handle(reader, writer):
         result = await asyncio.to_thread(APARTMENT_API.dispatch, method, path, target, body)
         code, payload = result
         labels = {200: 'OK', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed', 503: 'Service Unavailable'}
-        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        encoded = json.dumps(SEG.limpiar_socket(payload), ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
             writer.write(encoded)
+        await writer.drain(); writer.close(); return
+    ip = client_ip(headers, writer)
+    if path.rstrip('/') == '/ws' and headers.get('upgrade', '').lower() == 'websocket' and SEG.origen_ajeno(headers):
+        SEG.aviso(ip, path, 'origen')
+        writer.write(SEG.http_json(403, {'error': 'No autorizado.'}))
+        await writer.drain(); writer.close(); return
+    if SEG.excedido(ip, path, method):
+        SEG.aviso(ip, path, 'limite')
+        writer.write(SEG.http_json(429, {'error': 'Demasiados intentos. Espera un momento.'}))
         await writer.drain(); writer.close(); return
     if path.startswith('/api/world-edits'):
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))
@@ -4016,7 +4049,7 @@ async def handle(reader, writer):
         else:
             code, payload = 405, {'ok': False, 'error': 'Método no permitido.'}
         labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found', 405: 'Method Not Allowed', 409: 'Conflict'}
-        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        encoded = json.dumps(SEG.limpiar_socket(payload), ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
             writer.write(encoded)
@@ -4026,7 +4059,7 @@ async def handle(reader, writer):
         code, payload, extra = result
         labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found',
                   405: 'Method Not Allowed', 409: 'Conflict', 503: 'Service Unavailable'}
-        encoded = json.dumps(payload, ensure_ascii=False).encode()
+        encoded = json.dumps(SEG.limpiar_socket(payload), ensure_ascii=False).encode()
         cookie = ('Set-Cookie: ' + extra['Set-Cookie'] + '\r\n') if extra.get('Set-Cookie') else ''
         writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\n{cookie}Content-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
@@ -4037,7 +4070,7 @@ async def handle(reader, writer):
         if result is not None:
             code, payload = result
             labels = {200: 'OK', 400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found'}
-            encoded = json.dumps(payload, ensure_ascii=False).encode()
+            encoded = json.dumps(SEG.limpiar_socket(payload), ensure_ascii=False).encode()
             writer.write(f'HTTP/1.1 {code} {labels.get(code, "OK")}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
             if method != 'HEAD':
                 writer.write(encoded)
@@ -4045,7 +4078,7 @@ async def handle(reader, writer):
     if path == '/api/diagnostico' and method == 'GET':
         writer.write(diagnostico_http(headers))
         await writer.drain(); writer.close(); return
-    answered = await try_auth(method, path, target, headers, body, client_ip(headers, writer))
+    answered = await try_auth(method, path, target, headers, body, ip)
     if answered is not None:
         writer.write(answered)
         await writer.drain(); writer.close(); return
@@ -4055,7 +4088,7 @@ async def handle(reader, writer):
         writer.write(('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
                       f'Sec-WebSocket-Accept: {acc}\r\n\r\n').encode())
         await writer.drain()
-        return await handle_ws(reader, writer, headers.get('cookie', ''), client_ip(headers, writer))
+        return await handle_ws(reader, writer, headers.get('cookie', ''), ip)
     if path in ('/healthz', '/healthz/') and method in ('GET', 'HEAD'):
         body = b'ok'
         writer.write(b'HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: 2\r\nConnection: close\r\n\r\n')
@@ -4110,7 +4143,9 @@ async def handle(reader, writer):
         await writer.drain(); writer.close(); return
     if path.startswith('/api/libro') and method in ('GET', 'HEAD'):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(target).query)
-        status, payload = LIBRO.api_get(path, query, LIBRO_CHAIN)
+        quien = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session')) or {}
+        viewer = str(quien.get('wallet_name') or quien.get('name') or '')
+        status, payload = LIBRO.api_get(path, query, LIBRO_CHAIN, viewer)
         body = json.dumps(payload, ensure_ascii=False).encode()
         code = '200 OK' if status == 200 else '404 Not Found'
         writer.write(f'HTTP/1.1 {code}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
@@ -4133,10 +4168,15 @@ async def handle(reader, writer):
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
     if path.startswith('/api/nft') and method in ('GET', 'HEAD'):
+        quien = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session')) or {}
+        viewer = str(quien.get('wallet_name') or quien.get('name') or '')
         if path in ('/api/nft/pubkey', '/api/nft/pubkey/'):
-            body = json.dumps({'pubkey': NFT_PUB.hex(), 'alg': 'Ed25519'}).encode()
+            payload = {'pubkey': NFT_PUB.hex(), 'alg': 'Ed25519'}
         elif path in ('/api/nft/list', '/api/nft/list/'):
-            body = json.dumps({'tokens': [NFT.public_token(t) for t in NFT_CHAIN.get('tokens') or []], 'pubkey': NFT_PUB.hex()}).encode()
+            payload = {
+                'tokens': [SEG.reservar_certificado(NFT.public_token(t), viewer) for t in NFT_CHAIN.get('tokens') or []],
+                'pubkey': NFT_PUB.hex(),
+            }
         else:
             ident = path.rstrip('/').split('/')[-1]
             found = None
@@ -4149,7 +4189,8 @@ async def handle(reader, writer):
                 writer.write(f'HTTP/1.1 404 Not Found\r\nContent-Type: application/json\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
                 if method == 'GET': writer.write(body)
                 await writer.drain(); writer.close(); return
-            body = json.dumps(NFT.metadata(found), ensure_ascii=False).encode()
+            payload = SEG.reservar_certificado(NFT.metadata(found), viewer)
+        body = json.dumps(payload, ensure_ascii=False).encode()
         writer.write(f'HTTP/1.1 200 OK\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'.encode())
         if method == 'GET': writer.write(body)
         await writer.drain(); writer.close(); return
@@ -4163,7 +4204,11 @@ async def handle(reader, writer):
         writer.write(b'HTTP/1.1 302 Found\r\nLocation: /play/\r\nContent-Length: 0\r\n\r\n'); await writer.drain(); writer.close(); return
     if path.endswith('/'): path += 'index.html'
     full = os.path.realpath(os.path.join(ROOT, path.lstrip('/')))
-    ok = full.startswith(ROOT + os.sep) and os.path.isfile(full) and not any(path.startswith(b) for b in BLOCKED) and method in ('GET', 'HEAD')
+    if SEG.archivo_prohibido(path) or os.path.isdir(full):
+        SEG.aviso(ip, path, 'ruta')
+        ok = False
+    else:
+        ok = full.startswith(ROOT + os.sep) and os.path.isfile(full) and not any(path.startswith(b) for b in BLOCKED) and method in ('GET', 'HEAD')
     if not ok:
         body = b'404'; writer.write(b'HTTP/1.1 404 Not Found\r\nContent-Length: 3\r\nConnection: close\r\n\r\n' + body)
     else:

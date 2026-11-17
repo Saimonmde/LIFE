@@ -93,12 +93,10 @@ def track_open(store, subject, conversation_id, url):
 
 def _admin(headers):
     expected = os.environ.get('SIMON_ADMIN_TOKEN', '').strip()
-    if not expected:
-        return False, 'El panel de reseñas necesita SIMON_ADMIN_TOKEN en el servidor.'
     got = headers.get('x-simon-admin', '')
-    if hmac.compare_digest(got, expected):
+    if expected and len(got) == len(expected) and hmac.compare_digest(got, expected):
         return True, None
-    return False, 'La clave de administración no coincide.'
+    return False, 'No autorizado.'
 
 
 def _json_body(body):
