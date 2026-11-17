@@ -131,6 +131,53 @@ def convertir_a_una_moneda():
     print('[una-moneda]', informe.get('estado'), 'smc', plan.get('creditoSmc', ''), 'polvo', len(plan.get('polvo') or []))
     return informe
 
+def reparar_plata_118():
+    """Acredita la diferencia del #118. Si no cabe en 21.000.000, no mueve nada."""
+    import copy
+    import reparar_plata118 as REP
+    if not isinstance(ECON, dict):
+        return {'ok': False, 'estado': 'vacio'}
+    folder = os.path.join(ROOT, 'state')
+    candidate = copy.deepcopy(ECON)
+    chain = copy.deepcopy(LIBRO_CHAIN)
+    result = REP.aplicar(candidate, folder=folder, techo_smh=LIBRO.cupo_subs(LIBRO_CHAIN))
+    if result.get('estado') == 'ya':
+        print('[plata-118] ya')
+        return result
+    plan = result.get('plan') or {}
+    if not result.get('changed'):
+        print('[plata-118]', result.get('estado'), 'smc', plan.get('totalSmc', 0), 'cuentas', 0)
+        for row in plan.get('cuentas') or []:
+            print('[plata-118]', row['cuenta'], row['smc'])
+        return result
+    records = []
+    try:
+        for index, row in enumerate(plan.get('cuentas') or []):
+            record = LIBRO.acuñar(
+                chain, NFT_SEED, row['cuenta'], row['smh'],
+                'Reparación de la plata del #118',
+                ts=int(time.time()) + index, bits=1, presupuesto=2, kind='migracion',
+            )
+            if record is None:
+                raise RuntimeError('no cabe en el libro público')
+            records.append(record)
+    except (LIBRO.LibroError, RuntimeError) as exc:
+        print('[plata-118] bloqueada', exc)
+        return {'ok': False, 'estado': 'bloqueada', 'changed': False, 'plan': plan}
+    _volcar(ECON, candidate)
+    _volcar(LIBRO_CHAIN, chain)
+    save_econ()
+    save_libro(records)
+    try:
+        with open(os.path.join(folder, 'plata-118-informe.json'), 'w', encoding='utf-8') as handle:
+            json.dump({'fase': 'hecha', 'estado': 'hecha', **plan}, handle, ensure_ascii=False, indent=2)
+    except OSError:
+        pass
+    print('[plata-118] hecha', 'cuentas', len(plan.get('cuentas') or []), 'smc', plan.get('totalSmc'))
+    for row in plan.get('cuentas') or []:
+        print('[plata-118]', row['cuenta'], row['smc'])
+    return result
+
 def save_play():
     PLAY.save(PLAY_PATH, PLAYERS)
 
@@ -3594,6 +3641,7 @@ async def main():
     if not servers:
         raise SystemExit(f'No se pudo abrir el puerto {a.port}')
     convertir_a_una_moneda()
+    reparar_plata_118()
     print(f'LIFE INC · El Jardín  →  http://localhost:{a.port}/play/   (también http://127.0.0.1:{a.port}/play/)')
     print(f'chat WebSocket: ws://<host>:{a.port}/ws')
     print('Ctrl+C para detener.')
