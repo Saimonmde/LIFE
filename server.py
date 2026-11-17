@@ -2960,6 +2960,11 @@ def handle_client_message(c, m, t):
                 c.pet = adopted
                 save_vida()
         presented = clean(token_src, 64)
+        if getattr(c, 'user', None):
+            import billetera
+            llave = billetera.elegir(ECON, VAULT_STATE, c.user, c.name)
+            if llave:
+                c.name = llave
         owned = bind_wallet(c.name, presented, owner=bool(getattr(c, 'user', None)))
         c.wallet_ok = bool(owned)
         c.wallet_token = owned or ''

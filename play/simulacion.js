@@ -504,7 +504,8 @@ function aplicarCredito(m) {
   if (!api || !m) return;
   if (!api.S.econ) api.S.econ = emptyEcon();
   ensureSmh(api.S.econ);
-  const name = m.walletName || walletName();
+  const name = m.walletName || api.S.serverWallet || walletName();
+  if (m.walletName) api.S.serverWallet = m.walletName;
   const locked = !!m.walletLocked;
   if (m.ledger) api.S.ledger = m.ledger;
   if (m.purse) {
@@ -549,10 +550,12 @@ function applyServer(m) {
   if (st.historia) api.S.econ.historia = st.historia;
   if (m.walletToken) saveToken(walletName(), m.walletToken);
   api.S.walletLocked = !!m.walletLocked;
+  if (m.walletName) api.S.serverWallet = m.walletName;
   if (m.balanceSubs != null) {
     const shown = m.walletLocked ? 0 : m.balanceSubs;
+    const llave = m.walletName || api.S.serverWallet || walletName();
+    api.S.econ.wallets[llave] = shown;
     api.S.econ.wallets[walletName()] = shown;
-    if (m.walletName) api.S.econ.wallets[m.walletName] = shown;
   }
   if (m.plata) {
     api.S.plata = m.plata;
