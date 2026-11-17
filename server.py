@@ -131,6 +131,37 @@ def convertir_a_una_moneda():
     print('[una-moneda]', informe.get('estado'), 'smc', plan.get('creditoSmc', ''), 'polvo', len(plan.get('polvo') or []))
     return informe
 
+def reunir_llaves():
+    """Junta las llaves partidas. No acuña. El respaldo se guarda una sola vez."""
+    import copy
+    import reunir as REU
+    if not isinstance(ECON, dict) or not isinstance(VAULT_STATE, dict):
+        return {'changed': False}
+    meta = ECON.setdefault('meta', {})
+    if not meta.get('reunirRespaldo'):
+        folder = os.path.join(ROOT, 'state')
+        os.makedirs(folder, exist_ok=True)
+        PERSIST.save_named('reunir_respaldo', os.path.join(folder, 'reunir-respaldo.json'), {
+            'wallets': copy.deepcopy(ECON.get('wallets') or {}),
+            'accounts': copy.deepcopy(VAULT_STATE.get('accounts') or {}),
+            'purses': copy.deepcopy(VAULT_STATE.get('purses') or {}),
+        })
+        meta['reunirRespaldo'] = True
+        save_econ()
+    result = REU.aplicar(ECON, VAULT_STATE, ACCOUNTS, libro=LIBRO_CHAIN, seed=NFT_SEED, ahora=int(time.time()))
+    if result.get('changed'):
+        save_econ()
+        save_vault()
+        try:
+            save_libro(result.get('asientos') or [])
+        except persist_duplicate:
+            print('[reunir] el libro ya tenía el asiento')
+    for row in REU.informe(ECON, VAULT_STATE, ACCOUNTS):
+        if row.get('dueno'):
+            print('[reunir] llave', row['llave'], 'billetera', row['smhBilletera'], 'baul', row['smhBaul'], 'objetos', row['objetos'])
+    return result
+
+
 def reparar_plata_118():
     """Acredita la diferencia del #118. Si no cabe en 21.000.000, no mueve nada."""
     import copy
@@ -3784,6 +3815,13 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         body['amigos'] = social.get('friends') or []
         body['pedidos'] = social.get('in') or []
         return auth_response('200 OK', body, headers)
+    if path == '/api/diagnostico' and method == 'GET':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user or SOCIAL.role_of(user) not in ('owner', 'staff'):
+            return auth_response('403 Forbidden', {'error': 'Sólo el personal puede ver el diagnóstico.'}, headers)
+        import reunir as REU
+        rows = REU.informe(ECON, VAULT_STATE, ACCOUNTS)
+        return auth_response('200 OK', {'ok': True, 'cuentas': rows}, headers)
     if path == '/auth/staff' and method == 'POST':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
@@ -4120,6 +4158,7 @@ async def main():
         raise SystemExit(f'No se pudo abrir el puerto {a.port}')
     convertir_a_una_moneda()
     reparar_plata_118()
+    reunir_llaves()
     import mina_ladera as LADERA
     if LADERA.migrar(ECON):
         save_econ()

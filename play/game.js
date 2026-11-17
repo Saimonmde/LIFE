@@ -499,11 +499,23 @@ function placeAtTown(spot) {
   p.path = []; p.pending = null; p.busyUntil = 0; S.dest = null;
 }
 let started = false, reconnectTimer = null, reconnectDelay = 1000;
+function avisoInvitado() {
+  let bar = document.getElementById('entrar-google');
+  if (S.sessionUser) { if (bar) bar.hidden = true; return; }
+  if (!bar) {
+    bar = document.createElement('a');
+    bar.id = 'entrar-google';
+    bar.href = '/auth/google?vuelta=' + encodeURIComponent(vueltaJuego());
+    bar.textContent = 'Entrar con Google';
+    document.body.append(bar);
+  }
+  bar.hidden = false;
+}
 function startGame() {
   if (started) return;
   if (window.Vida && !Vida.allowsConnect()) { Vida.queueConnect(startGame); return; }
   started = true;
-  document.body.classList.add('in-game'); $('#b-descansar').hidden = false; updateSkateButton(); $('#login-status').textContent = '';
+  document.body.classList.add('in-game'); $('#b-descansar').hidden = false; updateSkateButton(); $('#login-status').textContent = ''; avisoInvitado();
   $('#login').hidden = true; S.keys.clear();
   $('#mi-nombre').textContent = nombrePropio(); drawPortrait();
   const mid = S.me.municipio || (S.sessionUser && S.sessionUser.municipio) || '';

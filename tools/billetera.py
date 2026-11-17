@@ -42,6 +42,10 @@ def elegir(econ, vault, user, fallback=''):
     folded = {}
     for key in list(wallets) + list(vaults):
         folded.setdefault(str(key).casefold(), str(key))
+    if isinstance(user, dict) and user.get('id'):
+        canon = 'id:' + str(user['id'])
+        if _total(econ, vault, canon) > 0:
+            return canon
     best = ''
     best_n = -1
     for name in _nombres(user, fallback):
