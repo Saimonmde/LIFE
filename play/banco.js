@@ -161,7 +161,13 @@
     const smh = dest === 'banco'
       ? Simulacion.walletSubs(name)
       : ((state.vault && (state.vault.smh || state.vault.smcSubs)) || 0);
-    if (smh > 0) Simulacion.bankSmc(dest === 'banco' ? 'in' : 'out', String(smh) + ' SMH');
+    if (smh > 0) {
+      const cents = Math.trunc(Number(smh) || 0);
+      const whole = Math.floor(Math.abs(cents) / 100);
+      const frac = Math.abs(cents) % 100;
+      const text = (cents < 0 ? '-' : '') + (frac ? whole + ',' + String(frac).padStart(2, '0').replace(/0+$/, '') : String(whole));
+      Simulacion.bankSmc(dest === 'banco' ? 'in' : 'out', text + ' SMC');
+    }
   }
   document.getElementById('banquito-todo-banco')?.addEventListener('click', () => transferirTodo('banco'));
   document.getElementById('banquito-todo-billetera')?.addEventListener('click', () => transferirTodo('billetera'));

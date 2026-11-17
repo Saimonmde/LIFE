@@ -107,8 +107,8 @@ class EconomyTests(unittest.TestCase):
         self.assertEqual(eco.parse_amount('0,5 SMC'), 50)
         self.assertEqual(eco.parse_amount('12.345 SMH'), 12_345)
         self.assertEqual(eco.parse_amount('12,345 SMH'), 12_345)
-        self.assertEqual(eco.format_pair(50), '0,5 SMC = 50 SMH')
-        self.assertEqual(eco.format_pair(12_345), '123,45 SMC = 12.345 SMH')
+        self.assertEqual(eco.format_pair(50), '0,5 SMC')
+        self.assertEqual(eco.format_pair(12_345), '123,45 SMC')
         self.assertEqual(sum(eco.parse_amount('0.1') for _ in range(10)), eco.parse_amount('1'))
         self.assertEqual(eco.parse_amount('1') + eco.parse_amount('0'), eco.SUBS)
         with self.assertRaises(eco.AmountError):

@@ -31,7 +31,7 @@ class CapTests(unittest.TestCase):
         self.assertEqual(found['simoncoin']['max'], 21_000_000)
         self.assertEqual(found['simonplata']['name'], 'Simonplata')
         self.assertEqual(found['simonplata']['max'], 84_000_000)
-        self.assertEqual(found['simonchis']['name'], 'Simonchis')
+        self.assertEqual(found['simonchis']['name'], 'Cobre')
         self.assertEqual(found['simonchis']['max'], 333_000_000)
         self.assertEqual(found['simoncoin']['minted'], 0)
         self.assertEqual(view['balances']['simonchis'], 0)

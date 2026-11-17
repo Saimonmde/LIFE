@@ -726,7 +726,7 @@ def _balances(purse, config):
         out[coin] = int(purse.balance(coin, buyer) or 0)
     out['simoncoinText'] = economy.format_pair(out['simoncoin'])
     out['simonplataText'] = plata.format_pair(out['simonplata'])
-    out['simonchisText'] = f'{out["simonchis"]} Simonchis'
+    out['simonchisText'] = str(out['simonchis'])
     return out
 
 

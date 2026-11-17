@@ -61,7 +61,7 @@ def ledger(state, name=None, account=None):
         },
         {
             'id': 'simonchis',
-            'name': 'Simonchis',
+            'name': 'Cobre',
             'minted': chis,
             'mintedBase': chis,
             'max': SIMONCHIS_MAX,

@@ -270,8 +270,8 @@ class TradeTests(unittest.TestCase):
         luis = by_balance[3]
         self.assertEqual(ana['balances'], {'smc': economy.SUBS, 'smp': 2 * plata.SUBS, 'cobre': 2})
         self.assertEqual(luis['balances'], {'smc': 2 * economy.SUBS, 'smp': 2 * plata.SUBS, 'cobre': 3})
-        self.assertIn('Intercambiaste. Saldo: 1 SMC, 2 SMP, 2 Simonchis.', ana['reason'])
-        self.assertIn('Intercambiaste. Saldo: 2 SMC, 2 SMP, 3 Simonchis.', luis['reason'])
+        self.assertIn('Intercambiaste. Saldo: 1 SMC, 2 SMP, 2 de cobre.', ana['reason'])
+        self.assertIn('Intercambiaste. Saldo: 2 SMC, 2 SMP, 3 de cobre.', luis['reason'])
         self.assertEqual(economy.MAX_SUPPLY, 21_000_000)
         self.assertEqual(plata.MAX_SUPPLY, 84_000_000)
 

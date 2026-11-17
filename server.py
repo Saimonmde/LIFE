@@ -993,7 +993,7 @@ def acunar_for(sender, coin, pieces, proof=None):
     if coin == 'simonchis':
         ECO.append_tx(ECON, {
             'type': 'fundicion', 'to': sender.name, 'coin': 'SMCH', 'qty': int(got),
-            'amountSubs': 0, 'note': f'Acuñación de {int(got)} Simonchis',
+            'amountSubs': 0, 'note': f'Acuñación de {int(got)} de cobre',
         })
     view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
     view['historia'] = HISTORIA.filas(ECON)
@@ -1011,9 +1011,7 @@ def acunar_for(sender, coin, pieces, proof=None):
     else:
         razon = (
             f'Se acuñó {recibido} {row["name"]}. '
-            f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}, '
-            f'{PLATA.format_smp(saldos.get("simonplata") or 0)}, '
-            f'{int(saldos.get("simonchis") or 0)} Simonchis. '
+            f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}. '
             f'Se gastaron {done["gastas"]} {row["metal"]}.'
         )
     registro = getattr(sender, 'registro', None) if coin == 'simoncoin' else None
@@ -1070,31 +1068,31 @@ def lingote_ver(sender):
 def fundir_simonchis(sender, ore, batches, proof):
     profile = account_profile(sender)
     if not profile.get('account'):
-        return _smelt_fail(sender, 'Entra con una cuenta para acuñar Simonchis.')
+        return _smelt_fail(sender, 'Entra con una cuenta para acuñar.')
     want = COIN_QTY.get(ore, 4) * batches
     context = f'{ore}:{batches}'
     if not proof:
         opened = COBRE.open_challenge(ECON, profile['account'], context)
         save_econ()
         if not opened.get('ok'):
-            reason = 'Ya no se pueden crear más Simonchis. El tope es 333.000.000.' if opened.get('reason') == 'supply' else 'No se pudo empezar la acuñación.'
+            reason = 'Ya no cabe más cobre en el tope.' if opened.get('reason') == 'supply' else 'No se pudo empezar la acuñación.'
             return _smelt_fail(sender, reason)
-        send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'smelt', 'ore': ore, 'batches': batches, 'mode': 'simonchis'}, 'coin': 'Simonchis'})
+        send(sender, {'t': 'pow_challenge', 'challenge': opened['challenge'], 'resume': {'t': 'smelt', 'ore': ore, 'batches': batches, 'mode': 'simonchis'}, 'coin': 'SMC'})
         send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': True, 'mode': 'simonchis', 'reason': 'Calculando la prueba. El mineral sigue en la mochila.'})
         return
     result = COBRE.redeem(ECON, profile['account'], context, proof, want, purse=sender.name)
     save_econ()
     if not result.get('ok'):
         if result.get('reason') == 'supply':
-            return _smelt_fail(sender, 'Ya no se pueden crear más Simonchis. El tope es 333.000.000.')
+            return _smelt_fail(sender, 'Ya no cabe más cobre en el tope.')
         if result.get('reason') == 'cap':
-            return _smelt_fail(sender, 'Hoy ya acuñaste las Simonchis de este día.')
+            return _smelt_fail(sender, 'Hoy ya acuñaste el cobre de este día.')
         return _smelt_fail(sender, 'La prueba no sirvió. No se acuñó nada.')
     qty = int(result['qty'])
-    note = f'Se acuñaron {qty} Simonchis. No es dinero real.'
+    note = f'Se acuñaron {qty} de cobre. No es dinero real.'
     view = MONEDAS.ledger(ECON, sender.name, profile['account'])
     broadcast_econ()
-    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonchis', 'ore': ore, 'batches': batches, 'qty': qty, 'coin': 'Simonchis', 'reason': note, 'ledger': view})
+    send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonchis', 'ore': ore, 'batches': batches, 'qty': qty, 'coin': 'SMC', 'reason': note, 'ledger': view})
     send(sender, {'t': 'system', 'text': note})
 
 def fundir_simonplata(sender, ore, batches, proof):
@@ -1870,7 +1868,7 @@ def chat(sender, channel, text):
         if cmd == 'pagar':
             parts = rest.split()
             if len(parts) < 2:
-                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto>  (SMC o SMH, sólo en el juego)'})
+                return send(sender, {'t': 'system', 'text': 'Uso: /pagar <jugador> <monto> SMC'})
             if parts[-1].lower() in ('smc', 'smh', 'simonchi', 'simonchis'):
                 if len(parts) < 3:
                     return send(sender, {'t': 'system', 'text': 'El monto no es válido.'})
@@ -1880,7 +1878,7 @@ def chat(sender, channel, text):
             try:
                 smh = ECO.parse_amount(monto_s)
             except ECO.AmountError:
-                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC (hasta 2 decimales) o SMH enteros.'})
+                return send(sender, {'t': 'system', 'text': 'El monto no es válido. Usa SMC, con hasta 2 decimales.'})
             return pagar(sender, dest, smh)
         arg = clean(rest, 24)
         if cmd == 'grupo':

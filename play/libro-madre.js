@@ -8,6 +8,20 @@
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
+  function smcFromCents(cents) {
+    const n = Math.trunc(Number(cents) || 0);
+    const neg = n < 0;
+    const abs = Math.abs(n);
+    const whole = Math.floor(abs / 100);
+    const frac = abs % 100;
+    const grouped = whole.toLocaleString('es-CO');
+    const body = frac ? grouped + ',' + String(frac).padStart(2, '0').replace(/0+$/, '') : grouped;
+    return (neg ? '-' : '') + body + ' SMC';
+  }
+  function playerName() {
+    const me = window.__ELJARDIN && window.__ELJARDIN.me;
+    return (me && (me.name || me.nick)) || '';
+  }
   function panel() { return $('#w-libro-madre'); }
   function open(focusId) {
     const el = panel();
@@ -21,7 +35,7 @@
     const ok = block.verificado !== false;
     const who = block.miner || block.owner || block.from || '—';
     const where = block.location || '—';
-    const amount = block.amountText || ((block.amountSmh || 0) + ' SMH');
+    const amount = block.amountText || smcFromCents(block.amountSmh);
     const hash = block.hash || '';
     return `<article class="madre-card" data-id="${esc(id)}">
       <header><span class="codigo">${esc(id)}</span> <span class="ok">${ok ? '✓ verificado' : '✗ no verifica'}</span></header>
@@ -37,7 +51,9 @@
     body.innerHTML = '<p class="madre-aviso">Cargando el libro madre…</p>';
     let page = null;
     try {
-      const res = await fetch('/api/libro?limite=12');
+      const who = playerName();
+      const q = who ? '&jugador=' + encodeURIComponent(who) : '';
+      const res = await fetch('/api/libro?limite=12' + q);
       if (res.ok) page = await res.json();
     } catch (e) { page = null; }
     if (!page) {
@@ -45,8 +61,13 @@
       return;
     }
     const blocks = page.blocks || [];
+    const world = page.mintedText || page.supply || '0 SMC';
+    const cap = page.capText || (Number(page.maxSupply || 21000000).toLocaleString('es-CO') + ' SMC');
+    const mine = page.playerMintedText || (playerName() ? '0 SMC' : '—');
     body.innerHTML = `<p class="madre-aviso">${esc(page.disclaimer || '')}</p>
-      <p>Altura ${page.height || 0} · emitidas <span class="smc">${esc(String(page.supply))}</span> · tope <span class="smc">${Number(page.maxSupply || 0).toLocaleString('es-CO')} SMC</span>. <span class="smc">1 SMC = 100 SMH</span>.</p>
+      <p class="madre-totales">Simon Coins minadas en el mundo: <span class="smc">${esc(String(world))}</span> de <span class="smc">${esc(String(cap))}</span>.</p>
+      <p class="madre-totales">Tus Simon Coins minadas: <span class="smc">${esc(String(mine))}</span>.</p>
+      <p>Altura ${page.height || 0}.</p>
       <button type="button" id="madre-verificar">Verificar la cadena</button>
       <p id="madre-estado" role="status"></p>
       ${blocks.map(card).join('') || '<p>Todavía no hay acuñaciones.</p>'}`;
@@ -73,7 +94,7 @@
     const el = $('#libro-toast');
     if (!el || !record || !record.id) return;
     el.hidden = false;
-    el.innerHTML = `<strong>Acuñaste <span class="codigo">${esc(record.id)}</span></strong><span><span class="smc">${esc(record.amountText || ((record.amountSmh || 0) + ' SMH'))}</span>. Simulación, sin valor real.</span><button type="button">Ver el registro</button>`;
+    el.innerHTML = `<strong>Acuñaste <span class="codigo">${esc(record.id)}</span></strong><span><span class="smc">${esc(record.amountText || smcFromCents(record.amountSmh))}</span>. Simulación, sin valor real.</span><button type="button">Ver el registro</button>`;
     el.querySelector('button').onclick = () => open(record.id);
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { el.hidden = true; }, 8000);
