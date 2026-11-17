@@ -123,12 +123,32 @@ def _user_by(doc, **query):
     return None
 
 
+def google_subs(user):
+    """Identidades de Google de esa cuenta. Puede haber más de una."""
+    found = []
+    raw = ((user or {}).get('providers') or {}).get('google')
+    if isinstance(raw, str) and raw:
+        found.append(raw)
+    elif isinstance(raw, list):
+        found.extend(str(item) for item in raw if item)
+    for extra in (user or {}).get('googleSubs') or []:
+        text = str(extra or '')
+        if text and text not in found:
+            found.append(text)
+    return found
+
+
 def _user_by_email(doc, email):
     wanted = str(email or '').strip().lower()
     if not wanted:
         return None
     for user in doc.get('users') or []:
+        if user.get('mergedInto'):
+            continue
         if str(user.get('email') or '').strip().lower() == wanted:
+            return user
+        aliases = [str(item or '').strip().lower() for item in (user.get('aliases') or [])]
+        if wanted in aliases:
             return user
     return None
 
@@ -565,6 +585,11 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
         raise AuthError('El proveedor no entregó una identidad.')
     user = None
     for item in doc['users']:
+        if item.get('mergedInto'):
+            continue
+        if provider == 'google' and sub in google_subs(item):
+            user = item
+            break
         if (item.get('providers') or {}).get(provider) == sub:
             user = item
             break
@@ -572,7 +597,15 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
     if user is None and email:
         user = _user_by_email(doc, email)
         if user:
-            user.setdefault('providers', {})[provider] = sub
+            if provider == 'google' and sub not in google_subs(user):
+                user.setdefault('googleSubs', [])
+                if sub not in user['googleSubs']:
+                    user['googleSubs'].append(sub)
+                user.setdefault('providers', {})
+                if not user['providers'].get('google'):
+                    user['providers']['google'] = sub
+            else:
+                user.setdefault('providers', {})[provider] = sub
     if user is None:
         name = game_name(profile.get('name') or email.split('@')[0] or 'Jugador') or 'Jugador'
         if (simon_reserved(profile.get('name')) or simon_reserved(name)) and not is_owner({'email': email}):

@@ -46,7 +46,7 @@ class MiCuentaTests(unittest.TestCase):
         self.assertEqual(shown['favoriteWorld'], 3)
         self.assertIn('En el valle', shown['place'])
         self.assertEqual(shown['saved'], 'Guardado hace 1 min')
-        self.assertEqual(shown['inventory'], [{'item': 'mineral_cobre', 'qty': 2}])
+        self.assertEqual(shown['inventory'], [{'item': 'mineral_cobre', 'qty': 2, 'nombre': 'Mineral de cobre'}])
         self.assertEqual(shown['coins']['simoncoinSmh'], 50_000_000)
         self.assertEqual(shown['crops']['cafe'], 1)
         self.assertEqual(shown['animals']['gallo'], 1)

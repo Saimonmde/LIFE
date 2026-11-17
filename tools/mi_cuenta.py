@@ -1,6 +1,43 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Lo que el jugador puede ver de su cuenta. No muestra claves ni crea monedas."""
+import json
+import os
+
 import partida
+
+_NOMBRES = None
+_EXTRAS = {
+    'mineral_oro': 'Mineral de oro',
+    'moneda_oro': 'Moneda de oro',
+    'moneda_plata': 'Moneda de plata',
+    'moneda_cobre': 'Moneda de cobre',
+    'lingote_oro': 'Lingote de oro',
+    'lingote_plata': 'Lingote de plata',
+    'lingote_cobre': 'Lingote de cobre',
+    'cafe_cereza': 'Café cereza',
+    'cacao_baba': 'Cacao en baba',
+}
+
+
+def nombre_de(item):
+    """Nombre que se lee en Mi cuenta. El id interno no sale si ya tiene nombre."""
+    global _NOMBRES
+    if _NOMBRES is None:
+        found = dict(_EXTRAS)
+        path = os.path.join(os.path.dirname(__file__), '..', 'data', 'el-jardin.json')
+        try:
+            with open(path, encoding='utf-8') as handle:
+                catalog = json.load(handle).get('items') or {}
+        except (OSError, ValueError):
+            catalog = {}
+        for key, row in catalog.items():
+            if isinstance(row, dict) and row.get('name'):
+                found.setdefault(str(key), str(row['name']))
+        _NOMBRES = found
+    text = str(item or '')
+    if text in _NOMBRES:
+        return _NOMBRES[text]
+    return text.replace('_', ' ')
 
 
 PLACES = {
@@ -93,7 +130,10 @@ def _live_inventory(user, econ, vault_state, saved, finca_accounts, name):
         if extra > 0:
             live[item] = int(live.get(item) or 0) + extra
     if not live:
-        return saved[:12]
+        return [
+            {'item': row.get('item'), 'qty': int(row.get('qty') or 0), 'nombre': nombre_de(row.get('item'))}
+            for row in saved[:12] if isinstance(row, dict)
+        ]
     rows = []
     seen = set()
     for row in saved:
@@ -101,12 +141,12 @@ def _live_inventory(user, econ, vault_state, saved, finca_accounts, name):
         if item in live:
             seen.add(item)
             if live[item] > 0:
-                rows.append({'item': item, 'qty': live[item]})
+                rows.append({'item': item, 'qty': live[item], 'nombre': nombre_de(item)})
         else:
-            rows.append({'item': item, 'qty': int(row.get('qty') or 0)})
+            rows.append({'item': item, 'qty': int(row.get('qty') or 0), 'nombre': nombre_de(item)})
     for item, qty in live.items():
         if item not in seen and int(qty) > 0:
-            rows.append({'item': item, 'qty': int(qty)})
+            rows.append({'item': item, 'qty': int(qty), 'nombre': nombre_de(item)})
     return [row for row in rows if int(row.get('qty') or 0) > 0][:24]
 
 

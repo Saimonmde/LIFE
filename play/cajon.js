@@ -40,14 +40,17 @@
     const line = $('#hud-saldos');
     if (line) {
       const S = window.__ELJARDIN || {};
-      const bankSmh = S.vaultFromServer ? Number((S.vault && (S.vault.smh != null ? S.vault.smh : S.vault.smcSubs)) || 0) : 0;
+      const viva = S.cuentaViva;
+      const bankSmh = viva ? Number(viva.bankSmh) || 0 : (S.vaultFromServer ? Number((S.vault && (S.vault.smh != null ? S.vault.smh : S.vault.smcSubs)) || 0) : 0);
       const fmt = window.Simulacion && Simulacion.formatSmc ? (n) => Simulacion.formatSmc(n) : (n) => (Number(n) / 100) + ' SMC';
       const bolsa = fmt(bankSmh);
+      if (viva) money.exactSimoncoin = fmt(viva.simoncoinSmh || 0);
       let objetos = 0;
       const sumar = (bag) => { if (!bag) return; Object.keys(bag).forEach((id) => { objetos += Math.max(0, Math.round(Number(bag[id]) || 0)); }); };
       sumar(S.purse && S.purse.items);
       sumar(S.crudo);
       sumar(S.vault && S.vault.items);
+      if (viva) objetos = Number(viva.objetos) || 0;
       line.textContent = 'Billetera ' + (money.exactSimoncoin || '0 SMC') + ' · Baúl ' + bolsa + ' · ' + objetos + ' objetos';
       line.title = line.textContent;
     }
@@ -278,8 +281,45 @@
     if (window.Finca && Finca.paintDock) Finca.paintDock();
     if (window.Pulgar && Pulgar.apilar) Pulgar.apilar();
   }
+  async function pullCuenta() {
+    const S = window.__ELJARDIN;
+    if (!S || !S.sessionUser) return;
+    try {
+      const response = await fetch('/auth/cuenta', { cache: 'no-store', credentials: 'same-origin' });
+      if (!response.ok) return;
+      const data = await response.json();
+      const S = window.__ELJARDIN;
+      if (!S) return;
+      const coins = data.coins || {};
+      const filas = data.inventory || [];
+      S.cuentaViva = {
+        simoncoinSmh: Number(coins.simoncoinSmh) || 0,
+        bankSmh: Number(coins.bankSmh) || 0,
+        objetos: filas.reduce((sum, row) => sum + Math.max(0, Number(row.qty) || 0), 0),
+      };
+      paint();
+    } catch (e) {}
+  }
+  function accesos() {
+    if (document.getElementById('hud-accesos')) return;
+    const bar = document.createElement('div');
+    bar.id = 'hud-accesos';
+    bar.innerHTML = '<button type="button" id="hud-inventario">Inventario</button><button type="button" id="hud-banco">Banco</button>';
+    document.body.append(bar);
+    document.getElementById('hud-inventario').onclick = () => {
+      const panel = document.getElementById('w-inv');
+      if (!panel) return;
+      panel.hidden = !panel.hidden;
+      if (!panel.hidden && window.LiveInk && LiveInk.paintInv) LiveInk.paintInv();
+    };
+    document.getElementById('hud-banco').onclick = () => {
+      if (window.Baul) Baul.open();
+      else if (window.Banco) Banco.openPanel();
+    };
+  }
   function boot() {
     mountPicar();
+    accesos();
     document.body.classList.add('mapa-limpio');
     pullClock();
     fillDrawer();
@@ -289,7 +329,9 @@
       gear.addEventListener('click', () => { paint(); paintPlaces(); });
     }
     pullClock();
+    pullCuenta();
     setInterval(pullClock, 20000);
+    setInterval(pullCuenta, 3000);
     setInterval(paint, 1500);
     setInterval(pintarAcunar, 400);
     pintarAcunar();

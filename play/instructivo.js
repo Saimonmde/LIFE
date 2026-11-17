@@ -19,7 +19,7 @@
     '<p>En <span>/movil/</span>, arrastrá el joystick, el palito redondo de abajo a la izquierda. O tocá el suelo para caminar hasta ese punto.</p>',
     '<p>🏃 En el celular no hay un botón de correr. Con teclado, mantené <kbd>X</kbd> y una tecla de caminar. A caballo no se corre con <kbd>X</kbd>.</p>',
     '<p>Arrastrá un dedo para girar la vista. Pellizcá para acercar o alejar. Tocá la puerta, el árbol, la roca o la persona.</p>',
-    '<p>El botón <b>Chat</b> abre el chat. El botón <b>☰ Menú</b> muestra las herramientas. <b>Amigos</b> está bajo la rueda o dentro de <b>⚙</b>.</p>',
+    '<p>Los botones dorados <b>Inventario</b> y <b>Banco</b> están arriba a la izquierda, junto al saldo. El banco se abre desde cualquier lugar para verlo. Para guardar o sacar hay que estar junto al baúl. <b>Chat</b> abre el chat y <b>⚙</b> el menú.</p>',
     '</section>',
     '<section class="inst-card inst-wide">',
     '<h2>Salir con calma</h2>',

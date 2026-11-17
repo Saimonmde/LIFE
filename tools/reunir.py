@@ -16,6 +16,9 @@ DUENO_IGUAL = {name.casefold() for name in DUENO}
 
 
 def canon(user):
+    """El dueño vive en la llave saimon. Los demás, en el id de su cuenta."""
+    if acc.is_owner(user):
+        return 'saimon'
     return 'id:' + str((user or {}).get('id') or '')
 
 

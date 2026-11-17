@@ -42,6 +42,8 @@ def elegir(econ, vault, user, fallback=''):
     folded = {}
     for key in list(wallets) + list(vaults):
         folded.setdefault(str(key).casefold(), str(key))
+    if isinstance(user, dict) and acc.is_owner(user):
+        return 'saimon'
     if isinstance(user, dict) and user.get('id'):
         canon = 'id:' + str(user['id'])
         if _total(econ, vault, canon) > 0:

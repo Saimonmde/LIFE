@@ -99,11 +99,36 @@ body:not(.in-game) #hud-minimo { display: none; }
 #entrar-google[hidden] { display: none !important; }
 #hud-saldos {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: 15px;
   line-height: 1.35;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #f3e6c4;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
+#hud-accesos {
+  position: fixed;
+  z-index: 96;
+  top: 76px;
+  left: max(10px, env(safe-area-inset-left));
+  display: flex;
+  gap: 8px;
+}
+body:not(.in-game) #hud-accesos { display: none; }
+#hud-accesos button {
+  min-width: 112px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: #e2b23c;
+  color: #2a1c10;
+  font: 800 16px/1.1 system-ui, sans-serif;
+  box-shadow: 0 4px 12px #0008;
+}
+body.in-game #w-inv:not([hidden]),
+body.in-game #baul-mina:not([hidden]) {
+  z-index: 100 !important;
 }
 
 body.mapa-limpio #hud-gear {
