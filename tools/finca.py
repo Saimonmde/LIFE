@@ -522,7 +522,8 @@ def harvest(state, config, account, plot_id, now):
     box.setdefault('openHarvests', {}).setdefault(crop, []).append(harvest_id)
     item = spec['harvestItem']
     box['goods'][item] = int(box['goods'].get(item) or 0) + 1
-    plot['plantedAt'] = 0
+    # Cada mata vuelve a crecer con su propio reloj. Las demás parcelas no se tocan.
+    plot['plantedAt'] = int(now)
     name = 'café' if crop == 'cafe' else 'cacao'
     _log(state, 'cosecha', account, now, f'Se cosecharon {kg} kg de {name}.', crop=crop, kg=kg, total_kg=total, prev=prev, digest=digest, serial=harvest_id)
     return {'kg': kg, 'totalKg': total, 'item': item, 'hash': digest, 'prev': prev}

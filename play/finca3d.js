@@ -184,19 +184,44 @@ export function attachFinca(T, parent, opt) {
   workshop(-4.2, 3.6, 'finca_cafe', 'cafe', 'despulpado');
   workshop(3.4, 3.6, 'finca_cacao', 'cacao', 'quiebre');
   label('LIBRO MAYOR', -0.2, 5.4, 'finca_libro');
+  // Tres zonas cosechables. El taller y la venta no se mueven.
+  // La boca de La Ladera queda en el claro de siempre; estas matas no se sientan encima.
+  const zonas = [
+    { id: 'cafe-1', crop: 'cafe', x: -6.4, z: 8.4, lugar: 'finca' },
+    { id: 'cafe-2', crop: 'cafe', x: -3.2, z: 8.4, lugar: 'finca' },
+    { id: 'cafe-3', crop: 'cafe', x: 0, z: 8.4, lugar: 'finca' },
+    { id: 'cacao-1', crop: 'cacao', x: 3.4, z: 8.4, lugar: 'finca' },
+    { id: 'cacao-2', crop: 'cacao', x: 6.8, z: 8.4, lugar: 'finca' },
+    { id: 'cacao-3', crop: 'cacao', x: 10.2, z: 8.4, lugar: 'finca' },
+    { id: 'cafe-4', crop: 'cafe', x: -6, z: -16.2, lugar: 'camino' },
+    { id: 'cafe-5', crop: 'cafe', x: -2.2, z: -16.2, lugar: 'camino' },
+    { id: 'cafe-6', crop: 'cafe', x: 1.6, z: -16.2, lugar: 'camino' },
+    { id: 'cacao-4', crop: 'cacao', x: 6.2, z: -16.2, lugar: 'camino' },
+    { id: 'cacao-5', crop: 'cacao', x: 10, z: -16.2, lugar: 'camino' },
+    { id: 'cacao-6', crop: 'cacao', x: 13.8, z: -16.2, lugar: 'camino' },
+    { id: 'cafe-7', crop: 'cafe', x: 22.4, z: -7.2, lugar: 'mina' },
+    { id: 'cafe-8', crop: 'cafe', x: 25.8, z: -7.2, lugar: 'mina' },
+    { id: 'cacao-7', crop: 'cacao', x: 22.4, z: -3.6, lugar: 'mina' },
+    { id: 'cacao-8', crop: 'cacao', x: 25.8, z: -3.6, lugar: 'mina' },
+  ];
+  label('EN LA FINCA', 2, 11);
+  label('JUNTO AL CAMINO', 4, -18.6);
+  label('CERCA DE LA MINA', 24, -10.2);
   const beds = [];
-  for (let i = 0; i < 8; i++) {
-    const crop = i < 4 ? 'cafe' : 'cacao';
-    const x = -5.2 + i * 1.35;
-    const z = 5.6;
-    const y0 = ground(x, z);
-    const bed = mesh(box, tone('plotEmpty'), x, y0 + 0.08, z, 1.1, 0.1, 0.8, 'finca_las_palmas');
+  for (const spot of zonas) {
+    const y0 = ground(spot.x, spot.z);
+    const pickId = 'mata:' + spot.id;
+    const bed = mesh(box, tone('plotEmpty'), spot.x, y0 + 0.08, spot.z, 1.8, 0.12, 1.5, pickId);
+    mesh(trunk, tone('trunkDark'), spot.x, y0 + 1.35, spot.z, 0.2, 2.5, 0.2);
+    mesh(ball, spot.crop === 'cafe' ? tone('leaf') : tone('leafLite'), spot.x, y0 + 2.85, spot.z, 1.15, 0.85, 1.15);
+    const fruit = mesh(ball, spot.crop === 'cafe' ? tone('cherry') : tone('pod'), spot.x, y0 + 3.35, spot.z, 0.38, 0.38, 0.38, pickId);
+    fruit.visible = false;
     const holder = new T.Group();
-    holder.position.set(x, y0, z);
+    holder.position.set(spot.x, y0, spot.z);
     g.add(holder);
-    const sprite = plantSprite(crop === 'cafe' ? 'plotCafePlanton' : 'plotCacaoPlanton', x, z, 1.2, 'finca_las_palmas');
+    const sprite = plantSprite(spot.crop === 'cafe' ? 'plotCafePlanton' : 'plotCacaoPlanton', spot.x, spot.z, 3.2, pickId);
     sprite.visible = false;
-    beds.push({ mesh: bed, sprite, holder, crop, index: i % 4, loaded: '' });
+    beds.push({ mesh: bed, fruit, sprite, holder, crop: spot.crop, plot: spot.id, lugar: spot.lugar, loaded: '' });
   }
   if (opt.lamp) {
     const sun = new T.PointLight(0xffe0b0, 40, 28, 2);
@@ -238,10 +263,8 @@ export function attachFinca(T, parent, opt) {
   function sync(view) {
     lastView = view;
     const plots = (view && view.plots) || [];
-    const cafe = plots.filter(row => row.crop === 'cafe');
-    const cacao = plots.filter(row => row.crop === 'cacao');
     for (const bed of beds) {
-      const row = (bed.crop === 'cafe' ? cafe : cacao)[bed.index];
+      const row = plots.find(item => item.id === bed.plot);
       const stage = row ? row.stage : 'vacio';
       const color = stage === 'maduro'
         ? (bed.crop === 'cafe' ? tone('cherry') : tone('pod'))
@@ -255,8 +278,9 @@ export function attachFinca(T, parent, opt) {
             : '';
       const phase = row && row.phase ? row.phase : stage === 'maduro' ? 'cosecha' : stage === 'verde' ? 'crecimiento' : stage === 'planton' ? 'siembra' : '';
       bed.sprite.visible = !!art;
+      bed.fruit.visible = stage === 'maduro';
       if (art) {
-        const h = stage === 'maduro' ? 1.8 : stage === 'verde' ? 1.5 : 1.2;
+        const h = stage === 'maduro' ? 3.6 : stage === 'verde' ? 3.1 : 2.6;
         bed.sprite.material.map = texture(art);
         bed.sprite.scale.set(h * 0.72, h, 1);
         bed.sprite.position.y = ground(bed.sprite.position.x, bed.sprite.position.z) + h / 2;
@@ -267,5 +291,13 @@ export function attachFinca(T, parent, opt) {
       }
     }
   }
-  return { group: g, sync };
+  const matas = zonas.map(spot => ({
+    id: spot.id,
+    crop: spot.crop,
+    lugar: spot.lugar,
+    x: ((opt.x || 0) - 1) / 2 + spot.x / 2,
+    y: ((opt.z || 0) - 1) / 2 + spot.z / 2,
+  }));
+  if (typeof window !== 'undefined') window.FINCA_MATAS = matas;
+  return { group: g, sync, matas };
 }

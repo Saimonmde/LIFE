@@ -75,8 +75,12 @@ class FincaTests(unittest.TestCase):
         )
 
     def ripe(self, plot, crop_check=None):
-        planted = self.act('plantar', {'plot': plot}, now=self.now)
-        self.assertTrue(planted['ok'], planted.get('error'))
+        row = self.state['accounts'].get(SECRET, {}).get('plots', {}).get(plot) or {}
+        if not row.get('plantedAt'):
+            planted = self.act('plantar', {'plot': plot}, now=self.now)
+            self.assertTrue(planted['ok'], planted.get('error'))
+        else:
+            self.now = max(self.now, int(row['plantedAt']))
         self.now += 2 * reloj.REAL_SECONDS_PER_DAY + 5
         picked = self.act('cosechar', {'plot': plot}, now=self.now)
         self.assertTrue(picked['ok'], picked.get('error'))
@@ -87,6 +91,35 @@ class FincaTests(unittest.TestCase):
     def test_clock_matches_the_game_day(self):
         self.assertEqual(self.config['realSecondsPerGameDay'], reloj.REAL_SECONDS_PER_DAY)
         self.assertEqual(reloj.REAL_SECONDS_PER_DAY, 20 * 60)
+
+    def test_each_plant_restarts_on_its_own_clock(self):
+        plots = self.act('ver')['view']['plots']
+        cacao = [row['id'] for row in plots if row['crop'] == 'cacao']
+        self.act('plantar', {'plot': cacao[0]}, now=self.now)
+        self.act('plantar', {'plot': cacao[1]}, now=self.now + 400)
+        later = self.now + 2 * reloj.REAL_SECONDS_PER_DAY + 5
+        done = self.act('cosechar', {'plot': cacao[0]}, now=later)
+        self.assertTrue(done['ok'], done.get('error'))
+        box = self.state['accounts'][SECRET]['plots']
+        self.assertEqual(box[cacao[0]]['plantedAt'], later)
+        self.assertEqual(box[cacao[1]]['plantedAt'], self.now + 400)
+        self.assertEqual(finca.stage_of(box[cacao[0]], later, self.config), 'planton')
+        again = self.act('cosechar', {'plot': cacao[0]}, now=later + 20)
+        self.assertFalse(again['ok'])
+        def texto(path):
+            with open(path, encoding='utf-8') as handle:
+                return handle.read()
+        page = texto(os.path.join(ROOT, 'play', 'finca3d.js'))
+        for mark in ('EN LA FINCA', 'JUNTO AL CAMINO', 'CERCA DE LA MINA', 'cafe-8', 'cacao-8', 'mata:'):
+            self.assertIn(mark, page)
+        dock = texto(os.path.join(ROOT, 'play', 'finca.js'))
+        self.assertIn('cosecharCerca', dock)
+        self.assertIn('Acércate a la mata', dock)
+        game = texto(os.path.join(ROOT, 'play', 'game.js'))
+        self.assertIn("id.indexOf('mata:')===0", game)
+        src = texto(os.path.join(ROOT, 'tools', 'finca.py'))
+        self.assertIn('def sell(', src)
+        self.assertIn('def process(', src)
 
     def test_cacao_sits_with_coffee_and_harvest_adds_kilos(self):
         plots = self.act('ver')['view']['plots']
