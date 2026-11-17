@@ -73,6 +73,23 @@ class ReunirTests(unittest.TestCase):
         game = open(os.path.join(os.path.dirname(__file__), '..', 'play', 'game.js'), encoding='utf-8').read()
         self.assertIn('Entrar con Google', game)
 
+    def test_owner_keeps_saimon_when_another_nick_matches(self):
+        owner = {'id': 'dueño', 'name': 'Simon', 'wallet_name': 'Simon', 'email': fusion.owner_email()}
+        other = {'id': 'otro', 'name': 'saimon', 'wallet_name': 'saimon', 'email': 'otro@example.com'}
+        econ = {'wallets': {'saimon': 100, 'Simon': 5, 'Saimon888': 7}, 'minedSmh': 0}
+        vault = {
+            'accounts': {'saimon': {'smh': 59735, 'items': {'piedra': 2}}},
+            'purses': {'saimon': {'moneda_plata': 1}},
+        }
+        reunir.aplicar(econ, vault, {'users': [other, owner]})
+        self.assertEqual(econ['wallets']['id:dueño'], 112)
+        self.assertEqual(econ['wallets'].get('saimon', 0), 0)
+        self.assertEqual(vault['accounts']['id:dueño']['smh'], 59735)
+        self.assertEqual(vault['accounts']['id:dueño']['items']['piedra'], 2)
+        self.assertEqual(vault['purses']['id:dueño']['moneda_plata'], 1)
+        self.assertEqual(econ['wallets'].get('id:otro', 0), 0)
+        self.assertEqual(vault['accounts'].get('saimon', {}).get('smh', 0), 0)
+
     def test_a_stranger_does_not_receive_the_owner_wallet(self):
         other = {'id': 'otro', 'name': 'Simon', 'wallet_name': 'Simon', 'email': 'otro@example.com'}
         econ = {'wallets': {'saimon': 100, 'Simon': 0}, 'minedSmh': 0}

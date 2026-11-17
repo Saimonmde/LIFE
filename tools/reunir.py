@@ -12,6 +12,7 @@ RESERVADAS = {
     'tesoro_genesis', 'fondo_cambio', 'puesto_frutas', 'casa_de_contratacion',
 }
 DUENO = ('saimon', 'Simon', 'Saimon', 'Saimon2', 'Saimon888')
+DUENO_IGUAL = {name.casefold() for name in DUENO}
 
 
 def canon(user):
@@ -55,9 +56,6 @@ def _dueños_de(users, econ, vault):
         for raw in (user.get('wallet_name'), user.get('name')):
             if raw:
                 reclamar(str(raw), uid)
-        if acc.is_owner(user):
-            for raw in DUENO:
-                reclamar(raw, uid)
     tokens = {}
     for user in users:
         uid = str(user.get('id') or '')
@@ -71,6 +69,18 @@ def _dueños_de(users, econ, vault):
         uid = unicos.get(token)
         if uid:
             reclamar(key, uid)
+    # El correo del dueño gana estas llaves aunque otro apodo las haya pedido.
+    for user in users:
+        if not acc.is_owner(user):
+            continue
+        uid = str(user.get('id') or '')
+        if not uid:
+            continue
+        for raw in DUENO:
+            claims[raw] = uid
+        for key in _llaves(econ, vault):
+            if str(key).casefold() in DUENO_IGUAL:
+                claims[key] = uid
     return {key: uid for key, uid in claims.items() if uid}
 
 
