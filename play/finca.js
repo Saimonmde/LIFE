@@ -95,15 +95,33 @@
     };
     const bags = (view.bags || []).map(bag => (
       `<div class="finca-bag"><span>${bag.serial} · bulto de ${bag.kg || 0} kg · ${bag.product}</span><span>` +
-      `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simoncoin">Vender oro</button>` +
-      `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simonplata">Vender plata</button>` +
-      `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simonchis">Vender cobre</button>` +
+      `<button type="button" data-op="vender" data-serial="${bag.serial}" data-coin="simoncoin">Vender por SMC</button>` +
       `<button type="button" data-op="depositar" data-serial="${bag.serial}">Mi banco</button></span></div>`
     )).join('') || '<p>No tienes sacos ni cajones en la mano.</p>';
     const bank = (view.bank || []).map(bag => (
       `<div class="finca-bag"><span>${bag.serial} · bulto de ${bag.kg || 0} kg</span><button type="button" data-op="retirar" data-serial="${bag.serial}">Retirar</button></div>`
     )).join('') || '<p>El banco no guarda sacos ni cajones tuyos.</p>';
     const pay = view.buyerBalances || {};
+    const kilosMano = view.kilos || {};
+    const kilosBaul = view.kilosBanco || {};
+    const cerezaKg = Number.isFinite(Number(kilosMano.cafe_cereza)) ? Number(kilosMano.cafe_cereza) : kilos('cafe', goods.cafe_cereza);
+    const precio = view.tostadoPrice || {};
+    const pasos = (view.kgChain || []).map(step => `<p>${esc(step.label)}. ${esc(step.note || '')}</p>`).join('');
+    const beneficio = `
+      <h3>Café en kilos</h3>
+      <p>Recoger cereza. Lavar. Secar. Tostar. Vender por SMC.</p>
+      ${pasos}
+      <p><img src="assets/cafe-cacao/sara/iconos-etapas/64/cafe_04_cereza_madura.png" alt="" width="48" height="48"> ${cerezaKg} kg de café cereza en la mano. ${Number(kilosBaul.cafe_cereza) || 0} kg en el baúl. Se recoge maduro. 5 kg se lavan y quedan 2 kg húmedos.</p>
+      <p><img src="assets/cafe-cacao/sara/iconos-etapas/64/cafe_08_lavado.png" alt="" width="48" height="48"> ${Number(kilosMano.cafe_lavado) || 0} kg de pergamino húmedo en la mano. ${Number(kilosBaul.cafe_lavado) || 0} kg en el baúl. Sale de lavar la cereza. 2 kg se secan y queda 1 kg.</p>
+      <p><img src="assets/cafe-cacao/sara/iconos-etapas/64/cafe_09_secado.png" alt="" width="48" height="48"> ${Number(kilosMano.cafe_pergamino) || 0} kg de pergamino seco en la mano. ${Number(kilosBaul.cafe_pergamino) || 0} kg en el baúl. Sale de secar. 3 kg se tuestan y quedan 2 kg.</p>
+      <p><img src="assets/cafe-cacao/cafe_tostado.svg" alt="" width="48" height="48"> ${Number(kilosMano.cafe_tostado) || 0} kg de café tostado en la mano. ${Number(kilosBaul.cafe_tostado) || 0} kg en el baúl. La casa paga ${esc(precio.text || '0,01 SMC')} por cada ${Number(precio.kg) || 14} kg. También se cambia con otra persona.</p>
+      <label class="finca-kilos">Kilos <input id="finca-kg" inputmode="numeric" placeholder="todos" aria-label="Kilos a lavar, secar, tostar o vender"></label>
+      <div class="finca-actions">
+        <button type="button" data-op="lavar" data-crop="cafe">Lavar</button>
+        <button type="button" data-op="secar" data-crop="cafe">Secar</button>
+        <button type="button" data-op="tostar" data-crop="cafe">Tostar</button>
+        <button type="button" data-op="vender_kg" data-crop="cafe">Vender café tostado</button>
+      </div>`;
     root.innerHTML = `
       <p class="finca-note" id="finca-note">Plantas. Esperas. Cosechas. Procesas. Vendes.</p>
       <p>${((view.crops || {}).cafe || {}).note || ''}</p>
@@ -112,23 +130,29 @@
       <p>Esos kilos cosechados se suman y no bajan. El taller no crea kilos ni monedas.</p>
       <h3>Café, junto al cacao</h3>${list('cafe') || '<p>Sin parcelas.</p>'}
       <div class="finca-actions"><button type="button" data-op="recoger" data-crop="cafe">Recoger café</button><button type="button" data-op="procesar" data-crop="cafe">Procesar café</button><button type="button" data-op="exportar" data-crop="cafe">Exportar café</button></div>
+      ${beneficio}
       <h3>Cacao, junto al café</h3>${list('cacao') || '<p>Sin parcelas.</p>'}
       <div class="finca-actions"><button type="button" data-op="recoger" data-crop="cacao">Recoger cacao</button><button type="button" data-op="procesar" data-crop="cacao">Procesar cacao</button><button type="button" data-op="exportar" data-crop="cacao">Exportar cacao</button></div>
       ${workshop('cafe', 'Taller de café · despulpar, secar, trillar')}
       ${workshop('cacao', 'Taller de cacao · fermentar, secar')}
       <h3>En la mano</h3>
-      <p>${kilos('cafe', goods.cafe_cereza)} kg de café cereza (${goods.cafe_cereza || 0} recolecciones) · ${kilos('cacao', goods.cacao_baba)} kg de cacao en baba (${goods.cacao_baba || 0} recolecciones)</p>
+      <p>${cerezaKg} kg de café cereza (${goods.cafe_cereza || 0} recolecciones) · ${kilos('cacao', goods.cacao_baba)} kg de cacao en baba (${goods.cacao_baba || 0} recolecciones)</p>
       ${bags}
       <h3>Mi banco</h3>${bank}
       <h3>${view.buyerName || 'Casa de Contratación'}</h3>
-      <p>Paga con monedas que ya tiene. Hoy vendiste ${view.soldToday || 0} de ${view.sellCap || 0}.</p>
-      <p>Oro ${pay.simoncoinText || '0'} · Plata ${pay.simonplataText || '0'} · Cobre ${pay.simonchisText || '0'}</p>
+      <p>Paga con SMC que ya tiene. Hoy vendiste ${view.soldToday || 0} de ${view.sellCap || 0} sacos. El café tostado se vende aparte, por kilos.</p>
+      <p>${pay.simoncoinText || '0'}</p>
       <button type="button" id="finca-libro">Abrir el Libro mayor</button>`;
     const note = root.querySelector('#finca-note');
     root.querySelectorAll('button[data-op]').forEach(button => {
       button.onclick = () => {
         const op = button.dataset.op;
-        send(op, { plot: button.dataset.plot, crop: button.dataset.crop, serial: button.dataset.serial, coin: button.dataset.coin });
+        const pedido = (root.querySelector('#finca-kg') || {}).value;
+        const extra = { plot: button.dataset.plot, crop: button.dataset.crop, serial: button.dataset.serial, coin: button.dataset.coin };
+        if (op === 'lavar' || op === 'secar' || op === 'tostar' || op === 'vender_kg') {
+          extra.kg = String(pedido || '').trim() || 'todo';
+        }
+        send(op, extra);
         if (note) note.textContent = 'El servidor revisa la acción.';
       };
     });
@@ -318,6 +342,10 @@
         buttons.push(`<button type="button" data-op="cosechar" data-plot="${esc(row.id)}">Cosechar<small>${name}</small></button>`);
       });
       buttons.push('<button type="button" data-op="recoger" data-crop="cafe">Recoger café</button>');
+      buttons.push('<button type="button" data-op="lavar" data-crop="cafe">Lavar</button>');
+      buttons.push('<button type="button" data-op="secar" data-crop="cafe">Secar</button>');
+      buttons.push('<button type="button" data-op="tostar" data-crop="cafe">Tostar</button>');
+      buttons.push('<button type="button" data-op="vender_kg" data-crop="cafe">Vender tostado</button>');
       buttons.push('<button type="button" data-op="procesar" data-crop="cafe">Procesar café</button>');
       buttons.push('<button type="button" data-op="exportar" data-crop="cafe">Exportar café</button>');
       buttons.push('<button type="button" data-op="recoger" data-crop="cacao">Recoger cacao</button>');
@@ -351,7 +379,9 @@
           if (window.Acunar) Acunar.open();
           return;
         }
-        send(button.dataset.op, { plot: button.dataset.plot, crop: button.dataset.crop });
+        const extra = { plot: button.dataset.plot, crop: button.dataset.crop };
+        if (button.dataset.op === 'lavar' || button.dataset.op === 'secar' || button.dataset.op === 'tostar' || button.dataset.op === 'vender_kg') extra.kg = 'todo';
+        send(button.dataset.op, extra);
       };
     });
   }

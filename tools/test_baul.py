@@ -156,6 +156,26 @@ class ChestRulesTests(unittest.TestCase):
         cafe = next(row for row in shown['filas'] if row['id'] == 'bolsa_cafe')
         self.assertEqual((cafe['encima'], cafe['baul']), (0, 1))
 
+    def test_roasted_coffee_shows_kilos_in_the_chest(self):
+        shown = baul.vista(
+            self.state, self.econ, 'Ana',
+            kilos_encima={'cafe_tostado': 14, 'cafe_cereza': 4},
+            kilos_baul={'cafe_tostado': 28, 'cafe_pergamino': 3},
+        )
+        rows = {row['id']: row for row in shown['filas']}
+        self.assertEqual(rows['cafe_tostado']['name'], 'Café tostado')
+        self.assertEqual(rows['cafe_tostado']['encima'], 14)
+        self.assertEqual(rows['cafe_tostado']['baul'], 28)
+        self.assertEqual(rows['cafe_tostado']['unidad'], 'kg')
+        self.assertIn('SMC', rows['cafe_tostado']['desc'])
+        self.assertEqual(rows['cafe_cereza']['encima'], 4)
+        self.assertEqual(rows['cafe_pergamino']['baul'], 3)
+        self.assertEqual(rows['cafe_pergamino']['unidad'], 'kg')
+        purses.credit(self.state, 'Ana', 'cafe_tostado', 9)
+        blocked = baul.mover_lote(self.state, 'Ana', 'deposit', 'cafe_tostado', 9, 'kilo', now=80)
+        self.assertFalse(blocked['ok'])
+        self.assertEqual(purses.count(self.state, 'Ana', 'cafe_tostado'), 9)
+
     def test_migration_is_once_and_the_save_roundtrips(self):
         import persist
         import tempfile

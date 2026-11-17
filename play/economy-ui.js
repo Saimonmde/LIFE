@@ -25,6 +25,10 @@
     moneda_cobre: { name: 'Moneda de cobre', cat: 'Monedas acuñadas', icon: 'graphics/mining/moneda_cobre.svg' },
     bolsa_cafe: { name: 'Café', cat: 'Cosechas', icon: 'graphics/ui/bolsa.png' },
     bolsa_cacao: { name: 'Cacao', cat: 'Cosechas', icon: 'graphics/ui/bolsa.png' },
+    cafe_cereza: { name: 'Café cereza', cat: 'Cosechas', kg: true, icon: 'play/assets/cafe-cacao/sara/iconos-etapas/64/cafe_04_cereza_madura.png' },
+    cafe_lavado: { name: 'Café lavado', cat: 'Cosechas', kg: true, icon: 'play/assets/cafe-cacao/sara/iconos-etapas/64/cafe_08_lavado.png' },
+    cafe_pergamino: { name: 'Pergamino seco', cat: 'Cosechas', kg: true, icon: 'play/assets/cafe-cacao/sara/iconos-etapas/64/cafe_09_secado.png' },
+    cafe_tostado: { name: 'Café tostado', cat: 'Cosechas', kg: true, icon: 'play/assets/cafe-cacao/cafe_tostado.svg' },
   };
   let session = null;
   let dirty = false;
@@ -100,6 +104,7 @@
       name: (it && it.name) || catalog[id] || known.name || id,
       cat: known.cat || 'Otros',
       icon: srcOf(icon),
+      kg: !!known.kg,
     };
   }
   function walletSmh() {
@@ -225,8 +230,9 @@
       ? (window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(walletSmh()).replace(' SMC', '') : String(row.have))
       : String(row.have);
     const have = pick ? propia : String(row.qty || row.have || propia);
-    button.title = row.name + (pick ? ' · tienes ' + have : ' · ofrece ' + have);
-    button.setAttribute('aria-label', row.name + ', tienes ' + have);
+    const unidad = row.kg ? ' kg' : '';
+    button.title = row.name + (pick ? ' · tienes ' + have + unidad : ' · ofrece ' + have + unidad);
+    button.setAttribute('aria-label', row.name + ', tienes ' + have + unidad);
     button.innerHTML = img + '<b>' + row.name + '</b><em class="trade-badge"></em>';
     if (pick) button.onclick = () => { selected = row.id; paintCards(); syncStepper(); };
     return button;
@@ -241,7 +247,7 @@
     const rows = [{ id: 'simoncoin', cat: 'Simoncoin', name: 'Simoncoin', icon: '', have: maxSmc() }];
     for (const id of Object.keys(have).sort()) {
       const info = meta(id);
-      rows.push({ id, cat: info.cat, name: info.name, icon: info.icon, have: have[id] });
+      rows.push({ id, cat: info.cat, name: info.name, icon: info.icon, have: have[id], kg: info.kg });
     }
     for (const cat of GRUPOS) {
       const group = rows.filter(row => row.cat === cat);
@@ -292,7 +298,7 @@
     for (const [id, qty] of Object.entries(o.items || {})) {
       if (!qty || BLOCKED.has(id)) continue;
       const info = meta(id);
-      rows.push({ id, cat: info.cat, name: info.name, icon: info.icon, have: String(qty), qty: String(qty) });
+      rows.push({ id, cat: info.cat, name: info.name, icon: info.icon, have: String(qty), qty: String(qty), kg: info.kg });
     }
     if (!rows.length) {
       const p = document.createElement('p');

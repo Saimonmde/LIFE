@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Café tostado">
+  <ellipse cx="24" cy="36" rx="13" ry="18" fill="#3b2418" stroke="#1a100c" stroke-width="3"/>
+  <path d="M24 20c3 8 3 22 0 30" fill="none" stroke="#c4a07a" stroke-width="2"/>
+  <ellipse cx="42" cy="30" rx="12" ry="16" fill="#4a2c1e" stroke="#1a100c" stroke-width="3"/>
+  <path d="M42 16c2 7 2 18 0 26" fill="none" stroke="#e2c7a4" stroke-width="2"/>
+</svg>

@@ -12,6 +12,13 @@ import vault
 
 # El café y el cacao viven en la finca. El baúl no los copia a otro sitio.
 MIRROR = {'bolsa_cafe': 'cafe', 'bolsa_cacao': 'cacao'}
+KILOS = ('cafe_cereza', 'cafe_lavado', 'cafe_pergamino', 'cafe_tostado')
+DESCRIPCION = {
+    'cafe_cereza': 'Cereza madura, en kilos. Se recoge en el cafetal de Las Palmas. En el taller, 5 kg se lavan y quedan 2 kg de pergamino húmedo.',
+    'cafe_lavado': 'Pergamino húmedo, en kilos. Sale de lavar la cereza. En el taller, 2 kg se secan y queda 1 kg de pergamino seco.',
+    'cafe_pergamino': 'Pergamino seco, en kilos. Sale de secar el café lavado. En el taller, 3 kg se tuestan y quedan 2 kg de café tostado.',
+    'cafe_tostado': 'Café tostado, en kilos. Sale de tostar el pergamino seco. La Casa de Contratación lo compra por SMC, de 14 kg en 14 kg, o se cambia con otra persona.',
+}
 MINERAL = {
     'mineral_oro': 'Oro',
     'mineral_plata': 'Plata',
@@ -33,6 +40,10 @@ RECURSO = {
     'madera': 'Madera',
     'bolsa_cafe': 'Café',
     'bolsa_cacao': 'Cacao',
+    'cafe_cereza': 'Café cereza',
+    'cafe_lavado': 'Café lavado',
+    'cafe_pergamino': 'Pergamino seco',
+    'cafe_tostado': 'Café tostado',
     'carne': 'Carne',
     'piel': 'Piel',
     'pluma': 'Pluma',
@@ -134,6 +145,8 @@ def mover(state, name, op, item, qty, token='', now=None):
     except (TypeError, ValueError):
         qty = 0
     now = time.time() if now is None else float(now)
+    if item in KILOS:
+        return {'ok': False, 'reason': 'Ese café se guarda en kilos, desde su casilla.', 'qty': 0}
     if item in MIRROR:
         return {'ok': False, 'reason': 'Ese bulto se guarda con la finca, sin copiarlo.', 'qty': 0}
     if not name or not item or qty < 1 or qty > 999 or op not in ('deposit', 'withdraw'):
@@ -225,7 +238,7 @@ def _plan(state, name, op, item, qty):
     source = purses.inventory(state, name) if op == 'deposit' else dict(box.get('items') or {})
     found = {}
     for key, have in source.items():
-        if key in MIRROR:
+        if key in MIRROR or key in KILOS:
             continue
         have = int(have or 0)
         if have > 0:
@@ -252,6 +265,8 @@ def mover_lote(state, name, op, item='', qty=1, token='', now=None):
     now = _now(now)
     if not name or op not in ('deposit', 'withdraw'):
         return {'ok': False, 'reason': 'Nada que mover.', 'moved': []}
+    if item in KILOS:
+        return {'ok': False, 'reason': 'Ese café se guarda en kilos, desde su casilla.', 'moved': []}
     if item in MIRROR:
         return {'ok': False, 'reason': 'Ese bulto se guarda con la finca, sin copiarlo.', 'moved': []}
     box = vault.account(state, name)
@@ -479,7 +494,7 @@ def _texto(units):
     }
 
 
-def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=None):
+def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=None, kilos_encima=None, kilos_baul=None):
     """Lo que el servidor tiene de esa cuenta. El texto visible es sólo SMC."""
     import supply
     name = str(name or '')
@@ -499,6 +514,12 @@ def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=
         extra = int(qty or 0)
         if extra > 0:
             carried[key] = int(carried.get(key) or 0) + extra
+    if kilos_encima is not None:
+        for key in KILOS:
+            carried[key] = int((kilos_encima or {}).get(key) or 0)
+    if kilos_baul is not None:
+        for key in KILOS:
+            stored[key] = int((kilos_baul or {}).get(key) or 0)
     order = []
     for key in list(MINERAL) + list(LINGOTE) + list(MONEDA) + list(RECURSO):
         if key not in order:
@@ -529,6 +550,8 @@ def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=
             'encima': encima,
             'baul': en_baul,
             'total': encima + en_baul,
+            'desc': DESCRIPCION.get(key) or '',
+            'unidad': 'kg' if key in KILOS else '',
         })
     wallet = int((econ.get('wallets') or {}).get(name) or 0)
     chest = vault.smh_of(box) if name else 0
