@@ -461,7 +461,7 @@ header button, header .x, header .plegar, #libro-madre-cuerpo button, #libro-toa
   font-family: var(--sans);
 }
 
-/* Saldos SMC/SMH y códigos del libro: el mismo oro, en sans seminegra. */
+/* Saldos SMC y códigos del libro: el mismo oro, en sans seminegra. */
 .smc, #sai-saldo, .codigo, header .codigo, #libro-toast .codigo {
   font-family: var(--sans);
   font-weight: 600;

@@ -94,7 +94,7 @@ def normalize_offer(raw):
         smc_raw = 0
     smc = _whole(smc_raw, MAX_SMH, 'La Simoncoin')
     smp = _whole(raw.get('smp', 0), MAX_SPH, 'La Simonplata')
-    copper = _whole(raw.get('cobre', 0), MAX_COBRE, 'Las Simonchis')
+    copper = _whole(raw.get('cobre', 0), MAX_COBRE, 'El cobre')
     items_raw = raw.get('items') or {}
     if not isinstance(items_raw, dict):
         raise TradeError('Los objetos de la oferta no son válidos.')
@@ -420,7 +420,7 @@ class Trades:
                             'balances': {'smc': smc, 'smp': sph, 'cobre': chis},
                             'reason': (
                                 'Intercambiaste. Saldo: '
-                                f'{economy.format_smc(smc)}, {plata.format_smp(sph)}, {chis} Simonchis.'
+                                f'{economy.format_smc(smc)}, {plata.format_smp(sph)}, {chis} de cobre.'
                             ),
                         })
                     return

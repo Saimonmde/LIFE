@@ -31,8 +31,9 @@ SYMBOL_BASE = 'SMH'
 UNIT = 'SaiMonCoin'
 BASE_NAME = 'Simonchi'
 DISCLAIMER = (
-    'Las SaiMonCoins (SMC) son una simulación educativa. '
-    '1 SMC = 100 Simonchis (SMH). Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. '
+    'Las SaiMonCoins (SMC), o Simon Coins, son una simulación educativa. '
+    'El saldo se muestra en SMC, con decimales cuando hace falta. '
+    'Por ahora 1 SMC se parece, sólo como idea, a 1 BTC o a 1 USDT. '
     'No son dinero real, no se pueden retirar ni vender, no tienen valor ni canje.'
 )
 HALVING_MINED = 10_500_000
@@ -164,7 +165,43 @@ def format_smh(smh):
 
 
 def format_pair(smh):
-    return f'{format_smc(smh)} = {format_smh(smh)}'
+    """Texto que ve el jugador: sólo SMC. El entero guardado sigue siendo un céntimo."""
+    return format_smc(smh)
+
+
+def migrate_smh_display(state, log=None):
+    """Una vez: el entero guardado se lee como céntimo de SMC y no se vuelve a dividir.
+
+    1 unidad = 0,01 SMC, exacto. 1250 sigue siendo 12,50 SMC. No se reescriben
+    los bloques firmados ni el baúl: dividir el entero lo haría cien veces menor.
+    La bandera meta.smhShownAsSmc impide repetirlo.
+    """
+    if not isinstance(state, dict):
+        return False
+    meta = state.setdefault('meta', {})
+    if not isinstance(meta, dict):
+        meta = {}
+        state['meta'] = meta
+    if meta.get('smhShownAsSmc') is True:
+        return False
+    wallets = state.get('wallets') if isinstance(state.get('wallets'), dict) else {}
+    for name, value in list(wallets.items()):
+        try:
+            kept = int(value or 0)
+        except (TypeError, ValueError):
+            kept = smc_to_smh(value)
+        wallets[name] = kept
+        if log and kept != value:
+            log(f'[smc] {name}: {value} paso a {kept} centimos de SMC')
+    if 'minedSmh' in state:
+        try:
+            state['minedSmh'] = int(state.get('minedSmh') or 0)
+        except (TypeError, ValueError):
+            state['minedSmh'] = smc_to_smh(state.get('minedSmh') or 0)
+    meta['smhShownAsSmc'] = True
+    meta['smcCents'] = SMH_PER_SMC
+    state['disclaimer'] = DISCLAIMER
+    return True
 
 
 def _soft_group(number, digits=2):
@@ -529,6 +566,7 @@ def normalize_state(state):
     state.pop('alias', None)
     state['disclaimer'] = DISCLAIMER
     migrate_amounts(state)
+    migrate_smh_display(state, log=print)
     import supply
     supply.ensure(state)
     import plata

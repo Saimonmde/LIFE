@@ -102,11 +102,8 @@ function formatSmc(smh) {
   if (!frac) return (neg ? '-' : '') + grouped + ' SMC';
   return (neg ? '-' : '') + grouped + ',' + String(frac).padStart(2, '0').replace(/0+$/, '') + ' SMC';
 }
-function formatSmh(smh) {
-  smh = Math.trunc(Number(smh) || 0);
-  return (smh < 0 ? '-' : '') + Math.abs(smh).toLocaleString('es-CO') + ' SMH';
-}
-function formatPair(smh) { return formatSmc(smh) + ' = ' + formatSmh(smh); }
+function formatSmh(smh) { return formatSmc(smh); }
+function formatPair(smh) { return formatSmc(smh); }
 function formatCompact(amount) {
   let value = Number(amount);
   if (!Number.isFinite(value)) return '0';
@@ -187,10 +184,8 @@ function parsePlata(text) {
   return neg ? -sph : sph;
 }
 function moneyHtml(text) { return `<span class="smc">${api.esc(text)}</span>`; }
-function unidadActiva() {
-  try { return localStorage.getItem('lifeinc.unidad') === 'SMH' ? 'SMH' : 'SMC'; } catch (e) { return 'SMC'; }
-}
-function formatSai(subs) { return unidadActiva() === 'SMH' ? formatSmh(subs) : formatSmc(subs); }
+function unidadActiva() { return 'SMC'; }
+function formatSai(subs) { return formatSmc(subs); }
 function rewardSmh(minedSmh) {
   minedSmh = Math.trunc(Number(minedSmh) || 0);
   const cap = (MAX_SUPPLY - 210000) * SUBS;
@@ -207,10 +202,9 @@ function rewardSai(minedSmc) {
 }
 function ensureSmh(econ) {
   if (!econ) return econ;
-  if (econ.amountUnit !== 'SMH' || econ.minedSmh == null) {
+  if (econ.minedSmh == null) {
     econ.minedSmh = smcToSmh(econ.mined || 0);
     delete econ.mined;
-    econ.amountUnit = 'SMH';
   }
   econ.minedSmh = Math.trunc(econ.minedSmh || 0);
   return econ;
@@ -228,7 +222,7 @@ function emptyEcon(disclaimer) {
   const ts = 0, h = hashBlock(GENESIS_PREV, ts, txs);
   return {
     minedSmh: 0,
-    amountUnit: 'SMH',
+    amountUnit: 'SMC',
     wallets: { tesoro_genesis: TREASURY_SMH, puesto_frutas: 0 },
     blocks: [{ height: 0, ts, prev: GENESIS_PREV, hash: h, txs }],
     mempool: [],
@@ -266,15 +260,7 @@ function paintHud() {
   }
   const chip = $('#sai-chip');
   const always = $('#smc-pill');
-  function bindUnit(node) {
-    if (!node || node.dataset.unidad) return;
-    node.dataset.unidad = '1';
-    node.addEventListener('click', () => {
-      try { localStorage.setItem('lifeinc.unidad', unidadActiva() === 'SMH' ? 'SMC' : 'SMH'); } catch (e) {}
-      paintHud();
-      if (window.Banco) Banco.paint();
-    });
-  }
+  function bindUnit() {}
   bindUnit(always);
   if (chip) {
     const extra = api.S.supply
@@ -434,7 +420,7 @@ function bankSmc(dir, amount) {
   if (!bankReady()) return;
   let subs;
   try { subs = parseAmount(withUnit(amount, unidadActiva())); }
-  catch (e) { api.game('Monto no válido. Ejemplo: 1 SMC o 12.345 SMH.', 'aviso'); return; }
+  catch (e) { api.game('Monto no válido. Ejemplo: 1,50 SMC.', 'aviso'); return; }
   if (!(subs > 0)) return;
   if (api.S.net.ok) {
     api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_smc' : 'withdraw_smc', amountSmh: subs }));
@@ -811,13 +797,13 @@ function offlineCommand(text) {
   if (cmd === 'libro') { toggleLibro(); return true; }
   if (cmd !== 'pagar') return false;
   if (api.S.net.ok) return false;
-  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt;  (SMC o SMH, sólo en el juego)'); return true; }
+  if (parts.length < 2) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt; SMC'); return true; }
   let monto = parts.pop();
   if (/^(smc|smh|simonchis?)$/i.test(monto) && parts.length >= 2) monto = parts.pop() + ' ' + monto;
   const dest = parts.join(' ');
   let parsed = NaN;
   try { parsed = parseAmount(monto); } catch (e) { parsed = NaN; }
-  if (!dest || !(parsed > 0)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt; SMC o SMH'); return true; }
+  if (!dest || !(parsed > 0)) { api.sys('Uso: /pagar &lt;jugador&gt; &lt;monto&gt; SMC'); return true; }
   const names = new Set(['puesto_frutas']);
   for (const o of api.S.others.values()) names.add(o.name);
   const hit = [...names].find(n => n.toLowerCase() === dest.toLowerCase());

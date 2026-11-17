@@ -406,7 +406,22 @@ def verificar_uno(chain, ident, pubkey_hex=None):
     return pub
 
 
-def pagina(chain, pagina=1, limite=20):
+def minted_for(chain, owner):
+    """Céntimos acuñados a nombre de esa cuenta. No incluye transferencias."""
+    owner = str(owner or '')
+    if not owner:
+        return 0
+    total = 0
+    for block in chain.get('blocks') or []:
+        if block.get('kind') not in KINDS_MINT:
+            continue
+        who = block.get('owner') or block.get('miner') or ''
+        if who == owner:
+            total += accounted_smh(chain, block.get('amountSmh') or 0)
+    return total
+
+
+def pagina(chain, pagina=1, limite=20, jugador=''):
     try:
         pagina = max(1, int(pagina or 1))
     except (TypeError, ValueError):
@@ -423,12 +438,19 @@ def pagina(chain, pagina=1, limite=20):
     for record in chunk:
         uno = verificar_uno(chain, record.get('id'))
         items.append(uno or publico(record))
+    minted = _emitido(chain)
+    player = str(jugador or '').strip()
+    own = minted_for(chain, player) if player else 0
     return {
         'disclaimer': DISCLAIMER,
         'symbol': economy.SYMBOL,
         'maxSupply': economy.MAX_SUPPLY,
-        'supplySmh': _emitido(chain),
-        'supply': economy.format_smc(_emitido(chain)),
+        'supplySmh': minted,
+        'supply': economy.format_smc(minted),
+        'mintedText': economy.format_smc(minted),
+        'capText': economy.format_smc(economy.subunits(economy.MAX_SUPPLY)),
+        'player': player,
+        'playerMintedText': economy.format_smc(own) if player else '',
         'height': len(chain.get('blocks') or []),
         'pagina': pagina,
         'paginas': pages,
@@ -452,7 +474,12 @@ def api_get(path, query, chain):
     """Respuesta pública. path es /api/libro, /api/libro/verificar o /api/libro/<id>."""
     clean = path.rstrip('/') or '/api/libro'
     if clean == '/api/libro':
-        return 200, pagina(chain, _consulta(query, ('pagina', 'page'), 1), _consulta(query, ('limite', 'limit'), 20))
+        return 200, pagina(
+            chain,
+            _consulta(query, ('pagina', 'page'), 1),
+            _consulta(query, ('limite', 'limit'), 20),
+            _consulta(query, ('jugador', 'cuenta', 'player'), ''),
+        )
     if clean == '/api/libro/verificar':
         ok, message = verificar(chain)
         return 200, {

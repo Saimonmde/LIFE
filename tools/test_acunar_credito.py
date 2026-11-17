@@ -52,11 +52,11 @@ class AcunarCreditoTests(unittest.TestCase):
         })
         eco.append_tx(econ, {
             'type': 'fundicion', 'to': 'Primo', 'coin': 'SMCH', 'qty': 4,
-            'amountSubs': 0, 'note': 'Acuñación de 4 Simonchis',
+            'amountSubs': 0, 'note': 'Acuñación de 4 de cobre',
         })
         rows = historia.filas(econ)
         self.assertTrue(any(row.get('coin') == 'SMP' and row['label'] == 'Acuñación' for row in rows))
-        cobre = next(row for row in rows if 'Simonchis' in row.get('note', ''))
+        cobre = next(row for row in rows if 'cobre' in row.get('note', ''))
         self.assertEqual(cobre.get('amountQty'), 4)
         self.assertEqual(cobre.get('balanceQty'), 4)
         self.assertEqual(cobre.get('coin'), 'SMCH')
