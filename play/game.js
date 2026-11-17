@@ -1443,7 +1443,23 @@ function bubble(id, text) { S.bubbles.set(id, { text: text.length > 60 ? text.sl
       const data = await res.json();
       const stalePage = mine && data.revision && data.revision !== mine;
       const otherRoom = S.net.serverId && data.serverId && data.serverId !== S.net.serverId;
-      if (stalePage || otherRoom) { busy = true; location.reload(); }
+      if (stalePage || otherRoom) {
+        busy = true;
+        const key = 'lifeinc.recarga.' + (data.revision || '');
+        let already = false;
+        try { already = sessionStorage.getItem(key) === '1'; sessionStorage.setItem(key, '1'); } catch (e) {}
+        let bar = document.getElementById('life-recarga');
+        if (!bar) {
+          bar = document.createElement('button');
+          bar.id = 'life-recarga';
+          bar.type = 'button';
+          bar.textContent = already ? 'Toca para traer la versión nueva.' : 'Hay una versión nueva. Recargando…';
+          bar.style.cssText = 'position:fixed;z-index:90;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));min-height:48px;border:0;border-radius:12px;background:#e2b23c;color:#2a1c10;font:700 16px system-ui';
+          bar.onclick = () => location.reload();
+          document.body.append(bar);
+        }
+        if (!already) setTimeout(() => location.reload(), 900);
+      }
     } catch (e) {}
   }
   setInterval(check, 15000);
@@ -1804,6 +1820,14 @@ function quitarMetal(id, qty) {
 }
 window.ponerMetal = ponerMetal;
 window.quitarMetal = quitarMetal;
+function meterMonedas(id, total) {
+  const want = Math.max(0, Math.round(Number(total) || 0));
+  const have = Math.round(invCount(id) || 0);
+  if (want === have) return;
+  if (want > have) invAdd(id, want - have);
+  else invRemove(id, have - want);
+}
+window.meterMonedas = meterMonedas;
 function migrarMetal() {
   try { if (localStorage.getItem('lifeinc.crudo.migrado')) return; } catch (e) { return; }
   const counts = {};

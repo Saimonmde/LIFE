@@ -131,6 +131,7 @@ let pendingSmh = 0;
 function bankSmh() {
   const box = api && api.S && api.S.vault;
   if (!box) return 0;
+  if (api.S.net && api.S.net.ok && !api.S.vaultFromServer) return 0;
   return Math.trunc(Number(box.smh != null ? box.smh : box.smcSubs) || 0);
 }
 function holdingsSmh(name) {
@@ -367,7 +368,10 @@ function flushMigration() {
   api.save();
   if (got) api.game('Se convirtieron las monedas antiguas a SMC, 1 a 1.', 'oro');
 }
-function onWelcome() { flushMigration(); }
+function onWelcome() {
+  flushMigration();
+  if (api && api.S && api.S.net && api.S.net.ok) requestVault();
+}
 function localVault() {
   if (!api.S.vault) api.S.vault = { smcSubs: 0, items: {}, sph: 0 };
   if (api.S.vault.sph == null) api.S.vault.sph = 0;
@@ -483,13 +487,18 @@ function grantTreasury(sai, note) {
 function tokenKey(name) { return 'lifeinc.sai.token.' + (name || ''); }
 function walletToken(name) { try { return localStorage.getItem(tokenKey(name || walletName())) || ''; } catch (e) { return ''; } }
 function saveToken(name, token) { if (!token) return; try { localStorage.setItem(tokenKey(name), token); } catch (e) {} }
+const BOLSA_SERVIDOR = ['moneda_plata', 'moneda_cobre', 'lingote_oro', 'lingote_plata', 'lingote_cobre', 'bolsa_cafe', 'bolsa_cacao'];
+function syncBolsa(purse) {
+  if (!purse || !window.meterMonedas) return;
+  const bag = purse.items || {};
+  BOLSA_SERVIDOR.forEach((id) => window.meterMonedas(id, bag[id] || 0));
+}
+function syncCrudo(crudo) {
+  if (!crudo || !window.ponerMetal) return;
+  Object.keys(crudo).forEach((id) => window.ponerMetal(id, crudo[id]));
+}
 function reflejarMonedas() {
-  if (!api || !window.ponerMetal) return;
-  const b = api.S.ledger && api.S.ledger.balances;
-  if (!b) return;
-  window.ponerMetal('moneda_oro', (Number(b.simoncoin) || 0) / SUBS);
-  window.ponerMetal('moneda_plata', (Number(b.simonplata) || 0) / PLATA_SUBS);
-  window.ponerMetal('moneda_cobre', Number(b.simonchis) || 0);
+  paintHud();
 }
 function aplicarCredito(m) {
   if (!api || !m) return;
@@ -498,7 +507,11 @@ function aplicarCredito(m) {
   const name = m.walletName || walletName();
   const locked = !!m.walletLocked;
   if (m.ledger) api.S.ledger = m.ledger;
-  if (m.purse) api.S.purse = m.purse;
+  if (m.purse) {
+    api.S.purse = m.purse;
+    syncBolsa(m.purse);
+  }
+  if (m.crudo) syncCrudo(m.crudo);
   const balances = (m.ledger && m.ledger.balances) || {};
   if (!locked && (m.balanceSubs != null || balances.simoncoin != null)) {
     const smh = m.balanceSubs != null ? m.balanceSubs : balances.simoncoin;
@@ -517,6 +530,7 @@ function aplicarCredito(m) {
   renderLibro();
   if (window.Cajon) Cajon.paint();
   if (window.Banco && Banco.paint) Banco.paint();
+  if (window.MiCuenta && MiCuenta.tocar) MiCuenta.tocar();
 }
 function applyServer(m) {
   if (!m || !m.state) return;
@@ -550,19 +564,16 @@ function applyServer(m) {
   if (m.ledger) api.S.ledger = m.ledger;
   if (m.purse) {
     api.S.purse = m.purse;
-    const bag = m.purse.items || {};
-    if (window.meterMonedas) {
-      for (const id of ['moneda_oro', 'moneda_plata', 'moneda_cobre']) {
-        if (bag[id]) window.meterMonedas(id, bag[id]);
-      }
-    }
+    syncBolsa(m.purse);
   }
+  if (m.crudo) syncCrudo(m.crudo);
   if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   pendingSmh = 0;
   reflejarMonedas();
   paintHud(); renderLibro();
   if (window.Cajon) Cajon.paint();
+  if (window.MiCuenta && MiCuenta.tocar) MiCuenta.tocar();
 }
 function blockOk(blocks, b) {
   if (!b) return false;
@@ -889,6 +900,7 @@ function onNet(m) {
   if (m.t === 'vault') {
     if (m.plata) rememberPlata(m.plata);
     api.S.vault = m.account || api.S.vault || { smh: 0, smcSubs: 0, items: {}, sph: 0 };
+    api.S.vaultFromServer = true;
     pendingSmh = 0;
     paintHud();
     if (window.Banco) Banco.paint(api.S.vault);

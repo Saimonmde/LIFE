@@ -195,6 +195,7 @@
       paintFarm();
       paintDock();
       if (window.LIVE3D && LIVE3D.syncFinca) LIVE3D.syncFinca(view);
+      if (window.MiCuenta && MiCuenta.tocar) MiCuenta.tocar();
       return false;
     }
     if (message.t === 'libro_publico' && message.contadores) {

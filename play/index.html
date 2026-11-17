@@ -3,6 +3,38 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>
+(function () {
+  var meta = document.querySelector('meta[name="life-revision"]');
+  var mine = meta && (meta.content || '').trim();
+  function aviso() {
+    if (document.getElementById('life-recarga')) return;
+    var bar = document.createElement('button');
+    bar.id = 'life-recarga';
+    bar.type = 'button';
+    bar.textContent = 'Hay una versión nueva. Recargando…';
+    bar.style.cssText = 'position:fixed;z-index:90;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));min-height:48px;border:0;border-radius:12px;background:#e2b23c;color:#2a1c10;font:700 16px/1.2 system-ui,sans-serif';
+    bar.onclick = function () { location.reload(); };
+    (document.body || document.documentElement).appendChild(bar);
+  }
+  function check() {
+    fetch('/session.json?t=' + Date.now(), { cache: 'no-store' }).then(function (res) {
+      return res.ok ? res.json() : null;
+    }).then(function (data) {
+      if (!data || !data.revision || !mine || data.revision === mine) return;
+      var key = 'lifeinc.recarga.' + data.revision;
+      try {
+        if (sessionStorage.getItem(key)) { aviso(); return; }
+        sessionStorage.setItem(key, '1');
+      } catch (e) {}
+      aviso();
+      setTimeout(function () { location.reload(); }, 900);
+    }).catch(function () {});
+  }
+  check();
+  setInterval(check, 20000);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
 <link rel="stylesheet" href="style.css?v=en-vivo">

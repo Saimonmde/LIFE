@@ -461,6 +461,7 @@
       if (m.reason && m.reason.indexOf('Tu mochila está llena') >= 0 && window.avisarMochilaLlena) window.avisarMochilaLlena();
       if (window.Banco) Banco.paint();
       if (window.Cajon) Cajon.paint();
+      if (window.MiCuenta && MiCuenta.tocar) MiCuenta.tocar();
     }
     return true;
   }

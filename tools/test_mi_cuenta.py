@@ -51,6 +51,33 @@ class MiCuentaTests(unittest.TestCase):
         self.assertEqual(shown['crops']['cafe'], 1)
         self.assertEqual(shown['animals']['gallo'], 1)
 
+    def test_the_panel_reads_the_live_wallet_and_bag(self):
+        doc = acc.empty()
+        made = acc.enter_or_create(doc, 'Primo', 'secreto-largo', now=1_000)
+        user = next(u for u in doc['users'] if u['id'] == made['user']['id'])
+        partida.remember(user, {'inv': [{'item': 'mineral_oro', 'qty': 1}, {'item': 'pico', 'qty': 1}], 'rev': 1})
+        import crudo
+        import economy as eco
+        import purses
+        econ = eco.empty_state()
+        eco.credit(econ, 'Primo', 250)
+        crudo.credit(econ, user['id'], 'mineral_oro', 5, cap=5)
+        vault = {'accounts': {'Primo': {'items': {'moneda_cobre': 2}, 'smh': 100}}, 'purses': {}}
+        purses.credit(vault, 'Primo', 'moneda_plata', 3)
+        shown = mi_cuenta.resumen(user, econ, {'Primo': {'goods': {'cafe_cereza': 1}, 'plots': {}}}, vault_state=vault)
+        inv = {row['item']: row['qty'] for row in shown['inventory']}
+        self.assertEqual(inv['mineral_oro'], 5)
+        self.assertEqual(inv['moneda_plata'], 3)
+        self.assertEqual(inv['moneda_cobre'], 2)
+        self.assertEqual(inv['cafe_cereza'], 1)
+        self.assertEqual(inv['pico'], 1)
+        self.assertEqual(shown['coins']['simoncoinSmh'], 250)
+        self.assertEqual(shown['coins']['totalSmh'], 350)
+        self.assertTrue(shown['enVivo'])
+        eco.credit(econ, 'Primo', 50)
+        later = mi_cuenta.resumen(user, econ, {}, vault_state=vault)
+        self.assertEqual(later['coins']['simoncoinSmh'], 300)
+
     def test_password_change_needs_the_current_one_and_logout_can_be_everywhere(self):
         doc = acc.empty()
         made = acc.enter_or_create(doc, 'Primo', 'secreto-largo', now=2_000)
