@@ -1,0 +1,99 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Reloj del minado y viaje entre mundos. No toca el vidrio del HUD. */
+#reloj-mina {
+  position: fixed;
+  z-index: 6;
+  left: max(10px, env(safe-area-inset-left));
+  top: 268px;
+  width: min(280px, calc(100vw - 24px));
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(226, 178, 60, 0.85);
+  border-radius: 12px;
+  background: rgba(28, 20, 12, 0.82);
+  color: #fff6df;
+  font: 600 14px/1.35 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #000;
+}
+#reloj-mina[hidden],
+body:not(.in-game) #reloj-mina,
+body:not(.in-game) #viaje-mundo-abrir,
+body:not(.in-game) #viaje-mundo { display: none !important; }
+#reloj-mina p { margin: 0; }
+#reloj-mina-hora { color: #f6e7c4; font-weight: 500; }
+#reloj-mina-dia { margin-top: 2px; }
+#reloj-mina-veta { margin-top: 2px; color: #ffe3a0; }
+html.movil #reloj-mina {
+  left: max(8px, env(safe-area-inset-left));
+  top: auto;
+  bottom: calc(168px + env(safe-area-inset-bottom));
+  width: min(210px, 48vw);
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+#viaje-mundo-abrir {
+  position: fixed;
+  z-index: 23;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: 92px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 2px solid #6b4524;
+  border-radius: 16px;
+  background: #f0c24e;
+  color: #2c1a0c;
+  font: 700 15px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+html.movil #viaje-mundo-abrir {
+  right: max(8px, env(safe-area-inset-right));
+  bottom: calc(214px + env(safe-area-inset-bottom));
+  min-height: 44px;
+  font-size: 14px;
+}
+#viaje-mundo {
+  position: fixed;
+  z-index: 96;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 20px));
+  max-height: min(80dvh, 640px);
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 2px solid #c6a15a;
+  border-radius: 16px;
+  background: #1c140c;
+  color: #f6e7c4;
+  font: 16px/1.4 system-ui, sans-serif;
+  box-shadow: 0 16px 40px #000a;
+}
+#viaje-mundo header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+#viaje-mundo header strong { font-size: 18px; }
+#viaje-mundo header button,
+#viaje-mundo-lista button,
+#viaje-mundo-pregunta button {
+  min-height: 44px;
+  border: 2px solid #c6a15a;
+  border-radius: 12px;
+  background: #f0c24e;
+  color: #2c1a0c;
+  font: 700 15px/1.2 system-ui, sans-serif;
+  cursor: pointer;
+}
+#viaje-mundo-lista { display: flex; flex-direction: column; gap: 8px; }
+#viaje-mundo-lista button { text-align: left; padding: 8px 10px; }
+#viaje-mundo-pregunta p { margin: 0 0 8px; }
+#viaje-mundo-pregunta .fila { display: flex; gap: 8px; }
+#viaje-mundo-pregunta .fila button { flex: 1; }
+html.movil #viaje-mundo { font-size: 15px; top: 12px; transform: translate(-50%, 0); max-height: calc(100dvh - 24px); }

@@ -839,6 +839,7 @@ function prepareMining(){
  const taken=new Set([...W.nodes,...W.npcs,...W.doors].map(n=>`${n.x},${n.y}`));
  function spot(cx,cy){for(let r=0;r<16;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;const x=cx+dx,y=cy+dy;if(x<1||y<1||x>=W.width-1||y>=W.height-1||W.collision[y][x]!==0||taken.has(`${x},${y}`))continue;if(![[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>W.collision[y+b][x+a]===0))continue;taken.add(`${x},${y}`);return {x,y};}throw Error('No se encontró espacio para la cantera');}
  prepareCave();
+ if (window.MineralesMundo) MineralesMundo.install(W);
 }
 let furnaceNode=null;
 function setupMiningUI(){
@@ -1689,7 +1690,7 @@ function describe(t) {
     case 'fishing_spot': return n.state === 'active' ? `Pescar con red: <b>${d.waterBody === 'rio_claro' ? 'Río Claro' : 'Estanque'}</b>` : 'Agua tranquila';
     case 'nodo_oro_fluvial': return n.state === 'active' ? 'Lavar arena: <b>oro fluvial en el río</b> (batea)' : 'Arena lavada';
     case 'fruit_stand': return `Comprar un <b>mango</b> por <span class="smc">${d.priceSai || 5} SMC</span> (simulación)`;
-    case 'mineral_rock': return n.state === 'active' ? `Picar: <b>${NOMBRES[d.mineral]}</b>` : 'Roca agotada';
+    case 'mineral_rock': return n.state === 'active' ? `Picar: <b>${d.nombre || NOMBRES[d.mineral] || d.mineral}</b>` : 'Roca agotada';
   }
   return '';
 }
@@ -1886,6 +1887,11 @@ function act(t) {
     nota('Baúl de la mina');
     return;
   } else if (d.type === 'mineral_rock') {
+    if (d.mundo && window.Vida && Number(Vida.world()) !== Number(d.mundo)) {
+      if (window.ViajeMundo) ViajeMundo.ask(d.mundo);
+      else game('Ese mineral es del Mundo ' + d.mundo + '. ¿Seguro que deseas ir a este mundo?', 'aviso');
+      return;
+    }
     if (!needTool(d.tool)) return;
     if (n.state !== 'active') return game(`La roca está agotada. Vuelve en ${secs()} s.`, 'aviso');
     const q = rnd(d.yield.min, d.yield.max);
@@ -3164,7 +3170,8 @@ function autotest() {
   timeOffset += pl.def.growMs + 100; update(0.016); ok(pl.state === 'grown', 'crece'); p.busyUntil = 0; const mb = invCount('mango'); act({ kind: 'node', n: pl }); ok(invCount('mango') > mb, 'cosechar');
   for (const id of ['pesca_rio_1', 'pesca_estanque_1']) { const n = node(id); ok(nextTo(n.def.x, n.def.y), 'alcanzable ' + id); const f = ['trucha', 'bocachico', 'mojarra'].reduce((a, k) => a + invCount(k), 0); act({ kind: 'node', n }); ok(['trucha', 'bocachico', 'mojarra'].reduce((a, k) => a + invCount(k), 0) === f + 1 && selected() === 'red_pesca', 'pescar con red: ' + id); }
   const g = node('oro_fluvial_1'); ok(nextTo(g.def.x, g.def.y), 'alcanzable oro'); act({ kind: 'node', n: g }); ok(invCount('pepita_oro') === 1 && selected() === 'batea', 'oro fluvial con batea');
-  ok(W.nodes.filter(n => n.type === 'nodo_oro_fluvial').every(n => W.waterBodies.rio_claro.tiles.some(([x, y]) => x === n.x && y === n.y)), 'todo el oro está en el río');
+  const riosOro = new Set([].concat(W.waterBodies.rio_claro.tiles || [], (W.waterBodies.rio_medellin && W.waterBodies.rio_medellin.tiles) || []).map(([x, y]) => x + ',' + y));
+  ok(W.nodes.filter(n => n.type === 'nodo_oro_fluvial').every(n => riosOro.has(n.x + ',' + n.y)), 'todo el oro está en el río');
   for (const id of ['roca_cobre_1', 'roca_plata_1']) { const n = node(id); ok(nextTo(n.def.x, n.def.y), 'alcanzable ' + id); act({ kind: 'node', n }); ok(invCount(n.def.yield.item) >= 1 && selected() === 'pico', 'picar ' + id); }
   for (const sp of ['conejo', 'venado', 'ave']) { const a = S.animals.find(a => a.def.species === sp); ok(nextTo(a.x, a.y), 'alcanzable ' + sp); act({ kind: 'animal', a }); ok(a.state === 'hunted' && selected() === 'lanza', 'cazar ' + sp); }
   const unreach = W.nodes.filter(n => !bfs(W.spawn.x, W.spawn.y, (a, b) => cheb(a, b, n.x, n.y) === 1)); ok(!unreach.length, 'todos los nodos alcanzables' + (unreach.length ? ': ' + unreach.map(n => n.id).join(',') : ''));
