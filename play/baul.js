@@ -3,14 +3,10 @@
    Las cifras las manda el servidor. Aquí no se crean monedas ni objetos. */
 (() => {
   'use strict';
-  const SWATCH = {
-    mineral_oro: 'sw-oro', pepita_oro: 'sw-oro', mineral_plata: 'sw-plata',
-    mineral_cobre: 'sw-cobre', piedra: 'sw-piedra', mineral_piedra: 'sw-piedra',
-    madera: 'sw-madera', bolsa_cafe: 'sw-cafe', bolsa_cacao: 'sw-cacao',
-  };
-
   let last = null;
   let token = 1;
+  let modo = '1';
+  let montoTexto = '1';
 
   function esc(text) {
     return String(text == null ? '' : text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -52,58 +48,68 @@
     const el = panel();
     if (el) el.hidden = true;
   }
-  function mover(op, item, all) {
+  function mover(op, item, qty) {
     if (!online()) return;
-    send({ t: 'baul_mover', op: op, item: item || '', all: !!all, qty: all ? 'all' : 1, token: 'b' + (token++) });
+    const all = qty === 'all';
+    if (!all && !(Number(qty) > 0)) return;
+    send({ t: 'baul_mover', op: op, item: item || '', all: all, qty: all ? 'all' : qty, token: 'b' + (token++) });
   }
-  function moverSmc(op, all) {
+  function moverSmc(op, amount) {
     if (!online()) return;
-    const field = document.getElementById('baul-monto');
-    const amount = all ? 'all' : (field && field.value) || '';
-    send({ t: 'baul_smc', op: op, all: !!all, amount: amount, token: 's' + (token++) });
+    const all = amount === 'all';
+    send({ t: 'baul_smc', op: op, all: all, amount: all ? 'all' : amount, token: 's' + (token++) });
   }
-  const ICONO = {
-    mineral_oro: 'graphics/mining/mineral_oro.svg',
-    pepita_oro: 'graphics/icons/64/pepita_oro.png',
-    mineral_plata: 'graphics/mining/mineral_plata.svg',
-    mineral_cobre: 'graphics/mining/mineral_cobre.svg',
-    lingote_oro: 'graphics/mining/lingote_oro.svg',
-    lingote_plata: 'graphics/mining/lingote_plata.svg',
-    lingote_cobre: 'graphics/mining/lingote_cobre.svg',
-    bolsa_cafe: 'graphics/ui/bolsa.png',
-    bolsa_cacao: 'graphics/ui/bolsa.png',
-    madera: 'graphics/ui/bolsa.png',
-  };
-  function icono(id) {
-    const world = window.LiveInk && LiveInk.world && LiveInk.world();
-    const it = world && world.items && world.items[id];
-    const path = (it && it.icon && (it.icon['64'] || it.icon['32'])) || ICONO[id] || '';
-    if (!path) return '';
-    return path.indexOf('../') === 0 ? path : '../' + path;
+  function cantidadX() {
+    const n = Math.floor(Number(String(montoTexto || '').replace(',', '.')) || 0);
+    return n > 0 ? n : 0;
   }
-  function fila(row) {
-    const buttons = [
-      ['deposit', false, 'Guardar'],
-      ['deposit', true, 'Guardar todo'],
-      ['withdraw', false, 'Sacar'],
-      ['withdraw', true, 'Sacar todo'],
-    ].map(([op, all, label]) => {
-      const off = (op === 'deposit' ? row.encima : row.baul) < 1;
-      return `<button type="button" class="baul-btn${all ? ' sec' : ''}" data-op="${op}" data-item="${esc(row.id)}" data-all="${all ? '1' : ''}" ${off ? 'disabled' : ''}>${label}</button>`;
-    }).join('');
-    const src = icono(row.id);
-    const face = src ? `<img src="${esc(src)}" alt="">` : `<span class="baul-swatch ${SWATCH[row.id] || 'sw-otro'}" aria-hidden="true"></span>`;
-    return `<article class="baul-card">
-      ${face}
-      <b>${esc(row.name)}</b>
-      <small>encima ${row.encima} · baúl ${row.baul}</small>
-      <div class="baul-acciones">${buttons}</div>
-    </article>`;
+  function dibujo(id) {
+    const moneda = '<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="18" fill="#8a5a12"/><circle cx="32" cy="30" r="18" fill="#f0c14a" stroke="#6a4010" stroke-width="3"/><circle cx="32" cy="30" r="11" fill="none" stroke="#fff4cc" stroke-width="2"/><text x="32" y="36" text-anchor="middle" font-size="16" font-family="sans-serif" font-weight="700" fill="#5c3a08">S</text></svg>';
+    const roca = (relleno, borde) => '<svg viewBox="0 0 64 64"><path d="M16 42 24 18h14l12 16 2 16H18z" fill="' + relleno + '" stroke="' + borde + '" stroke-width="3" stroke-linejoin="round"/></svg>';
+    const barra = (relleno) => '<svg viewBox="0 0 64 64"><path d="M12 28h40l-6 16H18z" fill="' + relleno + '" stroke="#3a2410" stroke-width="3" stroke-linejoin="round"/></svg>';
+    const saco = (relleno) => '<svg viewBox="0 0 64 64"><path d="M24 14h16l8 12v24H16V26z" fill="' + relleno + '" stroke="#3a2410" stroke-width="3" stroke-linejoin="round"/><path d="M24 14c4 6 12 6 16 0" fill="none" stroke="#3a2410" stroke-width="3"/></svg>';
+    const tabla = {
+      smc: moneda,
+      mineral_oro: roca('#f0c14a', '#6a4010'),
+      pepita_oro: roca('#ffe08a', '#6a4010'),
+      mineral_plata: roca('#e4ebf2', '#4a5560'),
+      mineral_cobre: roca('#d08a52', '#5a3018'),
+      piedra: roca('#c2bbb0', '#4e493f'),
+      mineral_piedra: roca('#c2bbb0', '#4e493f'),
+      madera: '<svg viewBox="0 0 64 64"><rect x="14" y="16" width="36" height="32" rx="3" fill="#8a5a32" stroke="#4a2c14" stroke-width="3"/><path d="M22 16v32M32 16v32M42 16v32" stroke="#6a3e1c" stroke-width="2"/></svg>',
+      lingote_oro: barra('#f0c14a'),
+      lingote_plata: barra('#e4ebf2'),
+      lingote_cobre: barra('#d08a52'),
+      bolsa_cafe: saco('#6f4e37'),
+      bolsa_cacao: saco('#c4a574'),
+    };
+    return tabla[id] || saco('#6f8f55');
   }
-  function grupo(title, rows) {
-    if (!rows.length) return '';
-    const total = rows.reduce((sum, row) => sum + (row.total || 0), 0);
-    return `<section class="baul-grupo"><h3>${esc(title)} · ${total}</h3><div class="baul-grid">${rows.map(fila).join('')}</div></section>`;
+  function cifra(texto) {
+    return String(texto || '0').replace(/\s*SMC\s*$/i, '').trim() || '0';
+  }
+  function casilla(row) {
+    const n = row.kind === 'smc' ? cifra(row.texto) : String(row.qty);
+    const accion = row.lado === 'encima' ? 'Guardar' : 'Sacar';
+    const nombre = row.kind === 'smc' ? 'Simoncoin' : row.name;
+    return '<button type="button" class="casilla" data-lado="' + row.lado + '" data-kind="' + row.kind + '" data-item="' + esc(row.id) + '" aria-label="' + esc(accion + ' ' + nombre + ' ' + n) + '">'
+      + '<span class="casilla-ico" aria-hidden="true">' + dibujo(row.id) + '</span>'
+      + '<span class="casilla-n">' + esc(n) + '</span></button>';
+  }
+  function huecos(llenas) {
+    const meta = Math.max(16, Math.ceil(llenas / 4) * 4);
+    let html = '';
+    for (let i = llenas; i < meta; i++) html += '<span class="casilla vacia" aria-hidden="true"></span>';
+    return html;
+  }
+  function lado(which, textoSmc, filas) {
+    const celdas = [{ kind: 'smc', id: 'smc', name: 'Simoncoin', texto: textoSmc, lado: which }];
+    for (const row of filas) {
+      const qty = which === 'encima' ? row.encima : row.baul;
+      if (qty > 0) celdas.push({ kind: 'item', id: row.id, name: row.name, qty: qty, lado: which });
+    }
+    const titulo = which === 'encima' ? 'Encima' : 'Baúl';
+    return '<section class="rejilla-lado"><h3>' + titulo + '</h3><div class="casillas">' + celdas.map(casilla).join('') + huecos(celdas.length) + '</div></section>';
   }
   function paint(view) {
     const root = document.getElementById('baul-cuerpo');
@@ -112,39 +118,45 @@
     last = data;
     const smc = data.smc || vacio().smc;
     const filas = data.filas || [];
-    const minerales = filas.filter((row) => row.grupo === 'mineral');
-    const lingotes = filas.filter((row) => row.grupo === 'lingote');
-    const cosechas = filas.filter((row) => row.grupo === 'cosecha');
-    const otros = filas.filter((row) => row.grupo === 'recurso' || !row.grupo);
     const totales = data.totales || {};
     const linked = online();
-    root.innerHTML = `
-      <section class="baul-moneda">
-        <h3>Simoncoin</h3>
-        <div class="baul-total">${esc(smc.total && smc.total.compacto)}</div>
-        <p class="baul-exacto">${esc(smc.total && smc.total.exacto)}</p>
-        <div class="baul-lados">
-          <p class="baul-lado"><b>En la billetera</b>${esc(smc.billetera && smc.billetera.exacto)}</p>
-          <p class="baul-lado"><b>En el baúl</b>${esc(smc.baul && smc.baul.exacto)}</p>
-        </div>
-        <p class="baul-nota">${esc(smc.escala || '')} Tope ${esc(smc.tope || '')}.</p>
-        <p class="baul-nota">${esc(smc.topes || '')}</p>
-        <div class="baul-acciones">
-          <input id="baul-monto" inputmode="decimal" value="1" aria-label="Cantidad de SMC" placeholder="1">
-          <button type="button" class="baul-btn" data-smc="deposit" ${linked ? '' : 'disabled'}>Guardar</button>
-          <button type="button" class="baul-btn sec" data-smc="withdraw" ${linked ? '' : 'disabled'}>Sacar</button>
-          <button type="button" class="baul-btn" data-smc="deposit" data-all="1" ${linked ? '' : 'disabled'}>Guardar todo</button>
-          <button type="button" class="baul-btn sec" data-smc="withdraw" data-all="1" ${linked ? '' : 'disabled'}>Sacar todo</button>
-        </div>
-      </section>
-      <div class="baul-listas">${grupo('Minerales', minerales)}${grupo('Lingotes', lingotes)}${grupo('Cosechas', cosechas)}${grupo('Otros', otros)}</div>
-      <p class="baul-nota">Encima ${totales.encima || 0} · Baúl ${totales.baul || 0}. Guardar o sacar no crea nada: el servidor cuenta lo que ya hay.</p>
-      <p class="baul-nota" id="baul-estado">${linked ? 'Conectado. Cada pase se guarda en la cuenta.' : 'Sin conexión. El servidor confirma cada pase.'}</p>`;
-    root.querySelectorAll('[data-op]').forEach((button) => {
-      button.addEventListener('click', () => mover(button.dataset.op, button.dataset.item, button.dataset.all === '1'));
+    const marca = (id) => (modo === id ? ' on' : '');
+    root.innerHTML = ''
+      + '<div class="rejilla-modo" role="group" aria-label="Cuánto mover">'
+      + '<button type="button" class="baul-btn' + marca('1') + '" data-modo="1">1</button>'
+      + '<button type="button" class="baul-btn' + marca('x') + '" data-modo="x">X</button>'
+      + '<input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1">'
+      + '<button type="button" class="baul-btn' + marca('all') + '" data-modo="all">Todo</button>'
+      + '</div>'
+      + '<p class="baul-nota">Toca una casilla. 1 mueve una. X usa la cantidad. Todo guarda o saca todo. Encima se guarda en el baúl. El baúl vuelve a la mano.</p>'
+      + '<div class="rejilla">'
+      + lado('encima', smc.billetera && smc.billetera.exacto, filas)
+      + lado('baul', smc.baul && smc.baul.exacto, filas)
+      + '</div>'
+      + '<p class="baul-exacto">En total ' + esc(smc.total && smc.total.exacto) + '. ' + esc(smc.escala || '') + ' Tope ' + esc(smc.tope || '') + '.</p>'
+      + '<p class="baul-nota">' + esc(smc.topes || '') + '</p>'
+      + '<p class="baul-nota">Encima ' + (totales.encima || 0) + ' · Baúl ' + (totales.baul || 0) + '. Guardar todo y Sacar todo no crean nada: el servidor cuenta lo que ya hay.</p>'
+      + '<p class="baul-nota" id="baul-estado">' + (linked ? 'Conectado. Cada pase se guarda en la cuenta.' : 'Sin conexión. El servidor confirma cada pase.') + '</p>';
+    const campo = document.getElementById('baul-monto');
+    if (campo) campo.addEventListener('input', () => { montoTexto = campo.value; });
+    root.querySelectorAll('[data-modo]').forEach((button) => {
+      button.addEventListener('click', () => {
+        modo = button.dataset.modo;
+        root.querySelectorAll('[data-modo]').forEach((otro) => otro.classList.toggle('on', otro.dataset.modo === modo));
+      });
     });
-    root.querySelectorAll('[data-smc]').forEach((button) => {
-      button.addEventListener('click', () => moverSmc(button.dataset.smc, button.dataset.all === '1'));
+    root.querySelectorAll('.casilla[data-lado]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!linked) return;
+        const op = button.dataset.lado === 'encima' ? 'deposit' : 'withdraw';
+        if (button.dataset.kind === 'smc') {
+          const amount = modo === 'all' ? 'all' : (modo === 'x' ? montoTexto : '1');
+          moverSmc(op, amount);
+        } else {
+          const qty = modo === 'all' ? 'all' : (modo === 'x' ? cantidadX() : 1);
+          mover(op, button.dataset.item, qty);
+        }
+      });
     });
   }
   function aplicar(moved) {
