@@ -55,9 +55,7 @@
     box.replaceChildren();
     const supply = (data && data.supply) || {};
     [
-      ['simoncoin', 'Simoncoin es la moneda de oro. Sólo habrá ', supply.simoncoin],
-      ['simonplata', 'Simonplata es la moneda de plata. Sólo habrá ', supply.simonplata],
-      ['simonchis', 'Simonchis son las monedas de cobre. Existirán ', supply.simonchis],
+      ['simoncoin', 'Simoncoin es la única moneda. Sólo habrá ', supply.simoncoin],
     ].forEach(([id, lead, max]) => {
       if (max == null) return;
       const p = document.createElement('p');

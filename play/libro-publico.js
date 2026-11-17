@@ -110,15 +110,11 @@
     }).join('');
     const coins = [
       ['simoncoin', 'oro', 'Simoncoin', 'Oro', 21000000],
-      ['simonplata', 'plata', 'Simonplata', 'Plata', 84000000],
-      ['simonchis', 'cobre', 'Simonchis', 'Cobre', 333000000],
     ];
     const byId = {};
     for (const row of data.coins || []) byId[row.id] = row;
     const blurbs = {
-      simoncoin: 'Simoncoin, el oro: 21.000.000 y no más',
-      simonplata: 'Simonplata, la plata: 84.000.000 y no más',
-      simonchis: 'Simonchis, el cobre: 333.000.000 y no más',
+      simoncoin: 'Simoncoin: 21.000.000 y no más. Hasta 2 decimales.',
     };
     const coinHtml = coins.map(([id, kind, name, metal, fallback]) => {
       const row = byId[id] || {};

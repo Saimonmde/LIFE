@@ -130,8 +130,10 @@
     busy = true;
     busyCoin = coin || '';
     const status = coin === 'SMP' ? $('#plata-status') : $('#pow-status');
-    const panel = coin === 'SMP' ? $('#plata-panel') : $('#pow-panel');
+    const panel = coin === 'SMP' ? null : $('#pow-panel');
     if (panel) panel.hidden = false;
+    const plataPanel = $('#plata-panel');
+    if (plataPanel) plataPanel.hidden = true;
     if (status) status.textContent = text;
   }
   function stop() {

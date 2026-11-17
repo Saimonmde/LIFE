@@ -17,7 +17,7 @@
     return [
       '<section id="banco-central" class="banco-central" role="dialog" aria-label="Banco Central">',
       '<header><img src="../graphics/mining/lingote_oro.svg" alt="" width="42" height="42"><h2>Banco Central</h2><button type="button" id="bc-cerrar" aria-label="Cerrar">✕</button></header>',
-      '<p class="bc-lead">Ventanilla de lingotes. No acuña Simoncoin, Simonplata ni Simonchis.</p>',
+      '<p class="bc-lead">Ventanilla de lingotes. No acuña Simoncoin.</p>',
       '<label>Metal<select id="bc-metal"><option value="oro">Oro</option><option value="plata">Plata</option><option value="cobre">Cobre</option></select></label>',
       '<label>Cantidad<input id="bc-qty" type="number" min="1" max="12" value="1"></label>',
       '<button type="button" id="bc-fundir">Fundir en la bóveda</button>',

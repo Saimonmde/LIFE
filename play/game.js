@@ -811,7 +811,7 @@ function prepareMining(){
  }
  W.skills.mining.learn='Usa la pica sobre vetas de cobre, plata y oro. Cada extracción da experiencia y los minerales se apilan en la mochila.';
  W.skills.mining.methods.terrestre.minerals=['piedra','cobre','plata','oro'];
- W.skills.smelting={name:'Fundición',verb:'Fundir minerales',learn:'En el horno, Acuñar cambia el mineral por Simoncoin, Simonplata o Simonchis. El libro mayor acredita el saldo.'};
+ W.skills.smelting={name:'Fundición',verb:'Fundir minerales',learn:'En el horno, Acuñar cambia el mineral por Simoncoin. El libro mayor acredita el saldo.'};
  if(W.skills.order&&!W.skills.order.includes('smelting'))W.skills.order.push('smelting');
  W.skills.skate={name:'Patinaje',verb:'Patinar',learn:'En el Skate Park de la 4 Sur se recoge la patineta. Sobre la pista, patinar da experiencia. Todavía no hay trucos.'};
  if(W.skills.order&&!W.skills.order.includes('skate'))W.skills.order.push('skate');
@@ -826,14 +826,14 @@ function prepareMining(){
 }
 let furnaceNode=null;
 function setupMiningUI(){
- const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña Simoncoin, Simonplata o Simonchis. Esas tres monedas se guardan en el servidor. No se puede pasar de 21.000.000, 84.000.000 ni 333.000.000.</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña sólo Simoncoin. No se puede pasar de 21.000.000.</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
  for(const [id,r] of Object.entries(MiningRules.recipes)){const o=document.createElement('option');o.value=id;o.textContent=W.items[id].name;$('#forge-ore').append(o);}
  $('#furnace-close').onclick=()=>panel.hidden=true;
  $('#forge-ore').onchange=$('#forge-batches').oninput=renderForge;
  $('#forge-one').onclick=()=>{$('#forge-batches').value=1;renderForge();};$('#forge-all').onclick=()=>{const id=$('#forge-ore').value;$('#forge-batches').value=Math.max(1,Math.floor(invCount(id)/MiningRules.recipes[id].ore));renderForge();};
  $('#forge-coin').onclick=()=>smelt('coin');$('#forge-coins').onclick=()=>smelt($('#forge-coins').dataset.mode||'coins');
  const why=document.createElement('p');why.id='forge-mint-why';why.setAttribute('role','status');panel.querySelector('.forge-actions').before(why);
- for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.className='forge-recipe';li.innerHTML=`${itemImg(W.items[id],1,'ore-art')}${itemImg(W.items[r.coinItem],r.coinQty,'ore-art')}<span>${esc(r.name)}: ${r.ore} minerales → ${r.coinQty} monedas. Simoncoin, Simonplata o Simonchis, según el metal.</span>`;$('#forge-recipes').append(li);}
+ for(const [id,r] of Object.entries(MiningRules.recipes)){if(id==='pepita_oro')continue;const li=document.createElement('li');li.className='forge-recipe';li.innerHTML=`${itemImg(W.items[id],1,'ore-art')}${itemImg(W.items[r.coinItem],r.coinQty,'ore-art')}<span>${esc(r.name)}: ${r.ore} minerales. El horno paga Simoncoin.</span>`;$('#forge-recipes').append(li);}
  const intro=document.createElement('p');intro.className='bag-note';intro.textContent='60 casillas · pilas de 999 · arrastra mineral al horno';$('#inventario').before(intro);
  const modes=document.createElement('div');modes.id='bag-modes';modes.innerHTML='<button id="bag-summary" type="button">Resumen 4×6</button><button id="bag-full" type="button">Completo</button>';$('#w-inv header').append(modes);$('#bag-summary').onclick=()=>setBagMode('summary');$('#bag-full').onclick=()=>setBagMode('full');
  const pages=document.createElement('nav');pages.id='bag-pages';pages.setAttribute('aria-label','Páginas del inventario resumido');pages.innerHTML='<button type="button" id="bag-prev" aria-label="Página anterior del inventario">‹</button><span id="bag-page-label"></span><button type="button" id="bag-next" aria-label="Página siguiente del inventario">›</button>';$('#inventario').after(pages);$('#bag-prev').onclick=()=>{bagPage=Math.max(0,bagPage-1);renderInv();};$('#bag-next').onclick=()=>{bagPage=Math.min(Math.ceil(SLOTS/24)-1,bagPage+1);renderInv();};
@@ -847,13 +847,13 @@ function setupMiningUI(){
 function openFurnace(n){furnaceNode=n;if(pendingFurnaceDrop?.nodeId===n.def.id){pendingFurnaceDrop=null;}closeForgeChat();if(window.Acunar){Acunar.open();return;}const id=selected();if(MiningRules.recipes[id])$('#forge-ore').value=id;$('#forge-result').textContent='';$('#furnace-panel').hidden=false;renderForge();}
 let forgeTimer=0;
 function forgeWait(){return matchMedia('(prefers-reduced-motion: reduce)').matches?160:1100;}
-function showForgeProgress(mode){const box=$('#forge-progress');if(!box)return;box.hidden=false;const label=mode==='simonplata'?'Acuñando Simonplata…':mode==='simonchis'?'Acuñando Simonchis…':'Acuñando Simoncoin…';$('#forge-progress-label').textContent=label;$('#forge-progress-bar').innerHTML='<i></i>';}
+function showForgeProgress(){const box=$('#forge-progress');if(!box)return;box.hidden=false;$('#forge-progress-label').textContent='Acuñando Simoncoin…';$('#forge-progress-bar').innerHTML='<i></i>';}
 function hideForgeProgress(){const box=$('#forge-progress');if(box)box.hidden=true;}
 function forgeBagLine(){const parts=[];for(const id of ['moneda_cobre','moneda_plata','moneda_oro']){const n=invCount(id);if(n&&W.items[id])parts.push(n+' × '+W.items[id].name);}return parts.length?'En la mochila: '+parts.join(', ')+'.':'En la mochila todavía no hay monedas acuñadas.';}
 function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value,r=MiningRules.recipes[id],q=Number($('#forge-batches').value),max=Math.floor(invCount(id)/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  const coinQty=q*(r.coinQty||0),coinName=W.items[r.coinItem]?W.items[r.coinItem].name:'monedas';
  $('#forge-stock').textContent=`En mochila: ${invCount(id)} · ${r.ore} minerales por lote · disponibles: ${max} lotes`;
- $('#forge-batches').max=Math.max(1,max); $('#forge-preview').innerHTML=valid?`${itemImg(W.items[id],q,'ore-art')} ${q*r.ore} minerales → ${itemImg(W.items[r.coinItem],coinQty,'ore-art')} ${coinQty} ${esc(coinName)}. El horno pide la prueba y el servidor guarda Simoncoin, Simonplata o Simonchis.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
+ $('#forge-batches').max=Math.max(1,max); $('#forge-preview').innerHTML=valid?`${itemImg(W.items[id],q,'ore-art')} ${q*r.ore} minerales → ${itemImg(W.items[r.coinItem],coinQty,'ore-art')} ${coinQty} ${esc(coinName)}. El horno pide la prueba y el servidor guarda Simoncoin.`:`Reúne al menos ${r.ore} minerales y elige una cantidad disponible.`;
  const pair=$('#forge-pair'); if(pair) pair.innerHTML=`<figure>${itemImg(W.items[r.coinItem],Math.max(1,coinQty))}<figcaption>${Math.max(0,coinQty)} ${esc(coinName)}</figcaption></figure>`;
  const busy=!!forgeTimer;const blocked=!valid||busy;
  $('#forge-coin').disabled=blocked;
@@ -861,8 +861,8 @@ function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value
  const coinBtn=$('#forge-coin'); if(coinBtn) coinBtn.hidden=true;
  const metal=r.metal;
  const mintMode=metal==='plata'?'simonplata':metal==='cobre'?'simonchis':'simoncoin';
- const mintLabels={simoncoin:'Acuñar Simoncoin',simonplata:'Acuñar Simonplata',simonchis:'Acuñar Simonchis'};
- const mintName=metal==='plata'?'Simonplata':metal==='cobre'?'Simonchis':'Simoncoin';
+ const mintLabels={simoncoin:'Acuñar Simoncoin',simonplata:'Acuñar Simoncoin',simonchis:'Acuñar Simoncoin'};
+ const mintName='Simoncoin';
  mint.dataset.mode=mintMode;
  mint.classList.toggle('forge-mint',true);
  mint.disabled=blocked;
@@ -888,7 +888,7 @@ function applySmelt(id,q,mode,result){
  const box=$('#forge-result'); if(box) box.textContent=message;
  return message;
 }
-function mintNameOf(mode){return mode==='simonplata'?'Simonplata':mode==='simonchis'?'Simonchis':'Simoncoin';}
+function mintNameOf(){return 'Simoncoin';}
 function netMintMode(mode){if(mode==='ingot')return '';if(mode==='simonplata'||mode==='simonchis'||mode==='simoncoin')return mode;if(mode==='coins')return 'simoncoin';return '';}
 function finishForge(id,q,mode,result){
  forgeTimer=0;hideForgeProgress();
@@ -931,13 +931,13 @@ function setupBagForge(){
  const ghost=document.createElement('div');ghost.id='ore-drag-ghost';ghost.hidden=true;document.body.append(ghost);
  document.addEventListener('dragover',e=>{if(!oreDrag)return;e.preventDefault();e.dataTransfer.dropEffect=window.LiveInk.furnaceAtScreen?.(e.clientX,e.clientY)?'copy':'none';moveOreDrag(e.clientX,e.clientY);});
  document.addEventListener('drop',e=>{if(!oreDrag)return;e.preventDefault();dropOre(e.clientX,e.clientY);});addEventListener('blur',()=>{if(oreDrag||touchOre)endOreDrag();});
- const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>Puedes acuñar Simoncoin, Simonplata o Simonchis.</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-coin">Acuñar monedas</button><button type="button" id="forge-chat-coins" class="forge-mint"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar Simoncoin</button></div><p id="forge-chat-result" role="status"></p>';
+ const card=document.createElement('section');card.id='forge-chat-card';card.hidden=true;card.setAttribute('aria-label','Elegir fundición en el chat');card.innerHTML='<header><b id="forge-chat-title">Horno</b><button type="button" id="forge-chat-cancel" aria-label="Cancelar fundición en chat">×</button></header><p>Puedes acuñar Simoncoin.</p><div id="forge-chat-stock"></div><label>Lotes <input id="forge-chat-batches" type="number" min="1" step="1" value="1"></label><button type="button" id="forge-chat-max">Máximo</button><p id="forge-chat-preview"></p><div class="forge-chat-actions"><button type="button" id="forge-chat-coin">Acuñar monedas</button><button type="button" id="forge-chat-coins" class="forge-mint"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar Simoncoin</button></div><p id="forge-chat-result" role="status"></p>';
  $('#chat-form').before(card);$('#forge-chat-cancel').onclick=closeForgeChat;$('#forge-chat-batches').oninput=renderForgeChat;
  $('#forge-chat-max').onclick=()=>{if(!chatForgeItem)return;$('#forge-chat-batches').value=Math.max(1,Math.floor(invCount(chatForgeItem)/MiningRules.recipes[chatForgeItem].ore));renderForgeChat();};
  for(const [id,mode] of [['forge-chat-coin','coin'],['forge-chat-coins','coins']])$('#'+id).onclick=()=>{if(!chatForgeItem||mode==='coin')return;const metal=MiningRules.recipes[chatForgeItem].metal;const use=metal==='plata'?'simonplata':metal==='cobre'?'simonchis':'simoncoin';$('#forge-ore').value=chatForgeItem;$('#forge-batches').value=$('#forge-chat-batches').value;smelt(use);renderForgeChat();};const chatCoin=document.getElementById('forge-chat-coin');if(chatCoin)chatCoin.hidden=true;
 }
 function closeForgeChat(){chatForgeItem=null;const card=document.getElementById('forge-chat-card');if(card)card.hidden=true;$('#hud-chat').classList.remove('forge-chat-open');}
-function openForgeChat(item){chatForgeItem=item;$('#furnace-panel').hidden=true;$('#forge-chat-card').hidden=false;$('#hud-chat').classList.add('forge-chat-open');$('#forge-chat-batches').value=1;$('#forge-chat-result').textContent='';renderForgeChat();game(`Horno: trajiste <b>${esc(W.items[item].name)}</b>. Puedes acuñar Simoncoin, Simonplata o Simonchis.`);window.ChatUI?.setOpen(true);}
+function openForgeChat(item){chatForgeItem=item;$('#furnace-panel').hidden=true;$('#forge-chat-card').hidden=false;$('#hud-chat').classList.add('forge-chat-open');$('#forge-chat-batches').value=1;$('#forge-chat-result').textContent='';renderForgeChat();game(`Horno: trajiste <b>${esc(W.items[item].name)}</b>. Puedes acuñar Simoncoin.`);window.ChatUI?.setOpen(true);}
 function renderForgeChat(){if(!chatForgeItem)return;const r=MiningRules.recipes[chatForgeItem],have=invCount(chatForgeItem),q=Number($('#forge-chat-batches').value),max=Math.floor(have/r.ore),valid=Number.isSafeInteger(q)&&q>0&&q<=max;
  $('#forge-chat-title').textContent='Horno · '+r.name;$('#forge-chat-stock').textContent=`Tienes ${have} minerales · ${r.ore} por lote`;
  $('#forge-chat-batches').max=Math.max(1,max); $('#forge-chat-preview').innerHTML=valid?`${itemImg(W.items[chatForgeItem],q,'ore-art')}${itemImg(W.items[r.coinItem],q*r.coinQty,'ore-art')} ${q*r.ore} minerales → ${q*r.coinQty} monedas de ${esc(r.metal)}. Conservas ${have-q*r.ore} minerales.`:`Necesitas al menos ${r.ore} minerales para un lote.`;

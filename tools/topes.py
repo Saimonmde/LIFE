@@ -218,7 +218,7 @@ def siguiente(age_seconds, play_seconds, quests):
             'wait': wait,
             'simoncoin': smc,
             'simonplata': smp,
-            'text': when + ' Sumas ' + _cantidad(smc) + ' de Simoncoin y ' + _cantidad(smp) + ' de Simonplata al tope del día.',
+            'text': when + ' Sumas ' + _cantidad(smc) + ' de Simoncoin al tope del día.',
         })
 
     if days < max_days:
@@ -235,7 +235,7 @@ def siguiente(age_seconds, play_seconds, quests):
             'wait': None,
             'simoncoin': 0,
             'simonplata': 0,
-            'text': 'Ya llegaste al tope de recompensas de Simoncoin y Simonplata.',
+            'text': 'Ya llegaste al tope de recompensas de Simoncoin.',
         })
     return steps
 
@@ -243,7 +243,7 @@ def siguiente(age_seconds, play_seconds, quests):
 def hoy(coins):
     """'Hoy te quedan X' a partir de los cupos ya calculados. Sin números fijos."""
     lines = []
-    for coin in ('simoncoin', 'simonplata', 'simonchis'):
+    for coin in ('simoncoin',):
         row = (coins or {}).get(coin) or {}
         if 'left' not in row:
             continue
@@ -278,16 +278,15 @@ def letrero(age_seconds=0, play_seconds=0, quests=0, now=None):
         ),
         f'{_cantidad(oro)} minerales de oro hacen 1 Simoncoin (cada uno vale 0,1 SMC). El servidor aplica un piso de 50 SMC al día; la fórmula sola iría de {_cantidad(oro_base)} a {_cantidad(oro_top)}.',
         (
-            f'{_cantidad(plata_rate)} de plata cruda hacen 1 Simonplata. Hasta {_cantidad(plata_base)} Simonplata al día, más bonos: '
+            f'1 mineral de plata paga 0,01 Simoncoin. Hasta {_cantidad(plata_base)} piezas al día, más bonos: '
             f'{_cantidad(bono_dia)} por día de cuenta, {_cantidad(bono_hora)} por hora de juego y {_cantidad(bono_mision)} por misión. '
             f'Con esos bonos sube hasta {_cantidad(plata_top)}.'
         ),
-        f'{_cantidad(cobre_rate)} de cobre crudo hacen 1 Simonchis. El tope es {_cantidad(chis)} al día.',
+        f'1 mineral de cobre paga 0,001 Simoncoin. El cupo de piezas es {_cantidad(chis)} al día.',
         'Para acuñar tenés que entrar con tu apodo. El cupo se reinicia a las ' + RESET_LABEL + '.',
         (
-            f'Hay tres monedas y el total ya está fijo: {_cantidad(economy.MAX_SUPPLY)} de Simoncoin, '
-            f'{_cantidad(plata.MAX_SUPPLY)} de Simonplata y {_cantidad(cobre.MAX_SUPPLY)} de Simonchis. '
-            'No se puede crear más ni copiarlas. Si el mundo ya llegó al máximo, el horno se detiene.'
+            f'La única moneda es Simoncoin y el total ya está fijo: {_cantidad(economy.MAX_SUPPLY)}. '
+            'No se puede crear más ni copiarla. Si el mundo ya llegó al máximo, el horno se detiene.'
         ),
     ]
     return {
