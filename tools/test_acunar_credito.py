@@ -197,14 +197,19 @@ class AcunarSobreviveTests(unittest.TestCase):
         self.assertGreater(oro.get('balanceSubs') or 0, 0)
         self.assertTrue((oro.get('registro') or {}).get('id'))
         self.sent.clear()
+        antes = int(self.server.ECON.get('minedSmh') or 0)
         self.server.acunar_for(who, 'simonplata', 4)
-        plata_no = [m for m in self.sent if m.get('t') == 'acunar_result'][-1]
-        self.assertFalse(plata_no.get('ok'))
-        self.assertEqual(plata_no.get('code'), 'cerrada')
+        plata_si = [m for m in self.sent if m.get('t') == 'acunar_result'][-1]
+        self.assertTrue(plata_si.get('ok'), plata_si.get('reason'))
+        self.assertTrue(plata_si.get('fisica'))
+        self.assertEqual((plata_si.get('moneda') or {}).get('item'), 'moneda_plata')
+        self.assertIsNone(plata_si.get('registro'))
         self.sent.clear()
         self.server.acunar_for(who, 'simonchis', 3)
-        cobre_no = [m for m in self.sent if m.get('t') == 'acunar_result'][-1]
-        self.assertFalse(cobre_no.get('ok'))
+        cobre_si = [m for m in self.sent if m.get('t') == 'acunar_result'][-1]
+        self.assertTrue(cobre_si.get('ok'), cobre_si.get('reason'))
+        self.assertEqual((cobre_si.get('moneda') or {}).get('item'), 'moneda_cobre')
+        self.assertEqual(int(self.server.ECON.get('minedSmh') or 0), antes)
         primero = self._entrar(self.server.ECON, self.server.VAULT_STATE)
         self._ver(primero, self.server.VAULT_STATE)
         with tempfile.TemporaryDirectory() as directory:

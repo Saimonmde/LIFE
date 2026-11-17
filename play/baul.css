@@ -84,6 +84,13 @@ body.in-game #baul-mina:not([hidden]) { display: flex; flex-direction: column; }
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
 }
+#baul-mina .casilla-grupo {
+  grid-column: 1 / -1;
+  margin: 8px 0 0;
+  font: 700 12px/1.2 "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  color: #e2b23c;
+  letter-spacing: .04em;
+}
 #baul-mina .casilla {
   position: relative;
   aspect-ratio: 1;

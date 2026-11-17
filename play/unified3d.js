@@ -535,6 +535,20 @@ function boot(api){
   }
   for(const [id,g] of sackMeshes)if(!bags.has(id))g.root.visible=false;
  }
+ const pisoMeshes=new Map();
+ function drawPiso(away){
+  if(!window.Objeto||!Objeto.piso)return;
+  const rows=away?[]:Objeto.piso();
+  const seen=new Set();
+  for(const drop of rows){
+   seen.add(drop.id);
+   let g=pisoMeshes.get(drop.id);
+   if(!g){const mat=new T.MeshLambertMaterial({color:drop.color||'#e2b23c',transparent:true,opacity:drop.espera?0.28:1});const mesh=new T.Mesh(new T.CylinderGeometry(.28,.34,.12,8),mat);scene.add(mesh);mesh.userData.id='piso:'+drop.id;pick.push(mesh);g={mesh,mat};pisoMeshes.set(drop.id,g);}
+   g.mesh.visible=true;g.mat.opacity=drop.espera?0.28:1;g.mat.color.set(drop.color||'#e2b23c');
+   g.mesh.position.set(drop.x*2+1,height(drop.x,drop.y)+.16,drop.y*2+1);
+  }
+  for(const [id,g] of pisoMeshes)if(!seen.has(id))g.mesh.visible=false;
+ }
  const routeDots=new T.Group();scene.add(routeDots);const routeMat=new T.MeshBasicMaterial({color:'#ffe14d',transparent:true,opacity:.8});
  function syncRouteDots(){const ruta=S.dest&&S.dest.ruta&&(W.mapId||'city')==='city'?(S.player.path||[]):[];const sig=ruta.length+':'+(S.dest&&S.dest.ruta?(S.dest.x+','+S.dest.y):'');if(sig===status._routeSig)return;status._routeSig=sig;while(routeDots.children.length)routeDots.remove(routeDots.children[0]);if(ruta.length<2)return;const step=Math.max(1,Math.ceil(ruta.length/36));for(let i=0;i<ruta.length;i+=step){const x=ruta[i][0],y=ruta[i][1];const dot=new T.Mesh(new T.SphereGeometry(.16,6,4),routeMat);dot.position.set(x*2+1,height(x,y)+.4,y*2+1);routeDots.add(dot);}}
  function frame(){requestAnimationFrame(frame);syncRouteDots();const time=performance.now(),dt=Math.min(.05,(time-lastFrame)/1000);lastFrame=time;if(!status.active)return;if(editing()){turning.clear();zoomKeys.clear();zoomHeld=false;}updateZoom(dt);updateTilt(dt);yaw=clampYaw(yaw+((turning.has('ArrowRight')?1:0)-(turning.has('ArrowLeft')?1:0))*dt*1.8);if(!api.started){resetStick();setCameraPanel(false);}const p=S.player;if(W.mapId==='central'){if(!status._centralCam){yaw=-0.4;pitch=0.82;distance=14;status._centralCam=true;status._bancoCam=false;status._casaCam=false;}}else if(W.mapId==='banco'){if(!status._bancoCam){yaw=0.6;pitch=0.95;distance=16;status._bancoCam=true;status._casaCam=false;status._centralCam=false;}}else if(W.mapId==='casa'){if(!status._casaCam){yaw=Math.PI-0.28;pitch=0.72;distance=15;status._casaCam=true;status._bancoCam=false;status._centralCam=false;}}else if(status._casaCam||status._bancoCam||status._centralCam){status._casaCam=false;status._bancoCam=false;status._centralCam=false;yaw=0;pitch=1.12;distance=36;}
@@ -564,7 +578,7 @@ if(color!==S.me.color){me.children[0].material=material(colors[S.me.color]||colo
  const region=W.regions.find(r=>p.fx>=r.x&&p.fx<r.x+r.w&&p.fy>=r.y&&p.fy<r.y+r.h);const mundoHud=window.Vida?Vida.world():3;document.querySelector('#zona-nombre').textContent=W.mapId==='casa'?'Tu casa · Medellín':W.mapId==='mina2'?('Mina de La Ladera · Mundo '+mundoHud):W.mapId==='mine'?('Mina de Las Palmas · Mundo '+mundoHud):W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':(region?.name||'Valle de Aburrá')+' · Mundo '+mundoHud;
  for(const n of W.npcs)actor(n.id,n.x,n.y,'#ab8338');
  for(const m of W.memories){m.mesh.rotation.y+=.01;m.mesh.visible=!found.has(m.id);if(api.started&&!found.has(m.id)&&Math.hypot(p.fx-m.x,p.fy-m.y)<2){found.add(m.id);localStorage.setItem('lifeinc.aburra.memories.v1',JSON.stringify([...found]));document.querySelector('#book').style.outline='2px solid #edc76b';}}
- document.querySelector('#book').textContent=W.mapId==='mina2'?'Mina de La Ladera':W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());if(W.mapId==='mina2'){const vista=laderaScene();if(vista)vista.update(S,api.now());}vida3d.sync(S,api,view,away,time);drawGuacharacas(away,time/1000);drawGallos(away);drawCorral(away);drawFauna(away,time/1000);if(status.onEditFrame)status.onEditFrame();renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
+ document.querySelector('#book').textContent=W.mapId==='mina2'?'Mina de La Ladera':W.mapId==='mine'?'Mina de Las Palmas':W.mapId==='casa'?'Tu casa':W.mapId==='banco'?'Casa bancaria':W.mapId==='central'?'Banco Central':`Memorias ${found.size}/${W.memories.length}`;camera.updateMatrixWorld();valley.sync(p.fx,p.fy);drawSpeech();drawPlayerNames();if(W.mapId==='casa'){projected.set(9,2.6,17.5).project(camera);status.doorScreen={x:(projected.x+1)*innerWidth/2,y:(1-projected.y)*innerHeight/2,z:projected.z};}underground.update(S,api.now());if(W.mapId==='mina2'){const vista=laderaScene();if(vista)vista.update(S,api.now());}vida3d.sync(S,api,view,away,time);drawGuacharacas(away,time/1000);drawGallos(away);drawCorral(away);drawFauna(away,time/1000);drawPiso(away);if(status.onEditFrame)status.onEditFrame();renderer.render(view,camera);status.frames=(status.frames||0)+1;status.zone=W.mapId||'city';status.camera={yaw,pitch,distance};
  }
  if(initialZone){Object.assign(W,savedZone);W.mapId=initialZone;}
  status.startFly=()=>{if(/autotest=1/.test(location.search))return;if(status.ovni||status.heli||window.LIFE_WANT_INTRO==='ovni'||window.LIFE_WANT_INTRO==='heli')return;if(localStorage.getItem('lifeinc.vuelo.v1')){window.Tutorial?.afterFly?.();return;}status.fly={t0:performance.now(),dur:1500,x:S.player.fx,y:S.player.fy,name:window.LIFE_LAND_NAME||'Parque de Envigado',intro:true};const skip=document.getElementById('ovni-saltar');if(skip)skip.hidden=false;};

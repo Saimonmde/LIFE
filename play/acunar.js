@@ -5,12 +5,13 @@
   const $ = (s) => document.querySelector(s);
   const RATES = {
     simoncoin: { item: 'pepita_oro', items: ['pepita_oro', 'mineral_oro'], rate: 5, name: 'Simoncoin', metal: 'oros crudos', cap: 0.25 },
-    simonplata: { item: 'mineral_plata', rate: 4, name: 'Simoncoin', metal: 'plata cruda', cap: 5 },
-    simonchis: { item: 'mineral_cobre', rate: 3, name: 'Simoncoin', metal: 'cobre crudo', cap: 200, whole: true },
+    simonplata: { item: 'mineral_plata', rate: 4, name: 'monedas de plata', metal: 'plata cruda', cap: 5, fisica: true },
+    simonchis: { item: 'mineral_cobre', rate: 3, name: 'monedas de cobre', metal: 'cobre crudo', cap: 200, whole: true, fisica: true },
   };
   let coin = 'simoncoin';
   let pieces = 0;
   let busy = false;
+  let usarLingote = false;
 
   function count(id) {
     const S = window.__ELJARDIN;
@@ -36,7 +37,7 @@
       item: row.item || base.item,
       items: row.items || base.items || [row.item || base.item],
       rate: row.rate || base.rate,
-      name: 'Simoncoin',
+      name: base && base.fisica ? base.name : 'Simoncoin',
       metal: row.metal || base.metal,
       cap: row.cap != null ? row.cap : base.cap,
       left: row.left != null ? row.left : base.cap,
@@ -98,6 +99,7 @@
       '<p id="acunar-vas"></p>',
       '<input id="acunar-cantidad" type="range" min="0" value="0" step="0.05" aria-label="Cuánto metal gastar">',
       '<button type="button" class="grande" id="acunar-ok">Acuñar</button>',
+      '<button type="button" class="grande" id="acunar-lingote" hidden>Acuñar desde lingote</button>',
       '<button type="button" class="grande" id="acunar-ir" hidden>Ir a la mina / Picar</button>',
     ].join('');
     document.body.append(veil, box);
@@ -107,7 +109,8 @@
       button.onclick = () => { coin = button.dataset.coin; pieces = null; paint(); };
     });
     $('#acunar-cantidad').addEventListener('input', (e) => { pieces = Number(e.target.value); paint(false); });
-    $('#acunar-ok').onclick = send;
+    $('#acunar-ok').onclick = () => { usarLingote = false; send(); };
+    $('#acunar-lingote').onclick = () => { usarLingote = true; send(); usarLingote = false; };
     const ir = $('#acunar-ir');
     if (ir) ir.onclick = () => { close(); if (window.LiveInk && LiveInk.goMine) LiveInk.goMine(); };
     document.addEventListener('keydown', (e) => {
@@ -132,7 +135,9 @@
     $('#acunar-alcanzan').textContent = `Con eso alcanzan: ${num(shown.alcanzan)} ${row.name}`;
     const supply = window.__ELJARDIN && __ELJARDIN.supply;
     const copper = supply && supply.copperNote ? ' ' + supply.copperNote : '';
-    $('#acunar-hoy').textContent = `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.).${copper}`;
+    $('#acunar-hoy').textContent = row.fisica
+      ? 'La moneda queda en el inventario, en Monedas acuñadas. El libro mayor no la anota.'
+      : `Hoy puedes acuñar: ${num(shown.hoy)} de ${num(shown.cap)} ${row.name} (se reinicia a las 7:00 p. m.).${copper}`;
     const ir = $('#acunar-ir');
     const corto = CORTO[coin] || 'metal';
     const falta = shown.gastas <= 0 ? textoFalta(shown.tienes, row.rate, corto) : '';
@@ -154,6 +159,13 @@
     slider.max = String(shown.maxPieces);
     slider.value = String(shown.gastas);
     $('#acunar-ok').disabled = busy || !aqui || shown.gastas <= 0;
+    const lingote = $('#acunar-lingote');
+    if (lingote) {
+      const hay = lingotesDe();
+      lingote.hidden = !row.fisica || hay < 1;
+      lingote.disabled = busy || !aqui || hay < 1;
+      lingote.textContent = hay > 1 ? 'Acuñar ' + hay + ' lingotes' : 'Acuñar desde lingote';
+    }
     $('#acunar').querySelectorAll('[data-coin]').forEach(button => {
       button.classList.toggle('activa', button.dataset.coin === coin);
     });
@@ -166,6 +178,16 @@
     $('#acunar-fondo').hidden = false;
     paint();
     $('#acunar-x').focus();
+  }
+  function lingoteId() {
+    return coin === 'simonplata' ? 'lingote_plata' : coin === 'simonchis' ? 'lingote_cobre' : '';
+  }
+  function lingotesDe() {
+    const id = lingoteId();
+    return id ? count(id) : 0;
+  }
+  function boxUsaLingote() {
+    return usarLingote && lingotesDe() > 0;
   }
   function send() {
     const row = spec();
@@ -184,7 +206,8 @@
     if (window.Simulacion && Simulacion.expectMint && coin === 'simoncoin') {
       Simulacion.expectMint(Math.round(shown.recibes * Simulacion.SUBS));
     }
-    ws.send(JSON.stringify({ t: 'acunar', coin, pieces: shown.gastas }));
+    const fuente = boxUsaLingote() ? 'lingote' : '';
+    ws.send(JSON.stringify({ t: 'acunar', coin, pieces: fuente ? lingotesDe() : shown.gastas, fuente }));
     $('#acunar-vas').textContent = 'Calculando prueba…';
     $('#acunar-ok').disabled = true;
   }
@@ -231,7 +254,11 @@
     }
     if (!m.ok) return fallo(m), true;
     if (m.purse && window.__ELJARDIN) __ELJARDIN.purse = m.purse;
-    if (m.moneda && window.meterMonedas) window.meterMonedas(m.moneda.item, m.moneda.total || m.moneda.qty);
+    if (m.fisica && m.moneda && window.LiveInk && LiveInk.giveItem) window.LiveInk.giveItem(m.moneda.item, m.moneda.qty);
+    else if (m.moneda && window.meterMonedas) window.meterMonedas(m.moneda.item, m.moneda.total || m.moneda.qty);
+    if (m.ok && m.fuente === 'lingote' && m.spentItems && window.quitarMetal) {
+      Object.keys(m.spentItems).forEach(id => window.quitarMetal(id, m.spentItems[id]));
+    }
     if (window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m);
     else if (window.Simulacion && Simulacion.renderLibro) Simulacion.renderLibro();
     if (m.registro && window.LibroMadre) LibroMadre.toast(m.registro);
