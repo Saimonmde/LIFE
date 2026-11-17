@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="mi-cuenta.css?v=staff-rol">
 <link rel="stylesheet" href="cajon.css?v=chat-mundo">
 <link rel="stylesheet" href="economy.css?v=codex-trade-r1">
+<link rel="stylesheet" href="baul.css?v=baul-mina-2">
 <link rel="stylesheet" href="emotes.css?v=movimiento-r1">
 <link rel="stylesheet" href="login.css?v=login-limpio">
 <link rel="stylesheet" href="login-entrada.css?v=login-limpio">
@@ -344,6 +345,11 @@
   <div id="banquito-items"></div>
   <p class="bag-note">SMC y SMP no son dinero real. Nada de esto se paga por OnePay ni por USDT.</p>
 </section>
+<section id="baul-mina" class="ventana" hidden aria-labelledby="baul-titulo">
+  <header><span id="baul-titulo">Baúl de la mina</span><button type="button" class="x" data-cierra="baul-mina" aria-label="Cerrar">✕</button></header>
+  <div id="baul-cuerpo"></div>
+</section>
+<button type="button" id="baul-abrir" hidden>Abrir baúl</button>
 <div id="autotest" hidden></div>
 <script src="historia.js?v=vidrio-r1"></script>
 <script src="simulacion.js?v=trueque-directo"></script>
@@ -378,6 +384,7 @@
 <script src="fauna.js?v=fauna-r5"></script>
 <script src="letrero.js?v=sara-cartel"></script>
 <script src="cambio-simple.js?v=plata-smp"></script>
+<script src="baul.js?v=baul-mina-2"></script>
 <script src="game.js?v=en-vivo-teleport-r1"></script>
 <script src="pulgar.js?v=chat-mundo"></script>
 <script src="emotes.js?v=movimiento-r1"></script>

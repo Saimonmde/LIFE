@@ -1,0 +1,108 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Baúl de la mina. Dibujo propio, sin fotos. Pensado para el dedo. */
+#baul-mina {
+  position: fixed;
+  z-index: 92;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(640px, calc(100vw - 20px));
+  max-height: min(86dvh, 760px);
+  overflow: auto;
+  padding: 0 0 12px;
+  -webkit-overflow-scrolling: touch;
+}
+body.in-game #baul-mina:not([hidden]) { display: flex; flex-direction: column; }
+#baul-mina header { cursor: default; touch-action: manipulation; position: sticky; top: 0; z-index: 2; background: #1c140ee6; }
+#baul-mina header .x {
+  margin-left: auto;
+  min-width: 48px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  background: #3a2a1c;
+  color: #f6e7c4;
+  font: 700 22px/1 var(--sans);
+}
+#baul-cuerpo { padding: 10px 12px 0; display: flex; flex-direction: column; gap: 10px; }
+#baul-mina .baul-moneda,
+#baul-mina .baul-grupo { border: 1px solid #b48a46; border-radius: 12px; padding: 10px; background: #1c140ee6; }
+#baul-mina h3 { margin: 0 0 8px; color: #f5d27a; font: 700 16px/1.2 var(--sans); }
+#baul-mina .baul-total { font: 700 28px/1.1 var(--sans); color: #fff6df; }
+#baul-mina .baul-exacto, #baul-mina .baul-nota { margin: 4px 0 0; color: #e6d3a8; font: 14px/1.35 var(--sans); }
+#baul-mina .baul-lados, #baul-mina .baul-fila { display: flex; gap: 8px; flex-wrap: wrap; }
+#baul-mina .baul-lado { flex: 1 1 140px; min-width: 0; }
+#baul-mina .baul-lado b { display: block; color: #f5d27a; font-size: 13px; }
+#baul-mina .baul-fila {
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid #b48a4644;
+}
+#baul-mina .baul-nombre { display: flex; align-items: center; gap: 8px; flex: 1 1 120px; min-width: 0; font: 600 16px/1.2 var(--sans); }
+#baul-mina .baul-swatch {
+  width: 36px; height: 36px; border-radius: 8px; flex: none;
+  border: 2px solid #2a1c12; box-shadow: inset 0 0 0 2px #ffffff22;
+}
+#baul-mina .sw-oro { background: radial-gradient(circle at 30% 30%, #ffe9a0, #e2b23c 55%, #8a6418); }
+#baul-mina .sw-plata { background: radial-gradient(circle at 30% 30%, #fff, #d5dde4 50%, #7d868e); }
+#baul-mina .sw-cobre { background: radial-gradient(circle at 30% 30%, #f0c09a, #c47a45 55%, #6a3a1c); }
+#baul-mina .sw-piedra { background: radial-gradient(circle at 30% 30%, #d9d3c6, #8d8578 60%, #4e493f); }
+#baul-mina .sw-madera { background: repeating-linear-gradient(90deg, #8a5a32, #8a5a32 6px, #6e4524 6px, #6e4524 10px); }
+#baul-mina .sw-cafe { background: radial-gradient(circle at 30% 30%, #a67c52, #6f4e37); }
+#baul-mina .sw-cacao { background: radial-gradient(circle at 30% 30%, #e6d2a8, #c4a574 60%, #6b4e2e); }
+#baul-mina .sw-otro { background: linear-gradient(135deg, #6f8f55, #2f4a32); }
+#baul-mina .baul-nums { font: 600 14px/1.2 var(--sans); color: #fff6df; min-width: 7.5em; }
+#baul-mina button.baul-btn {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #e2b23c;
+  color: #1c1208;
+  font: 700 15px/1.1 var(--sans);
+  cursor: pointer;
+}
+#baul-mina button.baul-btn.sec { background: #3a2a1c; color: #f6e7c4; }
+#baul-mina button.baul-btn:disabled { opacity: 0.45; cursor: default; }
+#baul-mina .baul-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+#baul-mina input {
+  min-height: 48px;
+  width: 7em;
+  border-radius: 12px;
+  border: 1px solid #b48a46;
+  background: #120c07;
+  color: #fff6df;
+  font: 700 18px/1 var(--sans);
+  padding: 0 10px;
+}
+#baul-listas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+#baul-abrir {
+  position: fixed;
+  z-index: 84;
+  left: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  min-height: 52px;
+  min-width: 160px;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 14px;
+  background: #e2b23c;
+  color: #1c1208;
+  font: 700 17px/1 var(--sans);
+  box-shadow: 0 6px 16px #0008;
+}
+@media (max-width: 820px) {
+  #baul-mina {
+    top: max(8px, env(safe-area-inset-top));
+    transform: translate(-50%, 0);
+    width: calc(100vw - 12px);
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top));
+  }
+  #baul-listas { grid-template-columns: 1fr; }
+  #baul-mina .baul-total { font-size: 32px; }
+  #baul-mina .baul-fila { align-items: stretch; }
+  #baul-mina .baul-acciones { flex: 1 1 100%; }
+  #baul-mina button.baul-btn { flex: 1 1 46%; }
+}

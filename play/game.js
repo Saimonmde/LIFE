@@ -779,7 +779,7 @@ function switchMap(id,restored=false){
  drawMinimapBase();
  if(!restored){
   save();
-  if(id==='mine')game('Pica el metal. En el horno, Acuñar lo guarda como monedas en tu inventario. Estás en el Mundo '+(window.Vida?Vida.world():3)+'. Aquí se ven y pueden hablar quienes estén en este mismo mundo.');
+  if(id==='mine')game('Pica el metal. El baúl está junto al horno. En el horno, Acuñar lo guarda como monedas en tu inventario. Estás en el Mundo '+(window.Vida?Vida.world():3)+'. Aquí se ven y pueden hablar quienes estén en este mismo mundo.');
   else if(id==='city'&&prev==='mine')game('Sales de la mina y vuelves a Las Palmas.');
   else if(id==='casa'){ greetPet(); game('Estás en casa. Tu mascota te espera.'); }
   else if(id==='city'&&prev==='casa')game('Sales al <b>Parque de Envigado</b>. El botón Casa te devuelve a tu casa.');
@@ -1510,7 +1510,8 @@ function connect() {
     else if (m.t === 'seguir_aviso') { game(esc(m.text || ((m.from || 'Alguien') + ' te está siguiendo')), 'juego'); }
     else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { if (S.vistaLock) return; const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
-    else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else flyTo(m.x, m.y, m.name || 'ese lugar'); }
+    else if (m.t === 'baul') { if (window.Baul) Baul.onNet(m); }
+    else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else { flyTo(m.x, m.y, m.name || 'ese lugar'); if (m.id === 'mina' && DESTINO_IDS.has('mina')) nota('Mina de Las Palmas. Entra y abre el baúl.'); } }
     else if (m.t === 'chat') {
       const mine = m.fromId === S.net.id;
       addLine(m.channel, chatLine(m, mine));
@@ -1863,8 +1864,8 @@ function act(t) {
     game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro');
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
   } else if (d.type === 'mine_chest') {
-    if (window.Banco) Banco.openPanel();
-    nota('Tu depósito: casa, banco y este baúl');
+    if (window.Baul) Baul.open();
+    nota('Baúl de la mina');
     return;
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;
@@ -3055,7 +3056,7 @@ window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals()
  respawnHome: beginAtHome, paintInv: renderInv, remember: save, say: game, grant: addXp, giveItem: invAdd, holding: selected,
  showNote(title, text){ const box=$('#aviso'); if(!box)return; box.hidden=false; $('#aviso-titulo').textContent=title; $('#aviso-txt').textContent=text; },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
- enterBank(){ if(started) switchMap('banco'); },
+ enterBank(){ if(started) switchMap('banco'); }, takeItem: invRemove,
  interact(id){if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
