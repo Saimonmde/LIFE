@@ -18,6 +18,9 @@ export function buildMine(T,W){
  for(const d of map.nodes){const g=new T.Group();g.position.set(d.x*2+1,0,d.y*2+1);scene.add(g);const part=(geo,c,x,y,z,sx,sy,sz)=>{const m=new T.Mesh(geo,typeof c==='string'?mat(c):c);m.position.set(x,y,z);m.scale.set(sx,sy,sz);m.userData.id=d.id;g.add(m);pick.push(m);return m;};
   if(d.type==='mineral_rock'){part(rockGeo,'#5f503d',0,.8,0,1.25,1.1,1.1);const veins=[];for(let i=0;i<5;i++){const a=i*1.7;veins.push(part(rockGeo,colors[d.mineral],Math.sin(a)*1.03,1.25+(i%3)*.32,Math.cos(a)*1.03,.38,.2,.3));}resources.set(d.id,{g,veins});label(d.mineral.toUpperCase(),d.x*2+1,3.2,d.y*2+1,colors[d.mineral]);
    if(d.mineral==='oro'&&(d.y===3||d.x===3||d.x===32)){for(let i=0;i<4;i++)part(rockGeo,colors.oro,(i%2)*.7-.3,2+i*.4,-.6,.3,.13,.1);}
+  }else if(d.type==='mine_chest'){
+   part(boxGeo,'#6b4a2a',0,.55,0,1.5,.7,1.05);part(boxGeo,'#8a6238',0,1.05,0,1.55,.28,1.1);part(boxGeo,'#d9b25a',0,.72,0,.18,.55,1.12);part(boxGeo,'#efe0a8',0,.95,.42,.22,.16,.08);
+   label('BAÚL',d.x*2+1,2.3,d.y*2+1,'#f6e2a8');
   }else if(d.type==='furnace'){
    part(boxGeo,'#4e4034',0,.35,0,3.8,.7,3.4);part(boxGeo,'#80715e',-1.25,1.4,0,.65,2.3,2.8);part(boxGeo,'#80715e',1.25,1.4,0,.65,2.3,2.8);part(boxGeo,'#6c5944',0,2.65,0,3.3,.6,2.8);part(boxGeo,'#29201a',0,1.3,-1.2,2,2,.4);part(boxGeo,'#4f4539',.6,3.6,-.5,.9,1.6,1);
    const fire=new T.MeshBasicMaterial({color:'#ff8b28'});part(rockGeo,fire,0,.8,.3,.9,.4,.75);const light=new T.PointLight(0xff8a36,55,22,2);light.position.set(d.x*2+1,2,d.y*2+2);scene.add(light);resources.set(d.id,{fire,light});label('HORNO · FUNDIR / ACUÑAR',d.x*2+1,5.5,d.y*2+1);

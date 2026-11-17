@@ -152,6 +152,9 @@ html.movil #b-globo svg { width: 44px; height: 44px; }
 #aviso { position: fixed; z-index: 6; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(600px, 94vw); padding: 10px 16px; text-align: center; font-size: 15px; line-height: 1.35;
   background: linear-gradient(180deg, #e9dcb8, #d4c294); color: #2a1a0c; border: 3px solid #6b4a26; border-radius: 6px; box-shadow: 0 0 0 2px #2a1a0c, 0 4px 10px rgba(0,0,0,.5); pointer-events: none; }
 #aviso .titulo { color: #1f3f9a; font-weight: 700; font-size: 17px; margin-bottom: 2px; }
+#toasts { position: fixed; z-index: 8; left: 50%; bottom: 108px; transform: translateX(-50%); width: min(260px, 84vw); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+#toasts p { margin: 0; padding: 6px 10px; background: rgba(28, 20, 12, .92); border: 1px solid #b48a46; border-radius: 6px; color: #fff6df; font: 600 14px/1.3 system-ui, sans-serif; text-align: center; }
+@media (max-width: 600px) { #toasts { bottom: 128px; width: min(220px, 78vw); } #toasts p { font-size: 13px; padding: 5px 8px; } }
 #objetivo { left: 290px; top: 92px; max-width: 330px; padding: 10px 14px; background: rgba(40,28,16,.82); border: 2px solid #b48a46; border-radius: 6px; color: #ffb648; text-align: center; font-size: 15px; line-height: 1.35; white-space: pre-line; pointer-events: none; text-shadow: 1px 1px 0 #000; }
 #objetivo.parpadeo { animation: brillo 1s ease-in-out 3; } @keyframes brillo { 50% { box-shadow: 0 0 14px 4px #ffd24a; } }
 #tooltip { position: fixed; z-index: 9; pointer-events: none; background: rgba(20,14,8,.92); border: 1px solid #b48a46; padding: 3px 8px; border-radius: 4px; font-size: 13px; white-space: nowrap; }

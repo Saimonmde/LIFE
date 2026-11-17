@@ -1512,34 +1512,23 @@ def withdraw_smp(sender, sph):
     save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
 
 
-def deposit_item(sender, item, qty):
-    if not wallet_ready(sender):
-        return
-    item = clean(item, 32)
-    try:
-        qty = int(qty)
-    except (TypeError, ValueError):
-        qty = 0
-    if not item or qty < 1 or qty > 999:
-        return
-    VAULT.add_item(VAULT.account(VAULT_STATE, sender.name), item, qty)
-    save_vault()
-    send(sender, {'t': 'vault_item', 'op': 'deposit', 'item': item, 'qty': qty})
-    vault_for(sender)
+def deposit_item(sender, item, qty, token=''):
+    _mover_baul(sender, 'deposit', item, qty, token)
 
-def withdraw_item(sender, item, qty):
+def withdraw_item(sender, item, qty, token=''):
+    _mover_baul(sender, 'withdraw', item, qty, token)
+
+def _mover_baul(sender, op, item, qty, token=''):
+    """El baúl de la mina, el de la casa y el banquito usan la cuenta de quien está en sesión."""
     if not wallet_ready(sender):
         return
-    item = clean(item, 32)
-    try:
-        qty = int(qty)
-    except (TypeError, ValueError):
-        qty = 0
-    box = VAULT.account(VAULT_STATE, sender.name)
-    if not item or qty < 1 or not VAULT.take_item(box, item, qty):
-        return send(sender, {'t': 'system', 'text': 'El depósito no tiene esa cantidad.'})
-    save_vault()
-    send(sender, {'t': 'vault_item', 'op': 'withdraw', 'item': item, 'qty': qty})
+    import baul as BAUL
+    result = BAUL.mover(VAULT_STATE, sender.name, op, item, qty, token)
+    if not result.get('ok'):
+        return send(sender, {'t': 'system', 'text': result.get('reason') or 'No se movió nada.'})
+    if not result.get('dup'):
+        save_vault()
+        send(sender, {'t': 'vault_item', 'op': op, 'item': result['item'], 'qty': result['qty']})
     vault_for(sender)
 
 clients = {}      # id -> Client
@@ -1859,6 +1848,7 @@ def meet_point(target):
 def room_shift(c, old_world, old_place):
     """Quien sale de la ciudad deja de verse. En la misma ciudad, se mueve aunque cambie de parque."""
     previous = _Spot(old_world, old_place)
+    moved = False
     for other in list(clients.values()):
         if other is c or not other.hello:
             continue
@@ -1869,12 +1859,84 @@ def room_shift(c, old_world, old_place):
         elif after and not before:
             send(other, {'t': 'join', 'player': c.public()})
         elif after:
-            sx, sy = (round(x, 2) for x in (_mine_xy(c) if getattr(c, 'zone', 'city') == 'mine' else (c.x, c.y)))
-            send(other, {'t': 'move', 'id': c.id, 'x': sx, 'y': sy,
-                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': getattr(c, 'zone', 'city') or 'city',
-                         'pace': getattr(c, 'pace', '') or ('caminando' if c.moving else 'quieto')})
+            moved = True
+    if moved:
+        emit_pose(c, force=True)
     if old_world != c.world or old_place != c.place:
         broadcast(presence_msg())
+
+NODO_STATE = None
+
+def nodo_state():
+    global NODO_STATE
+    if NODO_STATE is None:
+        import nodos as NODOS
+        NODO_STATE = NODOS.empty()
+    return NODO_STATE
+
+def pose_msg(c):
+    zone = getattr(c, 'zone', 'city') or 'city'
+    if zone == 'mine':
+        x, y = _mine_xy(c)
+    else:
+        x, y = c.x, c.y
+    return {
+        't': 'move', 'id': c.id, 'x': round(float(x), 2), 'y': round(float(y), 2),
+        'dir': c.dir, 'moving': bool(c.moving), 'level': c.level, 'zone': zone,
+        'pace': getattr(c, 'pace', '') or ('caminando' if c.moving else 'quieto'),
+        'name': c.name, 'nick': visible_nick(c), 'color': c.color,
+    }
+
+def emit_pose(c, force=False, now=None):
+    if not c.hello:
+        return
+    now = time.time() if now is None else now
+    if c.moving and now - float(getattr(c, 'move_at', now) or now) > 1.2:
+        c.moving = False
+    body = pose_msg(c)
+    key = (body['x'], body['y'], body['dir'], body['moving'], body['zone'], body['pace'], c.world, c.place)
+    if not force and getattr(c, '_pose_key', None) == key:
+        return
+    c._pose_key = key
+    broadcast(body, who=lambda o, me=c: MUNDOS.same_sight(me, o), exclude=c)
+
+def broadcast_motion(now=None):
+    now = time.time() if now is None else now
+    for person in list(clients.values()):
+        if person.hello and not person.bot:
+            emit_pose(person, now=now)
+    import nodos as NODOS
+    state = nodo_state()
+    for row in NODOS.revive(state, now):
+        broadcast({'t': 'nodo', 'id': row['id'], 'until': now, 'world': row['world'], 'back': True},
+                  who=lambda o, world=row['world']: o.world == world)
+
+def soltar_veta(person):
+    import nodos as NODOS
+    NODOS.release_player(nodo_state(), person.id, time.time())
+
+def _veta(sender, spot):
+    """Aparta la veta. None si no es una veta controlada. False si no puede picarla."""
+    import nodos as NODOS
+    spot = str(spot or '')[:40]
+    if not spot:
+        return None
+    result = NODOS.claim(nodo_state(), sender.world, spot, sender.id, time.time(), WORLD.get('nodes') or [])
+    if not result.get('tracked'):
+        return None
+    if result.get('ok'):
+        return spot
+    reason = {'ocupado': 'Esa veta está ocupada.', 'una': 'Ya picas otra veta.', 'agotada': 'Esa veta está en descanso.'}.get(result.get('reason'), 'Esa veta está ocupada.')
+    send(sender, {'t': 'veta', 'ok': False, 'reason': reason, 'spot': spot})
+    return False
+
+def _cerrar_veta(sender, spot):
+    import nodos as NODOS
+    until = NODOS.finish(nodo_state(), sender.world, spot, sender.id, time.time(), WORLD.get('nodes') or [])
+    if until is None:
+        return
+    broadcast({'t': 'nodo', 'id': spot, 'until': until, 'world': sender.world},
+              who=lambda o, world=sender.world: o.world == world)
 
 def refresh_social(c, other_key=None):
     send(c, {'t': 'social', 'social': SOCIAL.friend_view(VIDA, c.identity, ACCOUNTS, clients.values())})
@@ -2123,6 +2185,7 @@ async def handle_ws(reader, writer, cookie='', ip=''):
         TRADES.cancel(c.id, 'Intercambio cancelado por desconexión.')
         clients.pop(c.id, None)
         if c.hello:
+            soltar_veta(c)
             broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_sight(c, o))
             broadcast(presence_msg())
         try: writer.close()
@@ -2315,6 +2378,8 @@ def handle_client_message(c, m, t):
         welcome['presence'] = presence_msg()
         welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
         welcome['fauna'] = fauna_packet(c.name)
+        import nodos as NODOS
+        welcome['nodos'] = NODOS.cooling(nodo_state(), c.world, time.time())
         send(c, welcome)
         if MUNDOS.outdoors(c):
             broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
@@ -2380,6 +2445,23 @@ def handle_client_message(c, m, t):
         send(c, {'t': 'seguir_result', 'ok': True, 'id': 0})
     elif t == 'cerca' and c.hello:
         send(c, {'t': 'cerca', 'players': city_peers(c)})
+    elif t == 'nodos' and c.hello:
+        import nodos as NODOS
+        send(c, {'t': 'nodos', 'world': c.world, 'nodes': NODOS.cooling(nodo_state(), c.world, time.time())})
+    elif t == 'gesto' and c.hello:
+        kind = str(m.get('kind') or '')
+        if kind not in ('toque', 'sostener', 'picar'):
+            return
+        now_g = time.time()
+        if now_g - float(getattr(c, 'gesto_at', 0) or 0) < 0.08:
+            return
+        c.gesto_at = now_g
+        try:
+            gx, gy = round(float(m.get('x')), 2), round(float(m.get('y')), 2)
+        except (TypeError, ValueError):
+            gx, gy = pose_msg(c)['x'], pose_msg(c)['y']
+        broadcast({'t': 'gesto', 'id': c.id, 'kind': kind, 'x': gx, 'y': gy, 'dir': c.dir, 'zone': getattr(c, 'zone', 'city') or 'city'},
+                  who=lambda o, me=c: MUNDOS.same_sight(me, o), exclude=c)
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
@@ -2395,6 +2477,7 @@ def handle_client_message(c, m, t):
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
             c.zone = zone
+            soltar_veta(c)
             c.pace = 'casa' if zone == 'casa' else getattr(c, 'pace', '') or 'quieto'
             c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
             if (old_world, old_place) != (c.world, c.place):
@@ -2406,6 +2489,8 @@ def handle_client_message(c, m, t):
         if nx != nx or ny != ny: return
         came_from = c.zone
         if came_from != 'city':
+            if came_from == 'mine':
+                soltar_veta(c)
             back = (getattr(c, 'city_x', None), getattr(c, 'city_y', None))
             if not VIAJES.portal_arrival(came_from, nx, ny, back):
                 return correct_move(c)
@@ -2493,11 +2578,18 @@ def handle_client_message(c, m, t):
         swing_for(c, m.get('mineral'), m.get('qty'))
     elif t == 'recoger' and c.hello:
         item = str(m.get('item') or '')
+        spot = _veta(c, m.get('spot'))
+        if spot is False:
+            return
         if recibir(c, item, m.get('qty'), m.get('kind') or 'recoger'):
-            send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0)})
+            if spot:
+                _cerrar_veta(c, spot)
+            send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0), 'spot': spot or ''})
             if item == 'mineral_cobre' and oro_agotado(c):
                 send(c, {'t': 'system', 'text': SUP.COPPER_NOTE})
                 mint_cobre_for(c)
+        elif spot:
+            soltar_veta(c)
     elif t == 'mochila_op' and c.hello:
         mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:
@@ -2541,9 +2633,9 @@ def handle_client_message(c, m, t):
         except (TypeError, ValueError, ECO.AmountError):
             send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
     elif t == 'deposit_item' and c.hello:
-        deposit_item(c, m.get('item'), m.get('qty'))
+        deposit_item(c, m.get('item'), m.get('qty'), m.get('op'))
     elif t == 'withdraw_item' and c.hello:
-        withdraw_item(c, m.get('item'), m.get('qty'))
+        withdraw_item(c, m.get('item'), m.get('qty'), m.get('op'))
     elif t == 'finca' and c.hello:
         finca_msg(c, m)
     elif t == 'world_edit' and c.hello:
@@ -3374,6 +3466,14 @@ async def main():
             except Exception:
                 pass
     asyncio.create_task(fauna_loop())
+    async def motion_loop():
+        while True:
+            await asyncio.sleep(0.1)
+            try:
+                broadcast_motion()
+            except Exception:
+                pass
+    asyncio.create_task(motion_loop())
     async def _serve(srv):
         async with srv:
             await srv.serve_forever()

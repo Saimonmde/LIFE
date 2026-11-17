@@ -495,7 +495,10 @@ function bankItem(dir, item, qty) {
       if (window.avisarMochilaLlena) window.avisarMochilaLlena();
       return;
     }
-    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty }));
+    if (api.S.vaultBusy) return;
+    api.S.vaultBusy = true;
+    setTimeout(() => { api.S.vaultBusy = false; }, 700);
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty, op: dir + ':' + item + ':' + qty + ':' + Math.floor(performance.now()) }));
     return;
   }
   const box = localVault();
