@@ -999,7 +999,25 @@ def _devolver_crudo(account, spent):
             CRUDO.credit(ECON, account, item, amount, cap=max(amount, 1))
 
 
-def acunar_ladera(sender, coin, pieces, proof=None):
+def _acunar_fisica(sender, profile, hecho):
+    view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
+    view['historia'] = HISTORIA.filas(ECON)
+    save_econ()
+    save_vault()
+    send(sender, {
+        't': 'acunar_result', 'ok': True, 'fisica': True,
+        'coin': hecho.get('coin'), 'name': hecho.get('name'),
+        'spent': hecho.get('gastados'), 'spentItems': hecho.get('spent') or {},
+        'fuente': hecho.get('fuente') or '',
+        'recibes': hecho.get('qty'), 'registro': None,
+        'moneda': {'item': hecho['item'], 'qty': hecho['qty'], 'total': hecho.get('total')},
+        'walletName': sender.name, 'reason': hecho.get('reason'),
+        'ledger': view, 'cupos': cupos_public(profile, getattr(sender, 'zone', '')),
+        'crudo': {item: CRUDO.nuggets(ECON, profile['account'], item) for item in CRUDO.CAPS},
+    })
+
+
+def acunar_ladera(sender, coin, pieces, proof=None, fuente=''):
     """El horno de La Ladera. Misma ventanilla, tasas de esta mina, un solo cupo."""
     import mina_ladera as LADERA
     if not LADERA.junto(getattr(sender, 'zone', ''), getattr(sender, 'zx', None), getattr(sender, 'zy', None)):
@@ -1021,6 +1039,15 @@ def acunar_ladera(sender, coin, pieces, proof=None):
         pieces = 0
     if pieces <= 0:
         return _acunar_fail(sender, 'Elige el mineral que quieres fundir.', 'metal')
+    if metal in ('plata', 'cobre'):
+        import piezas as PIEZAS
+        if str(fuente or '') == 'lingote':
+            hecho = PIEZAS.acuñar_lingote(VAULT_STATE, sender.name, metal, pieces)
+        else:
+            hecho = PIEZAS.acuñar_crudo(ECON, VAULT_STATE, account, sender.name, metal, pieces)
+        if not hecho.get('ok'):
+            return _acunar_fail(sender, hecho.get('reason') or 'No se acuñó.', 'metal')
+        return _acunar_fisica(sender, profile, hecho)
     items = CRUDO.items_for(coin)
     if CRUDO.total(ECON, account, items) + 1e-9 < pieces:
         return _acunar_fail(sender, 'No hay suficiente mineral en la cuenta.', 'metal')
@@ -1111,9 +1138,9 @@ def _acunar_listo(sender, profile, coin, pieces, kept_smh, spent, reason):
     })
 
 
-def acunar_for(sender, coin, pieces, proof=None):
+def acunar_for(sender, coin, pieces, proof=None, fuente=''):
     if getattr(sender, 'zone', '') == 'mina2':
-        return acunar_ladera(sender, coin, pieces, proof)
+        return acunar_ladera(sender, coin, pieces, proof, fuente)
     coin = str(coin or '')
     if 'lingote' in coin or coin in ('ingot', 'ingots'):
         reason = 'Los lingotes no se acuñan en esta ventanilla.'
@@ -1167,7 +1194,15 @@ def acunar_for(sender, coin, pieces, proof=None):
         got = granted / ECO.SUBS
         sender.registro = pub
     elif coin in ('simonplata', 'simonchis'):
-        return _acunar_fail(sender, 'Esa moneda ya no se acuña. El horno sólo entrega Simoncoin.', 'cerrada')
+        import piezas as PIEZAS
+        metal = 'plata' if coin == 'simonplata' else 'cobre'
+        if str(fuente or '') == 'lingote':
+            hecho = PIEZAS.acuñar_lingote(VAULT_STATE, sender.name, metal, pieces)
+        else:
+            hecho = PIEZAS.acuñar_crudo(ECON, VAULT_STATE, profile['account'], sender.name, metal, pieces)
+        if not hecho.get('ok'):
+            return _acunar_fail(sender, hecho.get('reason') or 'No se acuñó.', 'metal')
+        return _acunar_fisica(sender, profile, hecho)
     else:
         return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
     done = TOPES.cotizar(quote['gastas'], row['rate'], got, got, quote['gastas'], whole=whole)
@@ -1290,6 +1325,78 @@ def fundir_simonplata(sender, ore, batches, proof):
     elif result and result.get('ok'):
         send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
+def canjear_for(sender, item, qty):
+    import piezas as PIEZAS
+    item = str(item or '')
+    metal = 'plata' if item == 'moneda_plata' else 'cobre' if item == 'moneda_cobre' else ''
+    if not metal:
+        return send(sender, {'t': 'canjear_result', 'ok': False, 'reason': 'Esa moneda no se cambia por Simoncoin.'})
+    if not wallet_ready(sender):
+        return send(sender, {'t': 'canjear_result', 'ok': False, 'reason': 'Esta billetera se creó en otro aparato.'})
+    try:
+        pedido = int(qty or 0)
+    except (TypeError, ValueError):
+        pedido = 0
+    pedido_smh = PIEZAS.smh_de(metal, pedido)
+    cupo = min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN))
+    if pedido_smh < 1:
+        return send(sender, {'t': 'canjear_result', 'ok': False, 'reason': 'Con esa cantidad no llega a 0,01 SMC. Las monedas siguen en el inventario.'})
+    if pedido_smh > cupo:
+        return send(sender, {'t': 'canjear_result', 'ok': False, 'reason': 'No cabe más Simoncoin. El tope es 21.000.000. Las monedas siguen en el inventario.'})
+    plan = PIEZAS.preparar_canje(VAULT_STATE, sender.name, metal, pedido)
+    if not plan.get('ok'):
+        return send(sender, {'t': 'canjear_result', 'ok': False, 'reason': plan.get('reason')})
+    granted, _token, pub = emitir(
+        sender, plan['smh'], 'Canje de %s por Simoncoin' % plan['name'], 'fundicion',
+        'fundidora', 'horno', 'Horno', claimed=False,
+    )
+    if granted < plan['smh']:
+        if granted > 0:
+            revert_issue(sender.name, granted)
+        PIEZAS.devolver_canje(VAULT_STATE, sender.name, plan['item'], plan['qty'])
+        save_vault()
+        save_econ()
+        return send(sender, {'t': 'canjear_result', 'ok': False, 'reason': 'No cabe más Simoncoin. El tope es 21.000.000. Las monedas siguen en el inventario.'})
+    save_vault()
+    save_econ()
+    nota = 'Se canjeó por %s. El libro mayor sólo anota ese Simoncoin.' % ECO.format_smc(granted)
+    send(sender, {'t': 'canjear_result', 'ok': True, 'item': plan['item'], 'qty': plan['qty'], 'amountText': ECO.format_smc(granted), 'registro': pub, 'reason': nota})
+
+
+def _avisar_piso(zone):
+    import suelta as SUELTA
+    rows = SUELTA.publicos(ECON, zone, time.time())
+    broadcast({'t': 'piso', 'drops': rows}, who=lambda c: getattr(c, 'zone', '') == zone)
+
+
+def soltar_for(sender, message):
+    import suelta as SUELTA
+    account = _cuenta(sender)
+    hecho = SUELTA.soltar(
+        ECON, VAULT_STATE, account, sender.name, message.get('item'), message.get('qty'),
+        getattr(sender, 'x', 0) or 0, getattr(sender, 'y', 0) or 0, getattr(sender, 'zone', 'city'),
+        token=str(message.get('token') or ''),
+    )
+    if hecho.get('ok') and not hecho.get('dup'):
+        save_econ()
+        save_vault()
+        _avisar_piso(getattr(sender, 'zone', 'city'))
+    send(sender, {'t': 'soltar_result', **{k: hecho.get(k) for k in ('ok', 'reason', 'donde', 'dup')}, 'drop': hecho.get('drop')})
+
+
+def alzar_for(sender, drop_id):
+    import suelta as SUELTA
+    hecho = SUELTA.alzar(
+        ECON, VAULT_STATE, sender.name, drop_id,
+        getattr(sender, 'x', 0) or 0, getattr(sender, 'y', 0) or 0, getattr(sender, 'zone', 'city'),
+    )
+    if hecho.get('ok'):
+        save_econ()
+        save_vault()
+        _avisar_piso(getattr(sender, 'zone', 'city'))
+    send(sender, {'t': 'alzar_result', **hecho})
+
+
 def smelt_for(sender, ore, batches, proof=None, mode=None):
     if getattr(sender, 'zone', '') == 'mina2':
         return _smelt_fail(sender, 'En La Ladera se acuña desde el horno, con Acuñar.')
@@ -1306,24 +1413,19 @@ def smelt_for(sender, ore, batches, proof=None, mode=None):
         return _smelt_fail(sender, 'Esta billetera se creó en otro aparato.')
     mode = str(mode or 'simoncoin')
     if mode in ('simonchis', 'simonplata'):
-        piezas = int(recipe[0]) * int(batches)
-        smh = piezas if mode == 'simonplata' else piezas // 10
-        if smh <= 0:
-            return _smelt_fail(sender, 'Con esa cantidad no llega a 0,01 Simoncoin.')
+        import piezas as PIEZAS
+        metal = 'plata' if mode == 'simonplata' else 'cobre'
         account = _cuenta(sender)
-        spent = CRUDO.debit(ECON, account, (ore,), piezas) if account else None
-        if spent is None:
-            return _smelt_fail(sender, 'No hay suficiente mineral en la cuenta. No se acuñó nada.')
-        granted, _token, _pub = emitir(
-            sender, smh, 'Acuñación de Simoncoin en el horno', 'fundicion',
-            'fundidora', 'horno_cantera', 'Fundidora de la cantera',
-        )
-        if granted <= 0:
-            for item, qty in spent.items():
-                CRUDO.credit(ECON, account, item, qty, cap=max(int(qty), 1))
-            return _smelt_fail(sender, 'No cabe más Simoncoin. El tope es 21.000.000.')
-        note = f'Se acuñó {ECO.format_smc(granted)}.'
-        send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simoncoin', 'ore': ore, 'batches': batches, 'amountText': ECO.format_smc(granted), 'reason': note})
+        hecho = PIEZAS.acuñar_crudo(ECON, VAULT_STATE, account, sender.name, metal, int(recipe[0]) * int(batches))
+        if not hecho.get('ok'):
+            return _smelt_fail(sender, hecho.get('reason') or 'No se acuñó la moneda.')
+        save_vault()
+        save_econ()
+        send(sender, {
+            't': 'smelt_result', 'ok': True, 'fisica': True, 'mode': mode,
+            'item': hecho['item'], 'qty': hecho['qty'], 'ore': ore, 'batches': batches,
+            'reason': hecho['reason'],
+        })
         return
     context = f'{ore}:{batches}'
     piezas = int(recipe[0]) * int(batches)
@@ -3025,9 +3127,15 @@ def handle_client_message(c, m, t):
         pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
     elif t == 'acunar' and c.hello:
         try:
-            acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'))
+            acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'), m.get('fuente'))
         except Exception:
             send(c, {'t': 'acunar_result', 'ok': False, 'reason': 'No se pudo acuñar. No se creó ninguna moneda nueva.', 'code': 'error'})
+    elif t == 'canjear' and c.hello:
+        canjear_for(c, m.get('item'), m.get('qty'))
+    elif t == 'soltar' and c.hello:
+        soltar_for(c, m)
+    elif t == 'alzar' and c.hello:
+        alzar_for(c, m.get('id'))
     elif t == 'smelt' and c.hello:
         smelt_for(c, m.get('ore'), m.get('batches'), m.get('proof'), m.get('mode'))
     elif t == 'lingote' and c.hello:

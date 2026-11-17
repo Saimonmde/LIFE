@@ -842,7 +842,7 @@ function prepareMining(){
 }
 let furnaceNode=null;
 function setupMiningUI(){
- const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El horno acuña sólo Simoncoin. No se puede pasar de 21.000.000.</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
+ const panel=document.createElement('section');panel.id='furnace-panel';panel.className='ventana';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Horno de fundición');panel.innerHTML='<header>Horno de la cantera <button id="furnace-close" aria-label="Cerrar horno">×</button></header><div class="forge-content"><p>El oro entra al libro como Simoncoin, hasta 21.000.000. La plata y el cobre quedan como monedas en el inventario.</p><ul id="forge-recipes"></ul><div id="forge-pair" class="forge-outputs"></div><label>Mineral<select id="forge-ore"></select></label><div id="forge-stock"></div><label>Lotes <input id="forge-batches" type="number" min="1" step="1" value="1"></label><div class="forge-presets"><button id="forge-one" type="button">1 lote</button><button id="forge-all" type="button">Máximo</button></div><p id="forge-preview" aria-live="polite"></p><div id="forge-progress" hidden><div id="forge-progress-bar"></div><p id="forge-progress-label">Fundiendo…</p></div><div class="forge-actions"><button id="forge-coin" type="button">Acuñar monedas</button><button id="forge-coins" class="forge-mint" type="button"><img src="../graphics/mining/moneda_oro.svg?v=vidrio-r1" alt=""> Acuñar SMC</button></div><p id="forge-result" role="status"></p><p id="forge-made"></p></div>';document.body.append(panel);
  for(const [id,r] of Object.entries(MiningRules.recipes)){const o=document.createElement('option');o.value=id;o.textContent=W.items[id].name;$('#forge-ore').append(o);}
  $('#furnace-close').onclick=()=>panel.hidden=true;
  $('#forge-ore').onchange=$('#forge-batches').oninput=renderForge;
@@ -877,7 +877,7 @@ function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value
  const coinBtn=$('#forge-coin'); if(coinBtn) coinBtn.hidden=true;
  const metal=r.metal;
  const mintMode=metal==='plata'?'simonplata':metal==='cobre'?'simonchis':'simoncoin';
- const mintLabels={simoncoin:'Acuñar Simoncoin',simonplata:'Acuñar Simoncoin',simonchis:'Acuñar Simoncoin'};
+ const mintLabels={simoncoin:'Acuñar Simoncoin',simonplata:'Acuñar moneda de plata',simonchis:'Acuñar moneda de cobre'};
  const mintName='Simoncoin';
  mint.dataset.mode=mintMode;
  mint.classList.toggle('forge-mint',true);
@@ -889,7 +889,7 @@ function renderForge(){if(!$('#forge-ore'))return;const id=$('#forge-ore').value
    else if(!valid){
      const have=invCount(id);
      why.textContent=`Faltan minerales de ${r.name.toLowerCase()}. Hacen falta ${r.ore} y tienes ${have}.`;
-   }else why.textContent=`Acuñar ${mintName} gasta el mineral y guarda las monedas en el servidor. Si ya se llegó al máximo, no se crea ni una más.`;
+   }else if(mintMode==='simoncoin')why.textContent=`Acuñar ${mintName} gasta el mineral y lo anota en el libro mayor. Si ya se llegó al máximo, no se crea ni una más.`;else why.textContent='La moneda queda en el inventario, en Monedas acuñadas. El libro mayor no la anota.';
  }
  if($('#forge-made'))$('#forge-made').textContent=forgeBagLine();
 }
@@ -1173,7 +1173,7 @@ function renderInv() {
     const s = i<SLOTS?S.inv[i]:null; const d = document.createElement('div');
     if(s)d.setAttribute('role','button'); d.tabIndex=s?0:-1;
     d.className = 'slot' + (s ? '' : ' vacio') + (i === S.sel ? ' sel' : '');
-    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = itemImg(it, s.qty) + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil)return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; }
+    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = itemImg(it, s.qty) + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil||Date.now()<(window.__fichaHold||0))return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; if(window.Objeto){Objeto.atar(d,s.item,s.qty);if(window.__bagGrupo&&Objeto.grupo(s.item)!==window.__bagGrupo)d.classList.add('fuera');} }
     el.appendChild(d);
   }
   updateBagMode();
@@ -1184,7 +1184,8 @@ function renderInv() {
     const s = S.inv[i]; const d = document.createElement('div'); d.className = 'hs' + (i === S.sel ? ' sel' : '');
     d.innerHTML = `<span class="k">${(i + 1) % 10}</span>` + (s ? itemImg(W.items[s.item], s.qty) + `<span class="n">${W.items[s.item].stackable ? s.qty : ''}</span>` : '');
     if (s) { d.title = W.items[s.item].name; d.onpointerenter=e=>showItemTip(W.items[s.item], s.qty, e); d.onpointerleave=hideItemTip; }
-    d.onclick = () => { if (S.inv[i]) { S.sel = S.sel === i ? -1 : i; renderInv(); } };
+    if (s && window.Objeto) Objeto.atar(d, s.item, s.qty);
+    d.onclick = () => { if (Date.now()<(window.__fichaHold||0)) return; if (S.inv[i]) { S.sel = S.sel === i ? -1 : i; renderInv(); } };
     hb.appendChild(d);
   }
   $('#bolsa').textContent = `${S.inv.filter(Boolean).length}/${SLOTS}`; if ($('#monedas')) $('#monedas').textContent = '0';
@@ -1528,6 +1529,7 @@ function connect() {
     else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { if (S.vistaLock) return; const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
     else if (m.t === 'baul') { if (window.Baul) Baul.onNet(m); }
+    else if (window.Objeto && Objeto.onNet(m)) { /* ficha, soltar y piso */ }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else { flyTo(m.x, m.y, m.name || 'ese lugar'); if (m.id === 'mina' && DESTINO_IDS.has('mina')) nota('Mina de Las Palmas. Entra y abre el baúl.'); } }
     else if (m.t === 'chat') {
       const mine = m.fromId === S.net.id;
@@ -3108,7 +3110,7 @@ window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals()
  showNote(title, text){ const box=$('#aviso'); if(!box)return; box.hidden=false; $('#aviso-titulo').textContent=title; $('#aviso-txt').textContent=text; },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
  enterBank(){ if(started) switchMap('banco'); }, takeItem: invRemove,
- interact(id){if(typeof id==='string'&&id.indexOf('mata:')===0){if(window.Finca)Finca.cosecharCerca(id.slice(5));return;}if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
+ interact(id){if(typeof id==='string'&&id.indexOf('piso:')===0){if(window.Objeto)Objeto.alzar(id.slice(5));return;}if(typeof id==='string'&&id.indexOf('mata:')===0){if(window.Finca)Finca.cosecharCerca(id.slice(5));return;}if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
 function autotest() {

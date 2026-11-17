@@ -25,6 +25,10 @@ LINGOTE = {
     'lingote_plata': 'Lingote de plata',
     'lingote_cobre': 'Lingote de cobre',
 }
+MONEDA = {
+    'moneda_plata': 'Moneda de plata',
+    'moneda_cobre': 'Moneda de cobre',
+}
 RECURSO = {
     'madera': 'Madera',
     'bolsa_cafe': 'Café',
@@ -418,7 +422,7 @@ def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=
         if extra > 0:
             carried[key] = int(carried.get(key) or 0) + extra
     order = []
-    for key in list(MINERAL) + list(LINGOTE) + list(RECURSO):
+    for key in list(MINERAL) + list(LINGOTE) + list(MONEDA) + list(RECURSO):
         if key not in order:
             order.append(key)
     for key in list(carried) + list(stored):
@@ -434,13 +438,15 @@ def vista(state, econ, name, bultos_encima=None, bultos_baul=None, crudo_encima=
             grupo = 'mineral'
         elif key in LINGOTE:
             grupo = 'lingote'
+        elif key in MONEDA:
+            grupo = 'moneda'
         elif key in MIRROR:
             grupo = 'cosecha'
         else:
             grupo = 'recurso'
         filas.append({
             'id': key,
-            'name': MINERAL.get(key) or LINGOTE.get(key) or RECURSO.get(key) or key,
+            'name': MINERAL.get(key) or LINGOTE.get(key) or MONEDA.get(key) or RECURSO.get(key) or key,
             'grupo': grupo,
             'encima': encima,
             'baul': en_baul,

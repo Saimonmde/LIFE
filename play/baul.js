@@ -80,6 +80,8 @@
       lingote_oro: barra('#f0c14a'),
       lingote_plata: barra('#e4ebf2'),
       lingote_cobre: barra('#d08a52'),
+      moneda_plata: '<svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="16" fill="#9aa6b2"/><circle cx="32" cy="30" r="16" fill="#e8eef4" stroke="#5c6770" stroke-width="3"/><text x="32" y="36" text-anchor="middle" font-size="14" font-family="sans-serif" font-weight="700" fill="#3a4450">Ag</text></svg>',
+      moneda_cobre: '<svg viewBox="0 0 64 64"><circle cx="32" cy="34" r="16" fill="#8a4a22"/><circle cx="32" cy="30" r="16" fill="#d08a52" stroke="#6a3014" stroke-width="3"/><text x="32" y="36" text-anchor="middle" font-size="14" font-family="sans-serif" font-weight="700" fill="#4a2410">Cu</text></svg>',
       bolsa_cafe: saco('#6f4e37'),
       bolsa_cacao: saco('#c4a574'),
     };
@@ -102,14 +104,30 @@
     for (let i = llenas; i < meta; i++) html += '<span class="casilla vacia" aria-hidden="true"></span>';
     return html;
   }
+  function grupoDe(row) {
+    if (row.kind === 'smc') return 'Simoncoin';
+    const id = row.id || '';
+    if (id.indexOf('mineral_') === 0 || id.indexOf('pepita_') === 0 || id === 'piedra') return 'Minerales';
+    if (id.indexOf('lingote_') === 0) return 'Lingotes';
+    if (id === 'moneda_plata' || id === 'moneda_cobre') return 'Monedas acuñadas';
+    if (id === 'bolsa_cafe' || id === 'bolsa_cacao') return 'Cosechas';
+    return 'Otros';
+  }
   function lado(which, textoSmc, filas) {
     const celdas = [{ kind: 'smc', id: 'smc', name: 'Simoncoin', texto: textoSmc, lado: which }];
     for (const row of filas) {
       const qty = which === 'encima' ? row.encima : row.baul;
       if (qty > 0) celdas.push({ kind: 'item', id: row.id, name: row.name, qty: qty, lado: which });
     }
+    const orden = ['Simoncoin', 'Minerales', 'Lingotes', 'Monedas acuñadas', 'Cosechas', 'Otros'];
+    let html = '';
+    orden.forEach((nombre) => {
+      const grupo = celdas.filter((row) => grupoDe(row) === nombre);
+      if (!grupo.length) return;
+      html += '<p class="casilla-grupo">' + nombre + '</p>' + grupo.map(casilla).join('');
+    });
     const titulo = which === 'encima' ? 'Encima' : 'Baúl';
-    return '<section class="rejilla-lado"><h3>' + titulo + '</h3><div class="casillas">' + celdas.map(casilla).join('') + huecos(celdas.length) + '</div></section>';
+    return '<section class="rejilla-lado"><h3>' + titulo + '</h3><div class="casillas">' + html + huecos(celdas.length) + '</div></section>';
   }
   function paint(view) {
     const root = document.getElementById('baul-cuerpo');

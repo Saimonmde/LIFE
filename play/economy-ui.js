@@ -12,7 +12,7 @@
     'libro', 'xp', 'wallet', 'libro_mayor',
   ]);
   const METALES = ['pepita_oro', 'mineral_oro', 'mineral_plata', 'mineral_cobre'];
-  const GRUPOS = ['Simoncoin', 'Minerales', 'Lingotes', 'Cosechas', 'Otros'];
+  const GRUPOS = ['Simoncoin', 'Minerales', 'Lingotes', 'Monedas acuñadas', 'Cosechas', 'Otros'];
   const CONOCIDOS = {
     pepita_oro: { name: 'Pepita de oro', cat: 'Minerales', icon: 'graphics/icons/64/pepita_oro.png' },
     mineral_oro: { name: 'Oro crudo', cat: 'Minerales', icon: 'graphics/mining/mineral_oro.svg' },
@@ -21,6 +21,8 @@
     lingote_oro: { name: 'Lingote de oro', cat: 'Lingotes', icon: 'graphics/mining/lingote_oro.svg' },
     lingote_plata: { name: 'Lingote de plata', cat: 'Lingotes', icon: 'graphics/mining/lingote_plata.svg' },
     lingote_cobre: { name: 'Lingote de cobre', cat: 'Lingotes', icon: 'graphics/mining/lingote_cobre.svg' },
+    moneda_plata: { name: 'Moneda de plata', cat: 'Monedas acuñadas', icon: 'graphics/mining/moneda_plata.svg' },
+    moneda_cobre: { name: 'Moneda de cobre', cat: 'Monedas acuñadas', icon: 'graphics/mining/moneda_cobre.svg' },
     bolsa_cafe: { name: 'Café', cat: 'Cosechas', icon: 'graphics/ui/bolsa.png' },
     bolsa_cacao: { name: 'Cacao', cat: 'Cosechas', icon: 'graphics/ui/bolsa.png' },
   };

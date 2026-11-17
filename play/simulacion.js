@@ -862,6 +862,15 @@ function onNet(m) {
     api.S.pendingSmelt = null;
     if (m.ledger) api.S.ledger = m.ledger;
     if (m.ok && window.Sonido) Sonido.fromMint(m);
+    if (m.ok && m.fisica && pending) {
+      const recipe = window.MiningRules && MiningRules.recipes[pending.id];
+      if (recipe && api.takeItem) api.takeItem(pending.id, recipe.ore * pending.q);
+      if (m.item && api.giveItem) api.giveItem(m.item, m.qty);
+      const done = document.getElementById('forge-result');
+      if (done) done.textContent = m.reason || 'La moneda quedó en el inventario.';
+      if (window.Cajon) Cajon.paint();
+      return true;
+    }
     if (m.ok && pending && api.applySmelt) {
       api.applySmelt(pending.id, pending.q, pending.mode, pending.result);
       const done = document.getElementById('forge-result');

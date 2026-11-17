@@ -151,10 +151,13 @@ class FurnaceMintTests(unittest.TestCase):
         crudo.credit(self.server.ECON, who.user['id'], 'mineral_cobre', 4, cap=4)
         crudo.credit(self.server.ECON, who.user['id'], 'mineral_cobre', 4, cap=4)
         crudo.credit(self.server.ECON, who.user['id'], 'mineral_cobre', 4, cap=4)
+        before = int(self.server.ECON.get('minedSmh') or 0)
         self.server.smelt_for(who, 'mineral_cobre', 4, mode='simonchis')
         ok = next(item for item in self.sent if item.get('t') == 'smelt_result' and item.get('ok'))
-        self.assertEqual(ok['mode'], 'simoncoin')
-        self.assertEqual(ok['amountText'], '0,01 SMC')
+        self.assertTrue(ok.get('fisica'))
+        self.assertEqual(ok['item'], 'moneda_cobre')
+        self.assertEqual(ok['qty'], 4)
+        self.assertEqual(int(self.server.ECON.get('minedSmh') or 0), before)
         self.assertEqual(crudo.nuggets(self.server.ECON, who.user['id'], 'mineral_cobre'), 0)
 
     def test_ingot_is_refused_at_the_furnace(self):

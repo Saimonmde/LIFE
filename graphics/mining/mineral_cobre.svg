@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
     <radialGradient id="rock-cobren" cx="38%" cy="32%" r="75%">
-      <stop offset="0%" stop-color="#8d7564"/>
-      <stop offset="55%" stop-color="#5e4a3c"/>
-      <stop offset="100%" stop-color="#3a2c24"/>
+      <stop offset="0%" stop-color="#f0b27a"/>
+      <stop offset="55%" stop-color="#d08a52"/>
+      <stop offset="100%" stop-color="#7a3e1d"/>
     </radialGradient>
     <radialGradient id="vein-cobren" cx="35%" cy="30%" r="70%">
       <stop offset="0%" stop-color="#fff3e8"/>
