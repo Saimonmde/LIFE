@@ -228,6 +228,111 @@ class ChestRulesTests(unittest.TestCase):
         for banned in ('SMH', 'SMP', 'SPH', 'Simonchi', 'Simonplata'):
             self.assertNotIn(banned, window)
             self.assertNotIn(banned, css)
+        self.assertIn('junto_baul(sender)', body)
+        smc = page[page.index('def baul_smc('):page.index('\ndef _mover_baul(', page.index('def baul_smc('))]
+        self.assertIn('junto_baul(sender)', smc)
+        ask = page[page.index('def baul_for('):page.index('\ndef _enviar_baul(', page.index('def baul_for('))]
+        self.assertIn('junto_baul(sender)', ask)
+
+
+class ChestPlacesTests(unittest.TestCase):
+    def setUp(self):
+        self.state = vault.empty()
+        self.econ = economy.empty_state()
+
+    def test_each_chest_uses_chebyshev_and_a_foreign_house_is_closed(self):
+        self.assertTrue(baul.junto('mine', 15, 16, quien='Ana'))
+        self.assertTrue(baul.junto('mine', 17, 18, quien='Ana'))
+        self.assertFalse(baul.junto('mine', 18, 16, quien='Ana'))
+        self.assertFalse(baul.junto('mina2', 15, 16, quien='Ana'))
+        self.assertTrue(baul.junto('mina2', 21, 18, quien='Ana'))
+        self.assertTrue(baul.junto('mina2', 23, 19, quien='Ana'))
+        self.assertFalse(baul.junto('mina2', 21, 21, quien='Ana'))
+        self.assertFalse(baul.junto('mine', 21, 18, quien='Ana'))
+        self.assertTrue(baul.junto('central', 9, 6, quien='Ana'))
+        self.assertTrue(baul.junto('central', 9, 8, quien='Ana'))
+        self.assertFalse(baul.junto('central', 2, 2, quien='Ana'))
+        self.assertFalse(baul.junto('city', 9, 6, quien='Ana'))
+        self.assertTrue(baul.junto('banco', 8, 6, quien='Ana'))
+        self.assertTrue(baul.junto('banco', 8, 8, quien='Ana'))
+        self.assertFalse(baul.junto('banco', 2, 2, quien='Ana'))
+        self.assertTrue(baul.junto('casa', 1, 7, quien='Ana', owner='Ana'))
+        self.assertTrue(baul.junto('casa', 2, 8, quien='Ana', owner='Ana'))
+        self.assertFalse(baul.junto('casa', 5, 7, quien='Ana', owner='Ana'))
+        self.assertFalse(baul.junto('casa', 1, 7, quien='Ana', owner='Sol'))
+        self.assertEqual(baul.motivo('casa', 1, 7, owner='Sol', quien='Ana'), baul.AJENA)
+        self.assertEqual(baul.motivo('mine', 1, 1, quien='Ana'), baul.LEJOS)
+        moved = {'items': [{'type': 'chest', 'x': 6, 'y': 4}]}
+        self.assertTrue(baul.junto('casa', 6, 5, quien='Ana', owner='Ana', layout=moved))
+        self.assertFalse(baul.junto('casa', 1, 7, quien='Ana', owner='Ana', layout=moved))
+        self.assertFalse(baul.junto('casa', 6, 5, quien='Ana', owner='Sol', layout=moved))
+        self.assertEqual(baul.punto_sala('casa', None, None), None)
+        self.assertFalse(baul.punto_sala('casa', 20, 2))
+        self.assertEqual(baul.punto_sala('central', 9, 6), (9.0, 6.0))
+
+    def test_deposit_at_one_chest_withdraws_at_another_without_copying(self):
+        self.assertTrue(baul.junto('mine', 16, 17, quien='Ana'))
+        self.assertTrue(baul.junto('mina2', 22, 19, quien='Ana'))
+        self.assertTrue(baul.junto('central', 8, 6, quien='Ana'))
+        self.assertTrue(baul.junto('casa', 2, 7, quien='Ana', owner='Ana'))
+        purses.credit(self.state, 'Ana', 'mineral_cobre', 7)
+        economy.credit(self.econ, 'Ana', 300)
+        before = economy.smc_to_smh(3)
+        self.assertEqual(self.econ['wallets']['Ana'], before)
+        saved = baul.mover_lote(self.state, 'Ana', 'deposit', 'mineral_cobre', 4, 'en-mina', now=90)
+        self.assertTrue(saved['ok'])
+        coins = baul.mover_smc(self.econ, self.state, 'Ana', 'deposit', '1,5', 'en-ladera', now=91)
+        self.assertTrue(coins['ok'])
+        self.assertEqual(vault.account(self.state, 'Ana')['items']['mineral_cobre'], 4)
+        self.assertEqual(vault.smh_of(vault.account(self.state, 'Ana')), 150)
+        out = baul.mover_lote(self.state, 'Ana', 'withdraw', 'mineral_cobre', 4, 'en-casa', now=92)
+        self.assertTrue(out['ok'])
+        back = baul.mover_smc(self.econ, self.state, 'Ana', 'withdraw', '1,5', 'en-central', now=93)
+        self.assertTrue(back['ok'])
+        self.assertEqual(purses.count(self.state, 'Ana', 'mineral_cobre'), 7)
+        self.assertEqual(vault.account(self.state, 'Ana').get('items') or {}, {})
+        self.assertEqual(self.econ['wallets']['Ana'], before)
+        self.assertEqual(vault.smh_of(vault.account(self.state, 'Ana')), 0)
+        self.assertEqual(list(self.state['accounts']), ['Ana'])
+        again = baul.mover_lote(self.state, 'Ana', 'withdraw', 'mineral_cobre', 4, 'otra-vez', now=94)
+        self.assertFalse(again['ok'])
+        self.assertEqual(purses.count(self.state, 'Ana', 'mineral_cobre'), 7)
+
+
+class ChestServerTests(unittest.TestCase):
+    def test_the_server_remembers_the_room_and_refuses_the_wrong_house(self):
+        import server
+        who = server.Client(type('W', (), {'write': lambda self, data: None})())
+        who.hello = True
+        who.name = 'Ana'
+        who.zone = 'city'
+        who.x, who.y = 10.0, 10.0
+        who.user = {'casa': {'layout': {'items': [{'type': 'chest', 'x': 1, 'y': 7}]}}}
+        server.handle_client_message(who, {'t': 'move', 'zone': 'casa', 'x': 2, 'y': 7, 'dir': 'left'}, 'move')
+        self.assertEqual(who.zone, 'casa')
+        self.assertEqual((who.zx, who.zy), (2.0, 7.0))
+        self.assertEqual(who.casa_de, 'Ana')
+        self.assertEqual(server.junto_baul(who), '')
+        who.casa_de = 'Sol'
+        self.assertEqual(server.junto_baul(who), baul.AJENA)
+        who.casa_de = 'Ana'
+        who.zx, who.zy = 8.0, 7.0
+        self.assertEqual(server.junto_baul(who), baul.LEJOS)
+        server.handle_client_message(who, {'t': 'move', 'zone': 'mine', 'x': 15, 'y': 17, 'dir': 'up'}, 'move')
+        self.assertEqual(who.zone, 'mine')
+        self.assertEqual((who.zx, who.zy), (15.0, 17.0))
+        self.assertEqual(server.junto_baul(who), '')
+        server.handle_client_message(who, {'t': 'move', 'zone': 'mina2', 'x': 21, 'y': 20, 'dir': 'up'}, 'move')
+        self.assertEqual(who.zone, 'mina2')
+        self.assertEqual(server.junto_baul(who), '')
+        server.handle_client_message(who, {'t': 'move', 'zone': 'banco', 'x': 8, 'y': 7, 'dir': 'up'}, 'move')
+        self.assertEqual(who.zone, 'banco')
+        self.assertEqual(server.junto_baul(who), '')
+        who.zone = 'central'
+        who.zx, who.zy = 9.0, 6.0
+        self.assertEqual(server.junto_baul(who), '')
+        who.zone = 'city'
+        self.assertEqual(server.junto_baul(who), baul.LEJOS)
 
 
 if __name__ == '__main__':

@@ -47,6 +47,84 @@ RECURSO = {
     'mojarra': 'Mojarra',
 }
 
+# Un baúl por lugar, el mismo depósito. Chebyshev, como el de la mina en el cliente.
+REACH = 2
+# Mina de Las Palmas, Mina de La Ladera, Casa bancaria (banquito) y Banco Central.
+SITIOS = {
+    'mine': (15, 16),
+    'mina2': (21, 18),
+    'banco': (8, 6),
+    'central': (9, 6),
+}
+CASA = (1, 7)
+SALAS = {'casa': (14, 12), 'banco': (12, 10), 'central': (12, 10)}
+LEJOS = 'Acércate al baúl.'
+AJENA = 'Ese baúl es de otra casa.'
+
+
+def punto_sala(zone, x, y):
+    """None si no vienen coordenadas. False si no caben en esa sala."""
+    box = SALAS.get(str(zone or ''))
+    if not box:
+        return False
+    if x is None and y is None:
+        return None
+    try:
+        fx, fy = float(x), float(y)
+    except (TypeError, ValueError):
+        return False
+    if fx != fx or fy != fy or fx < 0 or fy < 0 or fx > box[0] - 1 or fy > box[1] - 1:
+        return False
+    return fx, fy
+
+
+def cofres_casa(layout):
+    """Casillas del baúl en el plano. Sin plano, el baúl de la casa por defecto."""
+    if not isinstance(layout, dict):
+        return [CASA]
+    spots = []
+    for item in layout.get('items') or []:
+        if not isinstance(item, dict) or item.get('type') != 'chest':
+            continue
+        try:
+            spots.append((int(item.get('x')), int(item.get('y'))))
+        except (TypeError, ValueError):
+            continue
+    return spots
+
+
+def _cerca(x, y, spot):
+    try:
+        fx, fy = float(x), float(y)
+    except (TypeError, ValueError):
+        return False
+    return max(abs(fx - spot[0]), abs(fy - spot[1])) <= REACH
+
+
+def junto(zone, x, y, owner='', quien='', layout=None):
+    """Hay que estar en el mapa correcto y a REACH casillas (Chebyshev) de un baúl.
+
+    El de la casa sólo abre si la casa es la de quien está en sesión.
+    """
+    zone = str(zone or '')
+    if zone == 'casa':
+        if not quien or str(owner or '') != str(quien):
+            return False
+        return any(_cerca(x, y, spot) for spot in cofres_casa(layout))
+    spot = SITIOS.get(zone)
+    if not spot:
+        return False
+    return _cerca(x, y, spot)
+
+
+def motivo(zone, x, y, owner='', quien='', layout=None):
+    """Texto vacío si puede usar el baúl. Si no, la frase que ve el jugador."""
+    if junto(zone, x, y, owner=owner, quien=quien, layout=layout):
+        return ''
+    if str(zone or '') == 'casa' and quien and owner and str(owner) != str(quien):
+        return AJENA
+    return LEJOS
+
 
 def mover(state, name, op, item, qty, token='', now=None):
     name = str(name or '')

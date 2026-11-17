@@ -1,12 +1,88 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
-/* Baúl de la mina: la misma cuenta que la casa y la Casa bancaria.
+/* Baúl: la misma cuenta en la casa, el Banco Central, la Casa bancaria y las minas.
    Las cifras las manda el servidor. Aquí no se crean monedas ni objetos. */
 (() => {
   'use strict';
   let last = null;
   let token = 1;
-  let modo = '1';
   let montoTexto = '1';
+  let sel = null;
+  let aviso = '';
+
+  const FICHAS = {
+    smc: {
+      nombre: 'Simoncoin',
+      texto: 'Moneda del valle. Se guarda en el baúl o se lleva encima. Moverla no acuña ni crea monedas.',
+    },
+    mineral_oro: {
+      nombre: 'Mineral de oro',
+      texto: 'Se saca picando vetas de oro en las minas. Se funde en el horno para acuñar Simoncoins a 0,1 SMC.',
+    },
+    pepita_oro: {
+      nombre: 'Pepita de oro',
+      texto: 'Se lava en la arena de oro del río. Se funde en el horno para acuñar Simoncoins.',
+    },
+    mineral_plata: {
+      nombre: 'Mineral de plata',
+      texto: 'Se saca picando vetas de plata en las minas. Se funde en el horno para acuñar Simoncoins a 0,01 SMC.',
+    },
+    mineral_cobre: {
+      nombre: 'Mineral de cobre',
+      texto: 'Se saca picando en las minas. Se funde en el horno para acuñar Simoncoins a 0,001 SMC.',
+    },
+    piedra: {
+      nombre: 'Piedra',
+      texto: 'Se pica de las rocas claras. Sirve para construir y para los oficios. No se acuña.',
+    },
+    mineral_piedra: {
+      nombre: 'Piedra',
+      texto: 'Se pica de las rocas claras. Sirve para construir y para los oficios. No se acuña.',
+    },
+    madera: {
+      nombre: 'Madera',
+      texto: 'Se tala de los pinos. Sirve para construir y para los oficios.',
+    },
+    lingote_oro: {
+      nombre: 'Lingote de oro',
+      texto: 'Barra de oro ya fundida. Se guarda en el baúl. No es una moneda.',
+    },
+    lingote_plata: {
+      nombre: 'Lingote de plata',
+      texto: 'Barra de plata ya fundida. Se guarda en el baúl. No es una moneda.',
+    },
+    lingote_cobre: {
+      nombre: 'Lingote de cobre',
+      texto: 'Barra de cobre ya fundida. Se guarda en el baúl. No es una moneda.',
+    },
+    bolsa_cafe: {
+      nombre: 'Café',
+      texto: 'Bulto de la finca. Se guarda con la cosecha, sin copiarlo a otro depósito.',
+    },
+    bolsa_cacao: {
+      nombre: 'Cacao',
+      texto: 'Bulto de la finca. Se guarda con la cosecha, sin copiarlo a otro depósito.',
+    },
+    carne: { nombre: 'Carne', texto: 'Se obtiene al cazar. Se guarda en el baúl o se lleva encima.' },
+    piel: { nombre: 'Piel', texto: 'Se obtiene al cazar. Se guarda en el baúl o se lleva encima.' },
+    pluma: { nombre: 'Pluma', texto: 'Se obtiene al cazar. Se guarda en el baúl o se lleva encima.' },
+    mango: { nombre: 'Mango', texto: 'Fruta del valle. Se recoge de los árboles y se puede guardar en el baúl.' },
+    banano: { nombre: 'Banano', texto: 'Fruta del valle. Se recoge de los árboles y se puede guardar en el baúl.' },
+    coco: { nombre: 'Coco', texto: 'Fruta del valle. Se recoge de los árboles y se puede guardar en el baúl.' },
+    manzana: { nombre: 'Manzana', texto: 'Fruta del valle. Se recoge de los árboles y se puede guardar en el baúl.' },
+    pera: { nombre: 'Pera', texto: 'Fruta del valle. Se recoge de los árboles y se puede guardar en el baúl.' },
+    naranja: { nombre: 'Naranja', texto: 'Fruta del valle. Se recoge de los árboles y se puede guardar en el baúl.' },
+    trucha: { nombre: 'Trucha', texto: 'Pez del río. Se pesca con la red y se puede guardar en el baúl.' },
+    bocachico: { nombre: 'Bocachico', texto: 'Pez del río. Se pesca con la red y se puede guardar en el baúl.' },
+    mojarra: { nombre: 'Mojarra', texto: 'Pez del río. Se pesca con la red y se puede guardar en el baúl.' },
+  };
+
+  function fichaDe(id, nombre) {
+    if (FICHAS[id]) return FICHAS[id];
+    return {
+      nombre: nombre || 'Objeto',
+      texto: 'Objeto del valle. Se guarda en el baúl o se lleva encima.',
+    };
+  }
 
   function esc(text) {
     return String(text == null ? '' : text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -39,29 +115,82 @@
   function open() {
     const el = panel();
     if (!el) return;
+    const titulo = document.getElementById('baul-titulo');
+    if (titulo) titulo.textContent = 'Baúl';
     el.hidden = false;
     const btn = document.getElementById('baul-abrir');
     if (btn) btn.hidden = true;
     pedir();
   }
+  function cerrarFicha() {
+    sel = null;
+    paint(last || vacio());
+  }
   function close() {
+    sel = null;
     const el = panel();
     if (el) el.hidden = true;
+    const ficha = document.getElementById('baul-ficha');
+    if (ficha && ficha.parentNode) ficha.parentNode.removeChild(ficha);
+  }
+  function mensaje(op, kind, item, cant) {
+    if (kind === 'smc') {
+      const all = cant === 'all';
+      return { t: 'baul_smc', op: op, all: all, amount: all ? 'all' : String(cant) };
+    }
+    const all = cant === 'all';
+    return { t: 'baul_mover', op: op, item: item || '', all: all, qty: all ? 'all' : cant };
   }
   function mover(op, item, qty) {
     if (!online()) return;
     const all = qty === 'all';
     if (!all && !(Number(qty) > 0)) return;
-    send({ t: 'baul_mover', op: op, item: item || '', all: all, qty: all ? 'all' : qty, token: 'b' + (token++) });
+    const body = mensaje(op, 'item', item, all ? 'all' : qty);
+    body.token = 'b' + (token++);
+    send(body);
   }
   function moverSmc(op, amount) {
     if (!online()) return;
     const all = amount === 'all';
-    send({ t: 'baul_smc', op: op, all: all, amount: all ? 'all' : amount, token: 's' + (token++) });
+    const body = mensaje(op, 'smc', 'smc', all ? 'all' : amount);
+    body.token = 's' + (token++);
+    send(body);
   }
-  function cantidadX() {
-    const n = Math.floor(Number(String(montoTexto || '').replace(',', '.')) || 0);
+  function centimos(texto) {
+    let raw = String(texto || '').replace(/\s*SMC\s*$/i, '').trim();
+    if (!raw) return 0;
+    if (raw.indexOf(',') >= 0 && raw.indexOf('.') >= 0) {
+      if (raw.lastIndexOf(',') > raw.lastIndexOf('.')) raw = raw.replace(/\./g, '').replace(',', '.');
+      else raw = raw.replace(/,/g, '');
+    } else if (raw.indexOf(',') >= 0) raw = raw.replace(',', '.');
+    const n = Number(raw);
+    if (!isFinite(n) || n < 0) return 0;
+    return Math.round(n * 100);
+  }
+  function smcNumero(texto) {
+    return centimos(texto) / 100;
+  }
+  function entero(texto) {
+    const raw = String(texto || '').trim().replace(',', '.');
+    if (!/^\d+$/.test(raw)) return 0;
+    const n = Number(raw);
     return n > 0 ? n : 0;
+  }
+  function botones(disponible, moneda, textoX) {
+    const have = Number(disponible) || 0;
+    function cabe(n) {
+      if (!(n > 0)) return false;
+      if (moneda) return Math.round(n * 100) <= Math.round(have * 100);
+      return n <= have;
+    }
+    const pedido = moneda ? smcNumero(textoX) : entero(textoX);
+    return [
+      { cant: '1', texto: '1', off: !cabe(1) },
+      { cant: '10', texto: '10', off: !cabe(10) },
+      { cant: '100', texto: '100', off: !cabe(100) },
+      { cant: 'x', texto: 'X', off: !cabe(pedido) },
+      { cant: 'all', texto: 'Todo', off: !(have > 0) },
+    ];
   }
   function dibujo(id) {
     const moneda = '<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="18" fill="#8a5a12"/><circle cx="32" cy="30" r="18" fill="#f0c14a" stroke="#6a4010" stroke-width="3"/><circle cx="32" cy="30" r="11" fill="none" stroke="#fff4cc" stroke-width="2"/><text x="32" y="36" text-anchor="middle" font-size="16" font-family="sans-serif" font-weight="700" fill="#5c3a08">S</text></svg>';
@@ -92,9 +221,10 @@
   }
   function casilla(row) {
     const n = row.kind === 'smc' ? cifra(row.texto) : String(row.qty);
-    const accion = row.lado === 'encima' ? 'Guardar' : 'Sacar';
-    const nombre = row.kind === 'smc' ? 'Simoncoin' : row.name;
-    return '<button type="button" class="casilla" data-lado="' + row.lado + '" data-kind="' + row.kind + '" data-item="' + esc(row.id) + '" aria-label="' + esc(accion + ' ' + nombre + ' ' + n) + '">'
+    const info = fichaDe(row.id, row.name);
+    const nombre = info.nombre;
+    const on = sel && sel.lado === row.lado && sel.id === row.id;
+    return '<button type="button" class="casilla' + (on ? ' sel' : '') + '" data-lado="' + row.lado + '" data-kind="' + row.kind + '" data-item="' + esc(row.id) + '" data-nombre="' + esc(nombre) + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(nombre + ' ' + n) + '">'
       + '<span class="casilla-ico" aria-hidden="true">' + dibujo(row.id) + '</span>'
       + '<span class="casilla-n">' + esc(n) + '</span></button>';
   }
@@ -129,24 +259,63 @@
     const titulo = which === 'encima' ? 'Encima' : 'Baúl';
     return '<section class="rejilla-lado"><h3>' + titulo + '</h3><div class="casillas">' + html + huecos(celdas.length) + '</div></section>';
   }
+  function carta(data) {
+    if (!sel) return '';
+    const smc = data.smc || vacio().smc;
+    const filas = data.filas || [];
+    const encimaSmc = (smc.billetera && smc.billetera.exacto) || '0 SMC';
+    const baulSmc = (smc.baul && smc.baul.exacto) || '0 SMC';
+    let encima = 0;
+    let enBaul = 0;
+    let nombreSrv = '';
+    if (sel.kind === 'smc') {
+      encima = smcNumero(encimaSmc);
+      enBaul = smcNumero(baulSmc);
+    } else {
+      const row = filas.filter((item) => item.id === sel.id)[0];
+      encima = row ? Number(row.encima) || 0 : 0;
+      enBaul = row ? Number(row.baul) || 0 : 0;
+      nombreSrv = row ? row.name : '';
+    }
+    const info = fichaDe(sel.id, nombreSrv);
+    const have = sel.lado === 'encima' ? encima : enBaul;
+    const moneda = sel.kind === 'smc';
+    const op = sel.lado === 'encima' ? 'deposit' : 'withdraw';
+    const verbo = sel.lado === 'encima' ? 'Guardar' : 'Sacar';
+    const nums = botones(have, moneda, montoTexto);
+    const botonesHtml = nums.map((b) => '<button type="button" class="baul-btn" data-op="' + op + '" data-kind="' + sel.kind + '" data-item="' + esc(sel.id) + '" data-cant="' + b.cant + '"' + (b.off ? ' disabled' : '') + '>' + b.texto + '</button>').join('');
+    const encimaTxt = moneda ? encimaSmc : String(encima);
+    const baulTxt = moneda ? baulSmc : String(enBaul);
+    return '<div id="baul-ficha" class="baul-ficha"><div class="baul-carta" role="dialog" aria-labelledby="baul-ficha-nombre">'
+      + '<button type="button" class="x" id="baul-ficha-x" aria-label="Cerrar">✕</button>'
+      + '<div class="ficha-ico" aria-hidden="true">' + dibujo(sel.id) + '</div>'
+      + '<h3 id="baul-ficha-nombre">' + esc(info.nombre) + '</h3>'
+      + '<p class="baul-desc">' + esc(info.texto) + '</p>'
+      + '<p class="baul-cantidades">Encima: ' + esc(encimaTxt) + ' · Baúl: ' + esc(baulTxt) + '</p>'
+      + '<p class="baul-verbo">' + verbo + '</p>'
+      + '<div class="baul-montos">' + botonesHtml
+      + '<input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1">'
+      + '</div>'
+      + (aviso ? '<p class="baul-aviso" role="alert">' + esc(aviso) + '</p>' : '')
+      + '</div></div>';
+  }
+  function sacarFicha() {
+    const ficha = document.getElementById('baul-ficha');
+    if (ficha && document.body && ficha.parentNode !== document.body) document.body.appendChild(ficha);
+  }
   function paint(view) {
     const root = document.getElementById('baul-cuerpo');
     if (!root) return;
+    const vieja = document.getElementById('baul-ficha');
+    if (vieja && vieja.parentNode) vieja.parentNode.removeChild(vieja);
     const data = view || vacio();
     last = data;
     const smc = data.smc || vacio().smc;
     const filas = data.filas || [];
     const totales = data.totales || {};
     const linked = online();
-    const marca = (id) => (modo === id ? ' on' : '');
     root.innerHTML = ''
-      + '<div class="rejilla-modo" role="group" aria-label="Cuánto mover">'
-      + '<button type="button" class="baul-btn' + marca('1') + '" data-modo="1">1</button>'
-      + '<button type="button" class="baul-btn' + marca('x') + '" data-modo="x">X</button>'
-      + '<input id="baul-monto" inputmode="decimal" value="' + esc(montoTexto) + '" aria-label="Cantidad X" placeholder="1">'
-      + '<button type="button" class="baul-btn' + marca('all') + '" data-modo="all">Todo</button>'
-      + '</div>'
-      + '<p class="baul-nota">Toca una casilla. 1 mueve una. X usa la cantidad. Todo guarda o saca todo. Encima se guarda en el baúl. El baúl vuelve a la mano.</p>'
+      + '<p class="baul-nota">Toca una casilla para ver qué es. Encima se guarda en el baúl. El baúl vuelve a la mano.</p>'
       + '<div class="rejilla">'
       + lado('encima', smc.billetera && smc.billetera.exacto, filas)
       + lado('baul', smc.baul && smc.baul.exacto, filas)
@@ -154,29 +323,64 @@
       + '<p class="baul-exacto">En total ' + esc(smc.total && smc.total.exacto) + '. ' + esc(smc.escala || '') + ' Tope ' + esc(smc.tope || '') + '.</p>'
       + '<p class="baul-nota">' + esc(smc.topes || '') + '</p>'
       + '<p class="baul-nota">Encima ' + (totales.encima || 0) + ' · Baúl ' + (totales.baul || 0) + '. Guardar todo y Sacar todo no crean nada: el servidor cuenta lo que ya hay.</p>'
-      + '<p class="baul-nota" id="baul-estado">' + (linked ? 'Conectado. Cada pase se guarda en la cuenta.' : 'Sin conexión. El servidor confirma cada pase.') + '</p>';
+      + '<p class="baul-nota" id="baul-estado">' + (aviso ? esc(aviso) : (linked ? 'Conectado. Cada pase se guarda en la cuenta.' : 'Sin conexión. El servidor confirma cada pase.')) + '</p>'
+      + carta(data);
+    const ficha = document.getElementById('baul-ficha');
     const campo = document.getElementById('baul-monto');
-    if (campo) campo.addEventListener('input', () => { montoTexto = campo.value; });
-    root.querySelectorAll('[data-modo]').forEach((button) => {
-      button.addEventListener('click', () => {
-        modo = button.dataset.modo;
-        root.querySelectorAll('[data-modo]').forEach((otro) => otro.classList.toggle('on', otro.dataset.modo === modo));
+    if (campo) campo.addEventListener('input', () => {
+      montoTexto = campo.value;
+      if (!sel || !ficha) return;
+      const smc = (last && last.smc) || vacio().smc;
+      const filas = (last && last.filas) || [];
+      const moneda = sel.kind === 'smc';
+      let have = 0;
+      if (moneda) {
+        const texto = sel.lado === 'encima' ? (smc.billetera && smc.billetera.exacto) : (smc.baul && smc.baul.exacto);
+        have = smcNumero(texto);
+      } else {
+        const row = filas.filter((item) => item.id === sel.id)[0];
+        have = row ? Number(sel.lado === 'encima' ? row.encima : row.baul) || 0 : 0;
+      }
+      const nums = botones(have, moneda, montoTexto);
+      ficha.querySelectorAll('.baul-montos [data-cant]').forEach((button) => {
+        const row = nums.filter((item) => item.cant === button.dataset.cant)[0];
+        if (row) button.disabled = !!row.off;
       });
     });
     root.querySelectorAll('.casilla[data-lado]').forEach((button) => {
-      button.addEventListener('click', () => {
-        if (!linked) return;
-        const op = button.dataset.lado === 'encima' ? 'deposit' : 'withdraw';
-        if (button.dataset.kind === 'smc') {
-          const amount = modo === 'all' ? 'all' : (modo === 'x' ? montoTexto : '1');
-          moverSmc(op, amount);
-        } else {
-          const qty = modo === 'all' ? 'all' : (modo === 'x' ? cantidadX() : 1);
-          mover(op, button.dataset.item, qty);
-        }
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        sel = { lado: button.dataset.lado, kind: button.dataset.kind, id: button.dataset.item };
+        aviso = '';
+        paint(last);
+      });
+    });
+    const cerrar = document.getElementById('baul-ficha-x');
+    if (cerrar) cerrar.addEventListener('click', (event) => { event.stopPropagation(); cerrarFicha(); });
+    const fondo = document.getElementById('baul-ficha');
+    if (fondo) fondo.addEventListener('click', (event) => { if (event.target === fondo) cerrarFicha(); });
+    sacarFicha();
+    const montos = (ficha || root).querySelectorAll('.baul-montos [data-cant]');
+    montos.forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        enviar(button);
       });
     });
   }
+  function enviar(button) {
+    if (!button || button.disabled || !online()) return false;
+    const cant = button.dataset.cant;
+    if (button.dataset.kind === 'smc') {
+      const amount = cant === 'all' ? 'all' : (cant === 'x' ? montoTexto : cant);
+      moverSmc(button.dataset.op, amount);
+    } else {
+      const qty = cant === 'all' ? 'all' : (cant === 'x' ? entero(montoTexto) : Number(cant));
+      mover(button.dataset.op, button.dataset.item, qty);
+    }
+    return true;
+  }
+  function fijarMonto(valor) { montoTexto = String(valor == null ? '' : valor); }
   function aplicar(moved) {
     const ink = window.LiveInk;
     if (!ink || !moved) return;
@@ -189,33 +393,66 @@
   }
   function onNet(message) {
     if (!message || message.t !== 'baul') return false;
+    if (message.reason && !message.ok) aviso = message.reason;
+    else if (message.ok) aviso = '';
     if (message.view) {
       paint(message.view);
       if (window.TradeUI && TradeUI.refrescar) TradeUI.refrescar();
-    }
+    } else if (aviso) paint(last || vacio());
     if (message.moved) aplicar(message.moved);
     if (message.reason && window.LiveInk && LiveInk.say) LiveInk.say(message.reason, message.ok ? 'juego' : 'aviso');
     return true;
   }
-  function cerca() {
+  function mundo() {
     const ink = window.LiveInk;
-    const S = ink && ink.state;
     const world = ink && (typeof ink.world === 'function' ? ink.world() : ink.world);
-    const here = (world && world.mapId) || 'city';
-    if (!S || !world || (here !== 'mine' && here !== 'mina2') || !S.nodes || !S.nodes.get) return false;
-    const node = S.nodes.get('baul_mina');
-    if (!node || !node.def || !S.player) return false;
-    return Math.max(Math.abs(S.player.x - node.def.x), Math.abs(S.player.y - node.def.y)) <= 2;
+    return { ink: ink, world: world, here: (world && world.mapId) || 'city', S: ink && ink.state };
+  }
+  function cerca() {
+    const ctx = mundo();
+    const S = ctx.S;
+    const here = ctx.here;
+    if (!S || !ctx.world || !S.player) return false;
+    if (here !== 'mine' && here !== 'mina2' && here !== 'casa' && here !== 'banco' && here !== 'central') return false;
+    if (here === 'casa' && window.Casa && typeof Casa.ajena === 'function' && Casa.ajena()) return false;
+    const px = S.player.x;
+    const py = S.player.y;
+    const spots = [];
+    if (S.nodes && S.nodes.forEach) {
+      S.nodes.forEach((node) => {
+        const d = node && node.def;
+        if (!d) return;
+        if (d.type === 'mine_chest' || d.type === 'bank_chest' || d.type === 'banquito') spots.push(d);
+      });
+    }
+    if (here === 'casa' && window.Casa && Casa.layout && Casa.layout.items) {
+      for (const item of Casa.layout.items) if (item && item.type === 'chest') spots.push(item);
+    }
+    return spots.some((d) => Math.max(Math.abs(px - d.x), Math.abs(py - d.y)) <= 2);
   }
   function pulso() {
     const btn = document.getElementById('baul-abrir');
     if (!btn) return;
     const show = cerca() && !abierto();
     btn.hidden = !show;
+    if (!abierto()) close();
   }
   const abrir = document.getElementById('baul-abrir');
   if (abrir) abrir.addEventListener('click', open);
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !sel || !abierto()) return;
+    event.preventDefault();
+    cerrarFicha();
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!sel || !abierto()) return;
+    const t = event.target;
+    if (!t || !t.closest) return;
+    if (t.closest('#baul-ficha, .baul-carta, .casilla, #baul-abrir, #baul-mina header')) return;
+    cerrarFicha();
+  });
   setInterval(pulso, 400);
   function ultima() { return last; }
-  window.Baul = { open, close, paint, pedir, onNet, abierto, cerca, ultima };
+  function elegir(row) { sel = row; aviso = ''; paint(last || vacio()); }
+  window.Baul = { open, close, paint, pedir, onNet, abierto, cerca, ultima, elegir, fichaDe, FICHAS, botones, mensaje, centimos, enviar, fijarMonto };
 })();

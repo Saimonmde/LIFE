@@ -185,9 +185,17 @@
         if (floor.has(x + ',' + y) && !(x === DOOR.x && y === DOOR.y) && !(x === SPAWN.x && y === SPAWN.y)) collision[y][x] = 1;
       }
     }
+    const nodes = [{ id: 'puerta_salida', type: 'casa_exit', x: DOOR.x, y: DOOR.y, initialState: 'active', states: ['active'], sprites: { active: 'home_door' }, solid: false }];
+    for (const it of L.items) {
+      if (it.type !== 'chest') continue;
+      nodes.push({
+        id: 'baul_' + it.id, type: 'bank_chest', x: it.x, y: it.y, label: 'BAÚL',
+        solid: false, initialState: 'active', states: ['active'], sprites: { active: 'home_door' },
+      });
+    }
     return {
       width: MAP_W, height: MAP_H, ground, collision, elevation,
-      nodes: [{ id: 'puerta_salida', type: 'casa_exit', x: DOOR.x, y: DOOR.y, initialState: 'active', states: ['active'], sprites: { active: 'home_door' }, solid: false }],
+      nodes,
       npcs: [], doors: [], animals: [],
       regions: [{ id: 'casa', name: 'Tu casa · Medellín', x: 0, y: 0, w: MAP_W, h: MAP_H }],
       waypoints: [], roads3d: [], memories: [], riverLayouts: [], bridges: [], parkDetails: [],
@@ -335,6 +343,12 @@
       return open;
     },
     playerName: () => 'viajero',
+    ajena: () => {
+      const dueno = window.Casa && window.Casa.visita;
+      const yo = window.Casa && window.Casa.playerName ? window.Casa.playerName() : '';
+      return !!(dueno && yo && dueno !== yo);
+    },
+    visita: '',
     onLayout: null, onEdit: null, enter: null,
   };
 })();

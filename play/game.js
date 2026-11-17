@@ -665,7 +665,9 @@ function prepareCave(){
 function applyCasaLayout(){
  if((W.mapId||'city')!=='casa')return;
  const map=Casa.buildMap(Casa.layout);
- W.collision=map.collision; W.ground=map.ground; casaMap=map;
+ W.collision=map.collision; W.ground=map.ground; W.nodes=map.nodes; casaMap=map;
+ casaNodes=new Map(map.nodes.map(n=>[n.id,{def:n,state:n.initialState||'active',until:0,crop:null}]));
+ S.nodes=casaNodes;
  const p=S.player;
  if(!walkable(p.x,p.y)){p.x=p.fx=Casa.SPAWN.x;p.y=p.fy=Casa.SPAWN.y;p.path=[];}
  drawMinimapBase();
@@ -1884,9 +1886,9 @@ function act(t) {
     if (!give(d.yield.item, 1, d.x, d.y)) { S.espera = { item: d.yield.item, qty: 1, done: () => { n.state = 'depleted'; n.until = now() + d.respawnMs; tired(); } }; return; }
     game('Una <b>pepita de oro</b> quedó en la mochila. Las monedas se acuñan en el horno.', 'oro');
     addXp('mining', d.xp); n.state = 'depleted'; n.until = now() + d.respawnMs; tired();
-  } else if (d.type === 'mine_chest') {
+  } else if (d.type === 'mine_chest' || d.type === 'bank_chest') {
     if (window.Baul) Baul.open();
-    nota('Baúl de la mina');
+    nota(d.type === 'mine_chest' ? 'Baúl de la mina' : 'Baúl');
     return;
   } else if (d.type === 'mineral_rock') {
     if (d.mundo && window.Vida && Number(Vida.world()) !== Number(d.mundo)) {
@@ -3115,7 +3117,7 @@ window.LiveInk = { get cityNodes(){return cityNodes||S.nodes;},get cityAnimals()
  respawnHome: beginAtHome, paintInv: renderInv, remember: save, say: game, grant: addXp, giveItem: invAdd, holding: selected,
  showNote(title, text){ const box=$('#aviso'); if(!box)return; box.hidden=false; $('#aviso-titulo').textContent=title; $('#aviso-txt').textContent=text; },
  click(x,y){if(!started)return; if(S.dialog)return advanceDialog(); const t=hitTest(x*TS+32,(y+1)*TS-8); if(t)approach(t);else if(walkable(Math.floor(x),Math.floor(y)))goTo(Math.floor(x),Math.floor(y));},
- enterBank(){ if(started) switchMap('banco'); }, takeItem: invRemove,
+ enterBank(){ if(started) switchMap('banco'); }, enterCentral(){ if(started) switchMap('central'); }, takeItem: invRemove,
  interact(id){if(typeof id==='string'&&id.indexOf('piso:')===0){if(window.Objeto)Objeto.alzar(id.slice(5));return;}if(typeof id==='string'&&id.indexOf('mata:')===0){if(window.Finca)Finca.cosecharCerca(id.slice(5));return;}if(id==='finca_cafe'||id==='finca_cacao'||id==='finca_las_palmas'||id==='finca_libro'){if(window.Finca)Finca.open(id);return;}if(id==='puerta_salida'&&started&&(W.mapId||'city')==='casa'){exitHouse();return;}const mnt=(S.mounts||[]).find(m=>m.id===id);if(mnt&&started){if(S.mounted)Simulacion.dismount();else approach({kind:'mount',m:mnt});return;}const n=S.nodes.get(id);const a=S.animals.find(a=>a.def.id===id);const d=W.doors.find(d=>d.id===id);const npc=W.npcs.find(n=>n.id===id);const t=n?{kind:'node',n}:a?{kind:'animal',a}:d?{kind:'door',d}:npc?{kind:'npc',d:npc}:null;if(t&&started)approach(t);},
  spriteKeyFor, frameKey, now, get started(){return started;} };
 // ---------------- prueba automática (?autotest) ----------------
