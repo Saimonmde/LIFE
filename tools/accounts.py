@@ -172,10 +172,51 @@ def simon_reserved(text):
     return simon_key(text) == 'simon'
 
 
+# Los dos Google de Jay. No hace falta que ya exista una ficha con ese correo:
+# al entrar se anotan como alias de la cuenta del dueño.
+OWNER_ALIAS_EMAILS = ('juanescasimon@gmail.com', 'juanskasimon@gmail.com')
+
+
 def is_owner(user):
     import fusion
     email = str((user or {}).get('email') or '').strip().lower()
     return bool(email) and email == fusion.owner_email()
+
+
+def es_alias_dueno(email):
+    return str(email or '').strip().lower() in OWNER_ALIAS_EMAILS
+
+
+def _dueno_vivo(doc):
+    for user in (doc or {}).get('users') or []:
+        if isinstance(user, dict) and not user.get('mergedInto') and is_owner(user):
+            return user
+    return None
+
+
+def _anotar_alias(user, email, provider, sub):
+    """Guarda el correo y la identidad del proveedor en la cuenta que ya es del dueño."""
+    email = str(email or '').strip().lower()
+    primary = str(user.get('email') or '').strip().lower()
+    aliases = [str(item or '').strip().lower() for item in (user.get('aliases') or []) if item]
+    if email and email != primary and email not in aliases:
+        aliases.append(email)
+    user['aliases'] = aliases
+    if not sub:
+        return user
+    if provider == 'google':
+        if sub not in google_subs(user):
+            user.setdefault('googleSubs', [])
+            if sub not in user['googleSubs']:
+                user['googleSubs'].append(sub)
+        user.setdefault('providers', {})
+        if not user['providers'].get('google'):
+            user['providers']['google'] = sub
+    else:
+        user.setdefault('providers', {})
+        if not user['providers'].get(provider):
+            user['providers'][provider] = sub
+    return user
 
 
 def name_available(doc, name, email=None, user_id=None, now=None):
@@ -606,6 +647,21 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
                     user['providers']['google'] = sub
             else:
                 user.setdefault('providers', {})[provider] = sub
+    if user is None and es_alias_dueno(email):
+        user = _dueno_vivo(doc)
+        if user is not None:
+            _anotar_alias(user, email, provider, sub)
+        else:
+            import fusion
+            oficial = fusion.owner_email()
+            user = {
+                'id': secrets.token_hex(8), 'name': 'saimon', 'email': oficial, 'phone': '',
+                'password_hash': '', 'providers': {provider: sub},
+                'googleSubs': [sub] if provider == 'google' and sub else [],
+                'aliases': [email] if email != oficial else [],
+                'wallet_name': 'saimon', 'wallet_token': '', 'createdAt': now, 'verified': True,
+            }
+            doc['users'].append(user)
     if user is None:
         name = game_name(profile.get('name') or email.split('@')[0] or 'Jugador') or 'Jugador'
         if (simon_reserved(profile.get('name')) or simon_reserved(name)) and not is_owner({'email': email}):
