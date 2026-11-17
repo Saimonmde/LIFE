@@ -1,0 +1,41 @@
+{
+  "id": "skateboard",
+  "unidades": "metros",
+  "arriba": "Y",
+  "origen": "centro del suelo, debajo de la tabla",
+  "ejeLargo": "X",
+  "frente": "+Z",
+  "largo": 0.8,
+  "ancho": 0.21,
+  "alto": 0.111,
+  "ymin": 0.0,
+  "ymax": 0.111,
+  "xmin": -0.4,
+  "xmax": 0.4,
+  "zmin": -0.105,
+  "zmax": 0.105,
+  "cubierta": {
+    "largo_m": 0.8,
+    "ancho_m": 0.21,
+    "espesor_m": 0.013,
+    "suela_centro_m": 0.09,
+    "kick_punta_m": 0.008
+  },
+  "rueda": {
+    "diametro_m": 0.054,
+    "ancho_m": 0.03,
+    "color": "menta #7ddec8"
+  },
+  "ejes": "plata, cilindro de 6 lados a lo largo de Z",
+  "triangulos": 496,
+  "vertices": 1488,
+  "bytes": 54740,
+  "extensiones": [],
+  "texturas": 0,
+  "color": "COLOR_0 VEC3 float, una sola primitiva, sin imágenes",
+  "notas": {
+    "grafica": "Moneda SMC con S, hojas y sol naranja, en caras de color sobre el grip carbón.",
+    "laminas": "El canto muestra cuatro vetas de madera en color de vértice.",
+    "brillo": "El resplandor de las ruedas al patinar es un efecto de juego. Aquí el menta claro está en los vértices de arriba."
+  }
+}

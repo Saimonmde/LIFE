@@ -38,14 +38,17 @@
       simonchis = (S.ledger && S.ledger.balances && S.ledger.balances.simonchis) || 0;
     }
     const subs = window.Simulacion ? Simulacion.SUBS : 100;
+    const plataSubs = window.Simulacion && Simulacion.PLATA_SUBS ? Simulacion.PLATA_SUBS : 100000000;
     const compact = (base, whole) => {
       const value = Number(base) || 0;
       if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
       return grupo(whole ? value : value / subs);
     };
+    const plata = (Number(simonplata) || 0) / plataSubs;
+    const plataTxt = window.Simulacion && Simulacion.formatCompact ? Simulacion.formatCompact(plata) : grupo(plata);
     return {
       simoncoin: compact(simoncoin, false),
-      simonplata: compact(simonplata, false),
+      simonplata: plataTxt,
       simonchis: compact(simonchis, true),
       exactSimoncoin: window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(simoncoin) : grupo(simoncoin) + ' SMH',
       exactSimonplata: window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(simonplata) : grupo(simonplata) + ' SPH',
@@ -60,8 +63,8 @@
     const money = balances();
     const line = $('#hud-saldos');
     if (line) {
-      line.textContent = `Simoncoin ${money.simoncoin} SMC · Simonplata ${money.simonplata} SMP · Simonchis ${money.simonchis}`;
-      line.title = [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+      line.textContent = 'Tuyo: ' + [money.exactSimoncoin, money.exactSimonplata, money.exactSimonchis].filter(Boolean).join(' · ');
+      line.title = line.textContent;
     }
     const box = $('#cajon-monedas');
     if (!box) return;
@@ -71,7 +74,8 @@
       p.className = 'cajon-moneda';
       const minted = grupo(row.minted);
       const max = grupo(row.max);
-      p.innerHTML = `<span><b>${row.name}</b><br>Tuyo: ${money[row.id] || '0'}</span><span>Acuñadas ${minted}<br>de ${max}</span>`;
+      const exact = { simoncoin: money.exactSimoncoin, simonplata: money.exactSimonplata, simonchis: money.exactSimonchis };
+      p.innerHTML = `<span><b>${row.name}</b><br>Tuyo: ${exact[row.id] || money[row.id] || '0'}</span><span>Acuñadas ${minted}<br>de ${max}</span>`;
       box.appendChild(p);
     }
   }

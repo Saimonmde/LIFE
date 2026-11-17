@@ -298,6 +298,12 @@ function paintHud() {
   const saldoPanel = $('#plata-saldo-panel');
   if (saldo) { saldo.textContent = plataText; saldo.title = formatPlataPair(plata); }
   if (saldoPanel) { saldoPanel.textContent = plataText; saldoPanel.title = formatPlataPair(plata); }
+  const chis = (api.S.ledger && api.S.ledger.balances && api.S.ledger.balances.simonchis) || 0;
+  const chisEl = $('#chis-saldo');
+  if (chisEl) {
+    chisEl.textContent = Math.trunc(Number(chis) || 0).toLocaleString('es-CO') + ' Simonchis';
+    chisEl.title = chisEl.textContent;
+  }
   const pchip = $('#plata-chip');
   if (pchip) {
     const view = api.S.plata;
@@ -489,7 +495,10 @@ function bankItem(dir, item, qty) {
       if (window.avisarMochilaLlena) window.avisarMochilaLlena();
       return;
     }
-    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty }));
+    if (api.S.vaultBusy) return;
+    api.S.vaultBusy = true;
+    setTimeout(() => { api.S.vaultBusy = false; }, 700);
+    api.S.net.ws.send(JSON.stringify({ t: dir === 'in' ? 'deposit_item' : 'withdraw_item', item, qty, op: dir + ':' + item + ':' + qty + ':' + Math.floor(performance.now()) }));
     return;
   }
   const box = localVault();
@@ -550,6 +559,7 @@ function aplicarCredito(m) {
   paintHud();
   renderLibro();
   if (window.Cajon) Cajon.paint();
+  if (window.Banco && Banco.paint) Banco.paint();
 }
 function applyServer(m) {
   if (!m || !m.state) return;
@@ -727,6 +737,7 @@ function dismount() {
 }
 function mountHorse(horse, quiet) {
   if (api.S.mounted) return dismount();
+  if (api.S.skating) api.S.skating = false;
   const h = horse || nearestMount();
   if (!h || h.ridden) { api.game('Acércate a un caballo del establo (tecla M o el botón Montar).', 'aviso'); return; }
   const p = api.S.player;
@@ -1087,7 +1098,7 @@ function autotest(ok) {
   ok(!!api.W().npcs.find(n => n.id === 'profesora_cadena' && n.name === 'Profesora de la Cadena' && !/Satoshi/i.test(n.name)), 'Profesora de la Cadena');
   ok(F.skill.lessons.length >= 8 && /Peer-to-Peer Electronic Cash System/.test(F.skill.citation.title), '8 lecciones y cita del informe por título');
   ok(F.quest.id === 'el_libro_mayor', 'misión El Libro Mayor');
-  ok(/no son dinero real/i.test($('#sai-legal').textContent) && /no tienen valor/i.test($('#sai-legal').textContent) && /se reinicia/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real y el libro se reinicia');
+  ok(/no son dinero real/i.test($('#sai-legal').textContent) && /sin valor real/i.test($('#sai-legal').textContent), 'aviso visible: sin valor real');
   const off = (window.Casa && window.Casa.VALLE_OFFSET) || { x: 0, y: 0 };
   ok(F.stable.y - off.y >= 62 && (F.stable.x - off.x) + F.stable.w - 1 < 234 && F.stable.x - off.x <= 234, 'establo en la plaza, fuera de la iglesia');
   ok(F.stable.x - off.x !== 226 && F.npc.x - off.x !== 227, 'establo y profesora fuera de la puerta del parque');

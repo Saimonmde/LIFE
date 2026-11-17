@@ -26,6 +26,15 @@ class SightTests(unittest.TestCase):
         self.assertFalse(mundos.same_sight(park, house))
         mine = type('P', (), {'world': 3, 'place': 'mina-palmas', 'zone': 'mine'})()
         self.assertFalse(mundos.same_sight(park, mine))
+        mate = type('P', (), {'world': 3, 'place': 'mina-palmas', 'zone': 'mine'})()
+        self.assertTrue(mundos.same_sight(mine, mate))
+        mate.world = 1
+        self.assertFalse(mundos.same_sight(mine, mate))
+        central = type('P', (), {'world': 3, 'place': 'banco-central', 'zone': 'central'})()
+        other_central = type('P', (), {'world': 3, 'place': 'banco-central', 'zone': 'central'})()
+        self.assertFalse(mundos.same_sight(central, other_central))
+        bank = type('P', (), {'world': 3, 'place': 'casa-bancaria', 'zone': 'banco'})()
+        self.assertFalse(mundos.same_sight(bank, type('P', (), {'world': 3, 'place': 'casa-bancaria', 'zone': 'banco'})()))
 
     def test_presence_counts_the_world_and_lists_the_place(self):
         people = [
@@ -110,6 +119,61 @@ class ServerSightTests(unittest.TestCase):
         game = open(os.path.join(ROOT, 'play', 'game.js'), encoding='utf-8').read()
         self.assertIn('Vida.world() : 3', game)
         self.assertNotIn('beginAtHome(); const zone', game)
+
+    def test_miners_share_the_cave_and_the_city_does_not_see_them(self):
+        ana = self.person('Ana', 3, 'valle', 100, 100)
+        sol = self.person('Sol', 3, 'valle', 100, 101)
+        noe = self.person('Noe', 3, 'valle', 100, 102)
+        for who in (ana, sol, noe):
+            who.w.buf.clear()
+        server.handle_client_message(ana, {'t': 'move', 'zone': 'mine', 'x': 18, 'y': 27, 'dir': 'down', 'moving': False}, 'move')
+        self.assertEqual(ana.zone, 'mine')
+        self.assertEqual((ana.x, ana.y), (100.0, 100.0))
+        self.assertEqual((ana.zx, ana.zy), (18.0, 27.0))
+        self.assertNotIn(b'"t": "join"', b''.join(noe.w.buf))
+        for who in (ana, sol, noe):
+            who.w.buf.clear()
+        server.handle_client_message(sol, {'t': 'move', 'zone': 'mine', 'x': 18, 'y': 28, 'dir': 'up', 'moving': True}, 'move')
+        self.assertIn(b'"t": "join"', b''.join(ana.w.buf))
+        self.assertNotIn(b'"t": "join"', b''.join(noe.w.buf))
+        self.assertEqual((sol.x, sol.y), (100.0, 101.0))
+        ana.w.buf.clear()
+        noe.w.buf.clear()
+        server.handle_client_message(sol, {'t': 'move', 'zone': 'mine', 'x': 19, 'y': 28, 'dir': 'right', 'moving': True}, 'move')
+        self.assertIn(b'"t": "move"', b''.join(ana.w.buf))
+        self.assertNotIn(b'"t": "move"', b''.join(noe.w.buf))
+        self.assertEqual((sol.zx, sol.zy), (19.0, 28.0))
+        self.assertEqual(sol.zone, 'mine')
+        for who in (ana, sol, noe):
+            who.w.buf.clear()
+        server.chat(sol, 'proximidad', 'hola en la mina')
+        self.assertIn('hola en la mina'.encode(), b''.join(ana.w.buf))
+        self.assertNotIn('hola en la mina'.encode(), b''.join(noe.w.buf))
+        sol.zx, sol.zy = 2.0, 2.0
+        for who in (ana, noe):
+            who.w.buf.clear()
+        server.chat(sol, 'proximidad', 'lejos en la cueva')
+        self.assertNotIn('lejos en la cueva'.encode(), b''.join(ana.w.buf))
+        server.handle_client_message(ana, {'t': 'move', 'zone': 'mine', 'x': 80, 'y': 10, 'dir': 'up'}, 'move')
+        self.assertEqual(ana.zone, 'mine')
+        self.assertEqual((ana.zx, ana.zy), (18.0, 27.0))
+        self.assertEqual((ana.city_x, ana.city_y), (100.0, 100.0))
+
+    def test_a_house_stays_private_when_someone_enters(self):
+        ana = self.person('Ana', 3, 'valle', 94, 267)
+        sol = self.person('Sol', 3, 'valle', 95, 267)
+        sol.w.buf.clear()
+        server.handle_client_message(ana, {'t': 'move', 'zone': 'casa'}, 'move')
+        self.assertEqual(ana.zone, 'casa')
+        heard = b''.join(sol.w.buf)
+        self.assertIn(b'"t": "leave"', heard)
+        self.assertNotIn(b'"t": "join"', heard)
+        sol.zone = 'casa'
+        sol.place = 'casa'
+        sol.w.buf.clear()
+        server.handle_client_message(ana, {'t': 'move', 'zone': 'casa'}, 'move')
+        self.assertFalse(mundos.same_sight(ana, sol))
+        self.assertNotIn(b'"t": "join"', b''.join(sol.w.buf))
 
 
 if __name__ == '__main__':

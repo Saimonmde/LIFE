@@ -152,6 +152,9 @@ html.movil #b-globo svg { width: 44px; height: 44px; }
 #aviso { position: fixed; z-index: 6; left: 50%; bottom: 96px; transform: translateX(-50%); width: min(600px, 94vw); padding: 10px 16px; text-align: center; font-size: 15px; line-height: 1.35;
   background: linear-gradient(180deg, #e9dcb8, #d4c294); color: #2a1a0c; border: 3px solid #6b4a26; border-radius: 6px; box-shadow: 0 0 0 2px #2a1a0c, 0 4px 10px rgba(0,0,0,.5); pointer-events: none; }
 #aviso .titulo { color: #1f3f9a; font-weight: 700; font-size: 17px; margin-bottom: 2px; }
+#toasts { position: fixed; z-index: 8; left: 50%; bottom: 108px; transform: translateX(-50%); width: min(260px, 84vw); display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+#toasts p { margin: 0; padding: 6px 10px; background: rgba(28, 20, 12, .92); border: 1px solid #b48a46; border-radius: 6px; color: #fff6df; font: 600 14px/1.3 system-ui, sans-serif; text-align: center; }
+@media (max-width: 600px) { #toasts { bottom: 128px; width: min(220px, 78vw); } #toasts p { font-size: 13px; padding: 5px 8px; } }
 #objetivo { left: 290px; top: 92px; max-width: 330px; padding: 10px 14px; background: rgba(40,28,16,.82); border: 2px solid #b48a46; border-radius: 6px; color: #ffb648; text-align: center; font-size: 15px; line-height: 1.35; white-space: pre-line; pointer-events: none; text-shadow: 1px 1px 0 #000; }
 #objetivo.parpadeo { animation: brillo 1s ease-in-out 3; } @keyframes brillo { 50% { box-shadow: 0 0 14px 4px #ffd24a; } }
 #tooltip { position: fixed; z-index: 9; pointer-events: none; background: rgba(20,14,8,.92); border: 1px solid #b48a46; padding: 3px 8px; border-radius: 4px; font-size: 13px; white-space: nowrap; }
@@ -267,8 +270,13 @@ button:focus-visible,input:focus-visible{outline:3px solid #8bd7ff;outline-offse
 #cerrar-sesion button{min-height:44px;border:0;border-radius:12px;background:#e2b23c;color:#1c1208;font:700 15px system-ui;padding:8px 12px}
 #b-cerrar-casa{display:none;position:fixed;z-index:24;left:max(10px,env(safe-area-inset-left));bottom:calc(16px + env(safe-area-inset-bottom));min-height:44px;border:0;border-radius:12px;background:#3a2a1c;color:#f6e7c4;font:700 14px system-ui;padding:8px 12px}
 body.in-game.in-casa #b-cerrar-casa{display:block}
-#b-bajar{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;background:#f0d18b;color:#251c12;border:2px solid #614322;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
+#b-bajar, #b-skate{position:fixed;z-index:26;left:max(12px,env(safe-area-inset-left));bottom:calc(168px + env(safe-area-inset-bottom));min-width:188px;min-height:52px;padding:8px 14px;border-radius:10px;font:bold 16px/1.2 system-ui;cursor:pointer}
+#b-bajar{background:#f0d18b;color:#251c12;border:2px solid #614322}
+#b-skate{bottom:calc(228px + env(safe-area-inset-bottom))}
+#b-skate img, #b-skate-movil img{height:40px;width:40px;display:block}
+html.movil #touch-extra #b-skate-movil img{height:26px;width:26px}
 html.movil #b-bajar{left:auto;right:max(10px,env(safe-area-inset-right));bottom:calc(340px + env(safe-area-inset-bottom));min-height:56px;min-width:200px;font-size:17px}
+html.movil #b-skate{display:none}
 #banquito{position:fixed;z-index:18;left:50%;top:50%;transform:translate(-50%,-50%);width:min(420px,92vw);padding:14px 16px}
 #banquito header{display:flex;justify-content:space-between;align-items:center;color:#f5d27a;font-weight:700}
 #banquito-items button{margin:4px 4px 0 0;min-height:44px}
@@ -307,6 +315,7 @@ body:not(.in-game) .hud,body:not(.in-game) #world-tools,body:not(.in-game) #worl
 #furnace-panel{z-index:35;left:50%;top:50%;transform:translate(-50%,-50%);right:auto;width:min(430px,94vw);max-height:85vh;overflow:auto;background:#211a15f8;border:1px solid #b48346;border-radius:12px;color:#eee0c7;font:14px/1.5 system-ui;box-shadow:0 16px 60px #000a}#furnace-panel header{padding:12px;background:#52351f;font-weight:bold;display:flex;justify-content:space-between}.forge-content{padding:15px}.forge-content label{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:12px 0}.forge-content select,.forge-content input{max-width:65%;background:#33271d;color:#ffe4ae;border:1px solid #826139;border-radius:5px;padding:8px}.forge-content input{width:90px}.forge-content button{background:#6b4825;color:#ffe7bb;border:1px solid #aa814b;border-radius:6px;padding:10px;cursor:pointer}.forge-content button:disabled{opacity:.4;cursor:default}.forge-presets,.forge-actions{display:flex;gap:8px}.forge-actions button{flex:1}#forge-result{color:#ffe09a;min-height:22px}#forge-stock{color:#c8ad85;font-size:12px}#mine-route{position:fixed;right:14px;bottom:140px;z-index:12;padding:9px;background:#3d2b1be8;color:#f6d598;border:1px solid #a4824c;border-radius:6px;font:12px system-ui}body:not(.in-game) #mine-route,body:not(.in-game) #furnace-panel{display:none!important}@media(max-width:600px){#inventario{grid-template-columns:repeat(5,minmax(0,1fr))}#w-inv{top:130px}#mine-route{bottom:145px}.slot{height:72px}}
 
 #mine-exit-route{display:none;position:fixed;right:14px;bottom:184px;z-index:12;padding:9px;background:#3d2b1be8;color:#f6d598;border:1px solid #a4824c;border-radius:6px;font:12px system-ui}body.in-game.in-mine #mine-exit-route{display:block}
+#mina-mundo-jay{display:none;position:fixed;right:14px;bottom:228px;z-index:12;padding:9px 12px;background:#3d2b1be8;color:#f6d598;border:1px solid #a4824c;border-radius:6px;font:600 13px system-ui,sans-serif;cursor:pointer}body.in-game.in-mine #mina-mundo-jay{display:block}
 
 /* Two inventory views: 4 columns × 6 rows, or the complete bag. */
 #bag-modes{display:flex;gap:4px;margin-left:auto}#bag-modes button,#bag-pages button{padding:6px 8px;border:1px solid #927348;border-radius:5px;background:#40301f;color:#ead5b0;font:12px system-ui;cursor:pointer}#bag-modes button[aria-pressed=true]{background:#d2ad68;color:#22180f;border-color:#f4d99d}#bag-pages{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 12px;font:12px system-ui;color:#d8c49f}#bag-pages[hidden]{display:none}#bag-pages button{min-width:38px;font-size:20px;padding:2px 8px}#bag-pages button:disabled{opacity:.3;cursor:default}
@@ -667,7 +676,10 @@ body.pantalla-limpia #hud-recursos > #sai-chip { display: flex !important; align
 body.pantalla-limpia #inventario,
 body.pantalla-limpia #hotbar,
 body.pantalla-limpia #w-inv,
-body.pantalla-limpia #plata-chip { display: none !important; }
+body.pantalla-limpia #plata-chip,
+body.pantalla-limpia #chis-chip { display: none !important; }
+#hud-recursos img.cobre-coin { width: 22px; height: 22px; }
+#chis-chip { color: #e7b48a; }
 @media (max-width: 600px) {
   #inventario .slot { border-radius: 12px; }
   .forge-outputs img { width: 56px; height: 56px; }

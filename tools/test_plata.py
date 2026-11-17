@@ -47,6 +47,15 @@ class PlataTests(unittest.TestCase):
         state['plata']['bits'] = 8
         return state
 
+    def test_one_smp_is_one_hundred_million_sph(self):
+        self.assertEqual(plata.parse_sph('1 SMP'), 100_000_000)
+        self.assertEqual(plata.parse_sph('1,5 SMP'), 150_000_000)
+        self.assertEqual(plata.parse_sph('1.5 smp'), 150_000_000)
+        self.assertEqual(plata.parse_sph(100_000_000), 100_000_000)
+        self.assertEqual(plata.parse_sph('100.000.000 SPH'), 100_000_000)
+        with self.assertRaises(eco.AmountError):
+            plata.parse_sph('1,123456789 SMP')
+
     def test_supply_halving_and_js_safe_integer(self):
         self.assertEqual(plata.PREMINE_SPH, 0)
         self.assertGreater(plata.MAX_SUPPLY, eco.MAX_SUPPLY)
@@ -361,6 +370,9 @@ class ServerPlataTests(unittest.TestCase):
             guest.wallet_ok = True
             s.mint_plata(guest)
             self.assertEqual(plata.balance_of(s.ECON, 'Invitada'), 0)
+            self.assertEqual(s.leer_sph({'amount': '1 SMP'}), 100_000_000)
+            self.assertEqual(s.leer_sph({'sph': '1,5 SMP'}), 150_000_000)
+            self.assertEqual(s.leer_sph(100_000_000), 100_000_000)
         finally:
             s.ECON.clear()
             s.ECON.update(econ)

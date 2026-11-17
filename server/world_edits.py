@@ -18,7 +18,7 @@ PROP_TYPES = (
     'palma', 'guayacan', 'sombra', 'arbusto', 'flores', 'pasto',
     'roca', 'cerca', 'banca', 'farol', 'letrero', 'fuente', 'cafe', 'cacao',
 )
-EDIT_ROLES = ('admin', 'owner', 'dev', 'simon')
+EDIT_ROLES = ('admin', 'owner', 'dev', 'simon', 'staff')
 SCALE_MIN = 0.25
 SCALE_MAX = 4.0
 DY_MIN = -12.0
@@ -69,7 +69,7 @@ def can_edit(user, role_of=None):
             resolved = role_of(user)
         except TypeError:
             resolved = role_of(user, '')
-        if resolved in ('admin', 'simon'):
+        if resolved in ('admin', 'simon', 'owner', 'staff'):
             return True
     email = str(user.get('email') or '').strip().lower()
     allowed = {part.strip().lower() for part in os.environ.get('ADMIN_USERS', '').split(',') if part.strip()}

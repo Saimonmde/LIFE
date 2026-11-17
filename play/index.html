@@ -5,14 +5,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Saimon City · Medellín</title>
-<link rel="stylesheet" href="style.css?v=sara-hud">
+<link rel="stylesheet" href="style.css?v=en-vivo">
 <link rel="stylesheet" href="letrero.css?v=sara-cartel">
 <link rel="stylesheet" href="central.css?v=central-r1">
 <link rel="stylesheet" href="movil.css?v=joystick-v1">
 <link rel="stylesheet" href="hud-layout.css?v=casa-r1">
 <link rel="stylesheet" href="theme.css?v=casa-movil">
 <link rel="stylesheet" href="cuenta.css?v=nick-r1">
-<link rel="stylesheet" href="mi-cuenta.css?v=mi-cuenta">
+<link rel="stylesheet" href="mi-cuenta.css?v=staff-rol">
 <link rel="stylesheet" href="cajon.css?v=chat-mundo">
 <link rel="stylesheet" href="economy.css?v=codex-trade-r1">
 <link rel="stylesheet" href="emotes.css?v=movimiento-r1">
@@ -37,7 +37,7 @@
 <body class="mapa-limpio">
 <div id="intro-cielo" hidden></div>
 <canvas id="juego"></canvas>
-<button id="b-descansar" hidden>Descansar / Ir a casa</button><div id="rest-status" role="alert"></div>
+<button id="b-descansar" hidden>Descansar / Ir a casa</button><button type="button" id="b-skate" hidden aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><div id="rest-status" role="alert"></div>
 <div id="astral" hidden><p>Aterrizando en tu casa</p><button type="button" id="astral-saltar">Saltar</button></div>
 <p id="viaje-leyenda" hidden>Aterrizando en Parque de Envigado</p>
 <ol id="viaje-pasos" hidden><li>1 · Municipio</li><li>2 · Mascota</li><li>3 · Instructivo</li></ol>
@@ -112,7 +112,7 @@
 
 <!-- ===== Hotbar + bolsa + monedas (abajo) ===== -->
 <div id="hotbar" class="hud"></div>
-<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><img class="oro-coin" src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><b id="sai-saldo" class="smc">0 SMC</b></span><span id="plata-chip" title="Plata: simulación educativa, sin valor real"><img class="plata-coin" src="../graphics/mining/moneda_plata.svg?v=iconos-r2" alt=""><b id="plata-saldo" class="smp">0 SMP</b></span></div>
+<div id="hud-recursos" class="hud"><span><img src="../graphics/ui/bolsa.png" alt=""><b id="bolsa">0/25</b></span><span id="sai-chip" title="SaiMonCoins: simulación educativa, sin valor real"><img class="oro-coin" src="../graphics/mining/moneda_oro.svg?v=fusion-r1" alt=""><b id="sai-saldo" class="smc">0 SMC</b></span><span id="plata-chip" title="Plata: simulación educativa, sin valor real"><img class="plata-coin" src="../graphics/mining/moneda_plata.svg?v=iconos-r2" alt=""><b id="plata-saldo" class="smp">0 SMP</b></span><span id="chis-chip" title="Simonchis: cobre del juego, sin valor real"><img class="cobre-coin" src="../graphics/mining/moneda_cobre.svg?v=iconos-r2" alt=""><b id="chis-saldo">0 Simonchis</b></span></div>
 <button type="button" id="b-bajar" hidden>Bajarse del caballo</button>
 <button type="button" id="sai-legal" class="hud" aria-expanded="false"><span class="sai-short">Simoncoin, Simonplata y Simonchis · sin valor real</span><span class="sai-full">Simoncoin: 21.000.000. Simonplata: 84.000.000. Simonchis, las de cobre: 333.000.000. No se puede crear más ni copiarlas. No son dinero real.</span></button>
 <aside id="pow-panel" class="hud" aria-live="polite">
@@ -142,7 +142,7 @@
   <button type="button" id="pow-plata">Acuñar Simonplata (prueba)</button>
   <p id="plata-hint">Hace falta una cuenta, caminar y el tope del día. Un invitado no recibe Plata.</p>
 </aside>
-<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
+<div id="touch-extra"><button type="button" id="b-montar">Montar</button><button type="button" id="b-skate-movil" aria-label="Patinar"><img src="../graphics/ui/skate_button.svg" alt=""></button><button type="button" id="b-libro-movil">Libro Mayor</button><button type="button" id="b-libro-madre-movil">Libro madre</button></div>
 
 <!-- ===== Ventanas ===== -->
 <section id="w-inv" class="ventana" hidden><header>Inventario <button class="x" data-cierra="w-inv">✕</button></header><div id="inventario"></div><div id="seleccion">Seleccionado: —</div></section>
@@ -151,6 +151,7 @@
 <section id="w-libro-madre" class="ventana" hidden><header>Libro madre <button class="x" data-cierra="w-libro-madre">✕</button></header><div id="libro-madre-cuerpo"></div></section>
 <div id="libro-toast" hidden role="status"></div>
 <div id="aviso" hidden><div class="titulo" id="aviso-titulo">Continuemos</div><div id="aviso-txt"></div></div>
+<div id="toasts" aria-live="polite"></div>
 <div id="objetivo" class="hud" hidden><div id="objetivo-txt"></div></div>
 <div id="dialogo" hidden><canvas id="dialogo-cara" width="64" height="64"></canvas><div class="cuerpo"><div class="quien">Capataz</div><div id="dialogo-txt"></div><div class="seguir">Toca aquí para continuar ▸</div></div></div>
 <div id="tooltip" hidden></div>
@@ -252,7 +253,8 @@
   <ul>
     <li><b>Casa:</b> entras en tu casa colonial. La puerta (clic, toque o caminar hasta ella) sale al Parque de Envigado. El botón <b>Casa</b> vuelve. <b>Editar casa</b> mueve, rota, quita y coloca muebles; el plano queda guardado en este navegador.</li>
     <li><b>Caminar:</b> clic/toque en el suelo o <b>WASD</b>/flechas (siguen la cámara: ↑ siempre avanza hacia el fondo de la pantalla). Mantén <b>X + flecha</b> para correr: gasta energía y, si se vacía, hay que recuperar un poco para volver a correr. Toca el minimapa para caminar hasta ese punto. El globo abre el mapa del valle.</li>
-    <li><b>Capataz</b> (plaza, con <b>!</b>): háblale para empezar los <b>Primeros Pasos</b>.</li>
+    <li><b>Capataz</b> (Parque de El Poblado, con <b>!</b>): desde el Parque de Envigado se llega al occidente por el camino. Háblale para los <b>Primeros Pasos</b>.</li>
+    <li><b>Patinaje:</b> en el Skate Park de la 4 Sur, al norte por el camino del valle, el botón <b>Patinar</b> (o la tecla <b>G</b>) entrega la tabla y la monta. Sobre la pista se gana experiencia. No hay trucos.</li>
     <li><b>Fruta:</b> clic en un árbol con frutas. <b>Huerto:</b> elige semilla en la barra y clic en una parcela vacía; crece en ~15 s.</li>
     <li><b>Pesca:</b> red de pesca + ondas del río/estanque. <b>Oro:</b> batea + arena dorada <i>en el río</i> (sólo ahí). <b>Cobre/plata:</b> pico en la cantera (noroeste). <b>Caza:</b> lanza + conejo, venado o ave.</li>
     <li><b>Chat:</b> pestañas Global, Proximidad (≤ 30 m), Clan y Grupo. Enter para escribir. Shift + ←/→ gira la cámara 360°; mantén Shift + ↑/↓ para inclinar la vista; Mantén Z + ↑ para acercar suavemente y Z + ↓ para alejar suavemente; +/− también ajusta el zoom. <code>/grupo nombre</code> · <code>/clan nombre</code> · <code>/pagar jugador monto</code>.</li>
@@ -302,7 +304,7 @@
 </section>
 <section id="banquito" class="ventana" hidden>
   <header>Banco e inventario <button type="button" data-cierra="banquito" aria-label="Cerrar">✕</button></header>
-  <p>El banquito de la Casa bancaria y el baúl de tu casa son el mismo depósito. Guardar o retirar no crea monedas: sólo las mueve, y cada pase queda en el libro mayor.</p>
+  <p>El banquito de la Casa bancaria, el baúl de tu casa y el baúl de la mina son el mismo depósito. Guardar o retirar no crea monedas: sólo las mueve, y cada pase queda en el libro mayor.</p>
   <p id="bank-state" role="status"></p>
   <p id="bank-daily"></p>
   <p class="banco-unidad">1 SMC = 100 SMH. 1 SMP = 100.000.000 SPH. El botón sólo cambia cómo se escribe cada una.</p>
@@ -344,7 +346,7 @@
 </section>
 <div id="autotest" hidden></div>
 <script src="historia.js?v=vidrio-r1"></script>
-<script src="simulacion.js?v=saldo-vivo"></script>
+<script src="simulacion.js?v=trueque-directo"></script>
 <script src="pow.js?v=vidrio-r1"></script>
 <script src="../data/el-jardin.js?v=fusion-r1"></script>
 <script src="mining-rules.js?v=lingote-puerta"></script>
@@ -360,6 +362,7 @@
 <script src="tutorial.js?v=guia-r1"></script>
 <script src="libro-madre.js?v=valle-hud-r5"></script>
 <script src="paneles.js?v=valle-hud-r5"></script>
+<script src="../data/skate-4-sur.js?v=scan-r1"></script>
 <script src="llegada.js?v=ovni-r1"></script>
 <script src="assets/cafe-cacao/map.js?v=v2-r1"></script>
 <script src="finca-modelo.js?v=cierre-r1"></script>
@@ -372,26 +375,27 @@
 <script src="gallo.js?v=corral-r1"></script>
 <script src="corral.js?v=corral-r1"></script>
 <script src="caballo.js?v=afuera-r1"></script>
+<script src="fauna.js?v=fauna-r5"></script>
 <script src="letrero.js?v=sara-cartel"></script>
-<script src="cambio-simple.js?v=barra-r1"></script>
-<script src="game.js?v=teleport-r1"></script>
+<script src="cambio-simple.js?v=plata-smp"></script>
+<script src="game.js?v=en-vivo-teleport-r1"></script>
 <script src="pulgar.js?v=chat-mundo"></script>
 <script src="emotes.js?v=movimiento-r1"></script>
-<script src="economy-ui.js?v=mochila-llena"></script>
+<script src="economy-ui.js?v=trueque-directo"></script>
 <script src="ficha.js?v=ficha-trueque"></script>
 <script src="seguir.js?v=seguir-camina"></script>
 <script src="amigos.js?v=seguir-amigo"></script>
-<script type="module" src="unified3d.js?v=aterrizaje-r1"></script>
+<script type="module" src="unified3d.js?v=en-vivo-aterrizaje-r1"></script>
 <script type="module" src="mascota-preview.js?v=mascota-r1"></script>
 <script src="interface.js?v=chat-mundo"></script>
 <script src="hud-layout-core.js?v=mapa-fijo-r6"></script>
 <script src="hud-layout.js?v=guardar-r1"></script>
 <script src="cuenta.js?v=mascota-r1"></script>
-<script src="mi-cuenta.js?v=seguir-camina"></script>
-<script src="cajon.js?v=acunar-claro"></script>
+<script src="mi-cuenta.js?v=staff-rol"></script>
+<script src="cajon.js?v=trueque-directo"></script>
 <script src="acunar.js?v=acunar-claro"></script>
 <script src="partida.js?v=guardado-r1"></script>
-<script src="vida.js?v=seguir-amigo"></script>
+<script src="vida.js?v=staff-rol"></script>
 <script src="instructivo.js?v=elisa-r1"></script>
 <script src="editor/editables.js?v=editor-r1"></script>
 <script src="editor/model.js?v=editor-r1"></script>

@@ -70,14 +70,17 @@
     $('mi-cuenta-inv').textContent = 'Inventario: ' + inventario(data.inventory);
     const coins = data.coins || {};
     const subs = window.Simulacion ? Simulacion.SUBS : 100;
+    const plataSubs = window.Simulacion && Simulacion.PLATA_SUBS ? Simulacion.PLATA_SUBS : 100000000;
     const compact = (base, whole) => {
       const value = Number(base) || 0;
       if (window.Simulacion && Simulacion.formatCompact) return Simulacion.formatCompact(whole ? value : value / subs);
       return texto(whole ? value : value / subs);
     };
+    const plataN = (Number(coins.simonplataSph) || 0) / plataSubs;
+    const plataTxt = window.Simulacion && Simulacion.formatCompact ? Simulacion.formatCompact(plataN) : texto(plataN);
     const total = coins.totalSmh != null ? coins.totalSmh : coins.simoncoinSmh;
     const line = $('mi-cuenta-monedas');
-    line.textContent = 'Simoncoin: ' + compact(total, false) + ' SMC · Simonplata: ' + compact(coins.simonplataSph, false) + ' SMP · Simonchis: ' + compact(coins.simonchis, true);
+    line.textContent = 'Simoncoin: ' + compact(total, false) + ' SMC · Simonplata: ' + plataTxt + ' SMP · Simonchis: ' + compact(coins.simonchis, true);
     const exactSmc = window.Simulacion && Simulacion.formatPair ? Simulacion.formatPair(total || 0) : (texto(total) + ' SMH');
     const exactSmp = window.Simulacion && Simulacion.formatPlataPair ? Simulacion.formatPlataPair(coins.simonplataSph || 0) : (texto(coins.simonplataSph) + ' SPH');
     line.title = exactSmc + ' · ' + exactSmp + ' · ' + texto(coins.simonchis) + ' Simonchis';
@@ -89,6 +92,134 @@
     if (seguir) seguir.checked = data.followable !== false;
     pintarGente('mi-cuenta-amigos', data.amigos, false);
     pintarGente('mi-cuenta-pedidos', data.pedidos, true);
+    pintarStaff(data);
+    marcar(data.role);
+  }
+  function marcar(role) {
+    let badge = $('staff-badge');
+    if (role !== 'staff') {
+      if (badge) badge.hidden = true;
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.id = 'staff-badge';
+      badge.textContent = 'Staff';
+      document.body.append(badge);
+    }
+    badge.hidden = false;
+  }
+  function staffEstado(text) {
+    const el = $('staff-estado');
+    if (el) el.textContent = text || '';
+  }
+  async function staffPost(body) {
+    const response = await fetch('/auth/staff', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'No se pudo.');
+    return data;
+  }
+  function filaStaff(person, quitar) {
+    const line = document.createElement('p');
+    line.className = 'staff-fila';
+    const text = document.createElement('span');
+    text.textContent = (person.nick || 'Viajero') + (person.email ? ' · ' + person.email : '') + (person.role === 'owner' ? ' · dueño' : '');
+    line.append(text);
+    if (person.role === 'owner') return line;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = quitar ? 'Quitar staff' : (person.role === 'staff' ? 'Quitar staff' : 'Dar staff');
+    button.onclick = async () => {
+      staffEstado('');
+      try {
+        const data = await staffPost({ id: person.id, grant: person.role !== 'staff' });
+        pintarLista(data.staff || []);
+        const box = $('staff-resultados');
+        if (box) box.replaceChildren();
+        staffEstado(person.role === 'staff' ? 'Ya no es staff.' : 'Ahora es staff.');
+      } catch (error) {
+        staffEstado(error.message);
+      }
+    };
+    line.append(button);
+    return line;
+  }
+  function pintarLista(rows) {
+    const box = $('staff-lista');
+    if (!box) return;
+    box.replaceChildren();
+    if (!rows || !rows.length) {
+      const empty = document.createElement('p');
+      empty.textContent = 'Todavía no hay staff.';
+      box.append(empty);
+      return;
+    }
+    rows.forEach((person) => box.append(filaStaff(person, true)));
+  }
+  function pintarAuditoria(rows) {
+    const box = $('staff-audit');
+    if (!box) return;
+    box.replaceChildren();
+    (rows || []).slice().reverse().forEach((row) => {
+      const line = document.createElement('p');
+      const when = row.at ? new Date(row.at * 1000).toLocaleString('es-CO', { timeZone: 'America/Bogota', dateStyle: 'short', timeStyle: 'short' }) : '';
+      line.textContent = [when, row.nick || row.account, row.action, row.target].filter(Boolean).join(' · ');
+      box.append(line);
+    });
+  }
+  async function buscarStaff() {
+    staffEstado('');
+    try {
+      const data = await staffPost({ q: $('staff-buscar').value });
+      const box = $('staff-resultados');
+      box.replaceChildren();
+      if (!data.results || !data.results.length) {
+        const empty = document.createElement('p');
+        empty.textContent = 'No hay una cuenta con ese nick o correo.';
+        box.append(empty);
+      } else {
+        data.results.forEach((person) => box.append(filaStaff(person, false)));
+      }
+      pintarLista(data.staff || []);
+      pintarAuditoria(data.audit || []);
+    } catch (error) {
+      staffEstado(error.message);
+    }
+  }
+  function pintarStaff(data) {
+    let box = $('mi-cuenta-staff');
+    if (!data || data.role !== 'owner') {
+      if (box) box.hidden = true;
+      return;
+    }
+    if (!box) {
+      box = document.createElement('section');
+      box.id = 'mi-cuenta-staff';
+      box.innerHTML = [
+        '<h3>Personal</h3>',
+        '<p>Sólo el dueño da o quita staff. Entran con su cuenta. Moderan y editan el mundo. No nombran personal, no cambian al dueño y no acuñan monedas.</p>',
+        '<label>Buscar nick o correo<input id="staff-buscar" maxlength="80" placeholder="nick o correo" autocomplete="off"></label>',
+        '<button type="button" id="staff-ir">Buscar</button>',
+        '<div id="staff-resultados"></div>',
+        '<h3>Staff ahora</h3>',
+        '<div id="staff-lista"></div>',
+        '<h3>Registro</h3>',
+        '<div id="staff-audit"></div>',
+        '<p id="staff-estado" role="status"></p>',
+      ].join('');
+      $('mi-cuenta-estado').before(box);
+      $('staff-ir').onclick = buscarStaff;
+      $('staff-buscar').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { event.preventDefault(); buscarStaff(); }
+      });
+    }
+    box.hidden = false;
+    pintarLista(data.staff || []);
+    pintarAuditoria(data.audit || []);
   }
   function pintarGente(id, rows, pedido) {
     const box = $(id);
@@ -235,5 +366,5 @@
   $('mi-cuenta-salir-todos').onclick = () => salir('/auth/salir-todos').catch((error) => estado(error.message));
   montar();
   new MutationObserver(montar).observe(document.body, { childList: true, subtree: true });
-  window.MiCuenta = { abrir, cerrar };
+  window.MiCuenta = { abrir, cerrar, marcar };
 })();

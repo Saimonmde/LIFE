@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Amigos, chat moderado, feedback y el poste del Parque de Envigado.
 
-Los papeles son player, staff, admin y simon. Hoy sólo simon responde el poste
-y lee el feedback. staff y admin existen para sumarlos después sin cambiar el esquema.
+Los papeles son player, staff, admin, owner y simon. El dueño es el fundador
+(owner). El staff modera y edita como él. El token de administración sigue
+siendo simon. staff no nombra personal ni acuña.
 El cambio de nick queda marcado como acción de pago: la red no cobra ni renombra.
 """
 import hmac
@@ -12,18 +13,18 @@ import time
 import unicodedata
 
 import accounts as ACC
-import fusion
 import mascotas
 import muebles
 import mundos
 
-ROLES = ('player', 'staff', 'admin', 'simon')
-# Hoy estas acciones piden el papel simon. Mañana se agrega 'admin' o 'staff' a la tupla.
+ROLES = ('player', 'staff', 'admin', 'simon', 'owner')
+# El dueño y el staff moderan. admin no hereda eso por el nombre del papel.
+_MOD = ('simon', 'owner', 'staff')
 ACTIONS = {
-    'see_feedback': ('simon',),
-    'answer_note': ('simon',),
-    'hide_note': ('simon',),
-    'close_poll': ('simon',),
+    'see_feedback': _MOD,
+    'answer_note': _MOD,
+    'hide_note': _MOD,
+    'close_poll': _MOD,
 }
 _BANNED = (
     'puta', 'puto', 'mierda', 'gonorrea', 'hijueputa', 'malparido',
@@ -232,11 +233,8 @@ def role_of(user, admin_header=''):
         return 'simon'
     if not user:
         return 'player'
-    owner = fusion.owner_email()
-    email = str(user.get('email') or '').strip().lower()
-    if owner and email and email == owner:
-        return 'simon'
-    role = user.get('role') or 'player'
+    import staff as STAFF
+    role = STAFF.role_of(user)
     if role not in ROLES:
         return 'player'
     return role

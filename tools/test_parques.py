@@ -123,7 +123,9 @@ class ParquesTests(unittest.TestCase):
         self.assertIn('Óvalo', text)
         block = json.load(open(os.path.join(ROOT, 'data', 'parque-envigado-bloque.json'), encoding='utf-8'))
         self.assertEqual(len(block['props']['canecas']), 3)
-        self.assertEqual(len(block['props']['benches']), 4)
+        self.assertEqual(len(block['props']['benches']), 12)
+        bench_spots = [(int(x), int(y)) for x, y in re.findall(r"dx: (\d+), dy: (\d+), id: 'banca_", text)]
+        self.assertEqual([(b['dx'], b['dy']) for b in block['props']['benches']], bench_spots)
         self.assertEqual([s['id'] for s in block['props']['sculptures']], ['anillo', 'columna', 'ovalo'])
         layout = block['layout']
         church = layout['church']
@@ -135,7 +137,7 @@ class ParquesTests(unittest.TestCase):
     def test_envigado_plaza_is_symmetric_and_the_road_skirts_it(self):
         world = self.world
         tiles = world['tiles']
-        box = (88, 256, 114, 278)
+        box = (83, 249, 125, 284)
 
         def hits(a, b):
             steps = max(abs(b[0] - a[0]), abs(b[1] - a[1]), 1)
@@ -154,6 +156,35 @@ class ParquesTests(unittest.TestCase):
         for x, y in ((93, 262), (102, 262), (93, 270), (102, 270)):
             self.assertEqual(tiles[str(world['ground'][y][x])]['kind'], 'grass', (x, y))
         self.assertNotEqual(tiles[str(world['ground'][262][95])]['kind'], 'path')
+
+    def test_park_uses_real_meters_without_rescaling_the_valley(self):
+        layout = self.block['layout']
+        scale = layout['scale']
+        self.assertEqual(scale['playMetersPerTile'], 2)
+        self.assertEqual(scale['valleyTilesPerKm'], 7.2)
+        self.assertAlmostEqual(scale['valleyMetersPerTile'], 1000 / 7.2, places=2)
+        self.assertEqual(self.world['valle']['tilesPerKm'], 7.2)
+        self.assertEqual(self.world['render']['metersPerTile'], 2)
+        lawn = scale['play']['lawnTiles']
+        wide = (lawn['x1'] - lawn['x0'] + 1) * 2
+        deep = (lawn['y1'] - lawn['y0'] + 1) * 2
+        self.assertEqual([wide, deep], scale['play']['lawnMeters'])
+        self.assertAlmostEqual(wide, scale['osm']['squareSide_m'], delta=2)
+        church = layout['church']
+        self.assertEqual(church['h'] * 2, 28)
+        self.assertLess(church['w'] * 2, 59)
+        self.assertEqual(scale['play']['churchMeters'], [church['w'] * 2, church['h'] * 2])
+        self.assertEqual(scale['play']['facadeFaces'], 'west')
+        self.assertGreater(church['x'], lawn['x1'])
+        spec = json.load(open(os.path.join(ROOT, 'graphics', 'models', 'banca_envigado.json'), encoding='utf-8'))
+        self.assertEqual(spec['largo'], 1.443)
+        self.assertEqual(spec['ancho'], 0.433)
+        self.assertEqual(spec['alto'], 0.465)
+        self.assertEqual(spec['notas']['largo_base_m'], 1.788)
+        self.assertEqual(spec['unidades'], 'metros y grados')
+        license_text = open(os.path.join(ROOT, 'graphics', 'models', 'banca_envigado.glb.license'), encoding='utf-8').read()
+        self.assertIn('CC-BY-SA-4.0', license_text)
+        self.assertIn('Saimon888', license_text)
 
     def test_horse_road_reaches_every_park(self):
         world = self.world

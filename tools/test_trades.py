@@ -216,6 +216,101 @@ class TradeTests(unittest.TestCase):
         self.assertNotIn('Nica', json.dumps(views))
         self.assertEqual(libro.balances(chain)['Nica'], 4 * economy.SUBS)
         self.assertEqual(libro.balances(chain)['Teo'], 2 * economy.SUBS)
+        self.assertEqual(econ['minedSmh'], 0)
+        self.assertEqual(econ['plata']['minedSph'], 0)
+        self.assertEqual(econ['simonchis']['minted'], 0)
+        txs = [tx for block in econ['blocks'] for tx in (block.get('txs') or [])]
+        txs.extend(econ.get('mempool') or [])
+        legs = next(tx['legs'] for tx in txs if tx.get('type') == 'trade')
+        assets = {leg['asset'] for leg in legs}
+        self.assertEqual(assets, {'smc', 'smp', 'cobre', 'item'})
+
+    def test_both_see_the_new_balances_of_the_three_coins(self):
+        clients = {
+            1: SimpleNamespace(id=1, name='Ana', hello=True, bot=False, wallet_ok=True, zone='city', world=3, x=0, y=0),
+            2: SimpleNamespace(id=2, name='Luis', hello=True, bot=False, wallet_ok=True, zone='city', world=3, x=1, y=0),
+        }
+        box = {
+            'Ana': {'smc': 2 * economy.SUBS, 'smp': 3 * plata.SUBS, 'cobre': 4},
+            'Luis': {'smc': economy.SUBS, 'smp': plata.SUBS, 'cobre': 1},
+        }
+        messages = []
+
+        def commit(a, b, left, right, key):
+            box[a]['smc'] += right['smc'] - left['smc']
+            box[b]['smc'] += left['smc'] - right['smc']
+            box[a]['smp'] += right['smp'] - left['smp']
+            box[b]['smp'] += left['smp'] - right['smp']
+            box[a]['cobre'] += right['cobre'] - left['cobre']
+            box[b]['cobre'] += left['cobre'] - right['cobre']
+
+        def balances(name):
+            row = box[name]
+            return {'smc': row['smc'], 'smp': row['smp'], 'cobre': row['cobre'], 'items': {}}
+
+        desk = Trades(clients, lambda c, m: messages.append((c.id, m)), balances, commit, lambda: 0)
+        desk.handle(clients[1], {'t': 'trade_start', 'peer': 2})
+        session = next(iter(desk.sessions.values()))
+
+        def step(player, action, **kw):
+            desk.handle(clients[player], {
+                't': 'trade_' + action, 'id': session['id'], 'revision': session['revision'], **kw,
+            })
+
+        step(1, 'offer', offer={'smc': economy.SUBS, 'smp': plata.SUBS, 'cobre': 2})
+        step(2, 'offer', offer={'smc': 0, 'smp': 0, 'cobre': 0})
+        step(1, 'accept')
+        step(2, 'accept')
+        step(1, 'confirm')
+        step(2, 'confirm')
+        done = [msg for _who, msg in messages if msg.get('t') == 'trade_end' and msg.get('ok')]
+        self.assertEqual(len(done), 2)
+        by_balance = {item['balances']['cobre']: item for item in done}
+        ana = by_balance[2]
+        luis = by_balance[3]
+        self.assertEqual(ana['balances'], {'smc': economy.SUBS, 'smp': 2 * plata.SUBS, 'cobre': 2})
+        self.assertEqual(luis['balances'], {'smc': 2 * economy.SUBS, 'smp': 2 * plata.SUBS, 'cobre': 3})
+        self.assertIn('Intercambiaste. Saldo: 1 SMC, 2 SMP, 2 Simonchis.', ana['reason'])
+        self.assertIn('Intercambiaste. Saldo: 2 SMC, 2 SMP, 3 Simonchis.', luis['reason'])
+        self.assertEqual(economy.MAX_SUPPLY, 21_000_000)
+        self.assertEqual(plata.MAX_SUPPLY, 84_000_000)
+
+    def test_the_mine_counts_and_a_house_does_not(self):
+        self.t.cancel(1)
+        ana, luis = self.clients[1], self.clients[2]
+        ana.zone = luis.zone = 'mine'
+        ana.world = luis.world = 3
+        ana.x, ana.y = 100, 100
+        luis.x, luis.y = 101, 100
+        ana.zx, ana.zy = 18, 27
+        luis.zx, luis.zy = 2, 2
+        with self.assertRaises(TradeError):
+            self.t.handle(ana, {'t': 'trade_start', 'peer': 2})
+        luis.zy = 28
+        luis.zx = 18
+        self.t.handle(ana, {'t': 'trade_start', 'peer': 2})
+        self.assertTrue(self.t.sessions)
+        self.t.cancel(1)
+        ana.zone = luis.zone = 'casa'
+        with self.assertRaises(TradeError):
+            self.t.handle(ana, {'t': 'trade_start', 'peer': 2})
+
+    def test_the_hud_names_the_three_balances(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        page = open(os.path.join(root, 'play', 'index.html'), encoding='utf-8').read()
+        drawer = open(os.path.join(root, 'play', 'cajon.js'), encoding='utf-8').read()
+        trade = open(os.path.join(root, 'play', 'economy-ui.js'), encoding='utf-8').read()
+        self.assertIn('id="sai-saldo"', page)
+        self.assertIn('id="plata-saldo"', page)
+        self.assertIn('id="chis-saldo"', page)
+        self.assertIn('0 Simonchis', page)
+        self.assertIn('exactSimoncoin', drawer)
+        self.assertIn('exactSimonplata', drawer)
+        self.assertIn('exactSimonchis', drawer)
+        self.assertIn('Simoncoin (SMC o SMH)', trade)
+        self.assertIn('Simonplata (SMP)', trade)
+        self.assertIn('>Simonchis<', trade)
+        self.assertIn('150 SMH', trade)
 
     def test_full_bags_can_swap_the_same_item_without_loss(self):
         econ = economy.empty_state()

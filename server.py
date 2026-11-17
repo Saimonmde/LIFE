@@ -50,6 +50,7 @@ import gallos as GALLOS
 import guardado as GUARDADO
 import partida as PARTIDA
 import world_edits as EDITS
+import fauna as FAUNA
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -59,6 +60,8 @@ LEGAL_PAGES = {
     '/terminos': 'legal/terminos.html',
 }
 PROX_TILES = 15           # 30 m con 2 m por casilla
+MINE_W, MINE_H = 36, 32   # cueva de Las Palmas, la misma grilla del cliente
+MINE_SPAWN = (18.0, 27.0)
 MAX_TEXT = 160
 CHANNELS = ('global', 'proximidad', 'clan', 'grupo', 'lugar')
 SERVER_ID = uuid.uuid4().hex[:12]
@@ -130,6 +133,68 @@ def save_finca():
 def save_accounts():
     ACC.save(ACCOUNTS_PATH, ACCOUNTS)
 
+FAUNA_PATH = os.path.join(ROOT, 'state', 'fauna.json')
+FAUNA_STATE = FAUNA.normalize(PERSIST.load_named('fauna', FAUNA_PATH) or FAUNA.empty_state())
+with open(os.path.join(ROOT, 'data', 'vida.json'), encoding='utf-8') as f:
+    FAUNA_PLACES = json.load(f).get('places') or []
+FAUNA_LAND = FAUNA.Range(WORLD, FAUNA_PLACES)
+FAUNA_BOOK = FAUNA.Book(FAUNA_STATE, FAUNA.gear_ids(WORLD), purse_state=VAULT_STATE)
+FAUNA.ensure_pumas(FAUNA_BOOK.state, FAUNA_LAND)
+
+def save_fauna():
+    PERSIST.save_named('fauna', FAUNA_PATH, FAUNA.dump(FAUNA_BOOK.state))
+
+def fauna_morir(c, m):
+    token = m.get('token')
+    try:
+        x = max(0.0, min(WORLD['width'] - 1.0, float(m.get('x'))))
+        y = max(0.0, min(WORLD['height'] - 1.0, float(m.get('y'))))
+    except (TypeError, ValueError):
+        return send(c, {'t': 'fauna_caida', 'ok': False, 'reason': 'falta el lugar', 'token': token})
+    try:
+        drop = FAUNA_BOOK.commit(c.name, x, y, m.get('items'), token, time.time())
+    except FAUNA.FaunaError as exc:
+        return send(c, {'t': 'fauna_caida', 'ok': False, 'reason': str(exc), 'token': token})
+    save_vault()
+    save_fauna()
+    send(c, {'t': 'fauna_caida', 'ok': True, 'token': token, 'drop': FAUNA_BOOK.public_drop(drop, True)})
+    broadcast_fauna()
+
+def fauna_recoger(c, m):
+    try:
+        got = FAUNA_BOOK.pickup(c.name, m.get('id'), time.time())
+    except FAUNA.FaunaError as exc:
+        return send(c, {'t': 'fauna_recoger', 'ok': False, 'reason': str(exc), 'id': m.get('id')})
+    save_vault()
+    save_fauna()
+    send(c, {'t': 'fauna_recoger', 'ok': True, 'id': got['id'], 'items': got['items']})
+    broadcast_fauna()
+
+def fauna_golpe(c, m):
+    puma = next((row for row in FAUNA_BOOK.state.get('pumas') or [] if row.get('id') == m.get('id')), None)
+    dmg = FAUNA.strike(puma, c.x, c.y, bool(m.get('lanza')), time.time()) if puma else 0
+    if dmg:
+        broadcast_fauna()
+    send(c, {'t': 'fauna_golpe', 'ok': dmg > 0, 'dmg': dmg, 'hp': int((puma or {}).get('hp') or 0), 'id': m.get('id')})
+
+def fauna_players():
+    found = []
+    for person in clients.values():
+        if person.hello and not person.bot and person.zone == 'city':
+            found.append({'id': person.id, 'name': person.name, 'x': person.x, 'y': person.y})
+    return found
+
+def fauna_packet(name):
+    FAUNA.ensure_pumas(FAUNA_BOOK.state, FAUNA_LAND)
+    pumas = [FAUNA.public_puma(puma) for puma in FAUNA_BOOK.state.get('pumas') or []]
+    drops = [FAUNA_BOOK.public_drop(drop, drop.get('owner') == name) for drop in FAUNA_BOOK.state.get('drops') or []]
+    return {'t': 'fauna', 'pumas': pumas, 'drops': drops}
+
+def broadcast_fauna():
+    for person in list(clients.values()):
+        if person.hello and not person.bot:
+            send(person, fauna_packet(person.name))
+
 WORLD_EDITS_PATH = os.path.join(ROOT, 'state', EDITS.storage_filename())
 WORLD_EDITS = EDITS.normalize(PERSIST.load_named(EDITS.storage_name(), WORLD_EDITS_PATH), env=EDITS.env_name())
 
@@ -149,6 +214,10 @@ def world_edit_request(user, message, save=True, announce=True):
             save_world_edits()
         if announce:
             broadcast({'t': 'world_edits', 'worldEdits': EDITS.packet(WORLD_EDITS)})
+        if SOCIAL.role_of(user) == 'staff':
+            import staff as STAFF
+            STAFF.note(ACCOUNTS, user, 'editar_mundo', (message or {}).get('op'))
+            save_accounts()
     return result
 
 def save_libro(records):
@@ -697,7 +766,7 @@ def cambio_simple_msg(sender, message):
         quoted = CAMBIO.quote('simonplata', 'simoncoin', qty, have, fondo_smh=fondo)
         if not quoted.get('ok'):
             return send(sender, {'t': 'cambio_result', 'ok': False, 'reason': quoted.get('texto') or 'No se movió nada.'})
-        result = exchange_plata(sender, f"{quoted['das']} smp")
+        result = exchange_plata(sender, int(quoted['das']) * PLATA.SUBS)
         ok = bool(isinstance(result, dict) and result.get('ok'))
         return send(sender, {'t': 'cambio_result', 'ok': ok, 'give': give, 'das': quoted['das'] if ok else 0, 'recibes': quoted['recibes'] if ok else 0, 'reason': quoted['texto'] if ok else 'No se movió nada.'})
     if give not in CAMBIO.MINERALES or receive != 'simoncoin':
@@ -793,21 +862,29 @@ def _dia(account, box):
         return 0
     return int(acc.get('earned') or 0)
 
+def _en_smp(sph):
+    """Pasa platicas a Simonplata. 1 SMP = 100.000.000 SPH, no 100."""
+    sph = max(0, int(sph or 0))
+    whole, frac = divmod(sph, PLATA.SUBS)
+    if frac == 0:
+        return whole
+    return whole + frac / PLATA.SUBS
+
 def cupos_public(profile=None):
     profile = profile or {}
     age, play, quests = profile.get('age') or 0, profile.get('play') or 0, profile.get('quests') or 0
     account = profile.get('account') or ''
     oro_cap = TOPES.simoncoin_daily_smh(age, play, quests) / ECO.SUBS
     oro_earned = _dia(account, (ECON.get('supply') or {}).get('accounts')) / ECO.SUBS
-    plata_cap = TOPES.simonplata_daily_sph(age, play, quests) / ECO.SUBS
-    plata_earned = _dia(account, (ECON.get('plata') or {}).get('accounts')) / ECO.SUBS
+    plata_cap = _en_smp(TOPES.simonplata_daily_sph(age, play, quests))
+    plata_earned = _en_smp(_dia(account, (ECON.get('plata') or {}).get('accounts')))
     chis_cap = TOPES.simonchis_daily()
     key = f'{account}:{int(time.time()) // TOPES.DAY}'
     chis_earned = int(((ECON.get('simonchis') or {}).get('earnedDay') or {}).get(key) or 0)
     coins = {}
     for coin, cap, earned, room in (
         ('simoncoin', max(oro_cap, SUP.loose_daily_smc()), oro_earned, ECO.issuance_room(ECON) / ECO.SUBS),
-        ('simonplata', plata_cap, plata_earned, PLATA.issuance_room(ECON) / ECO.SUBS),
+        ('simonplata', plata_cap, plata_earned, _en_smp(PLATA.issuance_room(ECON))),
         ('simonchis', chis_cap, chis_earned, COBRE.room(ECON)),
     ):
         spec = TOPES.metal(coin)
@@ -893,7 +970,7 @@ def acunar_for(sender, coin, pieces, proof=None):
         got = granted / ECO.SUBS
         sender.registro = pub
     elif coin == 'simonplata':
-        want = int(round(quote['recibes'] * ECO.SUBS))
+        want = int(round(quote['recibes'] * PLATA.SUBS))
         if not proof:
             opened = PLATA.open_challenge(ECON, profile, 'acunar', f'{coin}:{pieces}')
             save_econ()
@@ -906,7 +983,7 @@ def acunar_for(sender, coin, pieces, proof=None):
         save_econ()
         if not result.get('ok'):
             return _acunar_fail(sender, SUP.reason_text(result.get('reason') or 'signature'), result.get('reason') or 'signature')
-        got = int(result.get('sph') or 0) / ECO.SUBS
+        got = int(result.get('sph') or 0) / PLATA.SUBS
         broadcast_econ()
     else:
         want = int(quote['recibes'])
@@ -944,13 +1021,19 @@ def acunar_for(sender, coin, pieces, proof=None):
     if coin == 'simoncoin' and getattr(sender, 'kept_smh', None) is not None:
         recibido = sender.kept_smh / ECO.SUBS
     saldos = view.get('balances') or {}
-    razon = (
-        f'Se acuñó {recibido} {row["name"]}. '
-        f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}, '
-        f'{PLATA.format_smp(saldos.get("simonplata") or 0)}, '
-        f'{int(saldos.get("simonchis") or 0)} Simonchis. '
-        f'Se gastaron {done["gastas"]} {row["metal"]}.'
-    )
+    if coin == 'simonplata':
+        acuñada = PLATA.format_smp(int(result.get('sph') or 0))
+        if acuñada.endswith(' SMP'):
+            acuñada = acuñada[:-4] + ' Simonplata'
+        razon = f'Acuñaste {acuñada}. Saldo: {PLATA.format_smp(int(saldos.get("simonplata") or 0))}'
+    else:
+        razon = (
+            f'Se acuñó {recibido} {row["name"]}. '
+            f'Saldo: {ECO.format_smc(saldos.get("simoncoin") or 0)}, '
+            f'{PLATA.format_smp(saldos.get("simonplata") or 0)}, '
+            f'{int(saldos.get("simonchis") or 0)} Simonchis. '
+            f'Se gastaron {done["gastas"]} {row["metal"]}.'
+        )
     registro = getattr(sender, 'registro', None) if coin == 'simoncoin' else None
     send(sender, {
         't': 'acunar_result', 'ok': True, 'coin': coin, 'name': row['name'],
@@ -1129,12 +1212,12 @@ def lavar_for(sender, qty=1):
     _avisar_crudo(sender, 'pepita_oro')
 
 SELL_SMH = {
-    'mineral_oro': 1_000_000,
-    'mineral_plata': 1_000_000,
-    'mineral_cobre': 1_000_000,
-    'pepita_oro': 1_000_000,
-    'bolsa_cafe': 5_000_000,
-    'bolsa_cacao': 5_000_000,
+    'mineral_oro': 1,
+    'mineral_plata': 1,
+    'mineral_cobre': 1,
+    'pepita_oro': 1,
+    'bolsa_cafe': 5,
+    'bolsa_cacao': 5,
 }
 
 
@@ -1429,34 +1512,23 @@ def withdraw_smp(sender, sph):
     save_econ(); save_vault(); broadcast_econ(); vault_for(sender)
 
 
-def deposit_item(sender, item, qty):
-    if not wallet_ready(sender):
-        return
-    item = clean(item, 32)
-    try:
-        qty = int(qty)
-    except (TypeError, ValueError):
-        qty = 0
-    if not item or qty < 1 or qty > 999:
-        return
-    VAULT.add_item(VAULT.account(VAULT_STATE, sender.name), item, qty)
-    save_vault()
-    send(sender, {'t': 'vault_item', 'op': 'deposit', 'item': item, 'qty': qty})
-    vault_for(sender)
+def deposit_item(sender, item, qty, token=''):
+    _mover_baul(sender, 'deposit', item, qty, token)
 
-def withdraw_item(sender, item, qty):
+def withdraw_item(sender, item, qty, token=''):
+    _mover_baul(sender, 'withdraw', item, qty, token)
+
+def _mover_baul(sender, op, item, qty, token=''):
+    """El baúl de la mina, el de la casa y el banquito usan la cuenta de quien está en sesión."""
     if not wallet_ready(sender):
         return
-    item = clean(item, 32)
-    try:
-        qty = int(qty)
-    except (TypeError, ValueError):
-        qty = 0
-    box = VAULT.account(VAULT_STATE, sender.name)
-    if not item or qty < 1 or not VAULT.take_item(box, item, qty):
-        return send(sender, {'t': 'system', 'text': 'El depósito no tiene esa cantidad.'})
-    save_vault()
-    send(sender, {'t': 'vault_item', 'op': 'withdraw', 'item': item, 'qty': qty})
+    import baul as BAUL
+    result = BAUL.mover(VAULT_STATE, sender.name, op, item, qty, token)
+    if not result.get('ok'):
+        return send(sender, {'t': 'system', 'text': result.get('reason') or 'No se movió nada.'})
+    if not result.get('dup'):
+        save_vault()
+        send(sender, {'t': 'vault_item', 'op': op, 'item': result['item'], 'qty': result['qty']})
     vault_for(sender)
 
 clients = {}      # id -> Client
@@ -1476,8 +1548,11 @@ class Client:
         pet = self.pet if isinstance(self.pet, dict) else None
         if pet:
             pet = {k: pet[k] for k in ('species', 'breed', 'variant', 'name') if k in pet}
+        x, y = self.x, self.y
+        if getattr(self, 'zone', 'city') == 'mine':
+            x, y = _mine_xy(self)
         return {'id': self.id, 'avatar_id': ('avatar_' + self.user['id']) if getattr(self, 'user', None) else None, 'name': self.name, 'nick': visible_nick(self), 'color': self.color, 'clan': self.clan, 'group': self.group,
-                'x': round(self.x, 2), 'y': round(self.y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone,
+                'x': round(x, 2), 'y': round(y, 2), 'dir': self.dir, 'moving': self.moving, 'level': self.level, 'bot': self.bot, 'zone': self.zone,
                 'world': self.world, 'place': self.place, 'pet': pet}
 
 def clean(s, n):
@@ -1602,9 +1677,19 @@ def commit_trade(name_a, name_b, offer_a, offer_b, trade_id):
 
 TRADES = TRADE.Trades(clients, send, _trade_balances, commit_trade)
 
+def _mine_xy(person):
+    return float(getattr(person, 'zx', 0) or 0), float(getattr(person, 'zy', 0) or 0)
+
 def dist(a, b):
     if a is b: return 0
-    if getattr(a, 'zone', 'city') == 'casa' or getattr(b, 'zone', 'city') == 'casa': return 1e9
+    za = getattr(a, 'zone', 'city') or 'city'
+    zb = getattr(b, 'zone', 'city') or 'city'
+    if za == 'casa' or zb == 'casa': return 1e9
+    if za != zb: return 1e9
+    if za == 'mine':
+        ax, ay = _mine_xy(a)
+        bx, by = _mine_xy(b)
+        return max(abs(ax - bx), abs(ay - by))
     return max(abs(a.x - b.x), abs(a.y - b.y))
 
 def visible_nick(client):
@@ -1763,6 +1848,7 @@ def meet_point(target):
 def room_shift(c, old_world, old_place):
     """Quien sale de la ciudad deja de verse. En la misma ciudad, se mueve aunque cambie de parque."""
     previous = _Spot(old_world, old_place)
+    moved = False
     for other in list(clients.values()):
         if other is c or not other.hello:
             continue
@@ -1773,11 +1859,84 @@ def room_shift(c, old_world, old_place):
         elif after and not before:
             send(other, {'t': 'join', 'player': c.public()})
         elif after:
-            send(other, {'t': 'move', 'id': c.id, 'x': round(c.x, 2), 'y': round(c.y, 2),
-                         'dir': c.dir, 'moving': c.moving, 'level': c.level, 'zone': 'city',
-                         'pace': getattr(c, 'pace', '') or ('caminando' if c.moving else 'quieto')})
+            moved = True
+    if moved:
+        emit_pose(c, force=True)
     if old_world != c.world or old_place != c.place:
         broadcast(presence_msg())
+
+NODO_STATE = None
+
+def nodo_state():
+    global NODO_STATE
+    if NODO_STATE is None:
+        import nodos as NODOS
+        NODO_STATE = NODOS.empty()
+    return NODO_STATE
+
+def pose_msg(c):
+    zone = getattr(c, 'zone', 'city') or 'city'
+    if zone == 'mine':
+        x, y = _mine_xy(c)
+    else:
+        x, y = c.x, c.y
+    return {
+        't': 'move', 'id': c.id, 'x': round(float(x), 2), 'y': round(float(y), 2),
+        'dir': c.dir, 'moving': bool(c.moving), 'level': c.level, 'zone': zone,
+        'pace': getattr(c, 'pace', '') or ('caminando' if c.moving else 'quieto'),
+        'name': c.name, 'nick': visible_nick(c), 'color': c.color,
+    }
+
+def emit_pose(c, force=False, now=None):
+    if not c.hello:
+        return
+    now = time.time() if now is None else now
+    if c.moving and now - float(getattr(c, 'move_at', now) or now) > 1.2:
+        c.moving = False
+    body = pose_msg(c)
+    key = (body['x'], body['y'], body['dir'], body['moving'], body['zone'], body['pace'], c.world, c.place)
+    if not force and getattr(c, '_pose_key', None) == key:
+        return
+    c._pose_key = key
+    broadcast(body, who=lambda o, me=c: MUNDOS.same_sight(me, o), exclude=c)
+
+def broadcast_motion(now=None):
+    now = time.time() if now is None else now
+    for person in list(clients.values()):
+        if person.hello and not person.bot:
+            emit_pose(person, now=now)
+    import nodos as NODOS
+    state = nodo_state()
+    for row in NODOS.revive(state, now):
+        broadcast({'t': 'nodo', 'id': row['id'], 'until': now, 'world': row['world'], 'back': True},
+                  who=lambda o, world=row['world']: o.world == world)
+
+def soltar_veta(person):
+    import nodos as NODOS
+    NODOS.release_player(nodo_state(), person.id, time.time())
+
+def _veta(sender, spot):
+    """Aparta la veta. None si no es una veta controlada. False si no puede picarla."""
+    import nodos as NODOS
+    spot = str(spot or '')[:40]
+    if not spot:
+        return None
+    result = NODOS.claim(nodo_state(), sender.world, spot, sender.id, time.time(), WORLD.get('nodes') or [])
+    if not result.get('tracked'):
+        return None
+    if result.get('ok'):
+        return spot
+    reason = {'ocupado': 'Esa veta está ocupada.', 'una': 'Ya picas otra veta.', 'agotada': 'Esa veta está en descanso.'}.get(result.get('reason'), 'Esa veta está ocupada.')
+    send(sender, {'t': 'veta', 'ok': False, 'reason': reason, 'spot': spot})
+    return False
+
+def _cerrar_veta(sender, spot):
+    import nodos as NODOS
+    until = NODOS.finish(nodo_state(), sender.world, spot, sender.id, time.time(), WORLD.get('nodes') or [])
+    if until is None:
+        return
+    broadcast({'t': 'nodo', 'id': spot, 'until': until, 'world': sender.world},
+              who=lambda o, world=sender.world: o.world == world)
 
 def refresh_social(c, other_key=None):
     send(c, {'t': 'social', 'social': SOCIAL.friend_view(VIDA, c.identity, ACCOUNTS, clients.values())})
@@ -1897,17 +2056,81 @@ def vida_try(c, m, t):
         send(c, {'t': 'poste', **SOCIAL.public_notes(VIDA)})
         return True
     if t == 'poste_moderar':
-        result = SOCIAL.moderate(VIDA, SOCIAL.role_of(getattr(c, 'user', None)), m.get('kind'), m.get('id'), m.get('action'), m.get('text') or '')
+        actor = getattr(c, 'user', None)
+        result = SOCIAL.moderate(VIDA, SOCIAL.role_of(actor), m.get('kind'), m.get('id'), m.get('action'), m.get('text') or '')
         if result.get('ok'):
             save_vida()
+            if SOCIAL.role_of(actor) == 'staff':
+                import staff as STAFF
+                STAFF.note(ACCOUNTS, actor, 'moderar', '%s:%s' % (m.get('kind') or '', m.get('action') or ''))
+                save_accounts()
         send(c, {'t': 'poste', **(result.get('board') or SOCIAL.public_notes(VIDA)), 'error': result.get('error')})
         return True
     return False
 
 TRAVEL_GATE = VIAJES.Gate()
 
+def _punto_mina(message):
+    """Coordenadas de la cueva, o None si el mensaje sólo anuncia la zona.
+
+    False cuando el número no cabe en la grilla de 36×32.
+    """
+    if not isinstance(message, dict):
+        return False
+    if message.get('x') is None and message.get('y') is None:
+        return None
+    try:
+        nx, ny = float(message.get('x')), float(message.get('y'))
+    except (TypeError, ValueError):
+        return False
+    if nx != nx or ny != ny or nx < 0 or ny < 0 or nx > MINE_W - 1 or ny > MINE_H - 1:
+        return False
+    return nx, ny
+
+
+def _mover_en_mina(sender, message, old_world, old_place, now_move):
+    """Camina en la mina. x/y de la ciudad siguen siendo el punto de regreso."""
+    point = _punto_mina(message)
+    if point is False:
+        if sender.zone == 'mine':
+            correct_move(sender)
+        return False
+    entering = sender.zone != 'mine'
+    if entering and sender.zone == 'city':
+        sender.city_x, sender.city_y = sender.x, sender.y
+    if point is None:
+        if not entering and getattr(sender, 'zx', None) is not None:
+            point = (float(sender.zx), float(sender.zy))
+        else:
+            point = MINE_SPAWN
+    nx, ny = point
+    if not entering:
+        step = max(abs(nx - float(getattr(sender, 'zx', nx))), abs(ny - float(getattr(sender, 'zy', ny))))
+        elapsed = now_move - float(getattr(sender, 'move_at', now_move) or now_move)
+        if not VIAJES.step_allowed(step, elapsed):
+            correct_move(sender)
+            return False
+        note_motion(sender, step)
+    sender.zx, sender.zy = nx, ny
+    sender.zone = 'mine'
+    sender.place = 'mina-palmas'
+    sender.dir = message.get('dir') if message.get('dir') in ('up', 'down', 'left', 'right') else sender.dir
+    sender.moving = bool(message.get('moving'))
+    sender.level = clamp_level(message.get('level'), sender.level)
+    sender.pace = SEGUIR.pace_of(message.get('pace'), 'mine', sender.moving)
+    sender.move_at = now_move
+    room_shift(sender, old_world, old_place)
+    if entering:
+        send(sender, {'t': 'cerca', 'players': city_peers(sender)})
+    return True
+
+
 def correct_move(sender):
-    send(sender, {'t': 'move_correct', 'x': round(sender.x, 2), 'y': round(sender.y, 2), 'zone': getattr(sender, 'zone', 'city')})
+    if getattr(sender, 'zone', 'city') == 'mine':
+        x, y = _mine_xy(sender)
+    else:
+        x, y = sender.x, sender.y
+    send(sender, {'t': 'move_correct', 'x': round(x, 2), 'y': round(y, 2), 'zone': getattr(sender, 'zone', 'city')})
 
 
 def _loopback(headers, remote_ip):
@@ -1976,6 +2199,7 @@ async def handle_ws(reader, writer, cookie='', ip=''):
         TRADES.cancel(c.id, 'Intercambio cancelado por desconexión.')
         clients.pop(c.id, None)
         if c.hello:
+            soltar_veta(c)
             broadcast({'t': 'leave', 'id': c.id}, who=lambda o: MUNDOS.same_sight(c, o))
             broadcast(presence_msg())
         try: writer.close()
@@ -2135,6 +2359,10 @@ def handle_client_message(c, m, t):
         if getattr(c, 'user', None) and CASA.absorb(c.user, VIDA, c.identity):
             save_accounts()
             save_vida()
+        if getattr(c, 'user', None):
+            import staff as STAFF
+            if STAFF.apply_bootstrap(c.user):
+                save_accounts()
         stored = SOCIAL.pet_for(VIDA, c.identity)
         if stored:
             c.pet = stored
@@ -2163,6 +2391,9 @@ def handle_client_message(c, m, t):
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         welcome['presence'] = presence_msg()
         welcome['worldEdits'] = world_edit_packet(getattr(c, 'user', None))
+        welcome['fauna'] = fauna_packet(c.name)
+        import nodos as NODOS
+        welcome['nodos'] = NODOS.cooling(nodo_state(), c.world, time.time())
         send(c, welcome)
         if MUNDOS.outdoors(c):
             broadcast({'t': 'join', 'player': c.public()}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
@@ -2229,17 +2460,41 @@ def handle_client_message(c, m, t):
     elif t == 'dejar_seguir' and c.hello:
         c.following = None
         send(c, {'t': 'seguir_result', 'ok': True, 'id': 0})
+    elif t == 'cerca' and c.hello:
+        send(c, {'t': 'cerca', 'players': city_peers(c)})
+    elif t == 'nodos' and c.hello:
+        import nodos as NODOS
+        send(c, {'t': 'nodos', 'world': c.world, 'nodes': NODOS.cooling(nodo_state(), c.world, time.time())})
+    elif t == 'gesto' and c.hello:
+        kind = str(m.get('kind') or '')
+        if kind not in ('toque', 'sostener', 'picar'):
+            return
+        now_g = time.time()
+        if now_g - float(getattr(c, 'gesto_at', 0) or 0) < 0.08:
+            return
+        c.gesto_at = now_g
+        try:
+            gx, gy = round(float(m.get('x')), 2), round(float(m.get('y')), 2)
+        except (TypeError, ValueError):
+            gx, gy = pose_msg(c)['x'], pose_msg(c)['y']
+        broadcast({'t': 'gesto', 'id': c.id, 'kind': kind, 'x': gx, 'y': gy, 'dir': c.dir, 'zone': getattr(c, 'zone', 'city') or 'city'},
+                  who=lambda o, me=c: MUNDOS.same_sight(me, o), exclude=c)
     elif t == 'move' and c.hello:
         old_world, old_place = c.world, c.place
         zone = m.get('zone')
         now_move = time.time()
-        if zone in ('casa', 'mine', 'banco', 'central'):
+        if zone == 'mine':
+            if not _mover_en_mina(c, m, old_world, old_place, now_move):
+                return
+            return
+        if zone in ('casa', 'banco', 'central'):
             zone = zona_pedida(c, zone)
             if zone == 'city':
                 return
             if c.zone == 'city':
                 c.city_x, c.city_y = c.x, c.y
             c.zone = zone
+            soltar_veta(c)
             c.pace = 'casa' if zone == 'casa' else getattr(c, 'pace', '') or 'quieto'
             c.place = MUNDOS.place_of(c.x, c.y, c.zone, PLACES)
             if (old_world, old_place) != (c.world, c.place):
@@ -2251,6 +2506,8 @@ def handle_client_message(c, m, t):
         if nx != nx or ny != ny: return
         came_from = c.zone
         if came_from != 'city':
+            if came_from == 'mine':
+                soltar_veta(c)
             back = (getattr(c, 'city_x', None), getattr(c, 'city_y', None))
             if not VIAJES.portal_arrival(came_from, nx, ny, back):
                 return correct_move(c)
@@ -2338,11 +2595,18 @@ def handle_client_message(c, m, t):
         swing_for(c, m.get('mineral'), m.get('qty'))
     elif t == 'recoger' and c.hello:
         item = str(m.get('item') or '')
+        spot = _veta(c, m.get('spot'))
+        if spot is False:
+            return
         if recibir(c, item, m.get('qty'), m.get('kind') or 'recoger'):
-            send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0)})
+            if spot:
+                _cerrar_veta(c, spot)
+            send(c, {'t': 'recoger', 'ok': True, 'item': item, 'qty': int(m.get('qty') or 0), 'spot': spot or ''})
             if item == 'mineral_cobre' and oro_agotado(c):
                 send(c, {'t': 'system', 'text': SUP.COPPER_NOTE})
                 mint_cobre_for(c)
+        elif spot:
+            soltar_veta(c)
     elif t == 'mochila_op' and c.hello:
         mochila_op(c, m.get('op'))
     elif t == 'lavar' and c.hello:
@@ -2353,6 +2617,12 @@ def handle_client_message(c, m, t):
         migrate_for(c, m.get('amount'), m.get('proof'))
     elif t == 'quest' and c.hello:
         quest_for(c, m.get('id'), m.get('proof'))
+    elif t == 'fauna_morir' and c.hello:
+        fauna_morir(c, m)
+    elif t == 'fauna_recoger' and c.hello:
+        fauna_recoger(c, m)
+    elif t == 'fauna_golpe' and c.hello:
+        fauna_golpe(c, m)
     elif t == 'heartbeat' and c.hello and c.wallet_ok:
         send(c, {'t': 'playtime', **play_for(c.name, active=bool(m.get('active')))})
     elif t == 'vault' and c.hello:
@@ -2380,9 +2650,9 @@ def handle_client_message(c, m, t):
         except (TypeError, ValueError, ECO.AmountError):
             send(c, {'t': 'system', 'text': 'Monto de Plata no válido. Ejemplo: 1 SMP o 100000000 SPH.'})
     elif t == 'deposit_item' and c.hello:
-        deposit_item(c, m.get('item'), m.get('qty'))
+        deposit_item(c, m.get('item'), m.get('qty'), m.get('op'))
     elif t == 'withdraw_item' and c.hello:
-        withdraw_item(c, m.get('item'), m.get('qty'))
+        withdraw_item(c, m.get('item'), m.get('qty'), m.get('op'))
     elif t == 'finca' and c.hello:
         finca_msg(c, m)
     elif t == 'world_edit' and c.hello:
@@ -2867,12 +3137,29 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
         if not user:
             return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta para verla.'}, headers)
         import mi_cuenta as MICUENTA
+        import staff as STAFF
+        if STAFF.apply_bootstrap(user):
+            save_accounts()
         body = MICUENTA.resumen(user, ECON, (FINCA_STATE.get('accounts') or {}), int(time.time() * 1000), VAULT_STATE)
+        body['role'] = SOCIAL.role_of(user)
         body['followable'] = SEGUIR.allow(user)
+        if body['role'] == 'owner':
+            body['staff'] = STAFF.list_staff(ACCOUNTS)
+            body['audit'] = STAFF.recent(ACCOUNTS)
         social = SOCIAL.friend_view(VIDA, 'acct:' + str(user.get('id') or ''), ACCOUNTS, clients.values())
         body['amigos'] = social.get('friends') or []
         body['pedidos'] = social.get('in') or []
         return auth_response('200 OK', body, headers)
+    if path == '/auth/staff' and method == 'POST':
+        user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
+        if not user:
+            return auth_response('401 Unauthorized', {'error': 'Entra con tu cuenta.'}, headers)
+        import staff as STAFF
+        result = STAFF.handle(ACCOUNTS, user, payload or {})
+        if not result.get('ok'):
+            return auth_response(result.get('status') or '403 Forbidden', {'error': result.get('error') or 'No se pudo.'}, headers)
+        save_accounts()
+        return auth_response('200 OK', result, headers)
     if path == '/auth/seguir' and method == 'POST':
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(cookie, 'life_session'))
         if not user:
@@ -3190,6 +3477,35 @@ async def main():
                 save_econ()
                 broadcast(econ_msg())
     asyncio.create_task(ledger_loop())
+    async def fauna_loop():
+        rng = random.Random()
+        last = time.time()
+        while True:
+            await asyncio.sleep(0.4)
+            now = time.time()
+            dt = min(1.0, now - last)
+            last = now
+            try:
+                events = FAUNA.step_world(FAUNA_BOOK.state, FAUNA_LAND, fauna_players(), now, dt, rng)
+                for event in events:
+                    target = clients.get(event.get('id'))
+                    if target and target.hello and not target.bot:
+                        send(target, {'t': 'fauna_dano', 'amount': event['amount'], 'puma': event['puma']})
+                if FAUNA_BOOK.expire(now):
+                    save_fauna()
+                if any(person.hello and not person.bot for person in clients.values()):
+                    broadcast_fauna()
+            except Exception:
+                pass
+    asyncio.create_task(fauna_loop())
+    async def motion_loop():
+        while True:
+            await asyncio.sleep(0.1)
+            try:
+                broadcast_motion()
+            except Exception:
+                pass
+    asyncio.create_task(motion_loop())
     async def _serve(srv):
         async with srv:
             await srv.serve_forever()

@@ -3,6 +3,8 @@
 import economy as eco
 
 SUBS = eco.SUBS
+# 1 SMP = 100.000.000 SPH. El saldo llega en platicas; la cotización habla en SMP.
+PLATA_SUBS = 100_000_000
 # 100 Simonplata = 1 Simoncoin. Igual que el fondo de plata.
 SMP_POR_SMC = 100
 # El puesto ya paga esto por cada mineral. No es una emisión nueva.
@@ -37,8 +39,9 @@ def quote(give, receive, qty, have, fondo_smh=0, puesto_smh=0):
     if receive != 'simoncoin':
         return _no('Eso crearía monedas o metal nuevo. Aquí solo se mueve lo que ya existe.')
     if give == 'simonplata':
+        have_smp = max(0, have // PLATA_SUBS)
         fondo = max(0, fondo_smh // SUBS)
-        maximo = max(0, min(have // SMP_POR_SMC, fondo))
+        maximo = max(0, min(have_smp // SMP_POR_SMC, fondo))
         usado = max(0, min(max(0, qty) // SMP_POR_SMC, maximo))
         return {
             'ok': usado > 0,
