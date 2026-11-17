@@ -134,6 +134,9 @@ class ChestRulesTests(unittest.TestCase):
         self.assertEqual(wood['grupo'], 'recurso')
         self.assertEqual(shown['totales']['mineral'], 4)
         self.assertEqual(shown['totales']['recurso'], 6)
+        con_crudo = baul.vista(self.state, self.econ, 'Ana', crudo_encima={'mineral_oro': 6, 'lingote_oro': 0})
+        oro = next(row for row in con_crudo['filas'] if row['id'] == 'mineral_oro')
+        self.assertEqual((oro['encima'], oro['grupo'], oro['name']), (6, 'mineral', 'Oro'))
 
     def test_coffee_moves_in_place_and_is_not_copied(self):
         import finca
@@ -194,6 +197,20 @@ class ChestRulesTests(unittest.TestCase):
             if previous:
                 os.environ['DATABASE_URL'] = previous
             persist.reset_connection()
+
+    def test_raw_gold_moves_between_the_account_and_the_chest(self):
+        import crudo
+        econ = {'crudo': {'cta': {'mineral_oro': 5 * 1000, 'mineral_plata': 2 * 1000}}}
+        saved = baul.mover_mineral(self.state, econ, 'cta', 'Ana', 'deposit', 'mineral_oro', 2, 'm1', now=70)
+        self.assertTrue(saved['ok'])
+        self.assertEqual(int(crudo.nuggets(econ, 'cta', 'mineral_oro')), 3)
+        self.assertEqual(vault.account(self.state, 'Ana')['items']['mineral_oro'], 2)
+        back = baul.mover_mineral(self.state, econ, 'cta', 'Ana', 'withdraw', 'mineral_plata', 1, 'm2', now=71)
+        self.assertFalse(back['ok'])
+        out = baul.mover_mineral(self.state, econ, 'cta', 'Ana', 'withdraw', 'mineral_oro', 'all', 'm3', now=72)
+        self.assertTrue(out['ok'])
+        self.assertEqual(int(crudo.nuggets(econ, 'cta', 'mineral_oro')), 5)
+        self.assertNotIn('mineral_oro', vault.account(self.state, 'Ana')['items'])
 
     def test_server_uses_the_session_and_the_mine_stays_on_the_list(self):
         page = open(os.path.join(os.path.dirname(__file__), '..', 'server.py'), encoding='utf-8').read()

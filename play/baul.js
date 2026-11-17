@@ -62,8 +62,26 @@
     const amount = all ? 'all' : (field && field.value) || '';
     send({ t: 'baul_smc', op: op, all: !!all, amount: amount, token: 's' + (token++) });
   }
+  const ICONO = {
+    mineral_oro: 'graphics/mining/mineral_oro.svg',
+    pepita_oro: 'graphics/icons/64/pepita_oro.png',
+    mineral_plata: 'graphics/mining/mineral_plata.svg',
+    mineral_cobre: 'graphics/mining/mineral_cobre.svg',
+    lingote_oro: 'graphics/mining/lingote_oro.svg',
+    lingote_plata: 'graphics/mining/lingote_plata.svg',
+    lingote_cobre: 'graphics/mining/lingote_cobre.svg',
+    bolsa_cafe: 'graphics/ui/bolsa.png',
+    bolsa_cacao: 'graphics/ui/bolsa.png',
+    madera: 'graphics/ui/bolsa.png',
+  };
+  function icono(id) {
+    const world = window.LiveInk && LiveInk.world && LiveInk.world();
+    const it = world && world.items && world.items[id];
+    const path = (it && it.icon && (it.icon['64'] || it.icon['32'])) || ICONO[id] || '';
+    if (!path) return '';
+    return path.indexOf('../') === 0 ? path : '../' + path;
+  }
   function fila(row) {
-    const sw = SWATCH[row.id] || 'sw-otro';
     const buttons = [
       ['deposit', false, 'Guardar'],
       ['deposit', true, 'Guardar todo'],
@@ -73,16 +91,19 @@
       const off = (op === 'deposit' ? row.encima : row.baul) < 1;
       return `<button type="button" class="baul-btn${all ? ' sec' : ''}" data-op="${op}" data-item="${esc(row.id)}" data-all="${all ? '1' : ''}" ${off ? 'disabled' : ''}>${label}</button>`;
     }).join('');
-    return `<div class="baul-fila">
-      <div class="baul-nombre"><span class="baul-swatch ${sw}" aria-hidden="true"></span><span>${esc(row.name)}</span></div>
-      <div class="baul-nums">Encima ${row.encima}<br>Baúl ${row.baul}<br>Total ${row.total}</div>
+    const src = icono(row.id);
+    const face = src ? `<img src="${esc(src)}" alt="">` : `<span class="baul-swatch ${SWATCH[row.id] || 'sw-otro'}" aria-hidden="true"></span>`;
+    return `<article class="baul-card">
+      ${face}
+      <b>${esc(row.name)}</b>
+      <small>encima ${row.encima} · baúl ${row.baul}</small>
       <div class="baul-acciones">${buttons}</div>
-    </div>`;
+    </article>`;
   }
   function grupo(title, rows) {
-    const body = rows.length ? rows.map(fila).join('') : '<p class="baul-nota">Nada en esta cuenta.</p>';
+    if (!rows.length) return '';
     const total = rows.reduce((sum, row) => sum + (row.total || 0), 0);
-    return `<section class="baul-grupo"><h3>${esc(title)} · ${total}</h3>${body}</section>`;
+    return `<section class="baul-grupo"><h3>${esc(title)} · ${total}</h3><div class="baul-grid">${rows.map(fila).join('')}</div></section>`;
   }
   function paint(view) {
     const root = document.getElementById('baul-cuerpo');
@@ -92,7 +113,9 @@
     const smc = data.smc || vacio().smc;
     const filas = data.filas || [];
     const minerales = filas.filter((row) => row.grupo === 'mineral');
-    const recursos = filas.filter((row) => row.grupo !== 'mineral');
+    const lingotes = filas.filter((row) => row.grupo === 'lingote');
+    const cosechas = filas.filter((row) => row.grupo === 'cosecha');
+    const otros = filas.filter((row) => row.grupo === 'recurso' || !row.grupo);
     const totales = data.totales || {};
     const linked = online();
     root.innerHTML = `
@@ -114,7 +137,7 @@
           <button type="button" class="baul-btn sec" data-smc="withdraw" data-all="1" ${linked ? '' : 'disabled'}>Sacar todo</button>
         </div>
       </section>
-      <div class="baul-listas">${grupo('Minerales', minerales)}${grupo('Recursos', recursos)}</div>
+      <div class="baul-listas">${grupo('Minerales', minerales)}${grupo('Lingotes', lingotes)}${grupo('Cosechas', cosechas)}${grupo('Otros', otros)}</div>
       <p class="baul-nota">Encima ${totales.encima || 0} · Baúl ${totales.baul || 0}. Guardar o sacar no crea nada: el servidor cuenta lo que ya hay.</p>
       <p class="baul-nota" id="baul-estado">${linked ? 'Conectado. Cada pase se guarda en la cuenta.' : 'Sin conexión. El servidor confirma cada pase.'}</p>`;
     root.querySelectorAll('[data-op]').forEach((button) => {
@@ -136,7 +159,10 @@
   }
   function onNet(message) {
     if (!message || message.t !== 'baul') return false;
-    if (message.view) paint(message.view);
+    if (message.view) {
+      paint(message.view);
+      if (window.TradeUI && TradeUI.refrescar) TradeUI.refrescar();
+    }
     if (message.moved) aplicar(message.moved);
     if (message.reason && window.LiveInk && LiveInk.say) LiveInk.say(message.reason, message.ok ? 'juego' : 'aviso');
     return true;
@@ -159,5 +185,6 @@
   const abrir = document.getElementById('baul-abrir');
   if (abrir) abrir.addEventListener('click', open);
   setInterval(pulso, 400);
-  window.Baul = { open, close, paint, pedir, onNet, abierto, cerca };
+  function ultima() { return last; }
+  window.Baul = { open, close, paint, pedir, onNet, abierto, cerca, ultima };
 })();

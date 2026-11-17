@@ -1657,7 +1657,7 @@ function targetTile(t) {
   return { x: t.n.def.x, y: t.n.def.y };
 }
 function describe(t) {
-  if (t.kind === 'peer') return 'Intercambiar con <b>' + esc(nombreAjeno(S.others.get(t.id) || {})) + '</b>';
+  if (t.kind === 'peer') return 'Trueque con <b>' + esc(nombreAjeno(S.others.get(t.id) || {})) + '</b>';
   if (t.kind === 'animal') return `Cazar: <b>${NOMBRES[t.a.def.species]}</b>`;
   if (t.kind === 'mount') return Simulacion.describeMount(t.m);
   if (t.kind === 'npc') return `Hablar con: <b>${esc(t.d.name)}</b>`;
@@ -1815,7 +1815,7 @@ function act(t) {
   if(d.type==='central_door')return switchMap('central');
   if(d.type==='central_exit')return switchMap('city');
   if(d.type==='central_vault'){ if(window.Central && Central.allowed()) Central.open(); return; }
-  if(d.type==='banquito'||d.type==='banker'){ if(window.Banco) Banco.openPanel(); return game(d.type==='banker'?'El banquero abre el banquito. Lo que dejes aquí no se pierde si caes.':'El banquito es el mismo depósito que el baúl de tu casa.','juego'); }
+  if(d.type==='banquito'||d.type==='banker'){ if(window.Baul) Baul.open(); else if(window.Banco) Banco.openPanel(); return game('El baúl de la casa, el banco y la mina es el mismo.','juego'); }
   if(d.type==='fruit_stand')return Simulacion.buyStand();
   if(d.type==='furnace')return openFurnace(n);
   if (d.type === 'fruit_tree') {
