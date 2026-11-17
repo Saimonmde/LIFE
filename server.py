@@ -4189,11 +4189,16 @@ async def _curso(reader, writer, SEG):
             body = await reader.readexactly(length)
     if path.startswith('/api/apartamentos') or path in APARTMENT_API.AGENT_PATHS:
         # El rastreo nunca se ejecuta desde una petición pública ni bloquea el bucle del juego.
+        origin = headers.get('origin', '')
+        cors = ''.join(line + '\r\n' for line in getattr(APARTMENT_API, 'cors_headers', lambda _o: [])(origin))
+        if method == 'OPTIONS':
+            writer.write(f'HTTP/1.1 204 No Content\r\n{cors}Content-Length: 0\r\nConnection: close\r\n\r\n'.encode())
+            await writer.drain(); writer.close(); return
         result = await asyncio.to_thread(APARTMENT_API.dispatch, method, path, target, body)
         code, payload = result
         labels = {200: 'OK', 400: 'Bad Request', 404: 'Not Found', 405: 'Method Not Allowed', 503: 'Service Unavailable'}
         encoded = json.dumps(SEG.limpiar_socket(payload), ensure_ascii=False).encode()
-        writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
+        writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\n{cors}Content-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
             writer.write(encoded)
         await writer.drain(); writer.close(); return
@@ -4473,6 +4478,17 @@ async def main():
     print(f'chat WebSocket: ws://<host>:{a.port}/ws')
     print('Ctrl+C para detener.')
     if not a.sin_bots and a.bots > 0: asyncio.create_task(bots_loop(min(4, a.bots)))
+    async def apartamentos_loop():
+        await asyncio.sleep(20)
+        import apartment_sync as SYNC
+        while True:
+            try:
+                await asyncio.to_thread(SYNC.sync_public, None, lambda line: (sys.stderr.write(line + '\n'), sys.stderr.flush()))
+            except Exception as exc:
+                sys.stderr.write('[apartamentos] %s\n' % type(exc).__name__)
+                sys.stderr.flush()
+            await asyncio.sleep(6 * 60 * 60)
+    asyncio.create_task(apartamentos_loop())
     async def ledger_loop():
         while True:
             await asyncio.sleep(5)
