@@ -1,0 +1,84 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Atajo, flecha y aviso de la Mina de La Ladera. No cambia el vidrio del HUD. */
+#ladera-ir,
+#ladera-guia {
+  position: fixed;
+  z-index: 47;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 2px solid #6b4524;
+  border-radius: 16px;
+  background: #f0c24e;
+  color: #2c1a0c;
+  font: 700 16px/1.2 system-ui, sans-serif;
+  box-shadow: 0 4px 0 #6b4524;
+  cursor: pointer;
+}
+#ladera-ir {
+  top: 64px;
+  left: 12px;
+  max-width: min(280px, calc(100vw - 140px));
+  text-align: left;
+}
+#ladera-ir .ladera-nueva {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #2c1a0c;
+  color: #f0c24e;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+#ladera-guia {
+  top: 124px;
+  left: 12px;
+  max-width: min(220px, calc(100vw - 140px));
+  background: #3a2412;
+  color: #ffe3a0;
+  border-color: #e2b23c;
+}
+#ladera-guia-flecha { display: inline-block; font-size: 20px; }
+#ladera-ir[hidden],
+#ladera-guia[hidden],
+#ladera-aviso[hidden],
+body:not(.in-game) #ladera-ir,
+body:not(.in-game) #ladera-guia,
+body:not(.in-game) #ladera-aviso { display: none !important; }
+#ladera-aviso {
+  position: fixed;
+  z-index: 48;
+  left: 12px;
+  top: 184px;
+  width: min(280px, calc(100vw - 24px));
+  padding: 12px;
+  border: 2px solid #6b4524;
+  border-radius: 16px;
+  background: #fff6e4;
+  color: #2c1a0c;
+  font: 15px/1.35 system-ui, sans-serif;
+  box-shadow: 0 8px 24px #0006;
+}
+#ladera-aviso strong { display: block; font-size: 18px; margin-bottom: 4px; }
+#ladera-aviso p { margin: 0 0 10px; }
+#ladera-aviso-acciones { display: flex; gap: 8px; }
+#ladera-aviso-acciones button {
+  flex: 1;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 2px solid #6b4524;
+  font: 700 15px/1 system-ui, sans-serif;
+  cursor: pointer;
+}
+#ladera-aviso-ir { background: #f0c24e; color: #2c1a0c; }
+#ladera-aviso-cerrar { background: #fff; color: #2c1a0c; }
+html.movil #ladera-ir,
+html.movil #ladera-guia {
+  left: max(8px, env(safe-area-inset-left));
+  min-height: 52px;
+}
+html.movil #ladera-ir { top: 92px; max-width: calc(100vw - 118px); }
+html.movil #ladera-guia { top: 152px; }
+html.movil #ladera-aviso { top: 214px; left: max(8px, env(safe-area-inset-left)); }

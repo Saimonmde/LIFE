@@ -622,7 +622,7 @@ function prepareCave(){
  W.signs3d=W.signs3d||[];
  W.signs3d.push({text:'TU CASA · PARQUE DE ENVIGADO',x:home.x+2,y:home.y-1});
  W.signs3d.push({text:'MINA',x:entry.x+2,y:entry.y});
- if(laderaDoor)W.signs3d.push({text:'MINA',x:laderaDoor.x+2,y:laderaDoor.y});
+ if(laderaDoor){W.signs3d.push({text:'MINA',x:laderaDoor.x+2,y:laderaDoor.y});W.signs3d.push({text:'LA LADERA',x:Math.round((palmas.x+laderaDoor.x)/2),y:Math.round((palmas.y+laderaDoor.y)/2)}); }
  const mineFrom=[W.spawn,window.Casa.PARK_STAND].filter(spot=>spot&&Number.isFinite(spot.x));
  const seenSigns=new Set();
  const openTile=(x,y)=>x>0&&y>0&&x<W.width-1&&y<W.height-1&&W.collision[y]&&W.collision[y][x]===0;
@@ -2014,7 +2014,7 @@ function fillMapPlaces() {
   for (const spot of destinosVisibles()) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.textContent = spot.name + ' · ' + spot.recurso;
+    b.textContent = (spot.nueva ? 'Nueva · ' : '') + spot.name + ' · ' + spot.recurso;
     b.onclick = (ev) => {
       ev.stopPropagation();
       if (!started) {
@@ -2061,7 +2061,7 @@ function destinosLocales(){
  const nodes=W.nodes||[];
  const block=list=>new Set(list.map(n=>n.x+','+n.y));
  const list=[];
- const push=(id,name,x,y,recurso,mark,color,corto)=>{if(x==null||y==null)return;list.push({id,name,x,y,recurso,mark,color,corto:corto||name});};
+ const push=(id,name,x,y,recurso,mark,color,corto,extra)=>{if(x==null||y==null)return;list.push(Object.assign({id,name,x,y,recurso,mark,color,corto:corto||name}, extra||{}));};
  const river=new Set((((W.waterBodies||{}).rio_claro||{}).tiles||[]).map(t=>t[0]+','+t[1]));
  const gold=nodes.filter(n=>n.type==='nodo_oro_fluvial'&&river.has(n.x+','+n.y));
  if(gold.length){const spot=tileBeside(gold[0].x,gold[0].y,3,block(gold));if(spot)push('rio_claro','Río Claro',spot[0],spot[1],'oro (río, batea)','Au','#e2b23c','oro · batea');}
@@ -2075,8 +2075,8 @@ function destinosLocales(){
  if(mina)push('mina','Mina de Las Palmas',mina.x,mina.y,'plata, cobre (pico)','Pk','#d7c4a3','mina · pico');
  else if(W.mineEntrance)push('mina','Mina de Las Palmas',W.mineEntrance.x,W.mineEntrance.y+1,'plata, cobre (pico)','Pk','#d7c4a3','mina · pico');
  const ladera=(W.waypoints||[]).find(p=>p.id==='mina_ladera');
- if(ladera)push('mina_ladera','Mina de La Ladera',ladera.x,ladera.y,window.MinaLadera?MinaLadera.RECURSO:'cobre 0,001 · plata 0,01 · oro 0,1 SMC','Ml','#e2b23c','ladera · SMC');
- else if(W.mineLadera)push('mina_ladera','Mina de La Ladera',W.mineLadera.x,W.mineLadera.y+1,window.MinaLadera?MinaLadera.RECURSO:'cobre 0,001 · plata 0,01 · oro 0,1 SMC','Ml','#e2b23c','ladera · SMC');
+ if(ladera)push('mina_ladera','Mina de La Ladera',ladera.x,ladera.y,window.MinaLadera?MinaLadera.RECURSO:'cobre 0,001 · plata 0,01 · oro 0,1 SMC','Ld','#e2b23c','La Ladera',{nueva:true});
+ else if(W.mineLadera)push('mina_ladera','Mina de La Ladera',W.mineLadera.x,W.mineLadera.y+1,window.MinaLadera?MinaLadera.RECURSO:'cobre 0,001 · plata 0,01 · oro 0,1 SMC','Ld','#e2b23c','La Ladera',{nueva:true});
  if(window.Banco){const spot=tileBeside(Banco.OUTSIDE.x,Banco.OUTSIDE.y,1,null);if(spot)push('banco','Banco Envigado',spot[0],spot[1],'casa bancaria','Bn','#f3ead7','banco');}
  if(window.EnvigadoPark&&EnvigadoPark.skateTiles){const tile=EnvigadoPark.skateTiles()[0];if(tile){const spot=tileBeside(tile.x,tile.y,2,SKATE_BLOCK);if(spot)push('skate','Skate',spot[0],spot[1],'skate','Sk','#9ecbff','skate');}}
  const park=(W.waypoints||[]).find(p=>p.id==='envigado');
@@ -2829,6 +2829,18 @@ function mmView() {
   const span = Math.min(W.width,W.height)/(S.mmZoom===1?2:4);
   return {span,x0:Math.max(0,Math.min(W.width-span,S.player.fx+.5-span/2)),y0:Math.max(0,Math.min(W.height-span,S.player.fy+.5-span/2))};
 }
+function marcaNueva(ctx,x,y){
+  const cx=ctx.canvas.width/2,cy=ctx.canvas.height/2;
+  const dx=x-cx,dy=y-cy,len=Math.hypot(dx,dy)||1;
+  const bx=x-(dx/len)*18,by=y-(dy/len)*18;
+  ctx.save();
+  ctx.strokeStyle='#e2b23c';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle='#e2b23c';ctx.fillRect(bx-16,by-6,32,12);
+  ctx.fillStyle='#2c1a0c';ctx.font='800 8px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('Nueva',bx,by);
+  ctx.restore();
+}
 function playerStar(c,x,y,r=6) {
   c.save(); c.translate(x,y); c.beginPath();
   for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}
@@ -2857,6 +2869,7 @@ function drawMinimap(at) {
       mctx.font='700 9px Inter, "Segoe UI", Arial, sans-serif';
       mctx.textAlign='center';mctx.textBaseline='middle';
       mctx.fillText(spot.mark||'•',x,y+0.5);
+      if(spot.nueva) marcaNueva(mctx,x,y);
       mmHits.push({id:spot.id,x,y});
     }
   }

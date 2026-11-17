@@ -357,7 +357,7 @@ export function createValleyView(T, opts) {
     for (const spot of spots) {
       const b = document.createElement('button');
       b.type = 'button';
-      b.textContent = spot.name + ' · ' + (spot.recurso || '');
+      b.textContent = (spot.nueva ? 'Nueva · ' : '') + spot.name + ' · ' + (spot.recurso || '');
       b.onclick = (event) => { event.stopPropagation(); window.LiveInk?.askTravel?.(spot.id); };
       row.append(b);
     }
