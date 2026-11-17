@@ -57,7 +57,9 @@
             <button type="button" id="trade-menos" aria-label="Restar">−</button>
             <input id="trade-qty" inputmode="decimal" value="0" autocomplete="off" aria-label="Cantidad">
             <button type="button" id="trade-mas" aria-label="Sumar">+</button>
-            <button type="button" id="trade-max">Máx</button>
+            <button type="button" id="trade-uno">1</button>
+            <button type="button" id="trade-x">X</button>
+            <button type="button" id="trade-max">Todo</button>
           </div>
           <p id="trade-elegido"></p>
           <button id="trade-update" type="button">Enviar oferta</button>
@@ -205,17 +207,25 @@
     if (session.accepted.includes(id)) return 'Aceptó';
     return 'Esperando';
   }
+  function coinFace() {
+    return '<span class="trade-ico" aria-hidden="true"><svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="18" fill="#8a5a12"/><circle cx="32" cy="30" r="18" fill="#f0c14a" stroke="#6a4010" stroke-width="3"/><circle cx="32" cy="30" r="11" fill="none" stroke="#fff4cc" stroke-width="2"/><text x="32" y="36" text-anchor="middle" font-size="16" font-family="sans-serif" font-weight="700" fill="#5c3a08">S</text></svg></span>';
+  }
   function card(row, pick) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'trade-card';
     button.dataset.pick = row.id;
     button.setAttribute('aria-pressed', 'false');
-    const img = row.icon ? '<img src="' + row.icon + '" alt="">' : '<span class="trade-fallback" aria-hidden="true">•</span>';
-    const have = row.id === 'simoncoin'
+    const img = row.id === 'simoncoin'
+      ? coinFace()
+      : (row.icon ? '<img src="' + row.icon + '" alt="">' : '<span class="trade-fallback" aria-hidden="true">•</span>');
+    const propia = row.id === 'simoncoin'
       ? (window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(walletSmh()).replace(' SMC', '') : String(row.have))
       : String(row.have);
-    button.innerHTML = img + '<b>' + row.name + '</b><small>tienes ' + have + '</small><em class="trade-badge"></em>';
+    const have = pick ? propia : String(row.qty || row.have || propia);
+    button.title = row.name + (pick ? ' · tienes ' + have : ' · ofrece ' + have);
+    button.setAttribute('aria-label', row.name + ', tienes ' + have);
+    button.innerHTML = img + '<b>' + row.name + '</b><em class="trade-badge"></em>';
     if (pick) button.onclick = () => { selected = row.id; paintCards(); syncStepper(); };
     return button;
   }
@@ -226,7 +236,7 @@
     if (key === gridKey) return;
     gridKey = key;
     box.replaceChildren();
-    const rows = [{ id: 'simoncoin', cat: 'Simoncoin', name: 'Simoncoin', icon: srcOf('graphics/mining/moneda_oro.svg'), have: maxSmc() }];
+    const rows = [{ id: 'simoncoin', cat: 'Simoncoin', name: 'Simoncoin', icon: '', have: maxSmc() }];
     for (const id of Object.keys(have).sort()) {
       const info = meta(id);
       rows.push({ id, cat: info.cat, name: info.name, icon: info.icon, have: have[id] });
@@ -273,7 +283,10 @@
     box.replaceChildren();
     const o = offerOf(offer);
     const rows = [];
-    if (o.smc) rows.push({ id: 'simoncoin', cat: 'Simoncoin', name: 'Simoncoin', icon: srcOf('graphics/mining/moneda_oro.svg'), have: money(o.smc), qty: money(o.smc) });
+    if (o.smc) {
+      const corto = money(o.smc).replace(' SMC', '');
+      rows.push({ id: 'simoncoin', cat: 'Simoncoin', name: 'Simoncoin', icon: '', have: corto, qty: corto });
+    }
     for (const [id, qty] of Object.entries(o.items || {})) {
       if (!qty || BLOCKED.has(id)) continue;
       const info = meta(id);
@@ -328,6 +341,8 @@
     $('#trade-qty').readOnly = locked;
     $('#trade-menos').disabled = locked;
     $('#trade-mas').disabled = locked;
+    $('#trade-uno').disabled = locked;
+    $('#trade-x').disabled = locked;
     $('#trade-max').disabled = locked;
   }
   function markDirty() {
@@ -386,14 +401,24 @@
       if (status) status.textContent = e.message;
     }
   }
-  function aplicarSaldos(box) {
+  function aplicarSaldos(box, walletName) {
     const S = api() && api().state;
     if (!S || !box) return;
+    const raw = box.balanceSubs != null ? box.balanceSubs : box.smc;
+    if (raw == null || !Number.isFinite(Number(raw))) return;
+    const amount = Math.trunc(Number(raw));
     S.ledger = S.ledger || {};
-    S.ledger.balances = Object.assign({}, S.ledger.balances || {}, { simoncoin: box.smc || 0 });
-    if (S.econ && S.econ.wallets && S.me && S.me.name) S.econ.wallets[S.me.name] = box.smc || 0;
-    if (window.Simulacion && Simulacion.paintHud) Simulacion.paintHud();
+    S.ledger.balances = Object.assign({}, S.ledger.balances || {}, { simoncoin: amount });
+    if (!S.econ) S.econ = { wallets: {} };
+    if (!S.econ.wallets) S.econ.wallets = {};
+    const names = [];
+    if (S.me && S.me.name) names.push(S.me.name);
+    if (walletName && names.indexOf(walletName) < 0) names.push(walletName);
+    names.forEach((name) => { S.econ.wallets[name] = amount; });
+    if (window.Simulacion && Simulacion.reconcileBalance) Simulacion.reconcileBalance();
+    else if (window.Simulacion && Simulacion.paintHud) Simulacion.paintHud();
     if (window.Cajon) Cajon.paint();
+    if (window.Baul && Baul.pedir) Baul.pedir();
   }
   function onNet(m) {
     if (!m.t || !m.t.startsWith('trade_')) return false;
@@ -422,7 +447,12 @@
     } else if (m.t === 'trade_end') {
       if (session && m.id !== session.id) return true;
       close();
-      if (m.ok && m.balances) aplicarSaldos(m.balances);
+      if (m.ok && (m.balances || m.balanceSubs != null)) {
+        aplicarSaldos({
+          smc: m.balanceSubs != null ? m.balanceSubs : m.balances.smc,
+          balanceSubs: m.balanceSubs != null ? m.balanceSubs : m.balances.smc,
+        }, m.walletName);
+      }
       const line = m.reason || (m.ok ? 'Listo.' : 'No se pudo.');
       if (typeof game === 'function') game(line, m.ok ? 'juego' : 'aviso');
       else if ($('#rest-status')) $('#rest-status').textContent = line;
@@ -437,13 +467,35 @@
   $('#trade-qty').oninput = setFromField;
   $('#trade-menos').onclick = () => bump(-1);
   $('#trade-mas').onclick = () => bump(1);
-  $('#trade-max').onclick = () => {
-    if (selected === 'simoncoin') draft.smc = String(maxSmc()).replace('.', ',');
-    else if (bag()[selected]) draft.items[selected] = bag()[selected];
-    const input = $('#trade-qty');
-    if (input) input.value = selected === 'simoncoin' ? draft.smc : String(draft.items[selected] || 0);
-    markDirty();
-  };
+  function ofrecer(mode) {
+    try {
+      if (selected === 'simoncoin') {
+        const subs = window.Simulacion && Simulacion.SUBS ? Simulacion.SUBS : 100;
+        const cur = readSmc(draft.smc || '0') / subs;
+        let next = cur;
+        if (mode === '1') next = Math.min(maxSmc(), Math.round((cur + 1) * 100) / 100);
+        else if (mode === 'x') next = Math.min(maxSmc(), Math.max(0, readSmc($('#trade-qty').value || '0') / subs));
+        else next = maxSmc();
+        draft.smc = String(Math.round(next * 100) / 100).replace('.', ',');
+      } else {
+        const max = bag()[selected] || 0;
+        let next = 0;
+        if (mode === '1') next = Math.min(max, Math.floor(Number(draft.items[selected] || 0)) + 1);
+        else if (mode === 'x') next = Math.min(max, Math.max(0, Math.floor(Number(String($('#trade-qty').value || '0').replace(',', '.')) || 0)));
+        else next = max;
+        if (next) draft.items[selected] = next;
+        else delete draft.items[selected];
+      }
+      const input = $('#trade-qty');
+      if (input) input.value = selected === 'simoncoin' ? draft.smc : String(draft.items[selected] || 0);
+      action('trade_offer', { offer: readOffer() });
+    } catch (e) {
+      $('#trade-status').textContent = e.message;
+    }
+  }
+  $('#trade-uno').onclick = () => ofrecer('1');
+  $('#trade-x').onclick = () => ofrecer('x');
+  $('#trade-max').onclick = () => ofrecer('all');
   $('#trade-update').onclick = () => {
     try { action('trade_offer', { offer: readOffer() }); }
     catch (e) { $('#trade-status').textContent = e.message; }

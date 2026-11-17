@@ -385,6 +385,95 @@ class TradeTests(unittest.TestCase):
         self.assertEqual(purses.count(box, 'Luis', 'lingote_oro'), 2)
         self.assertNotIn('lingote_oro', box['accounts']['Ana']['items'])
 
+    def _book(self, ana, luis):
+        seed = bytes(range(32))
+        chain = libro.empty(ed25519.publickey(seed).hex())
+        if ana:
+            libro.acuñar(chain, seed, 'Ana', ana, 'prueba', bits=1)
+        if luis:
+            libro.acuñar(chain, seed, 'Luis', luis, 'prueba', bits=1)
+        return seed, chain
+
+    def test_each_direction_credits_the_recipient_and_persists(self):
+        for giver, ana, luis in (('Ana', 750, 650), ('Luis', 1250, 150)):
+            with self.subTest(giver=giver):
+                econ = economy.empty_state()
+                econ['wallets']['Ana'] = 1000
+                econ['wallets']['Luis'] = 400
+                before = 1400
+                seed, chain = self._book(1000, 400)
+                offer = {'smc': 250}
+                left, right = (offer, {}) if giver == 'Ana' else ({}, offer)
+                trades.apply_exchange(
+                    econ, {'purses': {}}, chain, seed, 'Ana', 'Luis', left, right, 'dir-' + giver,
+                )
+                self.assertEqual(econ['wallets']['Ana'], ana)
+                self.assertEqual(econ['wallets']['Luis'], luis)
+                self.assertEqual(econ['wallets']['Ana'] + econ['wallets']['Luis'], before)
+                saved = json.loads(json.dumps(econ))
+                self.assertEqual(saved['wallets']['Ana'], ana)
+                self.assertEqual(saved['wallets']['Luis'], luis)
+                self.assertEqual(libro.balances(chain)['Ana'], ana)
+                self.assertEqual(libro.balances(chain)['Luis'], luis)
+                self.assertEqual(econ['minedSmh'], 0)
+
+    def test_insufficient_balance_either_way_moves_nothing(self):
+        for giver in ('Ana', 'Luis'):
+            with self.subTest(giver=giver):
+                econ = economy.empty_state()
+                econ['wallets']['Ana'] = 1000
+                econ['wallets']['Luis'] = 400
+                seed, chain = self._book(1000, 400)
+                before = copy.deepcopy((econ['wallets'], chain['blocks']))
+                offer = {'smc': 5000}
+                left, right = (offer, {}) if giver == 'Ana' else ({}, offer)
+                with self.assertRaisesRegex(TradeError, 'insuficiente'):
+                    trades.apply_exchange(
+                        econ, {'purses': {}}, chain, seed, 'Ana', 'Luis', left, right, 'short-' + giver,
+                    )
+                self.assertEqual(econ['wallets'], before[0])
+                self.assertEqual(chain['blocks'], before[1])
+
+    def test_over_the_cap_credits_nobody(self):
+        econ = economy.empty_state()
+        econ['wallets']['Ana'] = economy.MAX_SMH
+        econ['wallets']['Luis'] = 100
+        seed, chain = self._book(0, 100)
+        before = copy.deepcopy(econ['wallets'])
+        with self.assertRaisesRegex(TradeError, '21.000.000'):
+            trades.apply_exchange(
+                econ, {'purses': {}}, chain, seed, 'Ana', 'Luis', {}, {'smc': 1}, 'cap',
+            )
+        self.assertEqual(econ['wallets'], before)
+
+    def test_cancel_after_both_offers_does_not_move_coins(self):
+        before = dict(self.wallets)
+        self.offers()
+        self.act(2, 'offer', offer={'smc': 40})
+        self.act(1, 'cancel')
+        self.assertEqual(self.wallets, before)
+        self.assertFalse(self.commits)
+        self.assertFalse(self.t.sessions)
+
+    def test_the_other_player_can_offer_coins_to_the_initiator(self):
+        self.act(2, 'offer', offer={'smc': 40})
+        self.accept()
+        self.act(1, 'confirm')
+        self.act(2, 'confirm')
+        self.assertEqual(self.wallets, {'Ana': 140, 'Luis': 10, 'Sol': 0})
+        ends = [msg for _who, msg in self.messages if msg.get('t') == 'trade_end' and msg.get('ok')]
+        self.assertEqual(len(ends), 2)
+        by_name = {msg['walletName']: msg['balanceSubs'] for msg in ends}
+        self.assertEqual(by_name, {'Ana': 140, 'Luis': 10})
+
+    def test_an_insufficient_offer_from_either_player_is_refused(self):
+        before = dict(self.wallets)
+        for player in (1, 2):
+            with self.subTest(player=player), self.assertRaises(TradeError):
+                self.act(player, 'offer', offer={'smc': 10_000})
+        self.assertEqual(self.wallets, before)
+        self.assertFalse(self.commits)
+
 
 if __name__ == '__main__':
     unittest.main()

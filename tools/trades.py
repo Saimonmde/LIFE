@@ -120,6 +120,34 @@ def offer_empty(offer):
     return not offer['smc'] and not offer['smp'] and not offer['cobre'] and not offer['items']
 
 
+def settle_smc(econ, name_a, name_b, give_a, give_b):
+    """Pasa SMC que ya existen, en los dos sentidos, de una sola vez.
+
+    ``give_a`` sale de ``name_a`` y entra en ``name_b``. ``give_b`` al revés.
+    La suma de las dos billeteras no cambia. Si no alcanza o se pasa el tope,
+    no se escribe ninguna de las dos.
+    """
+    give_a, give_b = int(give_a or 0), int(give_b or 0)
+    if give_a < 0 or give_b < 0:
+        raise TradeError('La Simoncoin no es válida.')
+    wallets = econ.setdefault('wallets', {})
+    have_a = int(wallets.get(name_a) or 0)
+    have_b = int(wallets.get(name_b) or 0)
+    if give_a > have_a or give_b > have_b:
+        raise TradeError('Saldo insuficiente')
+    final_a = have_a - give_a + give_b
+    final_b = have_b - give_b + give_a
+    if final_a > economy.MAX_SMH or final_b > economy.MAX_SMH:
+        raise TradeError('Pasaría el tope de 21.000.000 SMC.')
+    if final_a + final_b != have_a + have_b:
+        raise TradeError('El intercambio no conserva las monedas.')
+    if not give_a and not give_b:
+        return final_a, final_b
+    wallets[name_a] = final_a
+    wallets[name_b] = final_b
+    return final_a, final_b
+
+
 def public_legs(offer):
     """Lados que pueden verse en el libro. Sin nombres."""
     legs = []
@@ -305,6 +333,9 @@ def apply_exchange(econ, vault, chain, seed, name_a, name_b, offer_a, offer_b, t
     balance_a, balance_b = holdings(name_a), holdings(name_b)
     if not _covers(balance_a, offer_a) or not _covers(balance_b, offer_b):
         raise TradeError('Saldo insuficiente')
+    for origin, amount in ((name_a, offer_a['smc']), (name_b, offer_b['smc'])):
+        if amount and int(libro.balances(chain).get(origin) or 0) < amount:
+            raise TradeError('Saldo insuficiente')
     # Validate final quantities, including the space released by the recipient's
     # own offer. purses.credit caps a stack and would silently discard excess.
     for balance, outgoing, incoming in (
@@ -323,11 +354,7 @@ def apply_exchange(econ, vault, chain, seed, name_a, name_b, offer_a, offer_b, t
             if not mochila.fits(projected, item, qty):
                 raise TradeError(mochila.FULL)
             projected[item] = int(projected.get(item) or 0) + int(qty)
-    for name, offer in ((name_a, offer_a), (name_b, offer_b)):
-        if offer['smc'] and not economy.debit(econ, name, offer['smc']):
-            raise TradeError('Saldo insuficiente')
-    economy.credit(econ, name_a, offer_b['smc'])
-    economy.credit(econ, name_b, offer_a['smc'])
+    settle_smc(econ, name_a, name_b, offer_a['smc'], offer_b['smc'])
     if not _take_smp(econ, name_a, offer_a['smp']) or not _take_smp(econ, name_b, offer_b['smp']):
         raise TradeError('Saldo insuficiente')
     _give_smp(econ, name_a, offer_b['smp'])
@@ -523,6 +550,8 @@ class Trades:
                             't': 'trade_end',
                             'id': session['id'],
                             'ok': True,
+                            'walletName': person.name,
+                            'balanceSubs': smc,
                             'balances': {'smc': smc, 'smp': sph, 'cobre': chis},
                             'reason': 'Listo. Simoncoin: ' + economy.format_smc(smc),
                         })
