@@ -195,6 +195,7 @@
     }
     if (message.moved) aplicar(message.moved);
     if (message.reason && window.LiveInk && LiveInk.say) LiveInk.say(message.reason, message.ok ? 'juego' : 'aviso');
+    if (window.MiCuenta && MiCuenta.tocar) MiCuenta.tocar();
     return true;
   }
   function cerca() {

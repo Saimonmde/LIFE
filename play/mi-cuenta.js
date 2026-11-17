@@ -73,7 +73,7 @@
     const total = coins.totalSmh != null ? coins.totalSmh : coins.simoncoinSmh;
     const line = $('mi-cuenta-monedas');
     const exactSmc = window.Simulacion && Simulacion.formatSmc ? Simulacion.formatSmc(total || 0) : (texto((Number(total) || 0) / subs) + ' SMC');
-    line.textContent = 'Simoncoin: ' + exactSmc;
+    line.textContent = 'Simoncoin: ' + exactSmc + (data.enVivo ? ' · en vivo' : '');
     line.title = exactSmc;
     $('mi-cuenta-finca').textContent = 'Finquita: ' + lista(data.crops, { cafe: 'Café', cacao: 'Cacao' }) + ' · Animales: ' + lista(data.animals, { gallo: 'Gallos', gallina: 'Gallinas' });
     $('mi-cuenta-favorito').textContent = 'Favorito: ' + (data.favoritePlace || 'sin lugar') + (data.favoriteWorld ? ' · Mundo ' + data.favoriteWorld : '');
@@ -262,19 +262,29 @@
       box.append(line);
     });
   }
-  async function abrir() {
-    panel.hidden = false;
-    estado('');
-    const menu = $('hud-gear-menu');
-    if (menu) menu.hidden = true;
+  let pedido = 0;
+  async function refrescar() {
+    if (panel.hidden) return;
     try {
-      const response = await fetch('/auth/cuenta', { credentials: 'same-origin', cache: 'no-store' });
+      const response = await fetch('/auth/cuenta?t=' + Date.now(), { credentials: 'same-origin', cache: 'no-store' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Entra con tu cuenta para verla.');
       pintar(data);
     } catch (error) {
       estado(error.message);
     }
+  }
+  function tocar() {
+    if (panel.hidden) return;
+    clearTimeout(pedido);
+    pedido = setTimeout(refrescar, 400);
+  }
+  async function abrir() {
+    panel.hidden = false;
+    estado('');
+    const menu = $('hud-gear-menu');
+    if (menu) menu.hidden = true;
+    await refrescar();
     $('mi-cuenta-cerrar').focus();
   }
   function cerrar() { panel.hidden = true; }
@@ -303,7 +313,7 @@
   $('mi-cuenta-guardar').onclick = async () => {
     estado('Guardando…');
     if (window.Partida) await Partida.push();
-    await abrir();
+    await refrescar();
     estado('Guardado en la cuenta.');
   };
   $('mi-cuenta-clave').onsubmit = async (event) => {
@@ -357,5 +367,6 @@
   $('mi-cuenta-salir-todos').onclick = () => salir('/auth/salir-todos').catch((error) => estado(error.message));
   montar();
   new MutationObserver(montar).observe(document.body, { childList: true, subtree: true });
-  window.MiCuenta = { abrir, cerrar, marcar };
+  setInterval(() => { if (!panel.hidden) refrescar(); }, 2000);
+  window.MiCuenta = { abrir, cerrar, marcar, refrescar, tocar };
 })();

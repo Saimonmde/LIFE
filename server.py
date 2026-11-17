@@ -2929,6 +2929,7 @@ def handle_client_message(c, m, t):
                  'ledger': MONEDAS.ledger(ECON, libro_nombre, perfil.get('account') if libro_nombre else None),
                  'walletName': libro_nombre or '',
                  'purse': ACU.vista(VAULT_STATE, ECON, c.name, perfil.get('account')) if libro_nombre else {'items': {}, 'catalog': dict(PURSES.CATALOG), 'monedas': {}},
+                 'crudo': {key: CRUDO.nuggets(ECON, perfil.get('account'), key) for key in CRUDO.CAPS} if perfil.get('account') else {},
                  'contadores': public_counters()}
         welcome.update(SOCIAL.hello_extra(VIDA, c, ACCOUNTS, clients, PLACES))
         welcome['presence'] = presence_msg()
@@ -3748,6 +3749,23 @@ async def try_auth(method, path, target, headers, body, remote_ip=None):
     return auth_response('404 Not Found', {'error': 'no existe'}, headers)
 
 
+def marcar_recursos(html, rev):
+    """Cada despliegue cambia la URL de los JS y CSS. El celular no reutiliza la copia vieja."""
+    token = str(rev or '').strip()
+    if not token:
+        return html
+    token = token[:12]
+
+    def stamp(match):
+        url = match.group(2)
+        if url.startswith(('http:', 'https:', '//', 'data:')) or 'r=' in url.split('?', 1)[-1]:
+            return match.group(0)
+        join = '&' if '?' in url else '?'
+        return match.group(1) + url + join + 'r=' + token + match.group(3)
+
+    return re.sub(r'(<(?:script|link)\b[^>]*?(?:src|href)=")([^"]+)(")', stamp, html, flags=re.I)
+
+
 def legal_page(path):
     """Páginas públicas, sin sesión: /privacidad y /terminos."""
     rel = LEGAL_PAGES.get('/' + path.strip('/'))
@@ -3964,6 +3982,7 @@ async def handle(reader, writer):
             html = body.decode('utf-8')
             if 'name="life-revision"' not in html:
                 html = html.replace('<head>', '<head>\n<meta name="life-revision" content="' + rev + '">', 1)
+            html = marcar_recursos(html, rev)
             body = html.encode('utf-8')
         if ctype.startswith('text/') or ctype in ('application/javascript', 'application/json'): ctype += '; charset=utf-8'
         cache = 'no-store' if ctype.startswith('text/html') else 'no-cache'

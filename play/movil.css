@@ -51,4 +51,12 @@ html.movil header, html.movil #zona-nombre, html.movil .simoncity-place, html.mo
   text-transform: none;
 }
 html.movil #sai-saldo { font-size: 18px; }
+html.movil #bag-grupos { display: flex; max-width: 100%; }
+html.movil #objeto-ficha { width: min(380px, calc(100vw - 16px)); max-height: calc(100dvh - 24px); overflow: auto; }
+html.movil #w-inv.bag-summary { width: min(360px, calc(100vw - 12px)); }
+@media (max-width: 900px) and (orientation: landscape) {
+  #objeto-ficha { top: 8px; transform: translate(-50%, 0); max-height: calc(100dvh - 16px); }
+  #bag-grupos { flex-wrap: nowrap; }
+  #w-inv.bag-summary { max-height: calc(100dvh - 16px); }
+}
 html.movil .madre-card .hash, html.movil #libro-cuerpo .hash { font-size: 15px; letter-spacing: 0.1em; }

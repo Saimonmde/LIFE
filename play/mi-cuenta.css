@@ -54,3 +54,7 @@
   border: 1px solid #a4824c;
 }
 .mi-cuenta-panel input { min-height: 48px; border: 2px solid #8a623c; border-radius: 10px; background: #fffaf0; color: #2a1c10; }
+@media (max-height: 500px) {
+  #mi-cuenta { place-items: center; padding: 6px; }
+  .mi-cuenta-panel { max-height: calc(100dvh - 12px); }
+}

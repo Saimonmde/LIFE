@@ -68,6 +68,48 @@ def _animals(user):
     return found
 
 
+def _live_inventory(user, econ, vault_state, saved, finca_accounts, name):
+    """La mochila guardada en el aparato no pisa lo que el servidor ya movió."""
+    saved = [dict(row) for row in (saved or []) if isinstance(row, dict)]
+    live = {}
+    account = str((user or {}).get('id') or '')
+    crudo_row = ((econ or {}).get('crudo') or {}).get(account) if account else None
+    if isinstance(crudo_row, dict):
+        import crudo
+        for item in crudo.CAPS:
+            live[item] = int(crudo.nuggets(econ, account, item))
+    if isinstance(vault_state, dict) and name:
+        import purses
+        for item, qty in purses.inventory(vault_state, name).items():
+            live[item] = int(qty or 0)
+        box = (vault_state.get('accounts') or {}).get(name) or {}
+        for item, qty in (box.get('items') or {}).items():
+            extra = int(qty or 0)
+            if extra > 0:
+                live[item] = int(live.get(item) or 0) + extra
+    goods = ((finca_accounts or {}).get(name) or {}).get('goods') or {}
+    for item, qty in goods.items():
+        extra = int(qty or 0)
+        if extra > 0:
+            live[item] = int(live.get(item) or 0) + extra
+    if not live:
+        return saved[:12]
+    rows = []
+    seen = set()
+    for row in saved:
+        item = row.get('item')
+        if item in live:
+            seen.add(item)
+            if live[item] > 0:
+                rows.append({'item': item, 'qty': live[item]})
+        else:
+            rows.append({'item': item, 'qty': int(row.get('qty') or 0)})
+    for item, qty in live.items():
+        if item not in seen and int(qty) > 0:
+            rows.append({'item': item, 'qty': int(qty)})
+    return [row for row in rows if int(row.get('qty') or 0) > 0][:24]
+
+
 def resumen(user, econ, finca_accounts, now_ms=0, vault_state=None):
     """Vista para el panel. No incluye contraseña, hash ni el identificador de Google."""
     user = user if isinstance(user, dict) else {}
@@ -88,7 +130,8 @@ def resumen(user, econ, finca_accounts, now_ms=0, vault_state=None):
         'google': bool((user.get('providers') or {}).get('google')),
         'place': _place(saved),
         'saved': _minutes(saved.get('rev'), now_ms),
-        'inventory': list(saved.get('inv') or [])[:12],
+        'inventory': _live_inventory(user, econ, vault_state, saved.get('inv') or [], finca_accounts, name),
+        'enVivo': True,
         'coins': coins,
         'crops': _finca(finca_accounts, name),
         'animals': _animals(user),
