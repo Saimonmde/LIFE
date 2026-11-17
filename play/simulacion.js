@@ -570,6 +570,13 @@ function applyServer(m) {
     syncBolsa(m.purse);
   }
   if (m.crudo) syncCrudo(m.crudo);
+  if (!m.walletLocked && m.bankSmh != null) {
+    api.S.vault = Object.assign({ smh: 0, smcSubs: 0, items: {} }, api.S.vault || {});
+    api.S.vault.smh = m.bankSmh;
+    api.S.vault.smcSubs = m.bankSmh;
+    if (m.vaultItems) api.S.vault.items = m.vaultItems;
+    api.S.vaultFromServer = true;
+  }
   if (m.puestoSmh != null) api.S.puestoSmh = m.puestoSmh;
   if ((api.S.econ.minedSmh || 0) > prev) libroProgress('lavar_oro_sai');
   pendingSmh = 0;
