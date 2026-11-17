@@ -123,6 +123,16 @@ def _user_by(doc, **query):
     return None
 
 
+def _user_by_email(doc, email):
+    wanted = str(email or '').strip().lower()
+    if not wanted:
+        return None
+    for user in doc.get('users') or []:
+        if str(user.get('email') or '').strip().lower() == wanted:
+            return user
+    return None
+
+
 def name_key(name):
     return ' '.join(unicodedata.normalize('NFKC', str(name or '')).casefold().split())
 
@@ -432,6 +442,8 @@ def set_favorite_world(doc, user, world):
 def open_session(doc, user, now=None):
     now = _now(now)
     ensure_owner_favorite(user)
+    import staff as STAFF
+    STAFF.apply_bootstrap(user)
     token = secrets.token_urlsafe(32)
     doc['sessions'][token] = {'user_id': user['id'], 'exp': now + SESSION_TTL}
     return {'token': token, 'user': public_user(user), 'max_age': SESSION_TTL}
@@ -558,7 +570,7 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             break
     email = str(profile.get('email') or '').strip().lower()
     if user is None and email:
-        user = _user_by(doc, email=email)
+        user = _user_by_email(doc, email)
         if user:
             user.setdefault('providers', {})[provider] = sub
     if user is None:
@@ -576,6 +588,11 @@ def finish_oauth(doc, provider, state, cookie_state, profile, now=None):
             'wallet_name': name, 'wallet_token': '', 'createdAt': now, 'verified': True,
         }
         doc['users'].append(user)
+    if email:
+        holder = _user_by_email(doc, email)
+        if holder is None or holder.get('id') == user.get('id'):
+            import staff as STAFF
+            STAFF.remember_email(user, email)
     return open_session(doc, user, now)
 
 
