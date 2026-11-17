@@ -379,7 +379,7 @@ def block_page(before=None):
     older = [b for b in blocks if int(b.get('height') or 0) < int(before)]
     return older[-LEDGER_PAGE:]
 
-def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=None):
+def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=None, zone=None):
     page = block_page(before)
     m = {'t': 'economy', 'state': {
         'minedSmh': int(ECON.get('minedSmh') or 0), 'blocks': page, 'blockCount': len(ECON.get('blocks') or []),
@@ -413,7 +413,7 @@ def econ_msg(who=None, before=None, reveal_token=None, locked=False, profile=Non
     m['reloj'] = RELOJ.payload(ECON)
     m['walletName'] = '' if locked else (who or '')
     m['ledger'] = MONEDAS.ledger(ECON, name=None if locked else who, account=(profile or {}).get('account'))
-    m['cupos'] = cupos_public(profile)
+    m['cupos'] = cupos_public(profile, zone)
     if who and not locked:
         import acunar_credito as ACU
         m['purse'] = ACU.vista(VAULT_STATE, ECON, who, (profile or {}).get('account'))
@@ -608,7 +608,7 @@ def fail_claim(sender, code, channel='system'):
         send(sender, {'t': 'system', 'text': text})
     return {'ok': False, 'reason': code, 'smh': 0}
 
-def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False, kind='gold'):
+def take_proof(sender, action, context, proof, resume, want_smh=None, exact=False, counts_as_mint=True, room_smh=None, pay_request=False, kind='gold', reserve=True):
     if getattr(sender, 'bot', False):
         return fail_claim(sender, 'guest', channel='acunar' if action == 'acunar' else ('smelt' if action == 'fundicion' else 'system'))
     if not getattr(sender, 'wallet_ok', False):
@@ -623,7 +623,7 @@ def take_proof(sender, action, context, proof, resume, want_smh=None, exact=Fals
         result = SUP.redeem(
             ECON, profile, action, context, proof,
             want_smh=want_smh, room_smh=room_smh, exact=exact, counts_as_mint=counts_as_mint,
-            pay_request=pay_request, kind=kind,
+            pay_request=pay_request, kind=kind, reserve=reserve,
         )
         save_econ()
         if not result.get('ok'):
@@ -652,20 +652,22 @@ def revert_issue(name, granted):
     if mem and mem[-1].get('to') == name and int(mem[-1].get('amountSubs') or 0) == int(granted):
         mem.pop()
 
-def emitir(sender, smh, note, kind, foundry, tile, location):
+def emitir(sender, smh, note, kind, foundry, tile, location, claimed=True):
     profile = account_profile(sender)
     granted = ECO.issue(ECON, sender.name, smh, note, kind)
     if granted <= 0:
-        SUP.restore(ECON, profile['account'], smh, minted=True, undo_claim=True)
-        save_econ()
+        if claimed:
+            SUP.restore(ECON, profile['account'], smh, minted=True, undo_claim=True)
+            save_econ()
         return 0, None, None
-    if granted < int(smh):
+    if granted < int(smh) and claimed:
         SUP.restore(ECON, profile['account'], int(smh) - granted, minted=True, undo_claim=False)
     pub = anotar_emision(sender.name, granted, location)
     if not pub:
         revert_issue(sender.name, granted)
-        SUP.restore(ECON, profile['account'], granted, minted=True, undo_claim=True)
-        save_econ()
+        if claimed:
+            SUP.restore(ECON, profile['account'], granted, minted=True, undo_claim=True)
+            save_econ()
         return 0, None, None
     token = certify(sender.name, granted, foundry, tile)
     kept, pooled = PLATA.apartar(ECON, sender.name, granted)
@@ -927,7 +929,7 @@ def _en_smp(sph):
         return whole
     return whole + frac / PLATA.SUBS
 
-def cupos_public(profile=None):
+def cupos_public(profile=None, zone=None):
     profile = profile or {}
     age, play, quests = profile.get('age') or 0, profile.get('play') or 0, profile.get('quests') or 0
     account = profile.get('account') or ''
@@ -950,6 +952,23 @@ def cupos_public(profile=None):
             'items': list(spec.get('items') or (spec['item'],)), 'rate': spec['rate'],
             'cap': cap, 'left': max(0, cap - earned), 'room': room,
         }
+    if str(zone or '') == 'mina2':
+        import mina_ladera as LADERA
+        oro = coins['simoncoin']
+        oro['rate'] = LADERA.PIEZAS['oro']
+        epoch = int(time.time()) // TOPES.DAY
+        acc = ((ECON.get('supply') or {}).get('accounts') or {}).get(account) or {}
+        copper_smh = int(acc.get('copperEarned') or 0) if int(acc.get('epoch') or -1) == epoch else 0
+        coins['simonplata'].update({
+            'rate': LADERA.PIEZAS['plata'], 'name': 'Simoncoin',
+            'cap': oro['cap'], 'left': oro['left'], 'room': oro['room'],
+        })
+        coins['simonchis'].update({
+            'rate': LADERA.PIEZAS['cobre'], 'name': 'Simoncoin',
+            'cap': SUP.COPPER_DAILY_SMC,
+            'left': max(0, SUP.COPPER_DAILY_SMC - copper_smh / ECO.SUBS),
+            'room': oro['room'],
+        })
     return {'reset': TOPES.RESET_LABEL, 'coins': coins}
 
 def _reglas_mina(headers):
@@ -973,7 +992,128 @@ def _reglas_mina(headers):
 def _acunar_fail(sender, reason, code=''):
     send(sender, {'t': 'acunar_result', 'ok': False, 'reason': reason, 'code': code})
 
+def _devolver_crudo(account, spent):
+    for item, qty in (spent or {}).items():
+        amount = int(round(float(qty or 0)))
+        if amount > 0:
+            CRUDO.credit(ECON, account, item, amount, cap=max(amount, 1))
+
+
+def acunar_ladera(sender, coin, pieces, proof=None):
+    """El horno de La Ladera. Misma ventanilla, tasas de esta mina, un solo cupo."""
+    import mina_ladera as LADERA
+    if not LADERA.junto(getattr(sender, 'zone', ''), getattr(sender, 'zx', None), getattr(sender, 'zy', None)):
+        return _acunar_fail(sender, 'Acércate al horno de La Ladera.', 'lejos')
+    sender.activity_tiles = max(int(getattr(sender, 'activity_tiles', 0) or 0), 8)
+    sender.last_activity_at = time.time()
+    metal = LADERA.metal_moneda(coin)
+    if not metal:
+        return _acunar_fail(sender, 'Esa moneda no se acuña aquí.', 'coin')
+    if not getattr(sender, 'wallet_ok', False):
+        return _acunar_fail(sender, SUP.reason_text('wallet'), 'wallet')
+    profile = account_profile(sender)
+    account = profile.get('account') or ''
+    if not account:
+        return _acunar_fail(sender, SUP.reason_text('guest'), 'guest')
+    try:
+        pieces = int(round(float(pieces or 0)))
+    except (TypeError, ValueError):
+        pieces = 0
+    if pieces <= 0:
+        return _acunar_fail(sender, 'Elige el mineral que quieres fundir.', 'metal')
+    items = CRUDO.items_for(coin)
+    if CRUDO.total(ECON, account, items) + 1e-9 < pieces:
+        return _acunar_fail(sender, 'No hay suficiente mineral en la cuenta.', 'metal')
+    row = ECON.setdefault('minaLadera', {}).setdefault(account, {'millis': 0})
+    previo = int(row.get('millis') or 0)
+    smh, dust = LADERA.partir(LADERA.millis_de(metal, pieces, previo))
+    now = time.time()
+    if smh <= 0:
+        spent = CRUDO.debit(ECON, account, items, pieces)
+        if spent is None:
+            return _acunar_fail(sender, 'No hay suficiente mineral en la cuenta.', 'metal')
+        row['millis'] = previo + pieces * LADERA.MILLIS[metal]
+        save_econ()
+        return _acunar_listo(sender, profile, coin, pieces, 0, spent, 'El mineral queda guardado hasta completar 0,01 SMC.')
+    _, _, left = LADERA._cupo(ECON, account, metal, now, profile.get('age') or 0, profile.get('play') or 0, profile.get('quests') or 0)
+    if eco_room_agotado():
+        return _acunar_fail(sender, 'Se alcanzó el tope de 21.000.000 SMC.', 'supply')
+    if left <= 0:
+        return _acunar_fail(sender, 'Llegaste al tope de SMC de hoy.', 'cap')
+    result = take_proof(
+        sender, 'acunar', 'ladera:%s:%s' % (coin, pieces), proof,
+        {'t': 'acunar', 'coin': coin, 'pieces': pieces},
+        want_smh=smh, pay_request=True, reserve=False,
+        kind='copper' if metal == 'cobre' else 'gold',
+    )
+    if not result or not result.get('ok'):
+        return
+    token = str(result.get('proof') or '')
+    grant = LADERA.contar(
+        ECON, account, metal, smh, now, token,
+        age=int(profile.get('age') or 0), play=int(profile.get('play') or 0), quests=int(profile.get('quests') or 0),
+    )
+    if grant <= 0:
+        return _acunar_fail(sender, 'Llegaste al tope de SMC de hoy.', 'cap')
+    spent = CRUDO.debit(ECON, account, items, pieces)
+    if spent is None:
+        LADERA.soltar_cupo(ECON, account, metal, grant)
+        save_econ()
+        return _acunar_fail(sender, 'No hay suficiente mineral en la cuenta.', 'metal')
+    nombre = {'cobre': 'cobre', 'plata': 'plata', 'oro': 'mineral de oro'}[metal]
+    granted, _token, pub = emitir(
+        sender, grant, 'Fundición de %s en la Mina de La Ladera' % nombre, 'fundicion',
+        'fundidora', 'horno_ladera', 'Horno de La Ladera', claimed=False,
+    )
+    if granted <= 0:
+        _devolver_crudo(account, spent)
+        LADERA.soltar_cupo(ECON, account, metal, grant)
+        save_econ()
+        return _acunar_fail(sender, 'No se pudo anotar el registro único. No se creó Simoncoin.', 'registry')
+    if granted < grant:
+        LADERA.soltar_cupo(ECON, account, metal, grant - granted)
+        grant = granted
+    row['millis'] = dust + (smh - grant) * 10
+    sender.registro = pub
+    kept = int(getattr(sender, 'kept_smh', grant) or grant)
+    save_econ()
+    return _acunar_listo(sender, profile, coin, pieces, kept, spent, None)
+
+
+def eco_room_agotado():
+    return ECO.issuance_room(ECON) <= 0
+
+
+def _acunar_listo(sender, profile, coin, pieces, kept_smh, spent, reason):
+    import acunar_credito as ACU
+    got = kept_smh / ECO.SUBS
+    moneda = ACU.acreditar_mochila(VAULT_STATE, sender.name, 'simoncoin', got) if got > 0 else None
+    if moneda:
+        save_vault()
+    view = MONEDAS.ledger(ECON, sender.name, profile.get('account'))
+    view['historia'] = HISTORIA.filas(ECON)
+    save_econ()
+    broadcast_econ()
+    saldos = view.get('balances') or {}
+    if not reason:
+        reason = 'Se acuñó %s. Saldo: %s. Se gastaron %s minerales.' % (
+            ECO.format_smc(kept_smh), ECO.format_smc(int(saldos.get('simoncoin') or 0)), pieces,
+        )
+    send(sender, {
+        't': 'acunar_result', 'ok': True, 'coin': coin, 'name': 'Simoncoin',
+        'spent': pieces, 'spentItems': spent, 'recibes': got,
+        'balanceSubs': int(saldos.get('simoncoin') or 0),
+        'registro': getattr(sender, 'registro', None) if got > 0 else None,
+        'moneda': moneda, 'purse': ACU.vista(VAULT_STATE, ECON, sender.name, profile.get('account')),
+        'walletName': sender.name, 'reason': reason,
+        'ledger': view, 'cupos': cupos_public(profile, getattr(sender, 'zone', '')),
+        'crudo': {item: CRUDO.nuggets(ECON, profile['account'], item) for item in CRUDO.CAPS},
+    })
+
+
 def acunar_for(sender, coin, pieces, proof=None):
+    if getattr(sender, 'zone', '') == 'mina2':
+        return acunar_ladera(sender, coin, pieces, proof)
     coin = str(coin or '')
     if 'lingote' in coin or coin in ('ingot', 'ingots'):
         reason = 'Los lingotes no se acuñan en esta ventanilla.'
@@ -1151,6 +1291,8 @@ def fundir_simonplata(sender, ore, batches, proof):
         send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
 def smelt_for(sender, ore, batches, proof=None, mode=None):
+    if getattr(sender, 'zone', '') == 'mina2':
+        return _smelt_fail(sender, 'En La Ladera se acuña desde el horno, con Acuñar.')
     if str(mode or '') == 'ingot':
         return fundir_lingotes(sender, ore, batches)
     ore = str(ore or '')
@@ -1812,7 +1954,7 @@ def broadcast(obj, who=None, exclude=None):
 def broadcast_econ():
     for c in list(clients.values()):
         if c.hello and not c.bot:
-            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c)))
+            send(c, econ_msg(c.name, locked=not getattr(c, 'wallet_ok', False), profile=account_profile(c), zone=getattr(c, 'zone', '')))
 
 def _trade_balances(name):
     items = dict(PURSES.inventory(VAULT_STATE, name))
@@ -2353,11 +2495,12 @@ def _mover_en_ladera(sender, message, old_world, old_place, now_move):
     room_shift(sender, old_world, old_place)
     if entering:
         send(sender, {'t': 'cerca', 'players': city_peers(sender)})
+        send(sender, econ_msg(sender.name, locked=not getattr(sender, 'wallet_ok', False), profile=account_profile(sender), zone='mina2'))
     return True
 
 
 def pico_ladera(sender, message):
-    """Una veta de La Ladera paga SMC. No muestra otra moneda."""
+    """Un cliente viejo pide la veta. Deja el mineral; el horno es el que acuña."""
     import mina_ladera as LADERA
     if getattr(sender, 'zone', '') != 'mina2':
         return
@@ -2370,38 +2513,13 @@ def pico_ladera(sender, message):
         return
     if claimed is None:
         return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': 'Esa veta no es de esta mina.'})
-    account = _cuenta(sender)
-    profile = account_profile(sender)
-    now = time.time()
-    result = LADERA.cobrar(
-        ECON, sender.name, account, metal, now,
-        age=int(profile.get('age') or 0),
-        play=int(profile.get('play') or 0),
-        quests=int(profile.get('quests') or 0),
-    )
-    if not result.get('ok'):
+    item = {'oro': 'mineral_oro', 'plata': 'mineral_plata', 'cobre': 'mineral_cobre'}[metal]
+    if not recibir(sender, item, 1, 'ore'):
         soltar_veta(sender)
-        save_econ()
-        return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': result.get('texto') or ''})
-    granted = int(result.get('smh') or 0)
-    if granted > 0:
-        try:
-            pub = anotar_emision(sender.name, granted, 'Mina de La Ladera')
-        except Exception:
-            pub = None
-        if not pub:
-            LADERA.deshacer(ECON, sender.name, account, metal, granted, now)
-            soltar_veta(sender)
-            save_econ()
-            return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': 'No se anotó el SMC. La veta sigue.'})
+        return send(sender, {'t': 'pico_ladera', 'ok': False, 'spot': spot, 'texto': 'La mochila no tiene sitio. La veta sigue.'})
     _cerrar_veta(sender, spot)
-    save_econ()
-    if granted:
-        broadcast_econ()
-    texto = result.get('texto') or ''
-    send(sender, {'t': 'pico_ladera', 'ok': True, 'spot': spot, 'texto': texto})
-    if granted:
-        send(sender, {'t': 'system', 'text': texto + ' No es dinero real.'})
+    texto = 'El mineral quedó en la mochila. Fúndelo en el horno.'
+    send(sender, {'t': 'pico_ladera', 'ok': True, 'spot': spot, 'texto': texto, 'item': item})
 
 
 def _mover_en_mina(sender, message, old_world, old_place, now_move):
@@ -2719,7 +2837,7 @@ def handle_client_message(c, m, t):
             place = MUNDOS.place_name(c.place, PLACES)
             broadcast({'t': 'system', 'text': f'{visible_nick(c)} entró a {place}.'}, who=lambda o: MUNDOS.same_sight(c, o), exclude=c)
         broadcast(presence_msg())
-        send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c)))
+        send(c, econ_msg(c.name, reveal_token=owned, locked=not c.wallet_ok, profile=account_profile(c), zone=getattr(c, 'zone', '')))
         if c.wallet_ok:
             send(c, {'t': 'playtime', **play_for(c.name, active=True)})
         if not c.wallet_ok:
@@ -2852,6 +2970,8 @@ def handle_client_message(c, m, t):
         c.pace = SEGUIR.pace_of(m.get('pace'), 'city', c.moving)
         c.place = MUNDOS.place_of(c.x, c.y, 'city', PLACES)
         room_shift(c, old_world, old_place)
+        if came_from == 'mina2':
+            send(c, econ_msg(c.name, locked=not c.wallet_ok, profile=account_profile(c), zone='city'))
     elif t == 'ping':
         TRADES.expire()
         send(c, {'t': 'pong', 'c': m.get('c')})
@@ -2896,7 +3016,7 @@ def handle_client_message(c, m, t):
             before = int(m.get('before'))
         except (TypeError, ValueError):
             before = None
-        send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c)))
+        send(c, econ_msg(c.name, before=before, locked=not c.wallet_ok, profile=account_profile(c), zone=getattr(c, 'zone', '')))
     elif t == 'pay' and c.hello:
         try:
             smh = leer_smh(m)
@@ -3799,6 +3919,9 @@ async def main():
         raise SystemExit(f'No se pudo abrir el puerto {a.port}')
     convertir_a_una_moneda()
     reparar_plata_118()
+    import mina_ladera as LADERA
+    if LADERA.migrar(ECON):
+        save_econ()
     print(f'LIFE INC · El Jardín  →  http://localhost:{a.port}/play/   (también http://127.0.0.1:{a.port}/play/)')
     print(f'chat WebSocket: ws://<host>:{a.port}/ws')
     print('Ctrl+C para detener.')

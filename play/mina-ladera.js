@@ -102,6 +102,7 @@
       { id: 'salida_ladera', type: 'mine_exit', x: 24, y: 37, label: 'SALIDA', initialState: 'active', states: ['active'], sprites: { active: 'mine_exit' }, solid: true },
       { id: 'letrero_ladera', type: 'mine_sign', x: 25, y: 36, solid: false, facing: Math.PI, initialState: 'active', states: ['active'], sprites: { active: 'mine_exit' } },
       { id: 'baul_mina', type: 'mine_chest', x: 21, y: 18, solid: true, states: ['active'], initialState: 'active', sprites: { active: 'mine_exit' } },
+      { id: 'horno_ladera', type: 'furnace', x: 24, y: 16, solid: true, states: ['active'], initialState: 'active', sprites: { active: 'furnace' } },
     ];
     const layout = spots();
     Object.keys(layout).forEach((metal) => {
@@ -141,7 +142,7 @@
       doors: [],
       animals: [],
       regions: [{ id: 'mina_ladera', name: 'Mina de La Ladera · interior', x: 0, y: 0, w: width, h: height }],
-      waypoints: [{ id: 'baul', name: 'Baúl', x: 21, y: 19 }, { id: 'salida', name: 'Salida a la ladera', x: 24, y: 36 }],
+      waypoints: [{ id: 'baul', name: 'Baúl', x: 21, y: 19 }, { id: 'horno', name: 'Horno', x: 24, y: 17 }, { id: 'salida', name: 'Salida a la ladera', x: 24, y: 36 }],
       roads3d: [],
       memories: [],
       riverLayouts: [],

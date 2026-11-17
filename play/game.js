@@ -794,7 +794,7 @@ function switchMap(id,restored=false){
  if(!restored){
   save();
   if(id==='mine')game('Pica el metal. El baúl está junto al horno. En el horno, Acuñar lo guarda como monedas en tu inventario. Estás en el Mundo '+(window.Vida?Vida.world():3)+'. Aquí se ven y pueden hablar quienes estén en este mismo mundo.');
-  else if(id==='mina2')game('Mina de La Ladera. Cada veta paga SMC: cobre 0,001, plata 0,01 y mineral de oro 0,1. El baúl está en el centro. Estás en el Mundo '+(window.Vida?Vida.world():3)+'. Aquí se ven quienes estén en esta misma mina.');
+  else if(id==='mina2')game('Mina de La Ladera. Pica el mineral y fúndelo en el horno, junto al baúl: cobre 0,001, plata 0,01 y oro 0,1 SMC. Estás en el Mundo '+(window.Vida?Vida.world():3)+'.');
   else if(id==='city'&&prev==='mine')game('Sales de la mina y vuelves a Las Palmas.');
   else if(id==='city'&&prev==='mina2')game('Sales de la Mina de La Ladera. El cafetal queda al lado.');
   else if(id==='casa'){ greetPet(); game('Estás en casa. Tu mascota te espera.'); }
@@ -1884,14 +1884,6 @@ function act(t) {
   } else if (d.type === 'mine_chest') {
     if (window.Baul) Baul.open();
     nota('Baúl de la mina');
-    return;
-  } else if (d.type === 'mineral_rock' && (W.mapId || 'city') === 'mina2') {
-    if (!needTool(d.tool)) return;
-    if (n.state !== 'active') return game(`La roca está agotada. Vuelve en ${secs()} s.`, 'aviso');
-    if (!(S.net && S.net.ok && S.net.ws)) return game('Entra con una cuenta para recibir SMC.', 'aviso');
-    sendGesto('picar', d.x, d.y);
-    S.player.miningUntil = now() + 800;
-    S.net.ws.send(JSON.stringify({ t: 'pico_ladera', spot: d.id, mineral: d.mineral }));
     return;
   } else if (d.type === 'mineral_rock') {
     if (!needTool(d.tool)) return;

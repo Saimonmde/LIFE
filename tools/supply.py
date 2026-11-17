@@ -480,7 +480,7 @@ def _read_proof(proof):
         return None
 
 
-def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None, pay_request=False, kind='gold'):
+def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None, exact=False, counts_as_mint=True, now=None, pay_request=False, kind='gold', reserve=True):
     """Verifica la prueba y reserva los SMH que caben. No escribe la billetera."""
     ensure(state, now=now)
     now = int(now if now is not None else time.time())
@@ -528,6 +528,14 @@ def redeem(state, profile, action, context, proof, want_smh=None, room_smh=None,
         return {'ok': False, 'reason': 'rate', 'smh': 0, 'view': _view(state, profile, now)}
     reward = _era_reward(state)
     room = eco.issuance_room(state) if room_smh is None else max(0, int(room_smh))
+    if not reserve:
+        # La prueba vale, pero el cupo del día lo anota quien llama, una sola vez.
+        grant = min(max(0, int(want_smh or 0)), room)
+        if grant <= 0:
+            code = 'supply' if room <= 0 else 'cap'
+            return {'ok': False, 'reason': code, 'smh': 0, 'view': view}
+        box.setdefault('used', {})[parsed['id']] = parsed['exp']
+        return {'ok': True, 'reason': '', 'smh': int(grant), 'view': view, 'minted': False, 'proof': parsed['id']}
     if kind == 'copper':
         cap = copper_daily_smh()
         earned = int(acc.get('copperEarned') or 0)
