@@ -232,6 +232,10 @@
       if (message.view) view = message.view;
       if (message.error) say(message.error);
       else if (message.ok && message.view) say(message.note || 'Listo.');
+      if (message.ok && message.note && message.note.indexOf('+1') === 0 && window.flotar && window.LiveInk && LiveInk.state) {
+        const p = LiveInk.state.player;
+        window.flotar(p.x, p.y, message.note, '#f6d598');
+      }
       if (message.spent && window.quitarDelInventario) quitarDelInventario(message.spent.item, message.spent.qty || 1);
       if (message.gained && window.LiveInk && LiveInk.giveItem) LiveInk.giveItem(message.gained.item, message.gained.qty || 1);
       paintFarm();
@@ -416,7 +420,7 @@
     textos = doc;
     paintFarm();
   }).catch(() => {});
-  window.Finca = { onNet, open, openPanel, openLibro, pull, cosecharCerca, paintDock };
+  window.Finca = { onNet, open, openPanel, openLibro, pull, cosecharCerca, paintDock, vista: () => (view && view.plots) || [] };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();
 })();

@@ -1573,6 +1573,7 @@ function connect() {
     else if (m.t === 'seguir_result' && m.ok === false) { game(esc(m.reason || 'No se puede seguir.'), 'aviso'); }
     else if (m.t === 'move_correct') { if (S.vistaLock) return; const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
     else if (m.t === 'baul') { if (window.Baul) Baul.onNet(m); }
+    else if (window.Cambiar && Cambiar.onNet(m)) { /* cambio por SMC */ }
     else if (window.Objeto && Objeto.onNet(m)) { /* ficha, soltar y piso */ }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else { flyTo(m.x, m.y, m.name || 'ese lugar'); if (m.id === 'mina' && DESTINO_IDS.has('mina')) nota('Mina de Las Palmas. Entra y abre el baúl.'); } }
     else if (m.t === 'chat') {
@@ -1815,7 +1816,11 @@ function approach(t) {
   p.path = path; p.pending = t; S.dest = { ...tt, t: now() };
 }
 function needTool(tool) {
-  if (!invCount(tool)) { game(`Necesitas <b>${W.items[tool].name}</b> para esto.` + (tool === 'hacha' ? ' Habla con el capataz.' : ''), 'aviso'); return false; }
+  if (!invCount(tool)) {
+    const claro = tool === 'pico' ? 'Te falta el pico para minar. ' : tool === 'batea' ? 'Te falta la batea para lavar el oro del río. ' : '';
+    game(claro + `Necesitas <b>${W.items[tool].name}</b> para esto.` + (tool === 'hacha' ? ' Habla con el capataz.' : ''), 'aviso');
+    return false;
+  }
   if (selected() !== tool) { selectItem(tool); game(`Equipas: <b>${W.items[tool].name}</b>.`); }
   return true;
 }
@@ -1864,6 +1869,7 @@ function migrarMetal() {
 function tintinear(item) { if (window.Sonido && Sonido.isRaw(item)) Sonido.clink(); }
 function give(item, qty, tx, ty) { if (!invAdd(item, qty)) return false; tintinear(item); floatText(tx, ty, `+${qty} ${W.items[item].name}`); questProgress('collect', item, qty); return true; }
 function floatText(tx, ty, text, color = '#fff7b0') { S.floaters.push({ x: tx * TS + 32, y: ty * TS, text: String(text || '').slice(0, 42), color, t0: now() }); if (S.floaters.length > 4) S.floaters.splice(0, S.floaters.length - 4); }
+window.flotar = floatText;
 function tired() { S.energy = Math.max(0, S.energy - 2); renderProfile(); }
 
 function act(t) {
@@ -2929,6 +2935,26 @@ function drawMinimap(at) {
       if(spot.nueva) marcaNueva(mctx,x,y);
       mmHits.push({id:spot.id,x,y});
     }
+  }
+  if ((W.mapId || 'city') === 'city' && window.FINCA_MATAS) {
+    const plots = window.Finca && Finca.vista ? Finca.vista() : [];
+    for (const mata of window.FINCA_MATAS) {
+      const row = plots.find(item => item.id === mata.id);
+      if (!row || row.stage !== 'maduro') continue;
+      const [x, y] = point(mata.x, mata.y);
+      mctx.fillStyle = mata.crop === 'cafe' ? '#d64545' : '#e0a15a';
+      mctx.beginPath(); mctx.arc(x, y, 4, 0, 7); mctx.fill();
+    }
+  }
+  if (S.nodes) {
+    S.nodes.forEach((node) => {
+      const d = node.def;
+      if (!d || node.state !== 'active') return;
+      if (d.type !== 'mineral_rock' && d.type !== 'nodo_oro_fluvial') return;
+      const [x, y] = point(d.x, d.y);
+      mctx.fillStyle = d.type === 'nodo_oro_fluvial' || d.mineral === 'oro' ? '#ffd76a' : d.mineral === 'plata' ? '#e8eef4' : '#d08a52';
+      mctx.fillRect(x - 3, y - 3, 6, 6);
+    });
   }
   const route = routeSamples();
   if (route && route.pts.length > 1) {

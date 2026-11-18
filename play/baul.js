@@ -342,6 +342,7 @@
     const botarNums = botonesBotar(encima);
     const botarHtml = llevar ? ('<p class="baul-verbo">Botar</p><div class="baul-montos baul-botar">' + botarNums.map((b) => '<button type="button" class="baul-btn" data-op="soltar" data-kind="item" data-item="' + esc(sel.id) + '" data-cant="' + b.cant + '"' + (b.off ? ' disabled' : '') + '>' + b.texto + '</button>').join('') + '</div>') : '';
     const canje = (sel.id === 'moneda_plata' || sel.id === 'moneda_cobre') ? '<button type="button" class="baul-btn" id="baul-canje" data-op="canjear" data-item="' + esc(sel.id) + '">Canjear por Simoncoin</button>' : '';
+    const cambiar = (window.Cambiar && Cambiar.seCambia(sel.id)) ? '<button type="button" class="baul-btn" id="baul-cambiar" data-item="' + esc(sel.id) + '" data-qty="' + (Number(encima) + Number(enBaul)) + '">Cambiar por SMC</button>' : '';
     const esMineral = sel.id === 'mineral_oro' || sel.id === 'mineral_plata' || sel.id === 'mineral_cobre' || sel.id === 'pepita_oro';
     const horno = esMineral && !juntoHorno()
       ? '<p class="baul-horno">Se acuña en el Horno de Las Palmas o en el Horno de La Ladera.</p><button type="button" class="baul-btn" id="baul-ir-horno">Ir al horno</button>'
@@ -358,6 +359,7 @@
       + pase
       + botarHtml
       + canje
+      + cambiar
       + horno
       + (aviso ? '<p class="baul-aviso" role="alert">' + esc(aviso) + '</p>' : '')
       + '</div></div>';
@@ -430,6 +432,12 @@
     if (fondo) fondo.addEventListener('click', (event) => { if (event.target === fondo) cerrarFicha(); });
     const ir = document.getElementById('baul-ir-horno');
     if (ir) ir.addEventListener('click', (event) => { event.stopPropagation(); irAlHorno(); });
+    const cambiarBtn = document.getElementById('baul-cambiar');
+    if (cambiarBtn) cambiarBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const qty = Math.max(1, Number(cambiarBtn.dataset.qty) || Number(sel && sel.qty) || 1);
+      if (window.Cambiar) Cambiar.abrir(cambiarBtn.dataset.item, qty);
+    });
     const canje = document.getElementById('baul-canje');
     if (canje) canje.addEventListener('click', (event) => {
       event.stopPropagation();
