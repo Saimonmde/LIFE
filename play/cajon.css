@@ -294,3 +294,7 @@ body.mapa-limpio #hud-gear-menu #hotbar {
   max-width: 100% !important;
   margin: 8px 0;
 }
+#fuegos-cielo { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 70; }
+#pirotecnia { position: fixed; left: 50%; bottom: 168px; transform: translateX(-50%); z-index: 78; min-height: 52px; padding: 12px 18px; border: 0; border-radius: 14px; background: #8d2e16; color: #fff6e8; font: 700 16px/1.2 system-ui, sans-serif; }
+#pirotecnia[hidden] { display: none; }
+#objeto-fuego { min-height: 44px; }

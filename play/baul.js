@@ -48,7 +48,11 @@
     },
     madera: {
       nombre: 'Madera',
-      texto: 'Se tala de los pinos. Sirve para construir y para los oficios.',
+      texto: 'Se tala de los pinos. Con el encendedor prende una fogata.',
+    },
+    encendedor: {
+      nombre: 'Encendedor',
+      texto: 'Viene con las primeras herramientas. Junta con madera cortada para prender fuego. No se gasta.',
     },
     lingote_oro: {
       nombre: 'Lingote de oro',
@@ -256,6 +260,7 @@
       piedra: roca('#c2bbb0', '#4e493f'),
       mineral_piedra: roca('#c2bbb0', '#4e493f'),
       madera: '<svg viewBox="0 0 64 64"><rect x="14" y="16" width="36" height="32" rx="3" fill="#8a5a32" stroke="#4a2c14" stroke-width="3"/><path d="M22 16v32M32 16v32M42 16v32" stroke="#6a3e1c" stroke-width="2"/></svg>',
+      encendedor: '<svg viewBox="0 0 64 64"><rect x="26" y="24" width="12" height="28" rx="3" fill="#d8dde4" stroke="#3c4652" stroke-width="3"/><path d="M32 8c4 6 8 8 8 14a8 8 0 0 1-16 0c0-6 4-8 8-14z" fill="#ffb15a" stroke="#a84814" stroke-width="2"/></svg>',
       lingote_oro: barra('#f0c14a'),
       lingote_plata: barra('#e4ebf2'),
       lingote_cobre: barra('#d08a52'),
@@ -343,6 +348,13 @@
     const botarHtml = llevar ? ('<p class="baul-verbo">Botar</p><div class="baul-montos baul-botar">' + botarNums.map((b) => '<button type="button" class="baul-btn" data-op="soltar" data-kind="item" data-item="' + esc(sel.id) + '" data-cant="' + b.cant + '"' + (b.off ? ' disabled' : '') + '>' + b.texto + '</button>').join('') + '</div>') : '';
     const canje = (sel.id === 'moneda_plata' || sel.id === 'moneda_cobre') ? '<button type="button" class="baul-btn" id="baul-canje" data-op="canjear" data-item="' + esc(sel.id) + '">Canjear por Simoncoin</button>' : '';
     const cambiar = (window.Cambiar && Cambiar.seCambia(sel.id)) ? '<button type="button" class="baul-btn" id="baul-cambiar" data-item="' + esc(sel.id) + '" data-qty="' + (Number(encima) + Number(enBaul)) + '">Cambiar por SMC</button>' : '';
+    const pareja = sel.id === 'encendedor' ? 'madera' : (sel.id === 'madera' ? 'encendedor' : '');
+    const enMano = (id) => {
+      const ink = window.LiveInk;
+      const inv = ink && ink.state && ink.state.inv;
+      return !!(inv && inv.some((slot) => slot && slot.item === id && slot.qty > 0));
+    };
+    const fuego = pareja && enMano(pareja) ? '<button type="button" class="baul-btn" id="baul-fuego">Prender fogata</button>' : '';
     const esMineral = sel.id === 'mineral_oro' || sel.id === 'mineral_plata' || sel.id === 'mineral_cobre' || sel.id === 'pepita_oro';
     const horno = esMineral && !juntoHorno()
       ? '<p class="baul-horno">Se acuña en el Horno de Las Palmas o en el Horno de La Ladera.</p><button type="button" class="baul-btn" id="baul-ir-horno">Ir al horno</button>'
@@ -360,6 +372,7 @@
       + botarHtml
       + canje
       + cambiar
+      + fuego
       + horno
       + (aviso ? '<p class="baul-aviso" role="alert">' + esc(aviso) + '</p>' : '')
       + '</div></div>';
@@ -437,6 +450,12 @@
       event.stopPropagation();
       const qty = Math.max(1, Number(cambiarBtn.dataset.qty) || Number(sel && sel.qty) || 1);
       if (window.Cambiar) Cambiar.abrir(cambiarBtn.dataset.item, qty);
+    });
+    const fuegoBtn = document.getElementById('baul-fuego');
+    if (fuegoBtn) fuegoBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      if (window.Filomancia) Filomancia.prender();
+      cerrarFicha();
     });
     const canje = document.getElementById('baul-canje');
     if (canje) canje.addEventListener('click', (event) => {

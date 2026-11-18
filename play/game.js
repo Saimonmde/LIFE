@@ -150,6 +150,7 @@ async function init() {
   Casa.load(S.me.name);
   restore();
   if(!invCount('pico'))invAdd('pico',1);
+  if(window.Filomancia)Filomancia.montar();
   setupMiningUI();
   drawMinimapBase(); buildColorPicker(); renderAll();
   $('#cargando').remove();
@@ -1192,7 +1193,7 @@ function renderInv() {
     const s = i<SLOTS?S.inv[i]:null; const d = document.createElement('div');
     if(s)d.setAttribute('role','button'); d.tabIndex=s?0:-1;
     d.className = 'slot' + (s ? '' : ' vacio') + (i === S.sel ? ' sel' : '');
-    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = itemImg(it, s.qty) + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil||Date.now()<(window.__fichaHold||0))return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); const movil=matchMedia('(max-width: 820px)').matches||document.documentElement.classList.contains('movil'); if(movil&&window.Objeto)Objeto.abrir(s.item,s.qty); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; if(window.Objeto){Objeto.atar(d,s.item,s.qty);if(window.__bagGrupo&&Objeto.grupo(s.item)!==window.__bagGrupo)d.classList.add('fuera');} }
+    if (s) { const it = W.items[s.item]; d.title = it.name; d.setAttribute('aria-label',it.name+' × '+s.qty); d.innerHTML = itemImg(it, s.qty) + (it.stackable ? `<span class="n">${s.qty}</span>` : '') + `<small class="item-name">${esc(it.name)}</small>`; wireMineralDrag(d,s.item); if(window.Filomancia)Filomancia.atar(d,s.item); d.onpointerenter=e=>showItemTip(it,s.qty,e); d.onpointerleave=hideItemTip; d.onclick = () => { if(now()<suppressOreClickUntil||Date.now()<(window.__fichaHold||0))return;S.sel = S.sel === i ? -1 : i;if(MiningRules.recipes[selected()]&&$('#forge-ore')){$('#forge-ore').value=selected();renderForge();}renderInv(); const movil=matchMedia('(max-width: 820px)').matches||document.documentElement.classList.contains('movil'); if(movil&&window.Objeto)Objeto.abrir(s.item,s.qty); };d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}}; if(window.Objeto){Objeto.atar(d,s.item,s.qty);if(window.__bagGrupo&&Objeto.grupo(s.item)!==window.__bagGrupo)d.classList.add('fuera');} }
     el.appendChild(d);
   }
   updateBagMode();
@@ -1574,6 +1575,7 @@ function connect() {
     else if (m.t === 'move_correct') { if (S.vistaLock) return; const rider = S.player; const far = Math.hypot((m.x || 0) - rider.fx, (m.y || 0) - rider.fy); if (!(S.dest && S.dest.ruta && rider.path && rider.path.length && far <= 2.5)) { rider.x = rider.fx = m.x; rider.y = rider.fy = m.y; rider.path = []; S.dest = null; S.rideAuto = false; } }
     else if (m.t === 'baul') { if (window.Baul) Baul.onNet(m); }
     else if (window.Cambiar && Cambiar.onNet(m)) { /* cambio por SMC */ }
+    else if (window.Filomancia && Filomancia.onNet(m)) { /* fogata y fuegos */ }
     else if (window.Objeto && Objeto.onNet(m)) { /* ficha, soltar y piso */ }
     else if (m.t === 'travel_result') { if (!m.ok) game(esc(m.reason || 'No se puede viajar ahí.'), 'aviso'); else { flyTo(m.x, m.y, m.name || 'ese lugar'); if (m.id === 'mina' && DESTINO_IDS.has('mina')) nota('Mina de Las Palmas. Entra y abre el baúl.'); } }
     else if (m.t === 'chat') {

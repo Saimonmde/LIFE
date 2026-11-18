@@ -12,6 +12,7 @@ import argparse, asyncio, base64, hashlib, json, mimetypes, os, random, re, sock
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server'))
 import economy as ECO
+import filomancia as FILO
 import supply as SUP
 import plata as PLATA
 import ed25519
@@ -1492,6 +1493,39 @@ def fundir_simonplata(sender, ore, batches, proof):
         send(sender, {'t': 'smelt_result', 'ok': False, 'needPow': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Calculando la prueba de Simonplata. El mineral sigue en la mochila.'})
     elif result and result.get('ok'):
         send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
+
+FUEGOS = []
+
+
+def filomancia_for(sender, tipo, xp):
+    ahora = time.time()
+    vivos = [f for f in FUEGOS if f['hasta'] > ahora]
+    FUEGOS[:] = vivos
+    tipo = 'fuegos' if tipo == 'fuegos' else 'fogata'
+    if tipo == 'fuegos':
+        hecho, error = FILO.lanzar(xp)
+    else:
+        propio = any(f['quien'] == sender.name and f['tipo'] == 'fogata' for f in vivos)
+        hecho, error = FILO.preparar(True, 1, propio)
+    if not hecho:
+        send(sender, {'t': 'filomancia', 'ok': False, 'tipo': tipo, 'error': error})
+        return
+    fuego = {
+        'id': uuid.uuid4().hex[:10], 'tipo': tipo, 'quien': sender.name,
+        'x': round(float(sender.x), 1), 'y': round(float(sender.y), 1),
+        'zone': getattr(sender, 'zone', 'city') or 'city',
+        'hasta': ahora + hecho['segundos'],
+    }
+    FUEGOS.append(fuego)
+    aviso = {'t': 'filomancia', 'ok': True, 'fuego': fuego}
+    broadcast(aviso, who=lambda otro: FILO.ve(otro.x, otro.y, getattr(otro, 'zone', ''), fuego['x'], fuego['y'], fuego['zone']))
+
+
+def fuegos_vivos(ahora=None):
+    ahora = time.time() if ahora is None else ahora
+    FUEGOS[:] = [f for f in FUEGOS if f['hasta'] > ahora]
+    return list(FUEGOS)
+
 
 def cambiar_for(sender, item, qty, todo=False):
     """Objetos ya recogidos por Simoncoin. Si no cabe, no se quita nada."""
@@ -3452,6 +3486,8 @@ def handle_client_message(c, m, t):
         canjear_for(c, m.get('item'), m.get('qty'))
     elif t == 'cambiar' and c.hello:
         cambiar_for(c, m.get('item'), m.get('qty'), m.get('todo'))
+    elif t == 'filomancia' and c.hello:
+        filomancia_for(c, m.get('tipo'), m.get('xp'))
     elif t == 'soltar' and c.hello:
         soltar_for(c, m)
     elif t == 'alzar' and c.hello:
@@ -4569,6 +4605,22 @@ async def main():
             except Exception:
                 pass
     asyncio.create_task(motion_loop())
+    async def fuego_loop():
+        while True:
+            await asyncio.sleep(2)
+            try:
+                vivos = fuegos_vivos()
+                if not vivos:
+                    continue
+                for persona in list(clients.values()):
+                    if not persona.hello or persona.bot:
+                        continue
+                    cerca = [f for f in vivos if FILO.ve(persona.x, persona.y, getattr(persona, 'zone', ''), f['x'], f['y'], f['zone']) and f['tipo'] == 'fogata']
+                    if cerca:
+                        send(persona, {'t': 'filomancia', 'ok': True, 'fuegos': cerca})
+            except Exception:
+                pass
+    asyncio.create_task(fuego_loop())
     async def _serve(srv):
         async with srv:
             await srv.serve_forever()
