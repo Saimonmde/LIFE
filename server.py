@@ -1493,6 +1493,48 @@ def fundir_simonplata(sender, ore, batches, proof):
     elif result and result.get('ok'):
         send(sender, {'t': 'smelt_result', 'ok': True, 'mode': 'simonplata', 'ore': ore, 'batches': batches, 'reason': 'Entró Simonplata en tu saldo.', 'ledger': MONEDAS.ledger(ECON, sender.name, (account_profile(sender) or {}).get('account'))})
 
+def cambiar_for(sender, item, qty, todo=False):
+    """Objetos ya recogidos por Simoncoin. Si no cabe, no se quita nada."""
+    import cambiar as CAM
+    if not wallet_ready(sender):
+        return send(sender, {'t': 'cambiar_result', 'ok': False, 'reason': 'Entra con tu cuenta para cambiar por Simoncoin.'})
+    item = str(item or '')
+    have = CAM.tener(ECON, VAULT_STATE, FINCA_STATE, sender.name, item)
+    if todo:
+        pedido = have
+    else:
+        try:
+            pedido = int(qty or 0)
+        except (TypeError, ValueError):
+            pedido = 0
+        pedido = min(have, pedido)
+    plan = CAM.preparar(ECON, VAULT_STATE, FINCA_STATE, sender.name, item, pedido)
+    if not plan.get('ok'):
+        return send(sender, {'t': 'cambiar_result', 'ok': False, 'reason': plan.get('reason')})
+    note = 'Cambio de %s %s por Simoncoin' % (plan['qty'], plan['nombre'])
+    granted, record = CAM.cerrar(ECON, LIBRO_CHAIN, NFT_SEED, sender.name, plan['smh'], note, ahora=int(time.time()))
+    if granted < plan['smh'] or not record:
+        CAM._devolver(ECON, VAULT_STATE, FINCA_STATE, sender.name, item, plan['taken'])
+        save_econ()
+        save_vault()
+        save_finca()
+        return send(sender, {'t': 'cambiar_result', 'ok': False, 'reason': 'No cabe más Simoncoin. El tope es 21.000.000. Los objetos siguen en el inventario.'})
+    save_econ()
+    save_vault()
+    save_finca()
+    try:
+        save_libro([record])
+    except persist_duplicate:
+        pass
+    broadcast_econ()
+    send(sender, {
+        't': 'cambiar_result', 'ok': True, 'item': item, 'qty': plan['qty'],
+        'amountText': ECO.format_smc(granted),
+        'balanceSubs': int((ECON.get('wallets') or {}).get(sender.name) or 0),
+        'reason': 'Entraron %s. El libro mayor anotó el cambio.' % ECO.format_smc(granted),
+    })
+
+
 def canjear_for(sender, item, qty):
     import piezas as PIEZAS
     item = str(item or '')
@@ -3408,6 +3450,8 @@ def handle_client_message(c, m, t):
             send(c, {'t': 'acunar_result', 'ok': False, 'reason': 'No se pudo acuñar. No se creó ninguna moneda nueva.', 'code': 'error'})
     elif t == 'canjear' and c.hello:
         canjear_for(c, m.get('item'), m.get('qty'))
+    elif t == 'cambiar' and c.hello:
+        cambiar_for(c, m.get('item'), m.get('qty'), m.get('todo'))
     elif t == 'soltar' and c.hello:
         soltar_for(c, m)
     elif t == 'alzar' and c.hello:

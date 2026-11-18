@@ -130,6 +130,50 @@ body.in-game #w-inv:not([hidden]),
 body.in-game #baul-mina:not([hidden]) {
   z-index: 100 !important;
 }
+#recolectar {
+  position: fixed;
+  z-index: 78;
+  left: 50%;
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  min-width: 168px;
+  min-height: 64px;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 18px;
+  background: #e2b23c;
+  color: #2a1c10;
+  font: 800 22px/1.1 system-ui, sans-serif;
+  box-shadow: 0 8px 18px #000a;
+}
+#recolectar[hidden] { display: none !important; }
+#recolectar small { display: block; font: 700 13px/1.2 system-ui, sans-serif; }
+#cambiar-smc, #guia-smc {
+  position: fixed;
+  z-index: 120;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 24px));
+  padding: 16px;
+  border-radius: 16px;
+  background: #1c140ee6;
+  color: #fff6df;
+  border: 2px solid #e2b23c;
+  font: 16px/1.4 system-ui, sans-serif;
+}
+#cambiar-smc[hidden] { display: none !important; }
+#cambiar-smc h2, #guia-smc h2 { margin: 0 0 8px; font-size: 22px; }
+.cambiar-fila { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#cambiar-smc button, #guia-smc button {
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: #e2b23c;
+  color: #2a1c10;
+  font: 800 16px/1 system-ui, sans-serif;
+}
 
 body.mapa-limpio #hud-gear {
   left: auto;

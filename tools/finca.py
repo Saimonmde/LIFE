@@ -898,7 +898,8 @@ def act(state, purse, config, account, op, args, now, present=True, items=None):
             plant(state, config, account, str(args.get('plot') or ''), now)
             changed = True
         elif op == 'cosechar':
-            harvest(state, config, account, str(args.get('plot') or ''), now)
+            done = harvest(state, config, account, str(args.get('plot') or ''), now)
+            note = '+1 Café' if 'cafe' in str(done.get('item') or '') else '+1 Cacao'
             changed = True
         elif op == 'cosechar_todo':
             harvest_all(state, config, account, now)
