@@ -1,0 +1,21 @@
+Open Data Commons Open Database License (ODbL) — aviso, no una relicencia
+
+Los datos derivados de OpenStreetMap que hay en este repositorio siguen bajo
+ODbL 1.0. Este borrador no los pasa a MIT, a Creative Commons ni a dominio público.
+
+Texto de la licencia: https://opendatacommons.org/licenses/odbl/1-0/
+Atribución de OpenStreetMap: https://www.openstreetmap.org/copyright
+
+Hay que conservar una atribución visible, por ejemplo:
+
+  © colaboradores de OpenStreetMap, ODbL 1.0.
+  https://www.openstreetmap.org/copyright
+
+ODbL pide atribución, compartir igual la base de datos derivada y mantener
+abierta la versión de la base si se ofrece en público. Un produced work (un
+mapa dibujado, una pantalla del juego) puede llevar otra licencia si se
+distingue de la base y se cita la fuente.
+
+En este repo la atribución ya está en data/valle-geo.json (centros, parques
+y el trazo simplificado del río Medellín). El relieve NASA SRTM no es OSM:
+es dominio público del Gobierno de Estados Unidos y no se cubre con ODbL.
