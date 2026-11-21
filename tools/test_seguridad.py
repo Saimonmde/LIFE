@@ -216,6 +216,98 @@ class HttpTests(unittest.TestCase):
         self.assertNotIn('DATABASE_URL', json.dumps(body))
 
 
+class IpClienteTests(unittest.TestCase):
+    """La IP del límite no se elige con el primer X-Forwarded-For."""
+
+    def test_sin_proxy_se_ignora_lo_que_escribe_el_cliente(self):
+        headers = {'x-forwarded-for': '1.1.1.1, 8.8.8.8', 'cf-connecting-ip': '8.8.8.8'}
+        self.assertEqual(seg.ip_cliente(headers, ('203.0.113.9', 5000), False), '203.0.113.9')
+        self.assertEqual(seg.ip_cliente(headers, ('::1', 1, 0, 0), False), '::1')
+        self.assertEqual(seg.ip_cliente(headers, None, False), '')
+
+    def test_render_no_usa_el_primer_valor_y_si_cloudflare_cuando_el_salto_es_suyo(self):
+        # Cadena medida: lo de la izquierda lo puso el cliente; luego el cliente
+        # real, el borde de Cloudflare y el balanceador de Render.
+        headers = {
+            'x-forwarded-for': '1.1.1.1, 8.8.8.8, 104.16.1.1, 198.51.100.8',
+            'cf-connecting-ip': '8.8.8.8',
+        }
+        self.assertEqual(seg.ip_cliente(headers, ('10.0.0.4', 1), True), '8.8.8.8')
+        # El último salto ya es Cloudflare (no hay balanceador aparte).
+        directo = {'x-forwarded-for': '1.1.1.1, 104.16.1.1', 'cf-connecting-ip': '8.8.8.8'}
+        self.assertEqual(seg.ip_cliente(directo, ('10.0.0.4', 1), True), '8.8.8.8')
+
+    def test_una_ip_de_cloudflare_a_la_izquierda_no_abre_la_cabecera(self):
+        headers = {
+            'x-forwarded-for': '104.16.1.1, 8.8.8.8, 203.0.113.4, 198.51.100.7',
+            'cf-connecting-ip': '1.1.1.1',
+        }
+        self.assertEqual(seg.ip_cliente(headers, ('10.0.0.4', 1), True), '198.51.100.7')
+
+    def test_sin_cf_connecting_ip_usable_queda_el_borde_no_un_valor_inventado(self):
+        base = '8.8.8.8, 104.16.1.1, 198.51.100.8'
+        for falso in ('', '10.1.2.3', '8.8.8.8, 1.1.1.1', 'no-es-ip', '127.0.0.1'):
+            headers = {'x-forwarded-for': base, 'cf-connecting-ip': falso}
+            self.assertEqual(seg.ip_cliente(headers, ('10.0.0.4', 1), True), '104.16.1.1', falso)
+
+    def test_un_ultimo_token_invalido_no_desliza_hacia_la_izquierda(self):
+        headers = {'x-forwarded-for': '8.8.8.8, no-es-ip', 'cf-connecting-ip': '1.1.1.1'}
+        self.assertEqual(seg.ip_cliente(headers, ('203.0.113.9', 9), True), '203.0.113.9')
+        # Un hueco en medio no corre los puestos. El penúltimo no es Cloudflare.
+        hueco = {'x-forwarded-for': '104.16.1.1, no-es-ip, 203.0.113.5', 'cf-connecting-ip': '8.8.8.8'}
+        self.assertEqual(seg.ip_cliente(hueco, ('10.0.0.4', 1), True), '203.0.113.5')
+
+    def test_sin_cadena_en_render_queda_el_par_y_no_cf_connecting_ip(self):
+        headers = {'cf-connecting-ip': '8.8.8.8'}
+        self.assertEqual(seg.ip_cliente(headers, ('10.0.0.9', 1), True), '10.0.0.9')
+
+    def test_ipv6_y_el_borde_mapeado(self):
+        headers = {
+            'x-forwarded-for': '2001:db8::5, 2606:4700:10::1, 198.51.100.8',
+            'cf-connecting-ip': '2001:4860:4860::8888',
+        }
+        self.assertEqual(seg.ip_cliente(headers, ('::1', 1, 0, 0), True), '2001:4860:4860::8888')
+        mapeado = {'x-forwarded-for': '::ffff:104.16.1.1', 'cf-connecting-ip': '8.8.8.8'}
+        self.assertEqual(seg.ip_cliente(mapeado, None, True), '8.8.8.8')
+
+    def test_los_rangos_de_cloudflare_incluyen_el_borde_y_no_un_vecino(self):
+        self.assertTrue(seg._es_cloudflare('104.16.0.0'))
+        self.assertTrue(seg._es_cloudflare('104.23.255.255'))
+        self.assertTrue(seg._es_cloudflare('104.24.0.0'))
+        self.assertTrue(seg._es_cloudflare('172.64.0.1'))
+        self.assertTrue(seg._es_cloudflare('2606:4700::1'))
+        self.assertFalse(seg._es_cloudflare('104.15.255.255'))
+        self.assertFalse(seg._es_cloudflare('104.28.0.0'))
+        self.assertFalse(seg._es_cloudflare('172.63.255.255'))
+        self.assertFalse(seg._es_cloudflare('8.8.8.8'))
+        self.assertFalse(seg._es_cloudflare('2606:46ff::1'))
+        self.assertFalse(seg._es_cloudflare('no-es-ip'))
+
+
+class ListadosLimitTests(unittest.TestCase):
+    def test_el_listado_tiene_tope_propio_y_no_mezcla_el_login_ni_a_simon(self):
+        import apartment_api
+        self.assertEqual(seg.grupo_de('/api/apartamentos', 'GET'), ('listados', 120, 60))
+        self.assertEqual(seg.grupo_de('/api/apartamentos/', 'HEAD'), ('listados', seg.LISTADOS_TOPE, seg.LISTADOS_VENTANA))
+        self.assertEqual(seg.grupo_de('/api/apartamentos/fuentes', 'GET')[0], 'listados')
+        self.assertEqual(seg.grupo_de('/api/apartamentos/no-existe', 'GET')[0], 'listados')
+        for path in apartment_api.AGENT_PATHS:
+            self.assertEqual(seg.grupo_de(path, 'POST'), ('listados', 120, 60), path)
+            self.assertEqual(seg.grupo_de(path, 'OPTIONS')[0], 'listados', path)
+        self.assertEqual(seg.grupo_de('/api/simon/mensaje', 'POST'), ('simon', 30, 60))
+        self.assertEqual(seg.grupo_de('/api/simon-io/mensaje', 'POST')[0], 'simon')
+        self.assertIsNone(seg.grupo_de('/auth/sesion', 'GET'))
+        self.assertIsNone(seg.grupo_de('/ws', 'GET'))
+        cubo = {}
+        for _ in range(seg.LISTADOS_TOPE):
+            self.assertFalse(seg.excedido('203.0.113.9', '/api/apartamentos', 'GET', ahora=10, cubo=cubo))
+        self.assertTrue(seg.excedido('203.0.113.9', '/api/simon-io/apartamentos', 'POST', ahora=10, cubo=cubo))
+        self.assertFalse(seg.excedido('203.0.113.10', '/api/apartamentos', 'GET', ahora=10, cubo=cubo))
+        self.assertFalse(seg.excedido('203.0.113.9', '/auth/entrar', 'POST', ahora=10, cubo=cubo))
+        self.assertFalse(seg.excedido('203.0.113.9', '/api/simon/mensaje', 'POST', ahora=10, cubo=cubo))
+        self.assertFalse(seg.excedido('203.0.113.9', '/api/apartamentos', 'GET', ahora=10 + seg.LISTADOS_VENTANA, cubo=cubo))
+
+
 class JayEnVivoTests(unittest.TestCase):
     """Las mismas frases que Jay puede escribir en Simon después del despliegue."""
 

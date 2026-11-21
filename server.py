@@ -716,13 +716,17 @@ def pagar(sender, dest, smh, note='Transferencia /pagar'):
     broadcast({'t': 'system', 'text': f'{visible_nick(sender)} pagó {ECO.format_pair(smh)} a {nick_de(hit)}. Sólo es una simulación, sin valor real.'})
 
 def client_ip(headers, writer):
-    forwarded = (headers.get('x-forwarded-for') or '').split(',')[0].strip()
-    if forwarded:
-        return forwarded[:64]
-    peer = writer.get_extra_info('peername') if writer else None
-    if peer:
-        return str(peer[0])[:64]
-    return ''
+    # La clave del límite no sale del primer X-Forwarded-For: ese valor lo
+    # escribe el visitante. El criterio (proxy de Render, Cloudflare sólo si
+    # el salto es suyo, si no el de más a la derecha o el par del socket)
+    # está en seguridad.ip_cliente.
+    peer = None
+    if writer is not None:
+        try:
+            peer = writer.get_extra_info('peername')
+        except Exception:
+            peer = None
+    return SEG.ip_cliente(headers, peer)
 
 def note_motion(sender, step):
     step = float(step or 0)
@@ -4357,6 +4361,20 @@ async def _curso(reader, writer, SEG):
             length = 0
         if length:
             body = await reader.readexactly(length)
+    # El límite va antes del listado. Si no, /api/apartamentos y
+    # /api/simon-io/apartamentos se responden sin tope y un bot raspa el índice.
+    ip = client_ip(headers, writer)
+    if path.rstrip('/') == '/ws' and headers.get('upgrade', '').lower() == 'websocket' and SEG.origen_ajeno(headers):
+        SEG.aviso(ip, path, 'origen')
+        writer.write(SEG.http_json(403, {'error': 'No autorizado.'}))
+        await writer.drain(); writer.close(); return
+    if SEG.excedido(ip, path, method):
+        SEG.aviso(ip, path, 'limite')
+        extra = ()
+        if path.startswith('/api/apartamentos') or path in APARTMENT_API.AGENT_PATHS:
+            extra = tuple(APARTMENT_API.cors_headers(headers.get('origin', '')))
+        writer.write(SEG.http_json(429, {'error': 'Demasiados intentos. Espera un momento.'}, extra))
+        await writer.drain(); writer.close(); return
     if path.startswith('/api/apartamentos') or path in APARTMENT_API.AGENT_PATHS:
         # El rastreo nunca se ejecuta desde una petición pública ni bloquea el bucle del juego.
         origin = headers.get('origin', '')
@@ -4371,15 +4389,6 @@ async def _curso(reader, writer, SEG):
         writer.write(f'HTTP/1.1 {code} {labels[code]}\r\nContent-Type: application/json; charset=utf-8\r\nCache-Control: no-store\r\n{cors}Content-Length: {len(encoded)}\r\nConnection: close\r\n\r\n'.encode())
         if method != 'HEAD':
             writer.write(encoded)
-        await writer.drain(); writer.close(); return
-    ip = client_ip(headers, writer)
-    if path.rstrip('/') == '/ws' and headers.get('upgrade', '').lower() == 'websocket' and SEG.origen_ajeno(headers):
-        SEG.aviso(ip, path, 'origen')
-        writer.write(SEG.http_json(403, {'error': 'No autorizado.'}))
-        await writer.drain(); writer.close(); return
-    if SEG.excedido(ip, path, method):
-        SEG.aviso(ip, path, 'limite')
-        writer.write(SEG.http_json(429, {'error': 'Demasiados intentos. Espera un momento.'}))
         await writer.drain(); writer.close(); return
     if path.startswith('/api/world-edits'):
         user = ACC.session_user(ACCOUNTS, ACC.read_cookie(headers.get('cookie', ''), 'life_session'))

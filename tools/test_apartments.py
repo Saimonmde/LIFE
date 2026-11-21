@@ -194,6 +194,88 @@ class ApartmentTests(unittest.TestCase):
         finally:
             server.APARTMENT_API.dispatch = original
 
+    def test_client_ip_follows_the_socket_until_render_and_cloudflare(self):
+        import server
+        class Writer:
+            def __init__(self, host):
+                self.host = host
+            def get_extra_info(self, name):
+                return (self.host, 9) if name == 'peername' else None
+        forged = {'x-forwarded-for': '1.1.1.1', 'cf-connecting-ip': '8.8.8.8'}
+        with patch.dict(os.environ, {'RENDER': ''}):
+            self.assertEqual(server.client_ip(forged, Writer('203.0.113.9')), '203.0.113.9')
+        chain = {
+            'x-forwarded-for': '9.9.9.9, 8.8.8.8, 104.16.1.1, 198.51.100.8',
+            'cf-connecting-ip': '8.8.8.8',
+        }
+        with patch.dict(os.environ, {'RENDER': 'true'}):
+            self.assertEqual(server.client_ip(chain, Writer('10.0.0.4')), '8.8.8.8')
+            planted = {
+                'x-forwarded-for': '104.16.1.1, 8.8.8.8, 203.0.113.4, 198.51.100.7',
+                'cf-connecting-ip': '1.1.1.1',
+            }
+            self.assertEqual(server.client_ip(planted, Writer('10.0.0.4')), '198.51.100.7')
+
+    def test_listing_routes_rate_limit_ignores_a_forged_forwarded_for(self):
+        import asyncio
+        import server
+        import seguridad as seg
+        calls = {'n': 0}
+        def fake(method, path, target, body=b'', index=None):
+            calls['n'] += 1
+            return 200, {'total': 0, 'results': []}
+        original = server.APARTMENT_API.dispatch
+        server.APARTMENT_API.dispatch = fake
+        seg.CUBO.clear()
+
+        class Writer:
+            def __init__(self, host):
+                self.data = b''
+                self.host = host
+            def write(self, data):
+                self.data += data
+            async def drain(self):
+                pass
+            def close(self):
+                pass
+            def get_extra_info(self, name):
+                return (self.host, 9) if name == 'peername' else None
+
+        async def once(i, peer='203.0.113.50', origin=''):
+            reader = asyncio.StreamReader()
+            # El primer X-Forwarded-For cambia en cada intento. Antes eso abría un cubo nuevo.
+            header = f'X-Forwarded-For: 198.51.100.{i % 200}\r\n'
+            if origin:
+                header += f'Origin: {origin}\r\n'
+            reader.feed_data((f'GET /api/apartamentos?offset={i} HTTP/1.1\r\n{header}\r\n').encode())
+            reader.feed_eof()
+            writer = Writer(peer)
+            await server.handle(reader, writer)
+            return writer.data
+
+        async def burst():
+            seen = []
+            for i in range(seg.LISTADOS_TOPE + 1):
+                seen.append(await once(i))
+            other = await once(0, peer='198.51.100.20')
+            blocked = await once(0, origin='https://rentocity.com.co')
+            return seen, other, blocked
+
+        try:
+            with patch.dict(os.environ, {'RENDER': ''}):
+                seen, other, blocked = asyncio.run(burst())
+        finally:
+            server.APARTMENT_API.dispatch = original
+            seg.CUBO.clear()
+        self.assertEqual(calls['n'], seg.LISTADOS_TOPE + 1)
+        for response in seen[:-1]:
+            self.assertIn(b'200 OK', response.split(b'\r\n', 1)[0])
+        self.assertIn(b'429', blocked.split(b'\r\n', 1)[0])
+        self.assertIn(b'Demasiados intentos', blocked)
+        self.assertIn(b'Access-Control-Allow-Origin: https://rentocity.com.co', blocked)
+        self.assertIn(b'200 OK', other.split(b'\r\n', 1)[0])
+        self.assertIn(b'429', seen[-1].split(b'\r\n', 1)[0])
+
     def test_ssrf_private_address_and_redirect_domain_are_rejected(self):
         f = S.Fetcher(['example.com'], delay=0)
         with patch.object(S.socket, 'getaddrinfo', return_value=[(2, 1, 6, '', ('127.0.0.1', 443))]):
