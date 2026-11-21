@@ -41,7 +41,7 @@ Todas las respuestas llevan:
 
 No hay `Access-Control-Allow-Origin`. Un `Origin` de otro sitio en un POST o en el WebSocket se rechaza. No hay listado de directorios.
 
-El login, el registro, la recuperación, Simon, el diagnóstico, la finca privada y el POST de ediciones del mundo tienen un límite por IP resumida. El aviso en el registro es una línea con un resumen de la IP, la ruta y el motivo. No se escribe la contraseña, el token ni el cuerpo.
+El login, el registro, la recuperación, Simon, el diagnóstico, la finca privada, el POST de ediciones del mundo y los listados de apartamentos (`/api/apartamentos`, `/api/apartamentos/fuentes`, `/api/simon-ia/apartamentos` y `/api/simon-io/apartamentos`) tienen un límite por IP resumida. Los listados admiten 120 peticiones por minuto: da para filtrar y paginar desde rentocity.com.co, y un raspador deja de ir sin tope. La IP no es el primer `X-Forwarded-For`, porque ese valor lo escribe el visitante. Sin proxy de confianza se usa el par del socket. En Render se usa lo que el proxy añadió al final de la cadena; `CF-Connecting-IP` sólo cuenta si ese salto (o el anterior, cuando el último es el balanceador y el penúltimo es el borde de Cloudflare) cae en los rangos de Cloudflare. El aviso en el registro es una línea con un resumen de la IP, la ruta y el motivo. No se escribe la contraseña, el token ni el cuerpo.
 
 Un fallo inesperado responde `{"error":"No se pudo completar."}` y el registro sólo guarda el tipo de la excepción.
 

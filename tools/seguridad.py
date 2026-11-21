@@ -5,6 +5,7 @@ La capa no acuña, no mueve SMC y no cambia la partida. Tapa datos ajenos,
 recorta el chat, limita ráfagas y deja las respuestas públicas sin secretos.
 """
 import hashlib
+import ipaddress
 import os
 import re
 import time
@@ -173,6 +174,30 @@ SENSIBLES = (
     '/api/diagnostico', '/api/finca/privado',
     '/api/vida/admin/feedback', '/api/vida/admin/poste',
 )
+# Mismas rutas que server.py sirve en el bloque de apartamentos, más el
+# prefijo /api/apartamentos/. El chat de Simon no entra: sigue en SIMON_RUTAS.
+RUTAS_LISTADO = (
+    '/api/simon-ia/apartamentos',
+    '/api/simon-io/apartamentos',
+)
+# Una persona filtrando y paginando en rentocity.com.co, o en /play/apartamentos,
+# no sostiene 2 peticiones por segundo. 120/min corta el raspado del índice
+# y deja margen a un NAT pequeño. El cubo es por IP real, no por el borde.
+LISTADOS_TOPE = 120
+LISTADOS_VENTANA = 60
+
+# Rangos de https://www.cloudflare.com/ips-v4 y /ips-v6 (21 nov 2026).
+# Sólo las direcciones de borde: si el salto que añadió el proxy cae aquí,
+# CF-Connecting-IP lo escribió Cloudflare y no el visitante.
+_CLOUDFLARE_TXT = (
+    '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+    '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+    '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+    '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+    '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+    '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
+)
+_CLOUDFLARE = tuple(ipaddress.ip_network(item) for item in _CLOUDFLARE_TXT)
 
 CUBO = {}
 AVISOS = []
@@ -186,6 +211,128 @@ def _ahora(ahora):
 
 def _igual(a, b):
     return ' '.join(str(a or '').casefold().split()) == ' '.join(str(b or '').casefold().split())
+
+
+def _ip_texto(valor):
+    """Una sola IP, sin puerto ni lista. Vacío si no parsea. IPv4 mapeada queda en v4."""
+    text = str(valor or '').strip().strip('[]')
+    if not text or any(sep in text for sep in (' ', ',', '/')):
+        return ''
+    try:
+        addr = ipaddress.ip_address(text)
+    except ValueError:
+        return ''
+    if isinstance(addr, ipaddress.IPv6Address) and addr.ipv4_mapped:
+        addr = addr.ipv4_mapped
+    return str(addr)
+
+
+def _par(peer):
+    if isinstance(peer, (tuple, list)):
+        if not peer:
+            return ''
+        return _ip_texto(peer[0])
+    return _ip_texto(peer)
+
+
+def _es_cloudflare(ip):
+    text = _ip_texto(ip)
+    if not text:
+        return False
+    addr = ipaddress.ip_address(text)
+    return any(addr.version == red.version and addr in red for red in _CLOUDFLARE)
+
+
+def _ip_publica_global(valor):
+    """CF-Connecting-IP es una sola IP pública. Una lista o una privada no vale."""
+    raw = str(valor or '')
+    if ',' in raw:
+        return ''
+    text = _ip_texto(raw)
+    if not text:
+        return ''
+    if not ipaddress.ip_address(text).is_global:
+        return ''
+    return text
+
+
+def _cadena_xff(valor):
+    """IPs de X-Forwarded-For, de izquierda a derecha. No se descartan huecos del medio.
+
+    Un token inválido en medio no debe correr los de la derecha: si no, un
+    valor que escribió el cliente pasaría a ocupar el puesto del proxy.
+    Una coma final vacía sí se quita. Si el último token no es una IP, la
+    cadena no se usa: deslizarse a la izquierda tomaría un valor del visitante.
+    """
+    trozos = str(valor or '').split(',')
+    if len(trozos) > 40:
+        trozos = trozos[-40:]
+    while trozos and not trozos[-1].strip():
+        trozos.pop()
+    if not trozos or not _ip_texto(trozos[-1]):
+        return []
+    return [_ip_texto(trozo) for trozo in trozos]
+
+
+def _prueba_cloudflare(cadena):
+    """IP de Cloudflare entre los saltos que añadió el proxy, o vacío.
+
+    El de más a la derecha lo añade el proxy de confianza; el visitante sólo
+    puede escribir a la izquierda. En el borde público de Render la cadena
+    termina en «…, cliente, borde de Cloudflare, balanceador de Render»: el
+    penúltimo también lo añadió la infraestructura, no el cliente. Si el
+    último ya es de Cloudflare, ese es el salto visto.
+    """
+    if not cadena or not cadena[-1]:
+        return ''
+    if _es_cloudflare(cadena[-1]):
+        return cadena[-1]
+    if len(cadena) >= 2 and cadena[-2] and _es_cloudflare(cadena[-2]):
+        return cadena[-2]
+    return ''
+
+
+def ip_cliente(headers, peer=None, detras_de_proxy=None):
+    """IP para los límites. El visitante no puede elegirla con una cabecera.
+
+    El primer valor de X-Forwarded-For lo escribe quien llama. Usarlo como
+    clave deja saltar el límite de login (fuerza bruta) y el de Simon (que
+    gasta SIMON_LLM_API_KEY) poniendo una IP distinta en cada intento.
+
+    Sin proxy de confianza (local, pruebas, cualquier proceso que no esté
+    detrás de Render) vale el par del socket. X-Forwarded-For y
+    CF-Connecting-IP se ignoran: las pone el cliente.
+
+    En Render el proceso no ve al visitante. El proxy conserva lo que vino
+    en la petición y añade al final la dirección que él mismo vio. Por eso
+    la de más a la derecha es la del proxy, y las de la izquierda no.
+    Medido en el borde público, después del cliente real vienen el borde de
+    Cloudflare y el balanceador de Render.
+
+    CF-Connecting-IP sólo se acepta si ese salto —el último, o el penúltimo
+    cuando el último es el balanceador— cae en los rangos publicados de
+    Cloudflare. Sólo entonces la petición llegó de verdad por Cloudflare, que
+    reescribe esa cabecera y descarta la del cliente. Si el valor falta, no
+    es una sola IP pública, se usa la IP de ese borde. Si el salto no es de
+    Cloudflare, no se mira la cabecera: se usa el valor de más a la derecha
+    o, si no hay cadena usable, el par del socket.
+    """
+    headers = headers or {}
+    visto = _par(peer)
+    if detras_de_proxy is None:
+        detras_de_proxy = bool(os.environ.get('RENDER'))
+    if not detras_de_proxy:
+        return visto[:64]
+    cadena = _cadena_xff(headers.get('x-forwarded-for'))
+    if not cadena:
+        return visto[:64]
+    borde = _prueba_cloudflare(cadena)
+    if borde:
+        real = _ip_publica_global(headers.get('cf-connecting-ip'))
+        if real:
+            return real[:64]
+        return borde[:64]
+    return cadena[-1][:64]
 
 
 def ip_publica(ip):
@@ -492,6 +639,13 @@ def limpiar_socket(msg):
     return _limpiar(msg, propio=True)
 
 
+def _es_listado(path):
+    clean = str(path or '').rstrip('/') or '/'
+    if clean in RUTAS_LISTADO:
+        return True
+    return clean == '/api/apartamentos' or clean.startswith('/api/apartamentos/')
+
+
 def grupo_de(path, method):
     clean = str(path or '').rstrip('/') or '/'
     method = str(method or 'GET').upper()
@@ -503,6 +657,8 @@ def grupo_de(path, method):
         return 'sensible', 20, 60
     if method == 'POST' and clean.startswith('/api/world-edits'):
         return 'edicion', 20, 60
+    if _es_listado(clean):
+        return 'listados', LISTADOS_TOPE, LISTADOS_VENTANA
     return None
 
 
@@ -596,7 +752,7 @@ class Respuesta:
         return getattr(self._w, name)
 
 
-def http_json(status, payload):
+def http_json(status, payload, extra=()):
     import json
     labels = {
         400: 'Bad Request', 403: 'Forbidden', 404: 'Not Found',
@@ -604,9 +760,10 @@ def http_json(status, payload):
     }
     body = json.dumps(payload, ensure_ascii=False).encode()
     code = labels.get(status, 'OK')
+    extras = ''.join(str(item).rstrip('\r\n') + '\r\n' for item in extra)
     return (
         f'HTTP/1.1 {status} {code}\r\nContent-Type: application/json; charset=utf-8\r\n'
-        f'Cache-Control: no-store\r\nContent-Length: {len(body)}\r\nConnection: close\r\n\r\n'
+        f'Cache-Control: no-store\r\n{extras}Content-Length: {len(body)}\r\nConnection: close\r\n\r\n'
     ).encode() + body
 
 
