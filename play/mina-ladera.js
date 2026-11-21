@@ -5,8 +5,8 @@
   'use strict';
   const NAME = 'Mina de La Ladera';
   const ZONE = 'mina2';
-  const WIDTH = 48;
-  const HEIGHT = 40;
+  const WIDTH = 72;
+  const HEIGHT = 56;
   const SPAWN = { x: 24, y: 35 };
   const RATES = { cobre: 0.001, plata: 0.01, oro: 0.1 };
   const RECURSO = 'cobre 0,001 · plata 0,01 · oro 0,1 SMC';
@@ -17,11 +17,8 @@
     return out;
   }
   function spots() {
-    return {
-      cobre: grid([6, 11, 16], [6, 12, 20, 28]).slice(0, 10),
-      plata: grid([34, 40], [6, 14, 22, 30]),
-      oro: grid([22, 28], [6, 14, 24, 32]).concat([[18, 10], [38, 18], [24, 28], [32, 20]]),
-    };
+    if (root.Galerias) return root.Galerias.spots('ladera');
+    return { cobre: [], plata: [], oro: [] };
   }
   function walk(world, x, y) {
     return x > 1 && y > 1 && x < world.width - 1 && y < world.height - 1 && world.collision[y] && world.collision[y][x] === 0;
@@ -93,6 +90,7 @@
     return { x: best[2], y: best[3], name: NAME };
   }
   function cave(groundTile) {
+    if (root.Galerias) return root.Galerias.cave('ladera', groundTile);
     const width = WIDTH;
     const height = HEIGHT;
     const ground = Array.from({ length: height }, () => Array(width).fill(groundTile));

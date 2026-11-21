@@ -31,8 +31,9 @@ MONEDA = {
     'simonchis': 'cobre',
 }
 PIEZAS = {'oro': 10, 'plata': 100, 'cobre': 1000}
-WIDTH = 48
-HEIGHT = 40
+import galerias as _galerias
+WIDTH = int(_galerias.plan('ladera')['width'])
+HEIGHT = int(_galerias.plan('ladera')['height'])
 SPAWN = (24.0, 35.0)
 # Milésimos de SMC. 10 milésimos = 1 SMH = 0,01 SMC. El libro sigue en enteros.
 MILLIS = {'cobre': 1, 'plata': 10, 'oro': 100}
@@ -46,10 +47,8 @@ def _grid(xs, ys):
 
 
 def _spots():
-    cobre = _grid((6, 11, 16), (6, 12, 20, 28))[:10]
-    plata = _grid((34, 40), (6, 14, 22, 30))
-    oro = _grid((22, 28), (6, 14, 24, 32)) + [(18, 10), (38, 18), (24, 28), (32, 20)]
-    return {'cobre': cobre, 'plata': plata, 'oro': oro}
+    layout = _galerias.plan('ladera')['veins']
+    return {metal: [tuple(pair) for pair in layout[metal]] for metal in ('cobre', 'plata', 'oro')}
 
 
 def veins():

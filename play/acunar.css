@@ -65,3 +65,12 @@
 #acunar input[type="range"] { width: 100%; min-height: 44px; }
 #acunar .grande { width: 100%; margin-top: 8px; background: #e2b23c; font-size: 18px; }
 #acunar .grande:disabled { opacity: .45; }
+#acunar-joyas { margin: 0 0 12px; padding-bottom: 10px; border-bottom: 1px solid #8a6a3a; }
+#acunar-joyas h3 { margin: 0 0 8px; font-size: 18px; }
+#acunar .joyas-fila { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+#acunar .joyas-fila figure { margin: 0; min-width: 52px; text-align: center; }
+#acunar .joyas-fila img { width: 42px; height: 42px; display: block; margin: 0 auto 2px; }
+#acunar .joyas-fila b { display: block; font-size: 18px; }
+#acunar .joyas-fila small { color: #d9c49a; }
+#acunar .joyas-fila .flecha { font-size: 22px; padding-bottom: 16px; }
+#acunar .joyas-nota { margin: 8px 0 0; font-size: 13px; line-height: 1.35; color: #d9c49a; }

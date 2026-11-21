@@ -7,24 +7,9 @@ memoria del proceso: no toca el archivo de la economía.
 """
 HOLD = 0.8
 
-# La misma grilla que prepareCave en play/game.js. Oro 32 s, plata y cobre 18 s.
-MINE = {
-    'mina_cobre_0': (6, 6, 18000),
-    'mina_cobre_1': (9, 4, 18000),
-    'mina_cobre_2': (5, 12, 18000),
-    'mina_cobre_3': (8, 22, 18000),
-    'mina_cobre_4': (12, 8, 18000),
-    'mina_plata_0': (27, 5, 18000),
-    'mina_plata_1': (30, 10, 18000),
-    'mina_plata_2': (28, 22, 18000),
-    'mina_plata_3': (24, 9, 18000),
-    'mina_oro_0': (5, 3, 32000),
-    'mina_oro_1': (17, 3, 32000),
-    'mina_oro_2': (28, 3, 32000),
-    'mina_oro_3': (32, 17, 32000),
-    'mina_oro_4': (3, 18, 32000),
-    'mina_oro_5': (24, 27, 32000),
-}
+# La misma grilla que play/galerias.js. Oro 32 s, plata y cobre 18 s.
+import galerias as _galerias
+MINE = _galerias.mine_clocks('palmas')
 
 
 def empty():

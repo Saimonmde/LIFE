@@ -11,6 +11,8 @@ export function buildMine(T,W){
  const floor=box(map.width,-.3,map.height,map.width*2,.6,map.height*2,'#755537');floor.userData.terrain=true;pick.push(floor);
  for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++)if(x<2||y<2||x>map.width-3||y>map.height-3){const m=mesh(rockGeo,['#59432b','#705330','#483723'][(x*7+y*3)%3],x*2+1,2.2,y*2+1,1.65,3+(x+y)%3,1.7);m.rotation.y=(x+y)*.7;}
  for(const [x,y] of map.rocks){mesh(rockGeo,'#5e5140',x*2+1,.75,y*2+1,1.25,1.1,1.1);}
+ if(map.walls){for(const w of map.walls){box((w.x+(w.w-1)/2)*2+1,2.15,(w.y+(w.h-1)/2)*2+1,w.w*2,4.3,w.h*2,['#4a3828','#5c4632','#3d2e22'][(w.x+w.y)%3]);}}
+ if(map.timbers){for(const [x,y] of map.timbers){box(x*2+1,2.2,y*2+1,.32,4.4,.32,'#6b4428');box(x*2+1,4.25,y*2+1,1.8,.22,.32,'#8a5a32');box(x*2+1,4.25,y*2+1,.32,.22,1.6,'#8a5a32');}}
  if(!wide){
  for(let i=0;i<50;i++){const patch=mesh(new T.CircleGeometry(1.1+(i%4)*.5,6),i%2?'#6e5032':'#7e5c39',4+(i*19%63),.007,4+(i*13%53));patch.rotation.x=-Math.PI/2;}
  // Small rubble remains decorative; large rocks above are in the collision grid.
