@@ -1161,6 +1161,91 @@ def _reglas_mina(headers):
 def _acunar_fail(sender, reason, code=''):
     send(sender, {'t': 'acunar_result', 'ok': False, 'reason': reason, 'code': code})
 
+def _en_horno(sender):
+    zone = getattr(sender, 'zone', '')
+    if zone == 'mine':
+        return _en_la_mina(sender)
+    if zone == 'mina2':
+        import mina_ladera as LADERA
+        return LADERA.junto(zone, getattr(sender, 'zx', None), getattr(sender, 'zy', None))
+    return False
+
+def joyas_for(sender, proof=None):
+    """5 de oro, 3 de cobre y 2 de plata hacen 1,00 SMC. No cambia las otras tarifas."""
+    import joyas as JOYAS
+    if not _en_horno(sender):
+        return _acunar_fail(sender, 'Ve al horno de la mina.', 'zone')
+    if not getattr(sender, 'wallet_ok', False):
+        return _acunar_fail(sender, SUP.reason_text('wallet'), 'wallet')
+    profile = account_profile(sender)
+    account = profile.get('account') or ''
+    if not account:
+        return _acunar_fail(sender, SUP.reason_text('guest'), 'guest')
+    have = JOYAS.stock(ECON, VAULT_STATE, account, sender.name)
+    missing = JOYAS.texto_falta(have)
+    if missing:
+        return _acunar_fail(sender, missing, 'metal')
+    now = time.time()
+    SUP.ensure(ECON, now=now)
+    acc = SUP._account(ECON['supply'], account, int(now))
+    cap = SUP.enforced_daily_smh(profile.get('age') or 0, profile.get('play') or 0, profile.get('quests') or 0)
+    left = max(0, cap - int(acc.get('earned') or 0))
+    room = min(ECO.issuance_room(ECON), LIBRO.cupo_subs(LIBRO_CHAIN))
+    if room < JOYAS.SMH:
+        return _acunar_fail(sender, 'Se alcanzó el tope de 21.000.000 SMC. No se quitó metal.', 'supply')
+    if left < JOYAS.SMH:
+        return _acunar_fail(sender, 'Hoy no alcanza el tope para 1,00 SMC. No se quitó metal.', 'cap')
+    result = take_proof(
+        sender, 'joyas', 'simonjewels:1', proof,
+        {'t': 'joyas'},
+        want_smh=JOYAS.SMH, exact=True, pay_request=True,
+    )
+    if not result or not result.get('ok'):
+        return
+    tomado = JOYAS.tomar(ECON, VAULT_STATE, account, sender.name)
+    if not tomado:
+        SUP.restore(ECON, account, JOYAS.SMH, minted=True, undo_claim=True)
+        save_econ()
+        return _acunar_fail(sender, 'No hay suficiente mineral. No se acuñó nada.', 'metal')
+    spent = tomado['spent']
+    granted = ECO.issue(ECON, sender.name, JOYAS.SMH, 'Acuñación Simon Jewels: 5 oro, 3 cobre, 2 plata', 'fundicion')
+    if granted < JOYAS.SMH:
+        if granted:
+            revert_issue(sender.name, granted)
+        SUP.restore(ECON, account, JOYAS.SMH, minted=True, undo_claim=True)
+        JOYAS.devolver(ECON, VAULT_STATE, account, sender.name, tomado['taken'])
+        save_econ()
+        return _acunar_fail(sender, 'Se alcanzó el tope de 21.000.000 SMC. No se quitó metal.', 'supply')
+    pub = anotar_emision(sender.name, granted, 'Horno · Simon Jewels')
+    if not pub:
+        revert_issue(sender.name, granted)
+        SUP.restore(ECON, account, JOYAS.SMH, minted=True, undo_claim=True)
+        JOYAS.devolver(ECON, VAULT_STATE, account, sender.name, tomado['taken'])
+        save_econ()
+        return _acunar_fail(sender, 'No se pudo anotar el libro. No se creó Simoncoin.', 'registry')
+    try:
+        token = certify(sender.name, granted, 'fundidora', 'simon-jewels')
+    except Exception:
+        token = None
+    sender.kept_smh = granted
+    sender.pool_smh = 0
+    save_econ()
+    save_vault()
+    broadcast_econ()
+    view = MONEDAS.ledger(ECON, sender.name, account)
+    send(sender, {
+        't': 'acunar_result', 'ok': True, 'joyas': True, 'coin': 'simoncoin',
+        'name': 'Simoncoin', 'spent': 10, 'spentItems': spent, 'recibes': 1,
+        'balanceSubs': int((view.get('balances') or {}).get('simoncoin') or 0),
+        'amountText': ECO.format_smc(granted),
+        'registro': pub, 'certificate': token,
+        'reason': 'Se acuñó 1,00 SMC. Se gastaron 5 de oro, 3 de cobre y 2 de plata.',
+        'ledger': view, 'cupos': cupos_public(profile, getattr(sender, 'zone', '')),
+        'crudo': {item: CRUDO.nuggets(ECON, account, item) for item in CRUDO.CAPS},
+        'purse': PURSES.public(VAULT_STATE, sender.name),
+    })
+
+
 def _devolver_crudo(account, spent):
     for item, qty in (spent or {}).items():
         amount = int(round(float(qty or 0)))
@@ -3477,6 +3562,11 @@ def handle_client_message(c, m, t):
         except (TypeError, ValueError, ECO.AmountError):
             return
         pagar(c, m.get('to'), smh, clean(m.get('note') or 'Pago', 80) or 'Pago')
+    elif t == 'joyas' and c.hello:
+        try:
+            joyas_for(c, m.get('proof'))
+        except Exception:
+            send(c, {'t': 'acunar_result', 'ok': False, 'joyas': True, 'reason': 'No se pudo acuñar. No se quitó metal.', 'code': 'error'})
     elif t == 'acunar' and c.hello:
         try:
             acunar_for(c, m.get('coin'), m.get('pieces'), m.get('proof'), m.get('fuente'))

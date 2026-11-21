@@ -619,13 +619,10 @@ function prepareCave(){
  }
  W.sprites.mine_portal={...W.sprites.rock_piedra};W.sprites.mine_exit={...W.sprites.rock_piedra};
  cityMap=Object.fromEntries(MAP_FIELDS.map(k=>[k,W[k]]));
- const width=36,height=32,ground=Array.from({length:height},()=>Array(width).fill(W.ground[palmas.y][palmas.x])),collision=Array.from({length:height},(_,y)=>Array.from({length:width},(_,x)=>x<2||y<2||x>33||y>29?1:0)),elevation=Array.from({length:height},()=>Array(width).fill(0));
- const nodes=[{id:'salida_mina',type:'mine_exit',x:18,y:29,initialState:'active',states:['active'],sprites:{active:'mine_exit'},solid:true},{id:'letrero_salida',type:'mine_sign',x:19,y:28,solid:false,facing:Math.PI,initialState:'active',states:['active'],sprites:{active:'mine_exit'}},{id:'horno_cantera',type:'furnace',x:18,y:15,solid:true,states:['active'],initialState:'active',sprites:{active:'furnace'}},{id:'baul_mina',type:'mine_chest',x:15,y:16,solid:true,states:['active'],initialState:'active',sprites:{active:'mine_exit'}}];
- const layout={cobre:[[6,6],[9,4],[5,12],[8,22],[12,8]],plata:[[27,5],[30,10],[28,22],[24,9]],oro:[[5,3],[17,3],[28,3],[32,17],[3,18],[24,27]]};
- for(const [metal,coords] of Object.entries(layout))coords.forEach(([x,y],i)=>nodes.push({id:'mina_'+metal+'_'+i,type:'mineral_rock',mineral:metal,x,y,skill:'mining',method:'terrestre',tool:'pico',solid:true,states:['active','depleted'],initialState:'active',sprites:{active:'rock_'+metal,depleted:'rock_depleted'},yield:{item:'mineral_'+metal,min:2,max:metal==='oro'?3:4},xp:metal==='oro'?26:metal==='plata'?18:12,respawnMs:metal==='oro'?32000:18000}));
- const rocks=[[10,13],[26,15],[12,21],[22,23],[8,17],[28,26],[16,7]];for(const [x,y] of rocks){collision[y][x]=1;}
- for(const n of nodes)if(n.type!=='mine_sign')collision[n.y][n.x]=1;
- caveMap={width,height,ground,collision,elevation,nodes,npcs:[],doors:[],animals:[],regions:[{id:'mina_palmas',name:'Mina de Las Palmas · interior',x:0,y:0,w:width,h:height}],waypoints:[{id:'horno',name:'Horno central',x:18,y:17},{id:'salida',name:'Salida a Las Palmas',x:18,y:28}],roads3d:[],memories:[],riverLayouts:[],bridges:[],parkDetails:[],surfaceZones:[],signs3d:[],scenery3d:[],waterBodies:{},decorations:[],landmarks:[],areas:[],spawn:{x:18,y:27},rocks};
+ caveMap=window.Galerias?Galerias.cave('palmas',W.ground[palmas.y][palmas.x]):null;
+ if(!caveMap)throw Error('Faltan las galerías de la mina');
+ const relojVeta=metal=>({respawnMs:metal==='oro'?32000:18000}).respawnMs;
+ for(const n of caveMap.nodes)if(n.type==='mineral_rock')n.respawnMs=relojVeta(n.mineral);
  W.caveDefinition=caveMap;W.cityDefinition=cityMap;W.mineEntrance=entry;
  if(window.MinaLadera&&laderaDoor)W.caveLadera=MinaLadera.cave(W.ground[palmas.y][palmas.x]);
  const home=window.Casa.PARK_DOOR;

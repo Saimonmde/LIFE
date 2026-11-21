@@ -88,6 +88,19 @@
     box.setAttribute('aria-label', 'Acuñar');
     box.innerHTML = [
       '<header><h2>Acuñar</h2><button type="button" class="x" id="acunar-x" aria-label="Cerrar">✕</button></header>',
+      '<section id="acunar-joyas" aria-label="Receta de 1 Simoncoin">',
+      '<h3>1 Simoncoin</h3>',
+      '<div class="joyas-fila">',
+      '<figure><img src="../graphics/mining/mineral_oro.svg" alt=""><b>5</b><small>oro</small></figure>',
+      '<figure><img src="../graphics/mining/mineral_cobre.svg" alt=""><b>3</b><small>cobre</small></figure>',
+      '<figure><img src="../graphics/mining/mineral_plata.svg" alt=""><b>2</b><small>plata</small></figure>',
+      '<span class="flecha" aria-hidden="true">→</span>',
+      '<figure class="resultado"><b>1,00</b><small>SMC</small></figure>',
+      '</div>',
+      '<p id="acunar-joyas-falta"></p>',
+      '<button type="button" class="grande" id="acunar-joyas-ok">Acuñar</button>',
+      '<p class="joyas-nota">Inspirada en la moneda Simon Jewels · 100 g · 12K (50 oro · 30 cobre · 20 plata)</p>',
+      '</section>',
       '<div class="metales" role="tablist">',
       '<button type="button" data-coin="simoncoin">Oro</button>',
       '<button type="button" data-coin="simonplata">Plata</button>',
@@ -110,6 +123,7 @@
     });
     $('#acunar-cantidad').addEventListener('input', (e) => { pieces = Number(e.target.value); paint(false); });
     $('#acunar-ok').onclick = () => { usarLingote = false; send(); };
+    $('#acunar-joyas-ok').onclick = enviarJoyas;
     $('#acunar-lingote').onclick = () => { usarLingote = true; send(); usarLingote = false; };
     const ir = $('#acunar-ir');
     if (ir) ir.onclick = () => { close(); if (window.LiveInk && LiveInk.goMine) LiveInk.goMine(); };
@@ -169,6 +183,46 @@
     $('#acunar').querySelectorAll('[data-coin]').forEach(button => {
       button.classList.toggle('activa', button.dataset.coin === coin);
     });
+    pintarJoyas();
+  }
+  const JOYAS = [['mineral_oro', 5, 'oro'], ['mineral_cobre', 3, 'cobre'], ['mineral_plata', 2, 'plata']];
+  function pintarJoyas() {
+    const falta = [];
+    JOYAS.forEach((row) => {
+      const have = count(row[0]);
+      if (have < row[1]) falta.push((row[1] - have) + ' de ' + row[2]);
+    });
+    const aqui = enMina();
+    const cupo = window.__ELJARDIN && __ELJARDIN.cupos && __ELJARDIN.cupos.coins && __ELJARDIN.cupos.coins.simoncoin;
+    const hoy = cupo && cupo.left != null ? Number(cupo.left) : null;
+    const el = $('#acunar-joyas-falta');
+    let texto = '';
+    if (falta.length === 1) texto = 'Te falta ' + falta[0] + '.';
+    else if (falta.length > 1) texto = 'Te falta ' + falta.slice(0, -1).join(', ') + ' y ' + falta[falta.length - 1] + '.';
+    else if (!aqui) texto = 'Ve al horno de la mina.';
+    else if (hoy != null && hoy < 1) texto = 'Hoy no alcanza el tope para 1,00 SMC.';
+    else texto = 'Tienes la receta. Acuñar entrega 1,00 SMC.';
+    if (el && !busy) el.textContent = texto;
+    const boton = $('#acunar-joyas-ok');
+    if (boton) boton.disabled = busy || !aqui || falta.length > 0 || (hoy != null && hoy < 1);
+  }
+  function enviarJoyas() {
+    const S = window.__ELJARDIN;
+    const ws = S && S.net && S.net.ws;
+    const el = $('#acunar-joyas-falta');
+    if (!ws || !S.net.ok) {
+      if (el) el.textContent = 'Hace falta el servidor para acuñar. El metal sigue en la mochila.';
+      return;
+    }
+    if (!enMina()) {
+      if (el) el.textContent = 'Ve al horno de la mina.';
+      return;
+    }
+    busy = true;
+    ws.send(JSON.stringify({ t: 'joyas' }));
+    if (el) el.textContent = 'Calculando prueba…';
+    const boton = $('#acunar-joyas-ok');
+    if (boton) boton.disabled = true;
   }
   function open() {
     ensure();
@@ -243,6 +297,18 @@
       return true;
     }
     if (m.t !== 'acunar_result') return false;
+    if (m.joyas) {
+      busy = false;
+      if (m.cupos && window.__ELJARDIN) __ELJARDIN.cupos = m.cupos;
+      if (m.crudo && window.__ELJARDIN) __ELJARDIN.crudo = Object.assign({}, __ELJARDIN.crudo || {}, m.crudo);
+      if (m.crudo && window.ponerMetal) Object.keys(m.crudo).forEach((id) => window.ponerMetal(id, m.crudo[id]));
+      if (m.ok && window.Simulacion && Simulacion.aplicarCredito) Simulacion.aplicarCredito(m);
+      if (m.ok && window.Cajon) Cajon.paint();
+      paint();
+      const el = $('#acunar-joyas-falta');
+      if (el && m.reason) el.textContent = m.reason;
+      return true;
+    }
     busy = false;
     if (m.cupos && window.__ELJARDIN) __ELJARDIN.cupos = m.cupos;
     if (m.ledger && window.__ELJARDIN) __ELJARDIN.ledger = m.ledger;

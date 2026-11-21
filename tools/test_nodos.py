@@ -68,11 +68,11 @@ class NodeTests(unittest.TestCase):
         self.assertEqual(nodos.revive(state, now + 34), [])
 
     def test_spawn_layout_and_rates_stay_as_they_are(self):
-        page = open(os.path.join(ROOT, 'play', 'game.js'), encoding='utf-8').read()
-        self.assertIn('cobre:[[6,6],[9,4],[5,12],[8,22],[12,8]]', page)
-        self.assertIn('plata:[[27,5],[30,10],[28,22],[24,9]]', page)
-        self.assertIn('oro:[[5,3],[17,3],[28,3],[32,17],[3,18],[24,27]]', page)
-        self.assertIn("respawnMs:metal==='oro'?32000:18000", page)
+        page = open(os.path.join(ROOT, 'play', 'galerias.js'), encoding='utf-8').read()
+        self.assertIn('[6, 6], [9, 4], [5, 12], [8, 22], [12, 8]', page)
+        self.assertIn('[27, 5], [30, 10], [28, 22], [24, 9]', page)
+        self.assertIn('[5, 3], [17, 3], [28, 3], [32, 17], [3, 18], [24, 27]', page)
+        self.assertIn("respawnMs: metal === 'oro' ? 32000 : 18000", page)
         self.assertEqual(nodos.MINE['mina_oro_0'], (5, 3, 32000))
         self.assertEqual(nodos.MINE['mina_plata_1'], (30, 10, 18000))
         world = [

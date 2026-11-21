@@ -32,8 +32,8 @@ def fresh():
 class LaderaTests(unittest.TestCase):
     def test_capacity_is_larger_and_one_vein_per_player(self):
         self.assertGreater(ladera.capacity(), len(nodos.MINE))
-        self.assertEqual(ladera.capacity(), 30)
-        self.assertEqual(len(ladera.VEINS), 30)
+        self.assertEqual(ladera.capacity(), 47)
+        self.assertEqual(len(ladera.VEINS), 47)
         spots = [(row[0], row[1]) for row in ladera.VEINS.values()]
         self.assertEqual(len(spots), len(set(spots)))
         for node_id, (x, y, ms, metal) in ladera.VEINS.items():
@@ -160,23 +160,24 @@ const fs = require('fs');
 const vm = require('vm');
 const world = JSON.parse(fs.readFileSync('data/el-jardin.json', 'utf8'));
 const ctx = { console, module: {}, exports: {} };
+vm.runInNewContext(fs.readFileSync('play/galerias.js', 'utf8'), ctx);
 vm.runInNewContext(fs.readFileSync('play/mina-ladera.js', 'utf8'), ctx);
 const api = ctx.MinaLadera;
 const door = api.entrance(world);
 const layout = api.spots();
 const cave = api.cave(1);
-if (api.capacity() !== 30) process.exit(2);
+if (api.capacity() !== 47) process.exit(2);
 if (!door || door.x !== 150 || door.y !== 202) process.exit(3);
 const ids = cave.nodes.filter(n => n.type === 'mineral_rock').map(n => n.id);
-if (ids.length !== 30) process.exit(4);
+if (ids.length !== 47) process.exit(4);
 const chest = cave.nodes.find(n => n.type === 'mine_chest' && n.id === 'baul_mina');
 const furnace = cave.nodes.find(n => n.type === 'furnace' && n.id === 'horno_ladera');
 if (!chest || !furnace) process.exit(5);
 if (Math.max(Math.abs(furnace.x - chest.x), Math.abs(furnace.y - chest.y)) > 4) process.exit(8);
 const metals = { cobre: 0, plata: 0, oro: 0 };
 ids.forEach(id => { metals[id.split('_')[1]]++; });
-if (metals.cobre !== 10 || metals.plata !== 8 || metals.oro !== 12) process.exit(6);
-if (layout.cobre.length + layout.plata.length + layout.oro.length !== 30) process.exit(7);
+if (metals.cobre !== 16 || metals.plata !== 13 || metals.oro !== 18) process.exit(6);
+if (layout.cobre.length + layout.plata.length + layout.oro.length !== 47) process.exit(7);
 console.log('ok');
 """],
             cwd=ROOT, capture_output=True, text=True, check=False,
